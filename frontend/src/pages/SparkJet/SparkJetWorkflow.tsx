@@ -698,7 +698,7 @@ export const SparkJetWorkflow: React.FC = () => {
       />
 
       {/* Main Two-Column Layout (Sidebar + Main Workspace) */}
-      <div className="spark-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 260px) 1fr', gap: '20px', alignItems: 'start' }}>
+      <div className="spark-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(310px, 320px) minmax(0, 1fr)', gap: '24px', alignItems: 'start' }}>
         
         {/* LEFT EXECUTIVE SIDEBAR */}
         <aside className="spark-sidebar" style={{
@@ -706,12 +706,14 @@ export const SparkJetWorkflow: React.FC = () => {
           borderRadius: '24px',
           border: '1px solid rgba(226, 232, 240, 0.85)',
           boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 1px rgba(0, 0, 0, 0.08)',
-          padding: '24px 18px',
+          padding: '24px 20px',
           position: 'sticky',
           top: '90px',
           display: 'flex',
           flexDirection: 'column',
           gap: '20px',
+          width: '100%',
+          boxSizing: 'border-box',
         }}>
           {/* Run Header & Status */}
           <div className="spark-run-header" style={{ paddingBottom: '16px', borderBottom: '1px solid #F1F5F9' }}>
@@ -785,11 +787,11 @@ export const SparkJetWorkflow: React.FC = () => {
               WORKFLOW STEPS
             </div>
 
-            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '22px' }}>
               {/* Continuous vertical timeline connector line */}
               <div style={{
                 position: 'absolute',
-                left: '-11px',
+                left: '7px',
                 top: '20px',
                 bottom: '20px',
                 width: '2px',
@@ -808,7 +810,7 @@ export const SparkJetWorkflow: React.FC = () => {
                     {/* Timeline Node Dot */}
                     <div style={{
                       position: 'absolute',
-                      left: '-18px',
+                      left: '-22px',
                       width: '16px',
                       height: '16px',
                       display: 'flex',
@@ -854,7 +856,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         width: '100%',
-                        padding: '10px 14px',
+                        padding: '10px 12px',
                         borderRadius: '16px',
                         border: isActive
                           ? '1px solid #005E66'
@@ -868,7 +870,7 @@ export const SparkJetWorkflow: React.FC = () => {
                           : '#F8FAFC',
                         color: isActive ? '#FFFFFF' : isCompleted ? '#0F172A' : '#64748B',
                         fontWeight: isActive ? 700 : isCompleted ? 700 : 600,
-                        fontSize: '0.84rem',
+                        fontSize: '0.82rem',
                         cursor: isAllowed ? 'pointer' : 'not-allowed',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         textAlign: 'left',
@@ -886,11 +888,11 @@ export const SparkJetWorkflow: React.FC = () => {
                         }
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                         <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '10px',
+                          width: '30px',
+                          height: '30px',
+                          borderRadius: '9px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -902,16 +904,16 @@ export const SparkJetWorkflow: React.FC = () => {
                           color: isActive ? '#FFFFFF' : isCompleted ? '#16A34A' : '#94A3B8',
                           flexShrink: 0,
                         }}>
-                          <IconComp size={16} />
+                          <IconComp size={15} />
                         </div>
                         <div style={{
-                          width: '20px',
-                          height: '20px',
+                          width: '18px',
+                          height: '18px',
                           borderRadius: '50%',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '0.74rem',
+                          fontSize: '0.72rem',
                           fontWeight: 800,
                           background: isActive
                             ? '#FFFFFF'
@@ -927,19 +929,19 @@ export const SparkJetWorkflow: React.FC = () => {
                         }}>
                           {s.id}
                         </div>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {s.label}
                         </span>
                       </div>
 
                       {/* Right Indicator */}
-                      <div style={{ flexShrink: 0, marginLeft: '8px' }}>
+                      <div style={{ flexShrink: 0, marginLeft: '6px' }}>
                         {isCompleted ? (
-                          <CheckCircle2 size={18} color="#16A34A" />
+                          <CheckCircle2 size={16} color="#16A34A" />
                         ) : isActive ? (
-                          <Loader2 size={18} color="#FFFFFF" className="spin-slow" />
+                          <Loader2 size={16} color="#FFFFFF" className="spin-slow" />
                         ) : (
-                          <Lock size={14} color="#94A3B8" />
+                          <Lock size={13} color="#94A3B8" />
                         )}
                       </div>
                     </button>
@@ -953,60 +955,63 @@ export const SparkJetWorkflow: React.FC = () => {
           <div className="spark-exec-summary" style={{
             background: '#F8FAFC',
             borderRadius: '16px',
-            padding: '16px',
+            padding: '14px',
             border: '1px solid #E2E8F0',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', marginBottom: '14px', letterSpacing: '0.05em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
               <Activity size={14} color="#007680" />
               EXECUTION SUMMARY
             </div>
 
             {/* 3 Metric Cards Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px', marginBottom: '12px' }}>
               {/* TB Accounts */}
-              <div style={{ background: '#FFFFFF', padding: '10px 8px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                  <Database size={13} />
+              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
+                  <Database size={12} />
                 </div>
-                <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1 }}>
+                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
                   TB ACCOUNTS
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '4px', lineHeight: 1.1 }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '3px', lineHeight: 1 }}>
                   {status?.totalInputRows?.tb || 13}
                 </div>
               </div>
 
               {/* GL Documents */}
-              <div style={{ background: '#FFFFFF', padding: '10px 8px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                  <FileText size={13} />
+              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
+                  <FileText size={12} />
                 </div>
-                <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1 }}>
+                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
                   GL DOCUMENTS
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '4px', lineHeight: 1.1 }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '3px', lineHeight: 1 }}>
                   {status?.glCheckpointsSummary?.totalJournals || 4}
                 </div>
               </div>
 
               {/* Status */}
-              <div style={{ background: '#FFFFFF', padding: '10px 8px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#F3E8FF', color: '#9333EA', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                  <Clock size={13} />
+              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#F3E8FF', color: '#9333EA', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
+                  <Clock size={12} />
                 </div>
-                <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1 }}>
+                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
                   STATUS
                 </div>
-                <div style={{ marginTop: '4px' }}>
+                <div style={{ marginTop: '3px', width: '100%' }}>
                   <span style={{
-                    fontSize: '0.62rem',
+                    fontSize: '0.58rem',
                     fontWeight: 800,
                     color: '#007680',
                     background: '#E6F4F5',
-                    padding: '2px 6px',
+                    padding: '2px 4px',
                     borderRadius: '4px',
-                    display: 'inline-block',
-                    letterSpacing: '0.02em',
+                    display: 'block',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}>
                     {status?.status || 'MAPPING'}
                   </span>
@@ -1015,21 +1020,21 @@ export const SparkJetWorkflow: React.FC = () => {
             </div>
 
             {/* Date Details */}
-            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em' }}>
+            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
                   <Calendar size={13} color="#94A3B8" /> STARTED
                 </div>
-                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
-                  {formatExecutiveDate(status?.startedAt || config?.createdAt, true)}
+                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                  {formatExecutiveDate(status?.startedAt || config?.createdAt, false)}
                 </span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
                   <CheckCircle2 size={13} color="#94A3B8" /> COMPLETED
                 </div>
-                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
+                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
                   {formatExecutiveDate(status?.completedAt, false)}
                 </span>
               </div>
