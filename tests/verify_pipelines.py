@@ -85,7 +85,8 @@ omnia_config = {
             "filePath": os.path.join(workspace_root, 'sample_data', 'omnia_jet', 'JET_Input.xlsx'),
             "extension": "xlsx",
             "sheets": [
-                {"sheetName": "TB", "detectedDataset": "TRIAL_BALANCE"},
+                {"sheetName": "TB_Beginning", "detectedDataset": "TRIAL_BALANCE"},
+                {"sheetName": "TB_Ending", "detectedDataset": "TRIAL_BALANCE"},
                 {"sheetName": "Population", "detectedDataset": "GENERAL_LEDGER"},
                 {"sheetName": "COA", "detectedDataset": "COA"}
             ]
@@ -93,7 +94,6 @@ omnia_config = {
     ],
     "datasetMap": {
         "tbFileId": "JET_Input.xlsx",
-        "tbSheetName": "TB",
         "glFileId": "JET_Input.xlsx",
         "glSheetName": "Population",
         "coaFileId": "JET_Input.xlsx",
