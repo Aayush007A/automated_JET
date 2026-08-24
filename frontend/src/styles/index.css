@@ -325,56 +325,64 @@ a:hover {
   transform: translateY(-1px);
 }
 
-/* Fixed & Responsive Sidebar */
+/* ── SPARK SIDEBAR & LAYOUT ─────────────────────────────── */
+
+/*
+  Layout: flex row — sidebar is fixed-width, main content fills rest.
+  The sidebar uses position:sticky WITHOUT max-height or overflow,
+  so the whole page scrolls naturally. No internal scrollbar, no clip.
+*/
+.spark-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+}
+
 .spark-sidebar {
+  /* Fixed width — compact enough to never push main area at 110% */
+  width: 256px;
+  flex-shrink: 0;
+
+  /* Sticky — floats as user scrolls, no internal scroll */
   position: sticky;
   top: 80px;
-  max-height: calc(100vh - 96px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: #CBD5E1 transparent;
-  padding: 20px 16px;
+
+  /* Premium card styling */
   background: #FFFFFF;
   border-radius: 20px;
-  border: 1px solid rgba(226, 232, 240, 0.85);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  border: 1px solid #E8EFF5;
+  box-shadow: 0 2px 16px rgba(15, 23, 42, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04);
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   box-sizing: border-box;
+  /* NO overflow-y, NO max-height — page scrolls, not sidebar */
 }
 
-.spark-sidebar::-webkit-scrollbar {
-  width: 5px;
-}
-.spark-sidebar::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 4px;
+.spark-main {
+  flex: 1;
+  min-width: 0; /* prevents flex child from overflowing */
 }
 
-.spark-layout {
-  display: grid;
-  grid-template-columns: 310px minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
+/* At ≤1320px (medium desktops, mild zoom) — slight sidebar compress */
+@media (max-width: 1320px) {
+  .spark-sidebar { width: 240px; }
+  .spark-layout { gap: 18px; }
 }
 
-@media (max-width: 1150px) {
+/* At ≤1100px (heavy zoom or narrow window) — go vertical */
+@media (max-width: 1100px) {
   .spark-layout {
-    grid-template-columns: 280px minmax(0, 1fr);
+    flex-direction: column;
     gap: 16px;
   }
-}
-
-@media (max-width: 860px) {
-  .spark-layout {
-    grid-template-columns: 1fr;
-  }
   .spark-sidebar {
-    position: relative;
-    top: 0;
-    max-height: none;
+    width: 100%;
+    position: static;
+    top: auto;
+    border-radius: 16px;
+    padding: 16px;
   }
 }
 
@@ -721,28 +729,11 @@ a:hover {
 
 /* ── RESPONSIVE BREAKPOINTS ─────────────────────────────── */
 
-/* Desktop tweaks: ≤ 1280px */
-@media (max-width: 1280px) {
-  .spark-layout {
-    grid-template-columns: minmax(0, 230px) 1fr !important;
-    gap: 16px !important;
-  }
-}
+/* Desktop tweaks: ≤ 1280px — sidebar already handled by .spark-layout flex rules above */
 
-/* Tablet: ≤ 1024px — sidebar becomes a collapsible top strip */
+/* Tablet: ≤ 1024px — sidebar is already vertical via .spark-layout rules above */
 @media (max-width: 1024px) {
-  .spark-layout {
-    grid-template-columns: 1fr !important;
-    gap: 0 !important;
-  }
-  .spark-sidebar {
-    position: static !important;
-    top: auto !important;
-    border-radius: var(--radius-lg) !important;
-    margin-bottom: 16px !important;
-    padding: 16px !important;
-  }
-  /* Turn sidebar steps into a horizontal scrollable row */
+  /* Turn sidebar steps into a horizontal scrollable row on tablet */
   .spark-sidebar .spark-steps-col {
     flex-direction: row !important;
     overflow-x: auto !important;
@@ -755,10 +746,6 @@ a:hover {
     padding: 8px 14px !important;
     font-size: 0.8rem !important;
     border-radius: 20px !important;
-  }
-  /* Hide the Execution Summary widget on tablets to save vertical space */
-  .spark-sidebar .spark-exec-summary {
-    display: none !important;
   }
 
   .jet-table th,

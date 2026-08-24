@@ -161,62 +161,19 @@ export const SparkJetWorkflow: React.FC = () => {
     ex12: true,
   });
 
-  // Table rows for interactive input grids
-  const [unusualAccounts, setUnusualAccounts] = useState<AccountRow[]>([
-    { gl: '1009', description: 'ZeroBal Fund Trf', subtype: 'Assets', notes: 'Zero Balance Clearing' },
-    { gl: '1012', description: 'Zero Bal Others', subtype: 'Assets', notes: 'Zero Balance Clearing' },
-    { gl: '0059100000', description: 'Intercompany Suspense', subtype: 'Liabilities', notes: 'Suspense Account' },
-    { gl: '0059100001', description: 'Bank Clearing Suspense', subtype: 'Assets', notes: 'Suspense Account' },
-    { gl: '0058809000', description: 'GR/IR Clearing', subtype: 'Liabilities', notes: 'Clearing Account' },
-    { gl: '0034100000', description: 'Exchange Difference Suspense', subtype: 'Expense', notes: 'FX Variance' },
-  ]);
+  const [unusualAccounts, setUnusualAccounts] = useState<AccountRow[]>([]);
 
-  const [seldomAccounts, setSeldomAccounts] = useState<AccountRow[]>([
-    { gl: '11301060', description: 'Prepaid Insurance', subtype: 'Assets', notes: 'Infrequent Postings' },
-    { gl: '11601900', description: 'Security Deposit Long Term', subtype: 'Assets', notes: 'Infrequent Postings' },
-    { gl: '52002500', description: 'Gain on Sale of Assets', subtype: 'Revenue', notes: 'Infrequent Postings' },
-    { gl: '1081001', description: 'Investment in Subs', subtype: 'Assets', notes: 'Infrequent Postings' },
-  ]);
+  const [seldomAccounts, setSeldomAccounts] = useState<AccountRow[]>([]);
 
-  const [revenueAccounts, setRevenueAccounts] = useState<RevenueAccountRow[]>([
-    { gl: '41001000', description: 'Sales - Free Samples Dom', openingBalance: 16000.0, debit: 0.0, credit: 0.0, closingBalance: 16000.0, movement: 0.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
-    { gl: '41001400', description: 'Sales - Domestic', openingBalance: -4295306840.85, debit: 0.0, credit: 0.0, closingBalance: -5343990283.18, movement: -1048683442.33, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
-    { gl: '41001500', description: 'Sales - Exports', openingBalance: -775851.91, debit: 0.0, credit: 0.0, closingBalance: -775851.91, movement: 0.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
-    { gl: '41001510', description: 'Sales - Intercompany', openingBalance: -2753213.7, debit: 0.0, credit: 0.0, closingBalance: -2753213.7, movement: 0.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
-    { gl: '41201000', description: 'Sales Mfg Scrap', openingBalance: -76721259.0, debit: 0.0, credit: 0.0, closingBalance: -100466623.0, movement: -23745364.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
-    { gl: '41201200', description: 'Sales - Trading', openingBalance: -1857597.0, debit: 0.0, credit: 0.0, closingBalance: -1748516.0, movement: 109081.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
-    { gl: '41301200', description: 'Interest received', openingBalance: -4112690.12, debit: 0.0, credit: 0.0, closingBalance: -3545833.12, movement: 566857.0, subtype: 'Revenue', fsLineItem: 'Finance income' },
-    { gl: '41301310', description: 'Exp.Incentive Duty Drawback-Income', openingBalance: -63429.0, debit: 0.0, credit: 0.0, closingBalance: -63429.0, movement: 0.0, subtype: 'Revenue', fsLineItem: 'Other operating income (expenses), net' },
-    { gl: '41301330', description: 'Accrual Income against PSI Scheme', openingBalance: -256489676.5, debit: 0.0, credit: 0.0, closingBalance: -293334821.5, movement: -36845145.0, subtype: 'Revenue', fsLineItem: 'Other operating income (expenses), net' },
-    { gl: '41301600', description: 'Misc. Income', openingBalance: -1820.0, debit: 0.0, credit: 0.0, closingBalance: -8544210.0, movement: -8542390.0, subtype: 'Revenue', fsLineItem: 'Other operating income (expenses), net' },
-    { gl: '41301820', description: 'Sales of Tooling', openingBalance: -4098000.0, debit: 0.0, credit: 0.0, closingBalance: -4098000.0, movement: 0.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
-  ]);
+  const [revenueAccounts, setRevenueAccounts] = useState<RevenueAccountRow[]>([]);
 
-  const [usersOfInterest, setUsersOfInterest] = useState<UserRow[]>([
-    { userId: 'SBPATIL', name: 'S. B. Patil', role: 'Finance Executive', category: 'Executive' },
-    { userId: 'PKADAM', name: 'P. Kadam', role: 'General Ledger Accountant', category: 'General' },
-    { userId: 'OCPL-PRASHAN', name: 'Prashant C', role: 'External Consultant', category: 'Contractor' },
-    { userId: 'ADMIN', name: 'System Administrator', role: 'IT Admin', category: 'High Risk' },
-    { userId: 'BATCH', name: 'Nightly Batch Job', role: 'System Automation', category: 'System' },
-  ]);
+  const [usersOfInterest, setUsersOfInterest] = useState<UserRow[]>([]);
 
-  const [datesOfInterest, setDatesOfInterest] = useState<DateRow[]>([
-    { date: '05-Nov-25', event: 'Diwali Holiday Posting', impact: 'Non-working day' },
-    { date: '25-Dec-25', event: 'Christmas Holiday Posting', impact: 'Non-working day' },
-    { date: '31-Dec-25', event: 'Year-End Closing Date', impact: 'Financial Year End' },
-    { date: '01-Jan-26', event: 'New Year Day', impact: 'Non-working day' },
-  ]);
+  const [datesOfInterest, setDatesOfInterest] = useState<DateRow[]>([]);
 
-  const [keywords, setKeywords] = useState<string[]>([
-    'fault', 'bribe', "auditor's adjustment", 'mistake', 'risk', 'misstatement',
-    'officer', 'prize', 'fraud', 'reverse', 'manual', 'error', 'theft', 'fictitious'
-  ]);
+  const [keywords, setKeywords] = useState<string[]>([]);
 
-  const [unrelatedRules, setUnrelatedRules] = useState<UnrelatedRuleRow[]>([
-    { debitFSLine: 'Trade Receivables', creditFSLine: 'COST OF SALES AND SERVICES', category: 'Revenue / Expense Mismatch' },
-    { debitFSLine: 'Trade Receivables', creditFSLine: 'Property, plant and equipment', category: 'Asset Misclassification' },
-    { debitFSLine: 'Cash and cash equivalents', creditFSLine: 'Other equity', category: 'Capital Withdrawal Risk' },
-  ]);
+  const [unrelatedRules, setUnrelatedRules] = useState<UnrelatedRuleRow[]>([]);
 
   // General Spark JET Parameters
   const [sparkParams, setSparkParams] = useState<SparkJetParameters>({
@@ -262,8 +219,10 @@ export const SparkJetWorkflow: React.FC = () => {
 
       if (data.status.status === 'COMPLETED') {
         setMaxCompletedStep(5);
+        // Restore user to the results step when revisiting a completed run
+        setCurrentStep(5);
       } else if (data.config.files.length > 0) {
-        setMaxCompletedStep((prev) => Math.max(prev, 3));
+        setMaxCompletedStep((prev) => Math.max(prev, 2));
       }
     } catch (err) {
       console.error(err);
@@ -688,16 +647,20 @@ export const SparkJetWorkflow: React.FC = () => {
 
   const isStep2Valid = Boolean(
     hasRequiredMappings &&
-    autoCleanReport &&
-    autoCleanReport.constraintsPassed === true
+    (
+      (autoCleanReport && autoCleanReport.constraintsPassed === true) ||
+      status?.status === 'COMPLETED' // completed runs bypass local autoCleanReport state
+    )
   );
 
   const canAccessStep = (stepId: number) => {
+    // For any COMPLETED run, all steps are unlocked
+    if (status?.status === 'COMPLETED') return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
     if (stepId === 3) return isStep1Valid && isStep2Valid;
     if (stepId === 4) return isStep1Valid && isStep2Valid;
-    if (stepId === 5) return isStep1Valid && isStep2Valid && (status?.status === 'COMPLETED');
+    if (stepId === 5) return isStep1Valid && isStep2Valid && ((status?.status as string) === 'COMPLETED');
     return false;
   };
 
@@ -880,7 +843,7 @@ export const SparkJetWorkflow: React.FC = () => {
       {/* Main Two-Column Layout (Sidebar + Main Workspace) */}
       <div className="spark-layout">
         
-        {/* LEFT EXECUTIVE SIDEBAR (Fixed & Responsive at all zoom levels) */}
+        {/* LEFT EXECUTIVE SIDEBAR */}
         <aside className="spark-sidebar">
           {/* Run Header & Status */}
           <div className="spark-run-header" style={{ paddingBottom: '16px', borderBottom: '1px solid #F1F5F9' }}>
@@ -1130,60 +1093,51 @@ export const SparkJetWorkflow: React.FC = () => {
               EXECUTION SUMMARY
             </div>
 
-            {/* 3 Metric Cards Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px', marginBottom: '12px' }}>
+            {/* 2-Row Metric Layout: Row 1 = TB + GL cards, Row 2 = Status pill */}
+            {/* Row 1 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
               {/* TB Accounts */}
-              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
-                  <Database size={12} />
+              <div style={{ background: '#F0FDF9', padding: '10px', borderRadius: '12px', border: '1px solid #CCFBF1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Database size={13} />
                 </div>
-                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                  TB ACCOUNTS
-                </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '3px', lineHeight: 1 }}>
-                  {dynamicTbCount}
+                <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>TB Rows</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                  {dynamicTbCount > 0 ? dynamicTbCount.toLocaleString() : '—'}
                 </div>
               </div>
 
               {/* GL Documents */}
-              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
-                  <FileText size={12} />
+              <div style={{ background: '#EFF6FF', padding: '10px', borderRadius: '12px', border: '1px solid #BFDBFE', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={13} />
                 </div>
-                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                  GL DOCUMENTS
-                </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '3px', lineHeight: 1 }}>
-                  {dynamicGlCount}
+                <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>GL Rows</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                  {dynamicGlCount > 0 ? dynamicGlCount.toLocaleString() : '—'}
                 </div>
               </div>
+            </div>
 
-              {/* Status */}
-              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#F3E8FF', color: '#9333EA', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
-                  <Clock size={12} />
-                </div>
-                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                  STATUS
-                </div>
-                <div style={{ marginTop: '3px', width: '100%' }}>
-                  <span style={{
-                    fontSize: '0.58rem',
-                    fontWeight: 800,
-                    color: getStatusStyles(currentExecutionStatus).color,
-                    background: getStatusStyles(currentExecutionStatus).bg,
-                    padding: '2px 4px',
-                    borderRadius: '4px',
-                    display: 'block',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}>
-                    {currentExecutionStatus}
-                  </span>
-                </div>
+            {/* Row 2: Status pill (full width) */}
+            <div style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              background: getStatusStyles(currentExecutionStatus).bg,
+              border: `1px solid ${getStatusStyles(currentExecutionStatus).border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={13} color={getStatusStyles(currentExecutionStatus).color} />
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</span>
               </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: getStatusStyles(currentExecutionStatus).color, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {currentExecutionStatus}
+              </span>
             </div>
 
             {/* Date Details */}
@@ -1210,7 +1164,7 @@ export const SparkJetWorkflow: React.FC = () => {
         </aside>
 
         {/* RIGHT MAIN WORKSPACE */}
-        <main style={{ minWidth: 0 }}>
+        <main className="spark-main">
           
           {/* STEP 1: FILE UPLOAD & PREVIEW */}
           {currentStep === 1 && (
