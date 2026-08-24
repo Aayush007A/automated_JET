@@ -179,8 +179,11 @@ export class FileDetector {
 
           // Infer by sheet name first
           let sheetClass: DatasetClassification = 'UNKNOWN';
-          const lowerSheet = sheetName.toLowerCase();
-          if (lowerSheet.includes('tb') || lowerSheet.includes('trial') || lowerSheet.includes('balance')) {
+          const lowerSheet = sheetName.toLowerCase().replace(/[\s_]/g, '');
+          // TB variants: TB, Trial Balance, TB_Beginning, TB_Ending, Beginning, Ending
+          if (lowerSheet.includes('tbbeg') || lowerSheet.includes('tbend') || lowerSheet === 'beginning' || lowerSheet === 'ending') {
+            sheetClass = 'TRIAL_BALANCE';
+          } else if (lowerSheet.includes('tb') || lowerSheet.includes('trial') || lowerSheet.includes('balance')) {
             sheetClass = 'TRIAL_BALANCE';
           } else if (lowerSheet.includes('gl') || lowerSheet.includes('population') || lowerSheet.includes('ledger') || lowerSheet.includes('journal') || lowerSheet.includes('je')) {
             sheetClass = 'GENERAL_LEDGER';

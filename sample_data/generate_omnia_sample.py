@@ -1,169 +1,305 @@
 """
 Generate Omnia JET Sample Data - JET_Input.xlsx
-Sheets: TB, Population (GL Detail), COA
-All columns aligned with omnia_jet_pipeline.py expected column names.
+Sheets: TB_Beginning, TB_Ending, Population (GL Detail), COA
+- TB_Beginning: prior year closing balances, period_end_date = testing_start - 1 day (2025-03-31)
+- TB_Ending:    current year closing balances, period_end_date = testing_end (2026-03-31)
+- Both union to make a complete TB covering prior + current period
+- GL Detail:    full CDM-compliant journal entry lines with debit/credit, is_standard, time_posted etc.
+- COA:          full CDM-compliant COA with all required Omnia fields
 """
 
 import os
 import pandas as pd
+from datetime import date
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 out_path = os.path.join(base_dir, 'omnia_jet', 'JET_Input.xlsx')
 os.makedirs(os.path.join(base_dir, 'omnia_jet'), exist_ok=True)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SHEET 1: Trial Balance (TB)
-# Required: Account Number, Description, Opening Balance, Closing Balance, 
-#           Currency, Closing Date  (+ optional FS categorization cols)
-# ─────────────────────────────────────────────────────────────────────────────
-tb_data = [
-    # Assets
-    {"Account Number": "10100000", "Description": "Cash and Bank - Current Account",  "Account Subtype": "Assets",      "FS Line Item": "Cash and cash equivalents",             "Opening Balance": 45200000.0,   "Closing Balance": 38750000.0,   "Debit": 12500000.0, "Credit": 18950000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "10200000", "Description": "Short-term Investments",            "Account Subtype": "Assets",      "FS Line Item": "Cash and cash equivalents",             "Opening Balance": 10000000.0,   "Closing Balance": 10000000.0,   "Debit": 0.0,        "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "11401000", "Description": "Trade Receivables - Domestic",      "Account Subtype": "Assets",      "FS Line Item": "Trade Receivables",                     "Opening Balance": 148500000.0,  "Closing Balance": 162000000.0,  "Debit": 42500000.0, "Credit": 29000000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "11402000", "Description": "Trade Receivables - Export",        "Account Subtype": "Assets",      "FS Line Item": "Trade Receivables",                     "Opening Balance": 32000000.0,   "Closing Balance": 28500000.0,   "Debit": 8200000.0,  "Credit": 11700000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "11500000", "Description": "Prepaid Expenses",                  "Account Subtype": "Assets",      "FS Line Item": "Other current assets",                  "Opening Balance": 3800000.0,    "Closing Balance": 4200000.0,    "Debit": 2100000.0,  "Credit": 1700000.0,  "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "11600000", "Description": "Security Deposits",                 "Account Subtype": "Assets",      "FS Line Item": "Other non-current assets",              "Opening Balance": 5000000.0,    "Closing Balance": 5000000.0,    "Debit": 0.0,        "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "12100000", "Description": "Inventories - Raw Materials",       "Account Subtype": "Assets",      "FS Line Item": "Inventories",                           "Opening Balance": 62000000.0,   "Closing Balance": 58000000.0,   "Debit": 38000000.0, "Credit": 42000000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "12200000", "Description": "Inventories - Finished Goods",      "Account Subtype": "Assets",      "FS Line Item": "Inventories",                           "Opening Balance": 28000000.0,   "Closing Balance": 31500000.0,   "Debit": 18500000.0, "Credit": 15000000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "51001000", "Description": "Property, Plant & Machinery",       "Account Subtype": "Assets",      "FS Line Item": "Property, plant and equipment",         "Opening Balance": 540000000.0,  "Closing Balance": 558000000.0,  "Debit": 22000000.0, "Credit": 4000000.0,  "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "51002000", "Description": "Accumulated Depreciation",          "Account Subtype": "Assets",      "FS Line Item": "Property, plant and equipment",         "Opening Balance": -180000000.0, "Closing Balance": -201000000.0, "Debit": 0.0,        "Credit": 21000000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    # Liabilities
-    {"Account Number": "20100000", "Description": "Short-Term Borrowings",             "Account Subtype": "Liabilities", "FS Line Item": "Borrowings",                            "Opening Balance": -80000000.0,  "Closing Balance": -75000000.0,  "Debit": 25000000.0, "Credit": 20000000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "20200000", "Description": "Long-Term Loans",                   "Account Subtype": "Liabilities", "FS Line Item": "Borrowings",                            "Opening Balance": -250000000.0, "Closing Balance": -230000000.0, "Debit": 20000000.0, "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "21100000", "Description": "Trade Payables - Domestic",         "Account Subtype": "Liabilities", "FS Line Item": "Trade Payables",                        "Opening Balance": -42000000.0,  "Closing Balance": -48000000.0,  "Debit": 35000000.0, "Credit": 41000000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "21200000", "Description": "Accrued Liabilities",               "Account Subtype": "Liabilities", "FS Line Item": "Other current liabilities",             "Opening Balance": -18000000.0,  "Closing Balance": -21000000.0,  "Debit": 9000000.0,  "Credit": 12000000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "21302630", "Description": "Output GST Clearing",               "Account Subtype": "Liabilities", "FS Line Item": "Other Payables",                        "Opening Balance": 0.0,          "Closing Balance": -2500000.0,   "Debit": 0.0,        "Credit": 2500000.0,  "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    # Equity
-    {"Account Number": "1000001",  "Description": "Equity Share Capital - Rs.10",      "Account Subtype": "Liabilities", "FS Line Item": "Share Capital",                         "Opening Balance": -117200000.0, "Closing Balance": -117200000.0, "Debit": 0.0,        "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "1160001",  "Description": "Retained Earnings",                 "Account Subtype": "Liabilities", "FS Line Item": "Retained Earnings",                     "Opening Balance": -85000000.0,  "Closing Balance": -110000000.0, "Debit": 0.0,        "Credit": 25000000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    # Revenue
-    {"Account Number": "41001400", "Description": "Sales Revenue - Domestic",          "Account Subtype": "Revenue",     "FS Line Item": "NET SALES REVENUE",                     "Opening Balance": -380000000.0, "Closing Balance": -445000000.0, "Debit": 500000.0,   "Credit": 65500000.0, "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "41001500", "Description": "Sales Revenue - Export",            "Account Subtype": "Revenue",     "FS Line Item": "NET SALES REVENUE",                     "Opening Balance": -42000000.0,  "Closing Balance": -50500000.0,  "Debit": 0.0,        "Credit": 8500000.0,  "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "41301200", "Description": "Interest Income",                   "Account Subtype": "Revenue",     "FS Line Item": "Finance income",                        "Opening Balance": -3800000.0,   "Closing Balance": -4600000.0,   "Debit": 0.0,        "Credit": 800000.0,   "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "41301600", "Description": "Miscellaneous Income",              "Account Subtype": "Revenue",     "FS Line Item": "Other operating income (expenses), net","Opening Balance": -1200000.0,   "Closing Balance": -1800000.0,   "Debit": 0.0,        "Credit": 600000.0,   "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    # Expenses
-    {"Account Number": "50001000", "Description": "Cost of Goods Sold",               "Account Subtype": "Expenses",    "FS Line Item": "COST OF SALES AND SERVICES",            "Opening Balance": 215000000.0,  "Closing Balance": 248000000.0,  "Debit": 33000000.0, "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "52001000", "Description": "Employee Compensation",             "Account Subtype": "Expenses",    "FS Line Item": "General and administrative expenses",   "Opening Balance": 48000000.0,   "Closing Balance": 60000000.0,   "Debit": 12000000.0, "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "52002500", "Description": "Consultancy & Audit Fees",          "Account Subtype": "Expenses",    "FS Line Item": "General and administrative expenses",   "Opening Balance": 2500000.0,    "Closing Balance": 6000000.0,    "Debit": 3500000.0,  "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "52003000", "Description": "Depreciation Expense",              "Account Subtype": "Expenses",    "FS Line Item": "Depreciation and amortisation",         "Opening Balance": 16000000.0,   "Closing Balance": 21000000.0,   "Debit": 5000000.0,  "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
-    {"Account Number": "52004000", "Description": "Finance Costs - Interest",          "Account Subtype": "Expenses",    "FS Line Item": "Finance costs",                         "Opening Balance": 8500000.0,    "Closing Balance": 11200000.0,   "Debit": 2700000.0,  "Credit": 0.0,        "Local Currency": "INR", "Closing Date": "03/31/2026"},
+# ─── Engagement Parameters ────────────────────────────────────────────────────
+ENTITY_ID       = "ENT01"
+ENTITY_NAME     = "JIOSAT Manufacturing Pvt. Ltd."
+CHART_OF_ACCTS  = "JIOSAT"
+EC_CURRENCY     = "INR"
+GC_CURRENCY     = "USD"
+FX_RATE         = 83.1          # 1 USD = 83.1 INR approx
+FISCAL_YEAR     = 2026
+TESTING_START   = "04/01/2025"  # period start
+TESTING_END     = "03/31/2026"  # period end (fiscal year end)
+BEG_PERIOD_END  = "03/31/2025"  # one day BEFORE testing start = beginning TB period_end_date
+PERIOD_TYPE     = "YTD"
+
+def ec_to_gc(amount):
+    return round(amount / FX_RATE, 2)
+
+# ─── Account Master ───────────────────────────────────────────────────────────
+ACCOUNTS = [
+    # (acct_no, description, fs_category, fs_subtotal, fs_line, fs_type, grp1_num, grp1, grp2_num, grp2)
+    ("10100000","Cash and Bank - Current Account",  "Assets",     "Current Assets",        "Cash and cash equivalents",              "Balance Sheet", "CA01","Cash & Bank",    "FSL001","Cash and cash equivalents"),
+    ("10200000","Short-term Investments",            "Assets",     "Current Assets",        "Cash and cash equivalents",              "Balance Sheet", "CA01","Cash & Bank",    "FSL001","Cash and cash equivalents"),
+    ("11401000","Trade Receivables - Domestic",      "Assets",     "Current Assets",        "Trade Receivables",                      "Balance Sheet", "CA02","Receivables",    "FSL002","Trade Receivables"),
+    ("11402000","Trade Receivables - Export",        "Assets",     "Current Assets",        "Trade Receivables",                      "Balance Sheet", "CA02","Receivables",    "FSL002","Trade Receivables"),
+    ("11500000","Prepaid Expenses",                  "Assets",     "Current Assets",        "Other current assets",                   "Balance Sheet", "CA03","Prepayments",   "FSL003","Other current assets"),
+    ("11600000","Security Deposits",                 "Assets",     "Non-Current Assets",    "Other non-current assets",               "Balance Sheet", "NCA01","Deposits",     "FSL004","Other non-current assets"),
+    ("12100000","Inventories - Raw Materials",       "Assets",     "Current Assets",        "Inventories",                            "Balance Sheet", "CA04","Inventory",     "FSL005","Inventories"),
+    ("12200000","Inventories - Finished Goods",      "Assets",     "Current Assets",        "Inventories",                            "Balance Sheet", "CA04","Inventory",     "FSL005","Inventories"),
+    ("51001000","Property Plant and Machinery",      "Assets",     "Non-Current Assets",    "Property, plant and equipment",          "Balance Sheet", "NCA02","PPE - Gross",  "FSL006","Property, plant and equipment"),
+    ("51002000","Accumulated Depreciation",          "Assets",     "Non-Current Assets",    "Property, plant and equipment",          "Balance Sheet", "NCA02","PPE - AccDep", "FSL006","Property, plant and equipment"),
+    ("20100000","Short-Term Borrowings",             "Liabilities","Current Liabilities",   "Borrowings",                             "Balance Sheet", "CL01","Borrowings",    "FSL007","Borrowings"),
+    ("20200000","Long-Term Loans",                   "Liabilities","Non-Current Liabilities","Borrowings",                            "Balance Sheet", "NCL01","Long-term Loans","FSL007","Borrowings"),
+    ("21100000","Trade Payables - Domestic",         "Liabilities","Current Liabilities",   "Trade Payables",                         "Balance Sheet", "CL02","Payables",      "FSL008","Trade Payables"),
+    ("21200000","Accrued Liabilities",               "Liabilities","Current Liabilities",   "Other current liabilities",              "Balance Sheet", "CL03","Accruals",      "FSL009","Other current liabilities"),
+    ("21302630","Output GST Clearing",               "Liabilities","Current Liabilities",   "Other Payables",                         "Balance Sheet", "CL04","Tax Payables",  "FSL010","Other Payables"),
+    ("1000001", "Equity Share Capital Rs 10",        "Equity",     "Equity",                "Share Capital",                          "Balance Sheet", "EQ01","Share Capital", "FSL011","Share Capital"),
+    ("1160001", "Retained Earnings",                 "Equity",     "Equity",                "Retained Earnings",                      "Balance Sheet", "EQ02","Reserves",      "FSL012","Retained Earnings"),
+    ("41001400","Sales Revenue - Domestic",          "Revenue",    "Revenue",               "NET SALES REVENUE",                      "Income Statement","REV01","Revenue",    "FSL013","NET SALES REVENUE"),
+    ("41001500","Sales Revenue - Export",            "Revenue",    "Revenue",               "NET SALES REVENUE",                      "Income Statement","REV01","Revenue",    "FSL013","NET SALES REVENUE"),
+    ("41301200","Interest Income",                   "Revenue",    "Finance Income",        "Finance income",                         "Income Statement","REV02","Other Income","FSL014","Finance income"),
+    ("41301600","Miscellaneous Income",              "Revenue",    "Other Income",          "Other operating income (expenses), net", "Income Statement","REV02","Other Income","FSL015","Other operating income (expenses), net"),
+    ("50001000","Cost of Goods Sold",                "Expenses",   "Cost of Sales",         "COST OF SALES AND SERVICES",             "Income Statement","EXP01","COGS",       "FSL016","COST OF SALES AND SERVICES"),
+    ("52001000","Employee Compensation",             "Expenses",   "Operating Expenses",    "General and administrative expenses",    "Income Statement","EXP02","Staff Costs", "FSL017","General and administrative expenses"),
+    ("52002500","Consultancy and Audit Fees",        "Expenses",   "Operating Expenses",    "General and administrative expenses",    "Income Statement","EXP02","Admin",       "FSL017","General and administrative expenses"),
+    ("52003000","Depreciation Expense",              "Expenses",   "Operating Expenses",    "Depreciation and amortisation",          "Income Statement","EXP03","Depreciation","FSL018","Depreciation and amortisation"),
+    ("52004000","Finance Costs - Interest",          "Expenses",   "Finance Costs",         "Finance costs",                          "Income Statement","EXP04","Finance Costs","FSL019","Finance costs"),
 ]
-tb_df = pd.DataFrame(tb_data)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SHEET 2: Population / General Ledger Detail (JE)
-# Required: Account Number, Document number, Document type, Accounting date,
-#           Posting date, Amount in local currency, Currency code, User UD,
-#           Text Header, Text Details
+# SHEET 1 & 2: TB_Beginning and TB_Ending
+# Follows Omnia CDM spec: ending_balance_ec/gc required, period_end_date required
+# TB_Beginning: period_end_date = 2025-03-31 (day before testing start)
+#               ending balances = prior year closing = current year opening
+# TB_Ending:    period_end_date = 2026-03-31 (testing period end)
+#               ending balances = current year closing
 # ─────────────────────────────────────────────────────────────────────────────
-je_data = [
-    # Standard sales cycle
-    {"GL Account": "11401000", "Accounting document": "RV2026000001", "Document type": "RV", "Accounting date": "04/05/2025", "Posting date": "04/05/2025", "Document date": "04/05/2025", "Fiscal Year": "2026", "Fiscal Period": "1", "Amount in local currency": "5250000.0", "Currency code": "INR", "Amount in group curr": "63126.0", "Group Currency": "USD", "Text Header": "Sales Invoice - Q1 FY26", "Text Details": "Domestic sales billing cycle",  "User UD": "JKUMAR", "Document type description": "Customer Invoice"},
-    {"GL Account": "41001400", "Accounting document": "RV2026000001", "Document type": "RV", "Accounting date": "04/05/2025", "Posting date": "04/05/2025", "Document date": "04/05/2025", "Fiscal Year": "2026", "Fiscal Period": "1", "Amount in local currency": "-5250000.0","Currency code": "INR", "Amount in group curr": "-63126.0","Group Currency": "USD", "Text Header": "Sales Invoice - Q1 FY26", "Text Details": "Domestic sales billing cycle",  "User UD": "JKUMAR", "Document type description": "Customer Invoice"},
 
-    {"GL Account": "11401000", "Accounting document": "RV2026000002", "Document type": "RV", "Accounting date": "05/12/2025", "Posting date": "05/12/2025", "Document date": "05/12/2025", "Fiscal Year": "2026", "Fiscal Period": "2", "Amount in local currency": "3800000.0", "Currency code": "INR", "Amount in group curr": "45734.0", "Group Currency": "USD", "Text Header": "Sales Invoice - Q1 FY26", "Text Details": "Standard billing run",          "User UD": "PSINGH", "Document type description": "Customer Invoice"},
-    {"GL Account": "41001400", "Accounting document": "RV2026000002", "Document type": "RV", "Accounting date": "05/12/2025", "Posting date": "05/12/2025", "Document date": "05/12/2025", "Fiscal Year": "2026", "Fiscal Period": "2", "Amount in local currency": "-3800000.0","Currency code": "INR", "Amount in group curr": "-45734.0","Group Currency": "USD", "Text Header": "Sales Invoice - Q1 FY26", "Text Details": "Standard billing run",          "User UD": "PSINGH", "Document type description": "Customer Invoice"},
+# Prior year closing = current year opening balances (ending for TB_Beg)
+prior_year_ending = {
+    "10100000":  45200000.0,   "10200000":  10000000.0,
+    "11401000":  148500000.0,  "11402000":  32000000.0,
+    "11500000":  3800000.0,    "11600000":  5000000.0,
+    "12100000":  62000000.0,   "12200000":  28000000.0,
+    "51001000":  540000000.0,  "51002000": -180000000.0,
+    "20100000": -80000000.0,   "20200000": -250000000.0,
+    "21100000": -42000000.0,   "21200000": -18000000.0,
+    "21302630":  0.0,          "1000001":  -117200000.0,
+    "1160001":  -85000000.0,   "41001400":  0.0,           # P&L accounts reset at year start
+    "41001500":  0.0,          "41301200":  0.0,
+    "41301600":  0.0,          "50001000":  0.0,
+    "52001000":  0.0,          "52002500":  0.0,
+    "52003000":  0.0,          "52004000":  0.0,
+}
 
-    # Export sales
-    {"GL Account": "11402000", "Accounting document": "RV2026000010", "Document type": "RV", "Accounting date": "06/18/2025", "Posting date": "06/18/2025", "Document date": "06/18/2025", "Fiscal Year": "2026", "Fiscal Period": "3", "Amount in local currency": "8500000.0", "Currency code": "INR", "Amount in group curr": "102410.0","Group Currency": "USD", "Text Header": "Export Sales Invoice",     "Text Details": "Export batch to Middle East",    "User UD": "RVERMA", "Document type description": "Customer Invoice"},
-    {"GL Account": "41001500", "Accounting document": "RV2026000010", "Document type": "RV", "Accounting date": "06/18/2025", "Posting date": "06/18/2025", "Document date": "06/18/2025", "Fiscal Year": "2026", "Fiscal Period": "3", "Amount in local currency": "-8500000.0","Currency code": "INR", "Amount in group curr": "-102410.0","Group Currency": "USD", "Text Header": "Export Sales Invoice",     "Text Details": "Export batch to Middle East",    "User UD": "RVERMA", "Document type description": "Customer Invoice"},
+# Current year ending balances
+current_year_ending = {
+    "10100000":  38750000.0,   "10200000":  10000000.0,
+    "11401000":  162000000.0,  "11402000":  28500000.0,
+    "11500000":  4200000.0,    "11600000":  5000000.0,
+    "12100000":  58000000.0,   "12200000":  31500000.0,
+    "51001000":  558000000.0,  "51002000": -201000000.0,
+    "20100000": -75000000.0,   "20200000": -230000000.0,
+    "21100000": -48000000.0,   "21200000": -21000000.0,
+    "21302630": -2500000.0,    "1000001":  -117200000.0,
+    "1160001":  -110000000.0,  "41001400": -445000000.0,
+    "41001500": -50500000.0,   "41301200": -4600000.0,
+    "41301600": -1800000.0,    "50001000":  248000000.0,
+    "52001000":  60000000.0,   "52002500":  6000000.0,
+    "52003000":  21000000.0,   "52004000":  11200000.0,
+}
 
-    # Purchase / COGS entries
-    {"GL Account": "50001000", "Accounting document": "RE2026000020", "Document type": "RE", "Accounting date": "07/01/2025", "Posting date": "07/01/2025", "Document date": "06/28/2025", "Fiscal Year": "2026", "Fiscal Period": "4", "Amount in local currency": "12000000.0","Currency code": "INR", "Amount in group curr": "144480.0","Group Currency": "USD", "Text Header": "Purchase Invoice COGS",    "Text Details": "Raw material procurement",      "User UD": "ASHARMA","Document type description": "Vendor Invoice"},
-    {"GL Account": "21100000", "Accounting document": "RE2026000020", "Document type": "RE", "Accounting date": "07/01/2025", "Posting date": "07/01/2025", "Document date": "06/28/2025", "Fiscal Year": "2026", "Fiscal Period": "4", "Amount in local currency": "-12000000.0","Currency code": "INR","Amount in group curr": "-144480.0","Group Currency": "USD","Text Header": "Purchase Invoice COGS",    "Text Details": "Payable to vendor - Hindustan Corp","User UD": "ASHARMA","Document type description": "Vendor Invoice"},
+def make_tb_row(acct, fiscal_period, period_end_date, balance_ec, fiscal_yr=FISCAL_YEAR):
+    return {
+        "entity_id":           ENTITY_ID,
+        "entity_name":         ENTITY_NAME,
+        "account_number":      acct[0],
+        "account_description": acct[1],
+        "period_end_date":     period_end_date,
+        "fiscal_year":         fiscal_yr,
+        "fiscal_period":       fiscal_period,
+        "period_type":         PERIOD_TYPE,
+        "chart_of_accounts":   CHART_OF_ACCTS,
+        "entity_currency_ec":  EC_CURRENCY,
+        "group_currency_gc":   GC_CURRENCY,
+        "ending_balance_ec":   balance_ec,
+        "ending_balance_gc":   ec_to_gc(balance_ec),
+        "beginning_balance_ec": 0.0,
+        "beginning_balance_gc": 0.0,
+    }
 
-    # Employee payroll
-    {"GL Account": "52001000", "Accounting document": "PC2026000030", "Document type": "PC", "Accounting date": "07/31/2025", "Posting date": "07/31/2025", "Document date": "07/31/2025", "Fiscal Year": "2026", "Fiscal Period": "4", "Amount in local currency": "4000000.0", "Currency code": "INR", "Amount in group curr": "48160.0", "Group Currency": "USD", "Text Header": "Payroll July 2025",        "Text Details": "Monthly salary disbursement",   "User UD": "SYSTEM", "Document type description": "Payroll Posting"},
-    {"GL Account": "10100000", "Accounting document": "PC2026000030", "Document type": "PC", "Accounting date": "07/31/2025", "Posting date": "07/31/2025", "Document date": "07/31/2025", "Fiscal Year": "2026", "Fiscal Period": "4", "Amount in local currency": "-4000000.0","Currency code": "INR", "Amount in group curr": "-48160.0","Group Currency": "USD", "Text Header": "Payroll July 2025",        "Text Details": "Bank transfer - payroll",       "User UD": "SYSTEM", "Document type description": "Payroll Posting"},
+tb_beg_rows = [make_tb_row(a, 12, BEG_PERIOD_END, prior_year_ending[a[0]], 2025) for a in ACCOUNTS]
+tb_end_rows = [make_tb_row(a, 12, TESTING_END,    current_year_ending[a[0]], 2026) for a in ACCOUNTS]
 
-    # Depreciation
-    {"GL Account": "52003000", "Accounting document": "AF2026000040", "Document type": "AF", "Accounting date": "09/30/2025", "Posting date": "09/30/2025", "Document date": "09/30/2025", "Fiscal Year": "2026", "Fiscal Period": "6", "Amount in local currency": "5000000.0", "Currency code": "INR", "Amount in group curr": "60200.0", "Group Currency": "USD", "Text Header": "Depreciation Q2 FY26",     "Text Details": "Planned asset depreciation run","User UD": "BATCH",  "Document type description": "Depreciation Run"},
-    {"GL Account": "51002000", "Accounting document": "AF2026000040", "Document type": "AF", "Accounting date": "09/30/2025", "Posting date": "09/30/2025", "Document date": "09/30/2025", "Fiscal Year": "2026", "Fiscal Period": "6", "Amount in local currency": "-5000000.0","Currency code": "INR", "Amount in group curr": "-60200.0","Group Currency": "USD", "Text Header": "Depreciation Q2 FY26",     "Text Details": "Accum. depreciation credit",   "User UD": "BATCH",  "Document type description": "Depreciation Run"},
+tb_beg_df = pd.DataFrame(tb_beg_rows)
+tb_end_df = pd.DataFrame(tb_end_rows)
 
-    # Loan repayment
-    {"GL Account": "20200000", "Accounting document": "ZP2026000050", "Document type": "ZP", "Accounting date": "10/15/2025", "Posting date": "10/15/2025", "Document date": "10/10/2025", "Fiscal Year": "2026", "Fiscal Period": "7", "Amount in local currency": "20000000.0","Currency code": "INR", "Amount in group curr": "240800.0","Group Currency": "USD", "Text Header": "Loan Repayment Q3",       "Text Details": "Principal repayment - HDFC Bank","User UD": "TRAO",   "Document type description": "Payment"},
-    {"GL Account": "10100000", "Accounting document": "ZP2026000050", "Document type": "ZP", "Accounting date": "10/15/2025", "Posting date": "10/15/2025", "Document date": "10/10/2025", "Fiscal Year": "2026", "Fiscal Period": "7", "Amount in local currency": "-20000000.0","Currency code": "INR","Amount in group curr": "-240800.0","Group Currency": "USD","Text Header": "Loan Repayment Q3",       "Text Details": "Bank outflow - loan settlement","User UD": "TRAO",   "Document type description": "Payment"},
+# ─────────────────────────────────────────────────────────────────────────────
+# SHEET 3: Population / General Ledger Detail
+# Full CDM-compliant: entity_id, journal_number, journal_line_number,
+#   date_effective, date_posted, time_posted, fiscal_year, fiscal_period,
+#   net_amount_ec, debit_amount_ec, credit_amount_ec, is_standard, transaction_type,
+#   userid_entered, user_name_entered, userid_approved, user_name_approved, etc.
+# ─────────────────────────────────────────────────────────────────────────────
+def je_row(jnum, jline, acct, eff_date, post_date, time_p, fy, fperiod,
+           net_ec, dr_ec, cr_ec, tx_type, is_std,
+           hdr_desc, line_desc, user_id, user_name, appr_id="FINANCE_MGR", appr_name="Finance Manager",
+           is_manual="A"):
+    net_gc = ec_to_gc(net_ec)
+    dr_gc  = ec_to_gc(dr_ec)
+    cr_gc  = ec_to_gc(cr_ec)
+    return {
+        "entity_id":                  ENTITY_ID,
+        "entity_name":                ENTITY_NAME,
+        "journal_number":             jnum,
+        "journal_line_number":        f"{jnum}-{jline:02d}",
+        "account_number":             acct,
+        "date_effective":             eff_date,
+        "date_posted":                post_date,
+        "time_posted":                time_p,
+        "fiscal_year":                fy,
+        "fiscal_period":              fperiod,
+        "transaction_type":           tx_type,
+        "transaction_type_description": {
+            "RV": "Customer Invoice", "RE": "Vendor Invoice", "PC": "Payroll",
+            "AF": "Depreciation Run", "ZP": "Payment", "SA": "Manual Journal",
+            "AB": "Manual Adjustment", "AA": "Asset Posting", "WA": "Goods Issue",
+            "KR": "Tax Posting",
+        }.get(tx_type, tx_type),
+        "net_amount_ec":              net_ec,
+        "debit_amount_ec":            dr_ec,
+        "credit_amount_ec":           cr_ec,
+        "net_amount_gc":              net_gc,
+        "debit_amount_gc":            dr_gc,
+        "credit_amount_gc":           cr_gc,
+        "net_amount_oc":              net_ec,
+        "debit_amount_oc":            dr_ec,
+        "credit_amount_oc":           cr_ec,
+        "entity_currency_ec":         EC_CURRENCY,
+        "group_currency_gc":          GC_CURRENCY,
+        "original_currency_oc":       EC_CURRENCY,
+        "dc_indicator":               "D" if net_ec > 0 else "C",
+        "is_standard":                is_std,
+        "is_manual":                  is_manual,
+        "chart_of_accounts":          CHART_OF_ACCTS,
+        "journal_header_description": hdr_desc,
+        "journal_line_description":   line_desc,
+        "userid_entered":             user_id,
+        "user_name_entered":          user_name,
+        "userid_approved":            appr_id,
+        "user_name_approved":         appr_name,
+        "source":                     tx_type,
+        "business_area":              "MANUFACTURING",
+        "cost_center":                "CC100",
+        "profit_center":              "PC100",
+    }
 
-    # Interest income
-    {"GL Account": "10200000", "Accounting document": "ZP2026000055", "Document type": "ZP", "Accounting date": "10/31/2025", "Posting date": "10/31/2025", "Document date": "10/31/2025", "Fiscal Year": "2026", "Fiscal Period": "7", "Amount in local currency": "800000.0",  "Currency code": "INR", "Amount in group curr": "9632.0",  "Group Currency": "USD", "Text Header": "Interest Income Oct",      "Text Details": "FD interest credited",          "User UD": "BATCH",  "Document type description": "Bank Receipt"},
-    {"GL Account": "41301200", "Accounting document": "ZP2026000055", "Document type": "ZP", "Accounting date": "10/31/2025", "Posting date": "10/31/2025", "Document date": "10/31/2025", "Fiscal Year": "2026", "Fiscal Period": "7", "Amount in local currency": "-800000.0", "Currency code": "INR", "Amount in group curr": "-9632.0", "Group Currency": "USD", "Text Header": "Interest Income Oct",      "Text Details": "Interest income recognition",  "User UD": "BATCH",  "Document type description": "Bank Receipt"},
-
-    # Audit/manual adjustment — non-standard (round amount, suspicious)
-    {"GL Account": "41001400", "Accounting document": "AB2026000099", "Document type": "AB", "Accounting date": "03/31/2026", "Posting date": "03/31/2026", "Document date": "03/31/2026", "Fiscal Year": "2026", "Fiscal Period": "12","Amount in local currency": "500000.0",  "Currency code": "INR", "Amount in group curr": "6020.0",  "Group Currency": "USD", "Text Header": "Auditor adjustment YE",   "Text Details": "Management override - revenue",  "User UD": "MGMT",   "Document type description": "Manual Journal"},
-    {"GL Account": "21200000", "Accounting document": "AB2026000099", "Document type": "AB", "Accounting date": "03/31/2026", "Posting date": "03/31/2026", "Document date": "03/31/2026", "Fiscal Year": "2026", "Fiscal Period": "12","Amount in local currency": "-500000.0", "Currency code": "INR", "Amount in group curr": "-6020.0", "Group Currency": "USD", "Text Header": "Auditor adjustment YE",   "Text Details": "Accrual reversal entry",        "User UD": "MGMT",   "Document type description": "Manual Journal"},
-
-    # Post-closing entry (after 31 Mar)
-    {"GL Account": "41001600", "Accounting document": "SA2026000101", "Document type": "SA", "Accounting date": "04/05/2026", "Posting date": "04/05/2026", "Document date": "04/05/2026", "Fiscal Year": "2026", "Fiscal Period": "12","Amount in local currency": "600000.0",  "Currency code": "INR", "Amount in group curr": "7224.0",  "Group Currency": "USD", "Text Header": "Post-closing misc income", "Text Details": "Misc income recognised late",   "User UD": "RDESAI", "Document type description": "Manual Journal"},
-    {"GL Account": "11500000", "Accounting document": "SA2026000101", "Document type": "SA", "Accounting date": "04/05/2026", "Posting date": "04/05/2026", "Document date": "04/05/2026", "Fiscal Year": "2026", "Fiscal Period": "12","Amount in local currency": "-600000.0", "Currency code": "INR", "Amount in group curr": "-7224.0", "Group Currency": "USD", "Text Header": "Post-closing misc income", "Text Details": "Prepaid writedown",             "User UD": "RDESAI", "Document type description": "Manual Journal"},
-
-    # Round-sum (suspicious) — 1,000,000 exactly
-    {"GL Account": "52002500", "Accounting document": "SA2026000110", "Document type": "SA", "Accounting date": "01/15/2026", "Posting date": "01/15/2026", "Document date": "01/10/2026", "Fiscal Year": "2026", "Fiscal Period": "10","Amount in local currency": "1000000.0", "Currency code": "INR", "Amount in group curr": "12040.0", "Group Currency": "USD", "Text Header": "Consultancy Fees",         "Text Details": "External audit consultant",    "User UD": "SBPATIL","Document type description": "Manual Journal"},
-    {"GL Account": "10100000", "Accounting document": "SA2026000110", "Document type": "SA", "Accounting date": "01/15/2026", "Posting date": "01/15/2026", "Document date": "01/10/2026", "Fiscal Year": "2026", "Fiscal Period": "10","Amount in local currency": "-1000000.0","Currency code": "INR", "Amount in group curr": "-12040.0","Group Currency": "USD", "Text Header": "Consultancy Fees",         "Text Details": "Bank payment to consultant",   "User UD": "SBPATIL","Document type description": "Manual Journal"},
-
-    # GST clearing
-    {"GL Account": "21302630", "Accounting document": "KR2026000120", "Document type": "KR", "Accounting date": "02/28/2026", "Posting date": "02/28/2026", "Document date": "02/28/2026", "Fiscal Year": "2026", "Fiscal Period": "11","Amount in local currency": "-2500000.0","Currency code": "INR", "Amount in group curr": "-30100.0","Group Currency": "USD", "Text Header": "GST Output Clearing",     "Text Details": "Quarterly GST settlement",      "User UD": "ASHARMA","Document type description": "Vendor Invoice"},
-    {"GL Account": "10100000", "Accounting document": "KR2026000120", "Document type": "KR", "Accounting date": "02/28/2026", "Posting date": "02/28/2026", "Document date": "02/28/2026", "Fiscal Year": "2026", "Fiscal Period": "11","Amount in local currency": "2500000.0", "Currency code": "INR", "Amount in group curr": "30100.0", "Group Currency": "USD", "Text Header": "GST Output Clearing",     "Text Details": "Bank receipt GST refund",      "User UD": "ASHARMA","Document type description": "Vendor Invoice"},
-
-    # Finance costs
-    {"GL Account": "52004000", "Accounting document": "ZP2026000130", "Document type": "ZP", "Accounting date": "03/31/2026", "Posting date": "03/31/2026", "Document date": "03/31/2026", "Fiscal Year": "2026", "Fiscal Period": "12","Amount in local currency": "2700000.0", "Currency code": "INR", "Amount in group curr": "32508.0", "Group Currency": "USD", "Text Header": "Interest Expense YE",     "Text Details": "Annual interest on term loan",  "User UD": "SYSTEM", "Document type description": "Payment"},
-    {"GL Account": "20100000", "Accounting document": "ZP2026000130", "Document type": "ZP", "Accounting date": "03/31/2026", "Posting date": "03/31/2026", "Document date": "03/31/2026", "Fiscal Year": "2026", "Fiscal Period": "12","Amount in local currency": "-2700000.0","Currency code": "INR", "Amount in group curr": "-32508.0","Group Currency": "USD", "Text Header": "Interest Expense YE",     "Text Details": "Short-term borrowing cost",     "User UD": "SYSTEM", "Document type description": "Payment"},
-
-    # PPE addition
-    {"GL Account": "51001000", "Accounting document": "AA2026000140", "Document type": "AA", "Accounting date": "08/20/2025", "Posting date": "08/20/2025", "Document date": "08/18/2025", "Fiscal Year": "2026", "Fiscal Period": "5", "Amount in local currency": "22000000.0","Currency code": "INR", "Amount in group curr": "264880.0","Group Currency": "USD", "Text Header": "Asset Addition - Machinery", "Text Details": "New CNC machine unit",         "User UD": "TRAO",   "Document type description": "Asset Posting"},
-    {"GL Account": "21100000", "Accounting document": "AA2026000140", "Document type": "AA", "Accounting date": "08/20/2025", "Posting date": "08/20/2025", "Document date": "08/18/2025", "Fiscal Year": "2026", "Fiscal Period": "5", "Amount in local currency": "-22000000.0","Currency code": "INR","Amount in group curr": "-264880.0","Group Currency": "USD","Text Header": "Asset Addition - Machinery", "Text Details": "Vendor payable - Siemens India","User UD": "TRAO",   "Document type description": "Asset Posting"},
-
-    # Inventory movement
-    {"GL Account": "12100000", "Accounting document": "WA2026000150", "Document type": "WA", "Accounting date": "11/10/2025", "Posting date": "11/10/2025", "Document date": "11/10/2025", "Fiscal Year": "2026", "Fiscal Period": "8", "Amount in local currency": "-42000000.0","Currency code": "INR","Amount in group curr": "-505680.0","Group Currency": "USD","Text Header": "GI to Production",        "Text Details": "Raw material issued to shop floor","User UD": "BATCH", "Document type description": "Goods Issue"},
-    {"GL Account": "50001000", "Accounting document": "WA2026000150", "Document type": "WA", "Accounting date": "11/10/2025", "Posting date": "11/10/2025", "Document date": "11/10/2025", "Fiscal Year": "2026", "Fiscal Period": "8", "Amount in local currency": "42000000.0", "Currency code": "INR", "Amount in group curr": "505680.0","Group Currency": "USD", "Text Header": "GI to Production",        "Text Details": "COGS - material consumed",      "User UD": "BATCH",  "Document type description": "Goods Issue"},
-
-    # Weekend posting (suspicious)
-    {"GL Account": "41301600", "Accounting document": "SA2026000200", "Document type": "SA", "Accounting date": "03/15/2026", "Posting date": "03/15/2026", "Document date": "03/15/2026", "Fiscal Year": "2026", "Fiscal Period": "12","Amount in local currency": "600000.0",  "Currency code": "INR", "Amount in group curr": "7224.0",  "Group Currency": "USD", "Text Header": "Misc Income - Sunday",    "Text Details": "Unplanned misc income entry",   "User UD": "OCPL01", "Document type description": "Manual Journal"},
-    {"GL Account": "11500000", "Accounting document": "SA2026000200", "Document type": "SA", "Accounting date": "03/15/2026", "Posting date": "03/15/2026", "Document date": "03/15/2026", "Fiscal Year": "2026", "Fiscal Period": "12","Amount in local currency": "-600000.0", "Currency code": "INR", "Amount in group curr": "-7224.0", "Group Currency": "USD", "Text Header": "Misc Income - Sunday",    "Text Details": "Offset to prepaid",             "User UD": "OCPL01", "Document type description": "Manual Journal"},
+je_rows = [
+    # ── Journal 1: Standard domestic sales invoice (RV) ──────────────────────
+    je_row("RV2026000001",1,"11401000","04/05/2025","04/05/2025","09:14:00",2026,1, 5250000.0,5250000.0,0.0,      "RV","S","Sales Invoice Q1 FY26","AR debit - domestic sale",     "JKUMAR","J. Kumar"),
+    je_row("RV2026000001",2,"41001400","04/05/2025","04/05/2025","09:14:00",2026,1,-5250000.0,0.0,5250000.0,      "RV","S","Sales Invoice Q1 FY26","Revenue recognition",           "JKUMAR","J. Kumar"),
+    # ── Journal 2: Standard domestic sales invoice (RV) ──────────────────────
+    je_row("RV2026000002",1,"11401000","05/12/2025","05/12/2025","10:30:00",2026,2, 3800000.0,3800000.0,0.0,      "RV","S","Sales Invoice Q1 FY26","AR debit - standard billing",   "PSINGH","P. Singh"),
+    je_row("RV2026000002",2,"41001400","05/12/2025","05/12/2025","10:30:00",2026,2,-3800000.0,0.0,3800000.0,      "RV","S","Sales Invoice Q1 FY26","Revenue credit",                "PSINGH","P. Singh"),
+    # ── Journal 3: Standard export sales (RV) ────────────────────────────────
+    je_row("RV2026000010",1,"11402000","06/18/2025","06/18/2025","14:05:00",2026,3, 8500000.0,8500000.0,0.0,      "RV","S","Export Sales Invoice","AR debit - Middle East export", "RVERMA","R. Verma"),
+    je_row("RV2026000010",2,"41001500","06/18/2025","06/18/2025","14:05:00",2026,3,-8500000.0,0.0,8500000.0,      "RV","S","Export Sales Invoice","Export revenue credit",          "RVERMA","R. Verma"),
+    # ── Journal 4: Purchase / COGS (RE) ──────────────────────────────────────
+    je_row("RE2026000020",1,"50001000","07/01/2025","07/01/2025","08:00:00",2026,4, 12000000.0,12000000.0,0.0,    "RE","S","Purchase Invoice COGS","COGS debit - raw material",     "ASHARMA","A. Sharma"),
+    je_row("RE2026000020",2,"21100000","07/01/2025","07/01/2025","08:00:00",2026,4,-12000000.0,0.0,12000000.0,    "RE","S","Purchase Invoice COGS","Trade payable - Hindustan Corp","ASHARMA","A. Sharma"),
+    # ── Journal 5: PPE addition (AA) ─────────────────────────────────────────
+    je_row("AA2026000040",1,"51001000","08/20/2025","08/20/2025","11:22:00",2026,5, 22000000.0,22000000.0,0.0,    "AA","S","Asset Addition - Machinery","PPE debit - CNC machine",  "TRAO","T. Rao"),
+    je_row("AA2026000040",2,"21100000","08/20/2025","08/20/2025","11:22:00",2026,5,-22000000.0,0.0,22000000.0,    "AA","S","Asset Addition - Machinery","Payable - Siemens India",   "TRAO","T. Rao"),
+    # ── Journal 6: Payroll (PC) ───────────────────────────────────────────────
+    je_row("PC2026000060",1,"52001000","07/31/2025","07/31/2025","23:55:00",2026,4, 4000000.0,4000000.0,0.0,      "PC","S","Payroll July 2025","Monthly salary expense",             "SYSTEM","System Batch","SYSTEM","System Batch"),
+    je_row("PC2026000060",2,"10100000","07/31/2025","07/31/2025","23:55:00",2026,4,-4000000.0,0.0,4000000.0,      "PC","S","Payroll July 2025","Bank payment - payroll",             "SYSTEM","System Batch","SYSTEM","System Batch"),
+    # ── Journal 7: Depreciation (AF) ─────────────────────────────────────────
+    je_row("AF2026000070",1,"52003000","09/30/2025","09/30/2025","22:00:00",2026,6, 5000000.0,5000000.0,0.0,      "AF","S","Depreciation Q2 FY26","Depreciation expense",            "BATCH","System Batch","SYSTEM","System Batch"),
+    je_row("AF2026000070",2,"51002000","09/30/2025","09/30/2025","22:00:00",2026,6,-5000000.0,0.0,5000000.0,      "AF","S","Depreciation Q2 FY26","Accumulated depreciation credit", "BATCH","System Batch","SYSTEM","System Batch"),
+    # ── Journal 8: Loan repayment (ZP) ───────────────────────────────────────
+    je_row("ZP2026000080",1,"20200000","10/15/2025","10/15/2025","16:45:00",2026,7, 20000000.0,20000000.0,0.0,    "ZP","S","Loan Repayment Q3","Long-term loan principal repayment","TRAO","T. Rao"),
+    je_row("ZP2026000080",2,"10100000","10/15/2025","10/15/2025","16:45:00",2026,7,-20000000.0,0.0,20000000.0,    "ZP","S","Loan Repayment Q3","Bank outflow - HDFC settlement",   "TRAO","T. Rao"),
+    # ── Journal 9: Interest income (ZP) ──────────────────────────────────────
+    je_row("ZP2026000090",1,"10200000","10/31/2025","10/31/2025","17:00:00",2026,7, 800000.0,800000.0,0.0,         "ZP","S","Interest Income Oct","FD interest receipt",             "BATCH","System Batch","SYSTEM","System Batch"),
+    je_row("ZP2026000090",2,"41301200","10/31/2025","10/31/2025","17:00:00",2026,7,-800000.0,0.0,800000.0,         "ZP","S","Interest Income Oct","Interest income recognition",    "BATCH","System Batch","SYSTEM","System Batch"),
+    # ── Journal 10: Inventory GI (WA) ────────────────────────────────────────
+    je_row("WA2026000100",1,"50001000","11/10/2025","11/10/2025","07:30:00",2026,8, 42000000.0,42000000.0,0.0,    "WA","S","GI to Production","Raw material issued to production",   "BATCH","System Batch","SYSTEM","System Batch"),
+    je_row("WA2026000100",2,"12100000","11/10/2025","11/10/2025","07:30:00",2026,8,-42000000.0,0.0,42000000.0,    "WA","S","GI to Production","Inventory credit - RM consumed",    "BATCH","System Batch","SYSTEM","System Batch"),
+    # ── Journal 11: GST Tax Posting (KR) ─────────────────────────────────────
+    je_row("KR2026000110",1,"21302630","02/28/2026","02/28/2026","15:30:00",2026,11,-2500000.0,0.0,2500000.0,     "KR","S","GST Output Clearing","Quarterly GST output liability",   "ASHARMA","A. Sharma"),
+    je_row("KR2026000110",2,"10100000","02/28/2026","02/28/2026","15:30:00",2026,11, 2500000.0,2500000.0,0.0,     "KR","S","GST Output Clearing","Bank receipt - GST refund",        "ASHARMA","A. Sharma"),
+    # ── Journal 12: Finance costs YE (ZP) ────────────────────────────────────
+    je_row("ZP2026000120",1,"52004000","03/31/2026","03/31/2026","18:00:00",2026,12, 2700000.0,2700000.0,0.0,     "ZP","S","Interest Expense YE","Annual interest on term loan",     "SYSTEM","System Batch","SYSTEM","System Batch"),
+    je_row("ZP2026000120",2,"20100000","03/31/2026","03/31/2026","18:00:00",2026,12,-2700000.0,0.0,2700000.0,     "ZP","S","Interest Expense YE","Short-term borrowing interest",    "SYSTEM","System Batch","SYSTEM","System Batch"),
+    # ── Journal 13: Consultancy round-sum SUSPICIOUS - manual (SA) ───────────
+    je_row("SA2026000130",1,"52002500","01/15/2026","01/15/2026","20:45:00",2026,10, 1000000.0,1000000.0,0.0,     "SA","N","Consultancy Fee - Manual","External consultant fee",       "SBPATIL","S. B. Patil","SBPATIL","S. B. Patil","M"),
+    je_row("SA2026000130",2,"10100000","01/15/2026","01/15/2026","20:45:00",2026,10,-1000000.0,0.0,1000000.0,     "SA","N","Consultancy Fee - Manual","Bank payment to consultant",   "SBPATIL","S. B. Patil","SBPATIL","S. B. Patil","M"),
+    # ── Journal 14: Auditor/Management adjustment (AB) - non-standard ────────
+    je_row("AB2026000140",1,"41001400","03/31/2026","03/31/2026","23:50:00",2026,12, 500000.0,500000.0,0.0,        "AB","N","Auditor Adjustment YE","Management override - revenue adj","MGMT","Senior Manager","MGMT","Senior Manager","M"),
+    je_row("AB2026000140",2,"21200000","03/31/2026","03/31/2026","23:50:00",2026,12,-500000.0,0.0,500000.0,        "AB","N","Auditor Adjustment YE","Accrual reversal entry",         "MGMT","Senior Manager","MGMT","Senior Manager","M"),
+    # ── Journal 15: Post-closing entry (after testing period end) - (SA) ─────
+    je_row("SA2026000150",1,"41301600","04/05/2026","04/05/2026","09:00:00",2026,12, 600000.0,600000.0,0.0,        "SA","N","Post-Closing Misc Income","Late income recognised",       "RDESAI","R. Desai","FINANCE_MGR","Finance Manager","M"),
+    je_row("SA2026000150",2,"11500000","04/05/2026","04/05/2026","09:00:00",2026,12,-600000.0,0.0,600000.0,        "SA","N","Post-Closing Misc Income","Prepaid writedown offset",    "RDESAI","R. Desai","FINANCE_MGR","Finance Manager","M"),
+    # ── Journal 16: Weekend/holiday posting - suspicious (SA) ────────────────
+    je_row("SA2026000160",1,"41301600","03/15/2026","03/15/2026","02:15:00",2026,12, 600000.0,600000.0,0.0,        "SA","N","Misc Income - Odd Hours","Unplanned misc income (Sunday)", "OCPL01","External Consultant","FINANCE_MGR","Finance Manager","M"),
+    je_row("SA2026000160",2,"11500000","03/15/2026","03/15/2026","02:15:00",2026,12,-600000.0,0.0,600000.0,        "SA","N","Misc Income - Odd Hours","Prepaid account offset",        "OCPL01","External Consultant","FINANCE_MGR","Finance Manager","M"),
+    # ── Journal 17: Additional domestic sales (RV) ────────────────────────────
+    je_row("RV2026000017",1,"11401000","12/10/2025","12/10/2025","10:00:00",2026,9, 9500000.0,9500000.0,0.0,       "RV","S","Sales Invoice Q3 FY26","AR debit - Q3 billing run",     "PSINGH","P. Singh"),
+    je_row("RV2026000017",2,"41001400","12/10/2025","12/10/2025","10:00:00",2026,9,-9500000.0,0.0,9500000.0,       "RV","S","Sales Invoice Q3 FY26","Revenue credit Q3",             "PSINGH","P. Singh"),
+    # ── Journal 18: Inventory finished goods production (WA) ─────────────────
+    je_row("WA2026000180",1,"12200000","01/20/2026","01/20/2026","14:00:00",2026,10, 18500000.0,18500000.0,0.0,   "WA","S","GR from Production","Finished goods GR debit",           "BATCH","System Batch","SYSTEM","System Batch"),
+    je_row("WA2026000180",2,"50001000","01/20/2026","01/20/2026","14:00:00",2026,10,-18500000.0,0.0,18500000.0,   "WA","S","GR from Production","COGS - FG production credit",       "BATCH","System Batch","SYSTEM","System Batch"),
 ]
-je_df = pd.DataFrame(je_data)
+
+gl_df = pd.DataFrame(je_rows)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SHEET 3: Chart of Accounts (COA)
-# Required: Account Number, Description, Financial Statement Category, FS Line Item
+# SHEET 4: Chart of Accounts (COA)
+# Full Omnia CDM-compliant: includes account_grouping_1_num, financial_statement_line_num,
+#   financial_statement_subtotal_category, financial_statement_type, entity_id, entity_name
 # ─────────────────────────────────────────────────────────────────────────────
-coa_data = [
-    {"Chart of Accounts": "JIOSAT", "Account Number": "10100000", "Description": "Cash and Bank - Current Account",  "Financial Statement Category": "Assets",      "FS Line Item": "Cash and cash equivalents",              "Account Grouping 1": "Cash & Bank",   "Account Grouping 2": "Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "10200000", "Description": "Short-term Investments",           "Financial Statement Category": "Assets",      "FS Line Item": "Cash and cash equivalents",              "Account Grouping 1": "Investments",   "Account Grouping 2": "Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "11401000", "Description": "Trade Receivables - Domestic",     "Financial Statement Category": "Assets",      "FS Line Item": "Trade Receivables",                      "Account Grouping 1": "Receivables",   "Account Grouping 2": "Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "11402000", "Description": "Trade Receivables - Export",       "Financial Statement Category": "Assets",      "FS Line Item": "Trade Receivables",                      "Account Grouping 1": "Receivables",   "Account Grouping 2": "Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "11500000", "Description": "Prepaid Expenses",                 "Financial Statement Category": "Assets",      "FS Line Item": "Other current assets",                   "Account Grouping 1": "Prepayments",   "Account Grouping 2": "Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "11600000", "Description": "Security Deposits",                "Financial Statement Category": "Assets",      "FS Line Item": "Other non-current assets",               "Account Grouping 1": "Deposits",      "Account Grouping 2": "Non-Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "12100000", "Description": "Inventories - Raw Materials",      "Financial Statement Category": "Assets",      "FS Line Item": "Inventories",                            "Account Grouping 1": "Inventory",     "Account Grouping 2": "Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "12200000", "Description": "Inventories - Finished Goods",     "Financial Statement Category": "Assets",      "FS Line Item": "Inventories",                            "Account Grouping 1": "Inventory",     "Account Grouping 2": "Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "51001000", "Description": "Property, Plant & Machinery",      "Financial Statement Category": "Assets",      "FS Line Item": "Property, plant and equipment",          "Account Grouping 1": "PPE - Gross",   "Account Grouping 2": "Non-Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "51002000", "Description": "Accumulated Depreciation",         "Financial Statement Category": "Assets",      "FS Line Item": "Property, plant and equipment",          "Account Grouping 1": "PPE - AccDep",  "Account Grouping 2": "Non-Current Assets"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "20100000", "Description": "Short-Term Borrowings",            "Financial Statement Category": "Liabilities", "FS Line Item": "Borrowings",                             "Account Grouping 1": "Borrowings",    "Account Grouping 2": "Current Liabilities"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "20200000", "Description": "Long-Term Loans",                  "Financial Statement Category": "Liabilities", "FS Line Item": "Borrowings",                             "Account Grouping 1": "Borrowings",    "Account Grouping 2": "Non-Current Liabilities"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "21100000", "Description": "Trade Payables - Domestic",        "Financial Statement Category": "Liabilities", "FS Line Item": "Trade Payables",                         "Account Grouping 1": "Payables",      "Account Grouping 2": "Current Liabilities"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "21200000", "Description": "Accrued Liabilities",              "Financial Statement Category": "Liabilities", "FS Line Item": "Other current liabilities",              "Account Grouping 1": "Accruals",      "Account Grouping 2": "Current Liabilities"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "21302630", "Description": "Output GST Clearing",              "Financial Statement Category": "Liabilities", "FS Line Item": "Other Payables",                         "Account Grouping 1": "Tax Payables",  "Account Grouping 2": "Current Liabilities"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "1000001",  "Description": "Equity Share Capital - Rs.10",     "Financial Statement Category": "Equity",      "FS Line Item": "Share Capital",                          "Account Grouping 1": "Share Capital", "Account Grouping 2": "Equity"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "1160001",  "Description": "Retained Earnings",                "Financial Statement Category": "Equity",      "FS Line Item": "Retained Earnings",                      "Account Grouping 1": "Reserves",      "Account Grouping 2": "Equity"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "41001400", "Description": "Sales Revenue - Domestic",         "Financial Statement Category": "Revenue",     "FS Line Item": "NET SALES REVENUE",                      "Account Grouping 1": "Revenue",       "Account Grouping 2": "Income Statement"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "41001500", "Description": "Sales Revenue - Export",           "Financial Statement Category": "Revenue",     "FS Line Item": "NET SALES REVENUE",                      "Account Grouping 1": "Revenue",       "Account Grouping 2": "Income Statement"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "41301200", "Description": "Interest Income",                  "Financial Statement Category": "Revenue",     "FS Line Item": "Finance income",                         "Account Grouping 1": "Other Income",  "Account Grouping 2": "Income Statement"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "41301600", "Description": "Miscellaneous Income",             "Financial Statement Category": "Revenue",     "FS Line Item": "Other operating income (expenses), net", "Account Grouping 1": "Other Income",  "Account Grouping 2": "Income Statement"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "50001000", "Description": "Cost of Goods Sold",              "Financial Statement Category": "Expenses",    "FS Line Item": "COST OF SALES AND SERVICES",             "Account Grouping 1": "COGS",          "Account Grouping 2": "Income Statement"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "52001000", "Description": "Employee Compensation",            "Financial Statement Category": "Expenses",    "FS Line Item": "General and administrative expenses",    "Account Grouping 1": "Staff Costs",   "Account Grouping 2": "Income Statement"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "52002500", "Description": "Consultancy & Audit Fees",         "Financial Statement Category": "Expenses",    "FS Line Item": "General and administrative expenses",    "Account Grouping 1": "Admin",         "Account Grouping 2": "Income Statement"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "52003000", "Description": "Depreciation Expense",             "Financial Statement Category": "Expenses",    "FS Line Item": "Depreciation and amortisation",          "Account Grouping 1": "Depreciation",  "Account Grouping 2": "Income Statement"},
-    {"Chart of Accounts": "JIOSAT", "Account Number": "52004000", "Description": "Finance Costs - Interest",         "Financial Statement Category": "Expenses",    "FS Line Item": "Finance costs",                          "Account Grouping 1": "Finance Costs", "Account Grouping 2": "Income Statement"},
-]
-coa_df = pd.DataFrame(coa_data)
+coa_rows = []
+for acct in ACCOUNTS:
+    (acct_no, desc, fs_cat, fs_subtotal, fs_line, fs_type,
+     grp1_num, grp1, fs_line_num, _) = acct
+    coa_rows.append({
+        "chart_of_accounts":                  CHART_OF_ACCTS,
+        "entity_id":                          ENTITY_ID,
+        "entity_name":                        ENTITY_NAME,
+        "account_number":                     acct_no,
+        "account_description":                desc,
+        "account_grouping_1_num":             grp1_num,
+        "account_grouping_1":                 grp1,
+        "financial_statement_line_num":       fs_line_num,
+        "financial_statement_line":           fs_line,
+        "financial_statement_subtotal_category": fs_subtotal,
+        "financial_statement_category":       fs_cat,
+        "financial_statement_type":           fs_type,
+        "revision_date":                      "03/31/2026",
+    })
 
-# Write all 3 sheets to Excel workbook
+coa_df = pd.DataFrame(coa_rows)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Write Excel workbook with 4 sheets
+# ─────────────────────────────────────────────────────────────────────────────
 with pd.ExcelWriter(out_path, engine='openpyxl') as writer:
-    tb_df.to_excel(writer, sheet_name='TB', index=False)
-    je_df.to_excel(writer, sheet_name='Population', index=False)
-    coa_df.to_excel(writer, sheet_name='COA', index=False)
+    tb_beg_df.to_excel(writer, sheet_name='TB_Beginning', index=False)
+    tb_end_df.to_excel(writer, sheet_name='TB_Ending',    index=False)
+    gl_df.to_excel(writer, sheet_name='Population',       index=False)
+    coa_df.to_excel(writer, sheet_name='COA',             index=False)
 
-print(f"Omnia JET sample data written to: {out_path}")
-print(f"  TB   : {len(tb_df)} accounts")
-print(f"  JE   : {len(je_df)} journal lines ({len(je_df)//2} balanced entries)")
-print(f"  COA  : {len(coa_df)} chart of accounts records")
+print(f"\nOmnia JET sample data written to:\n  {out_path}\n")
+print(f"  TB_Beginning : {len(tb_beg_df)} accounts  | period_end_date = {BEG_PERIOD_END} (prior year close = day before testing start)")
+print(f"  TB_Ending    : {len(tb_end_df)} accounts  | period_end_date = {TESTING_END} (current year close)")
+print(f"  Population   : {len(gl_df)} JE lines ({len(gl_df)//2} balanced entries) | covers {TESTING_START} to post-period")
+print(f"  COA          : {len(coa_df)} accounts")
+print(f"\nFull CDM field coverage:")
+print(f"  TB:  entity_id, account_number, period_end_date, fiscal_year, fiscal_period,")
+print(f"       period_type, chart_of_accounts, entity_currency_ec, group_currency_gc,")
+print(f"       ending_balance_ec, ending_balance_gc, beginning_balance_ec/gc")
+print(f"  GL:  entity_id, journal_number, journal_line_number, date_effective, date_posted,")
+print(f"       time_posted, fiscal_year, fiscal_period, transaction_type, net/debit/credit")
+print(f"       amounts (ec/gc/oc), is_standard, is_manual, userid_entered, user_name_entered,")
+print(f"       userid_approved, user_name_approved, journal_header/line_description")
+print(f"  COA: chart_of_accounts, entity_id, account_number, account_description,")
+print(f"       account_grouping_1_num, account_grouping_1, financial_statement_line_num,")
+print(f"       financial_statement_line, financial_statement_subtotal_category,")
+print(f"       financial_statement_category, financial_statement_type")

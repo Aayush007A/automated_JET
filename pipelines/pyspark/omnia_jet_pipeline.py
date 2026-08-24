@@ -46,8 +46,14 @@ def run_omnia_jet(config_path):
         return None
 
     tb_df = None
+    tb_beg_df = None   # Prior-year (beginning) TB
+    tb_end_df = None   # Current-year (ending) TB
     gl_df = None
     coa_df = None
+
+    # ── Sheet-name aliases for beginning / ending TB ──────────────────────
+    BEG_SHEET_NAMES = {'tb_beginning', 'tbbeg', 'tb_beg', 'beginning', 'tb_prior'}
+    END_SHEET_NAMES = {'tb_ending', 'tbend', 'tb_end', 'ending', 'tb_current'}
 
     for f in input_files:
         detected = f.get('detectedDataset')
@@ -60,8 +66,15 @@ def run_omnia_jet(config_path):
         elif f.get('sheets'):
             for s in f.get('sheets', []):
                 s_class = s.get('detectedDataset')
-                if s_class == 'TRIAL_BALANCE' and tb_df is None:
-                    tb_df = load_dataset(f.get('fileId'), s.get('sheetName'))
+                s_name  = (s.get('sheetName') or '').lower().replace(' ', '_')
+                if s_class in ('TRIAL_BALANCE', 'TRIAL_BALANCE_BEG') or s_name in BEG_SHEET_NAMES:
+                    if tb_beg_df is None:
+                        tb_beg_df = load_dataset(f.get('fileId'), s.get('sheetName'))
+                    elif tb_df is None:   # fall-back: first TB sheet if no beg marker found
+                        tb_df = load_dataset(f.get('fileId'), s.get('sheetName'))
+                elif s_class == 'TRIAL_BALANCE_END' or s_name in END_SHEET_NAMES:
+                    if tb_end_df is None:
+                        tb_end_df = load_dataset(f.get('fileId'), s.get('sheetName'))
                 elif s_class in ('GENERAL_LEDGER', 'POPULATION') and gl_df is None:
                     gl_df = load_dataset(f.get('fileId'), s.get('sheetName'))
                 elif s_class == 'COA' and coa_df is None:
@@ -73,6 +86,21 @@ def run_omnia_jet(config_path):
         gl_df = load_dataset(dataset_map['glFileId'], dataset_map.get('glSheetName'))
     if dataset_map.get('coaFileId'):
         coa_df = load_dataset(dataset_map['coaFileId'], dataset_map.get('coaSheetName'))
+
+    # ── Merge Beginning + Ending TB if both are present ──────────────────
+    if tb_beg_df is not None and tb_end_df is not None:
+        log_event(run_id, 'TB_MERGE', 15,
+                  f'Merging TB_Beginning ({len(tb_beg_df)} rows) + TB_Ending ({len(tb_end_df)} rows) into unified TB',
+                  log_file)
+        # Align columns – use union of both column sets, fill missing with NaN
+        all_cols = list(dict.fromkeys(list(tb_beg_df.columns) + list(tb_end_df.columns)))
+        tb_beg_df = tb_beg_df.reindex(columns=all_cols)
+        tb_end_df = tb_end_df.reindex(columns=all_cols)
+        tb_df = pd.concat([tb_beg_df, tb_end_df], ignore_index=True)
+    elif tb_beg_df is not None and tb_df is None:
+        tb_df = tb_beg_df   # only beginning available
+    elif tb_end_df is not None and tb_df is None:
+        tb_df = tb_end_df   # only ending available
 
     if tb_df is None:
         raise ValueError("Trial Balance (TB) dataset is required for Omnia JET workflow.")
