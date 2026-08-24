@@ -248,6 +248,7 @@ export const OmniaJetWorkflow: React.FC = () => {
     );
 
     const newFieldMappings = { ...config.fieldMappings, [datasetType]: updated };
+    setAutoCleanReport(null);
     setConfig({ ...config, fieldMappings: newFieldMappings });
     RunService.updateFieldMappings(runId!, datasetType, updated);
   };
@@ -267,12 +268,23 @@ export const OmniaJetWorkflow: React.FC = () => {
 
   // Step access validation
   const isStep1Valid = (config?.files.length || 0) >= 1;
-  const isStep2Valid = useMemo(() => {
+  
+  const hasRequiredMappings = useMemo(() => {
     if (!config) return false;
     const glRequired = config.fieldMappings.gl?.filter((m) => m.required) || [];
     const tbRequired = config.fieldMappings.tb?.filter((m) => m.required) || [];
-    return glRequired.every((m) => Boolean(m.sourceField)) && tbRequired.every((m) => Boolean(m.sourceField));
+    const glOk = glRequired.every((m) => Boolean(m.sourceField));
+    const tbOk = tbRequired.every((m) => Boolean(m.sourceField));
+    const glHasAny = (config.fieldMappings.gl || []).some((m) => Boolean(m.sourceField));
+    const tbHasAny = (config.fieldMappings.tb || []).some((m) => Boolean(m.sourceField));
+    return glOk && tbOk && glHasAny && tbHasAny;
   }, [config]);
+
+  const isStep2Valid = Boolean(
+    hasRequiredMappings &&
+    autoCleanReport &&
+    autoCleanReport.constraintsPassed === true
+  );
 
   const canAccessStep = (stepId: number) => {
     if (stepId === 1) return true;
@@ -636,16 +648,147 @@ export const OmniaJetWorkflow: React.FC = () => {
             </div>
           )}
 
-          {/* STEP 2: CDM MAPPING */}
+          {/* STEP 2: CDM MAPPING & AUTO-CLEANING */}
           {currentStep === 2 && (
             <div>
               <div style={{ marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  Step 2: Common Data Model (CDM) Field Mapping
+                  Step 2: Common Data Model (CDM) Mapping & Automated Data Cleansing
                 </h3>
                 <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>
-                  Map input columns to standard Omnia CDM specifications for General Ledger, Trial Balance, and Chart of Accounts.
+                  Map input columns to standard Omnia CDM specifications, then execute <strong>Auto-Cleansing & Validation</strong> to normalize dates, numbers, and verify critical data constraints.
                 </p>
+              </div>
+
+              {/* AUTO-CLEANING ACTION CARD */}
+              <div className="glass-panel" style={{
+                padding: '20px 24px',
+                marginBottom: '20px',
+                background: autoCleanReport
+                  ? autoCleanReport.constraintsPassed
+                    ? 'linear-gradient(180deg, #F0FDF4, #FFFFFF)'
+                    : 'linear-gradient(180deg, #FEF2F2, #FFFFFF)'
+                  : 'linear-gradient(180deg, #FFFBEB, #FFFFFF)',
+                border: autoCleanReport
+                  ? autoCleanReport.constraintsPassed
+                    ? '1px solid #BBF7D0'
+                    : '1px solid #FECACA'
+                  : '1px solid #FDE68A',
+                borderRadius: 'var(--radius-lg)',
+              }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <Sparkles size={20} color={autoCleanReport ? (autoCleanReport.constraintsPassed ? '#16A34A' : '#DC2626') : '#D97706'} />
+                      <h4 style={{
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: autoCleanReport ? (autoCleanReport.constraintsPassed ? '#166534' : '#991B1B') : '#92400E',
+                        margin: 0
+                      }}>
+                        Automated CDM Cleansing & Constraint Engine
+                      </h4>
+                    </div>
+                    <p style={{
+                      fontSize: '0.82rem',
+                      color: autoCleanReport ? (autoCleanReport.constraintsPassed ? '#15803D' : '#B91C1C') : '#B45309',
+                      margin: 0
+                    }}>
+                      Trims whitespace, parses dates to standard ISO format, converts numbers/parentheses, and checks mandatory audit constraints.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleRunAutoClean}
+                    disabled={autoCleaning || !hasRequiredMappings}
+                    className="btn-primary"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '0.86rem',
+                      background: hasRequiredMappings ? 'var(--deloitte-teal)' : '#94A3B8',
+                      gap: '6px',
+                      cursor: hasRequiredMappings && !autoCleaning ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    <Play size={14} fill="#FFFFFF" />
+                    {autoCleaning ? 'Cleaning Data...' : 'Run Auto-Cleansing & Validation'}
+                  </button>
+                </div>
+
+                {/* State 1: Not run yet */}
+                {!autoCleanReport && (
+                  <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #FDE68A', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400E', fontWeight: 600 }}>
+                    <AlertTriangle size={16} color="#D97706" />
+                    <span>
+                      {hasRequiredMappings
+                        ? 'Cleansing Required: Click "Run Auto-Cleansing & Validation" above to verify constraints and unlock Step 3.'
+                        : 'Please map all required CDM standard fields below before executing data cleansing.'}
+                    </span>
+                  </div>
+                )}
+
+                {/* State 2: Clean Report Details */}
+                {autoCleanReport && (
+                  <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: autoCleanReport.constraintsPassed ? '1px solid #DCFCE7' : '1px solid #FEE2E2' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>TB Accounts Cleaned</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
+                          {autoCleanReport.tbRowsCleaned.toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>GL Journal Lines Cleaned</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
+                          {autoCleanReport.glRowsCleaned.toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dates Standardized</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
+                          {autoCleanReport.datesStandardized.toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Amounts Converted</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
+                          {autoCleanReport.numbersConverted.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {autoCleanReport.constraintsPassed ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#166534', fontWeight: 700 }}>
+                        <CheckCircle2 size={16} color="#16A34A" />
+                        <span>Data Cleansing Status: READY. All mandatory audit constraints passed — Step 3 is unlocked.</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#991B1B', fontWeight: 800 }}>
+                        <AlertTriangle size={16} color="#DC2626" />
+                        <span>Constraint Checks Failed: Next steps are locked. Please resolve the issues below.</span>
+                      </div>
+                    )}
+
+                    {autoCleanReport.warnings && autoCleanReport.warnings.length > 0 && (
+                      <div style={{
+                        marginTop: '10px',
+                        padding: '10px 14px',
+                        background: autoCleanReport.constraintsPassed ? '#FEF3C7' : '#FEE2E2',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        color: autoCleanReport.constraintsPassed ? '#92400E' : '#991B1B',
+                        border: autoCleanReport.constraintsPassed ? '1px solid #FDE68A' : '1px solid #FECACA',
+                      }}>
+                        <strong>{autoCleanReport.constraintsPassed ? 'Constraint Advisories:' : 'Blocking Constraint Failures:'}</strong>
+                        <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                          {autoCleanReport.warnings.map((w, i) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <FieldMappingTable
@@ -677,9 +820,30 @@ export const OmniaJetWorkflow: React.FC = () => {
                   onClick={() => setCurrentStep(3)}
                   disabled={!isStep2Valid}
                   className="btn-primary"
-                  style={{ padding: '9px 20px', gap: '6px' }}
+                  style={{
+                    padding: '9px 22px',
+                    gap: '6px',
+                    opacity: !isStep2Valid ? 0.6 : 1,
+                    cursor: isStep2Valid ? 'pointer' : 'not-allowed',
+                  }}
+                  title={
+                    !hasRequiredMappings
+                      ? 'Map required fields first'
+                      : !autoCleanReport
+                      ? 'Run auto-cleansing to unlock'
+                      : !autoCleanReport.constraintsPassed
+                      ? 'Resolve constraint failures to proceed'
+                      : 'Configure Omnia Parameters'
+                  }
                 >
-                  Configure Omnia Parameters <ArrowRight size={15} />
+                  {!hasRequiredMappings
+                    ? 'Map Required Fields'
+                    : !autoCleanReport
+                    ? 'Run Auto-Clean to Unlock Step 3'
+                    : !autoCleanReport.constraintsPassed
+                    ? 'Constraint Checks Failed — Locked'
+                    : 'Configure Omnia Parameters'}
+                  <ArrowRight size={15} />
                 </button>
               </div>
             </div>

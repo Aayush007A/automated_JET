@@ -331,6 +331,7 @@ export const SparkJetWorkflow: React.FC = () => {
     }
 
     try {
+      setAutoCleanReport(null);
       await RunService.updateFieldMappings(runId, datasetType, currentMappings);
       await loadRun();
     } catch (err) {
@@ -517,10 +518,22 @@ export const SparkJetWorkflow: React.FC = () => {
   }, [config]);
 
   const isStep1Valid = Boolean(config && config.files.length > 0);
+  
+  const hasRequiredMappings = useMemo(() => {
+    if (!config) return false;
+    const tbRequired = (config.fieldMappings.tb || []).filter((m) => m.required);
+    const glRequired = (config.fieldMappings.gl || []).filter((m) => m.required);
+    const tbOk = tbRequired.length === 0 || tbRequired.every((m) => Boolean(m.sourceField));
+    const glOk = glRequired.length === 0 || glRequired.every((m) => Boolean(m.sourceField));
+    const tbHasAny = (config.fieldMappings.tb || []).some((m) => Boolean(m.sourceField));
+    const glHasAny = (config.fieldMappings.gl || []).some((m) => Boolean(m.sourceField));
+    return tbOk && glOk && tbHasAny && glHasAny;
+  }, [config]);
+
   const isStep2Valid = Boolean(
-    config &&
-    (config.fieldMappings.tb || []).some((m) => m.sourceField) &&
-    (config.fieldMappings.gl || []).some((m) => m.sourceField)
+    hasRequiredMappings &&
+    autoCleanReport &&
+    autoCleanReport.constraintsPassed === true
   );
 
   const canAccessStep = (stepId: number) => {
@@ -528,7 +541,7 @@ export const SparkJetWorkflow: React.FC = () => {
     if (stepId === 2) return isStep1Valid;
     if (stepId === 3) return isStep1Valid && isStep2Valid;
     if (stepId === 4) return isStep1Valid && isStep2Valid;
-    if (stepId === 5) return isStep1Valid && isStep2Valid;
+    if (stepId === 5) return isStep1Valid && isStep2Valid && (status?.status === 'COMPLETED');
     return false;
   };
 
@@ -885,57 +898,92 @@ export const SparkJetWorkflow: React.FC = () => {
               <div className="glass-panel" style={{
                 padding: '20px 24px',
                 marginBottom: '20px',
-                background: 'linear-gradient(180deg, #F0FDF4, #FFFFFF)',
-                border: '1px solid #BBF7D0',
+                background: autoCleanReport
+                  ? autoCleanReport.constraintsPassed
+                    ? 'linear-gradient(180deg, #F0FDF4, #FFFFFF)'
+                    : 'linear-gradient(180deg, #FEF2F2, #FFFFFF)'
+                  : 'linear-gradient(180deg, #FFFBEB, #FFFFFF)',
+                border: autoCleanReport
+                  ? autoCleanReport.constraintsPassed
+                    ? '1px solid #BBF7D0'
+                    : '1px solid #FECACA'
+                  : '1px solid #FDE68A',
                 borderRadius: 'var(--radius-lg)',
               }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <Sparkles size={20} color="#16A34A" />
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#166534', margin: 0 }}>
+                      <Sparkles size={20} color={autoCleanReport ? (autoCleanReport.constraintsPassed ? '#16A34A' : '#DC2626') : '#D97706'} />
+                      <h4 style={{
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: autoCleanReport ? (autoCleanReport.constraintsPassed ? '#166534' : '#991B1B') : '#92400E',
+                        margin: 0
+                      }}>
                         Automated Data Cleansing & Constraint Engine
                       </h4>
                     </div>
-                    <p style={{ fontSize: '0.82rem', color: '#15803D', margin: 0 }}>
-                      Trims whitespace, parses dates to ISO <code>YYYY-MM-DD</code>, removes number formatting/parentheses, and checks mandatory constraints.
+                    <p style={{
+                      fontSize: '0.82rem',
+                      color: autoCleanReport ? (autoCleanReport.constraintsPassed ? '#15803D' : '#B91C1C') : '#B45309',
+                      margin: 0
+                    }}>
+                      Trims whitespace, parses dates to ISO <code>YYYY-MM-DD</code>, converts numbers/parentheses, and checks mandatory audit constraints.
                     </p>
                   </div>
 
                   <button
                     onClick={handleRunAutoClean}
-                    disabled={autoCleaning || !isStep2Valid}
+                    disabled={autoCleaning || !hasRequiredMappings}
                     className="btn-primary"
-                    style={{ padding: '10px 20px', fontSize: '0.86rem', background: '#007680', gap: '6px' }}
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '0.86rem',
+                      background: hasRequiredMappings ? 'var(--deloitte-teal)' : '#94A3B8',
+                      gap: '6px',
+                      cursor: hasRequiredMappings && !autoCleaning ? 'pointer' : 'not-allowed',
+                    }}
                   >
                     <Play size={14} fill="#FFFFFF" />
                     {autoCleaning ? 'Cleaning Data...' : 'Run Auto-Cleansing & Validation'}
                   </button>
                 </div>
 
-                {/* Auto Clean Report Details */}
+                {/* State 1: Not run yet */}
+                {!autoCleanReport && (
+                  <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #FDE68A', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400E', fontWeight: 600 }}>
+                    <AlertTriangle size={16} color="#D97706" />
+                    <span>
+                      {hasRequiredMappings
+                        ? 'Cleansing Required: Click "Run Auto-Cleansing & Validation" above to verify constraints and unlock Step 3.'
+                        : 'Please map all required standard fields below before executing data cleansing.'}
+                    </span>
+                  </div>
+                )}
+
+                {/* State 2: Clean Report Details */}
                 {autoCleanReport && (
-                  <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #DCFCE7' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '10px' }}>
-                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #DCFCE7' }}>
+                  <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: autoCleanReport.constraintsPassed ? '1px solid #DCFCE7' : '1px solid #FEE2E2' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>TB Accounts Cleaned</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
                           {autoCleanReport.tbRowsCleaned.toLocaleString()}
                         </div>
                       </div>
-                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #DCFCE7' }}>
+                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>GL Journal Lines Cleaned</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
                           {autoCleanReport.glRowsCleaned.toLocaleString()}
                         </div>
                       </div>
-                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #DCFCE7' }}>
+                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dates Standardized</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
                           {autoCleanReport.datesStandardized.toLocaleString()}
                         </div>
                       </div>
-                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #DCFCE7' }}>
+                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Amounts Converted</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
                           {autoCleanReport.numbersConverted.toLocaleString()}
@@ -943,14 +991,29 @@ export const SparkJetWorkflow: React.FC = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#166534', fontWeight: 700 }}>
-                      <CheckCircle2 size={16} color="#16A34A" />
-                      <span>Data Cleansing Status: READY. Constraints verified and validated for Integrity Tests.</span>
-                    </div>
+                    {autoCleanReport.constraintsPassed ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#166534', fontWeight: 700 }}>
+                        <CheckCircle2 size={16} color="#16A34A" />
+                        <span>Data Cleansing Status: READY. All mandatory audit constraints passed — Step 3 is unlocked.</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#991B1B', fontWeight: 800 }}>
+                        <AlertTriangle size={16} color="#DC2626" />
+                        <span>Constraint Checks Failed: Next steps are locked. Please resolve the issues below.</span>
+                      </div>
+                    )}
 
                     {autoCleanReport.warnings && autoCleanReport.warnings.length > 0 && (
-                      <div style={{ marginTop: '8px', padding: '8px 12px', background: '#FEF3C7', borderRadius: '6px', fontSize: '0.8rem', color: '#92400E' }}>
-                        <strong>Constraint Notes:</strong>
+                      <div style={{
+                        marginTop: '10px',
+                        padding: '10px 14px',
+                        background: autoCleanReport.constraintsPassed ? '#FEF3C7' : '#FEE2E2',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        color: autoCleanReport.constraintsPassed ? '#92400E' : '#991B1B',
+                        border: autoCleanReport.constraintsPassed ? '1px solid #FDE68A' : '1px solid #FECACA',
+                      }}>
+                        <strong>{autoCleanReport.constraintsPassed ? 'Constraint Advisories:' : 'Blocking Constraint Failures:'}</strong>
                         <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
                           {autoCleanReport.warnings.map((w, i) => (
                             <li key={i}>{w}</li>
@@ -1001,9 +1064,30 @@ export const SparkJetWorkflow: React.FC = () => {
                     }}
                     disabled={!isStep2Valid || executing}
                     className="btn-primary"
-                    style={{ padding: '9px 20px', gap: '6px' }}
+                    style={{
+                      padding: '9px 22px',
+                      gap: '6px',
+                      opacity: !isStep2Valid || executing ? 0.6 : 1,
+                      cursor: isStep2Valid && !executing ? 'pointer' : 'not-allowed',
+                    }}
+                    title={
+                      !hasRequiredMappings
+                        ? 'Map required fields first'
+                        : !autoCleanReport
+                        ? 'Run auto-cleansing to unlock'
+                        : !autoCleanReport.constraintsPassed
+                        ? 'Resolve constraint failures to proceed'
+                        : 'Proceed to Step 3'
+                    }
                   >
-                    Continue to Next Step <ArrowRight size={15} />
+                    {!hasRequiredMappings
+                      ? 'Map Required Fields'
+                      : !autoCleanReport
+                      ? 'Run Auto-Clean to Unlock Step 3'
+                      : !autoCleanReport.constraintsPassed
+                      ? 'Constraint Checks Failed — Locked'
+                      : 'Continue to Step 3 (IR Testing)'}
+                    <ArrowRight size={15} />
                   </button>
                 </div>
               </div>

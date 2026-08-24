@@ -274,6 +274,28 @@ export class FileController {
     tbCleaned = tbData.rows.length;
     glCleaned = glData.rows.length;
 
+    if (tbCleaned === 0) {
+      constraintWarnings.push('Trial Balance dataset is empty or not found.');
+    }
+    if (glCleaned === 0) {
+      constraintWarnings.push('General Ledger / Population dataset is empty or not found.');
+    }
+
+    // Check required field mappings
+    const tbRequired = (config.fieldMappings.tb || []).filter((m) => m.required);
+    for (const reqMap of tbRequired) {
+      if (!reqMap.sourceField) {
+        constraintWarnings.push(`Trial Balance mandatory standard field "${reqMap.standardField}" is not mapped.`);
+      }
+    }
+
+    const glRequired = (config.fieldMappings.gl || []).filter((m) => m.required);
+    for (const reqMap of glRequired) {
+      if (!reqMap.sourceField) {
+        constraintWarnings.push(`General Ledger mandatory standard field "${reqMap.standardField}" is not mapped.`);
+      }
+    }
+
     // Constraint Validation on TB
     let blankTBGL = 0;
     let blankTBDesc = 0;
@@ -285,8 +307,8 @@ export class FileController {
       const desc = row['Description'] || row['account_description'] || '';
       const sub = (row['Account Subtype'] || row['account_subtype'] || '').toString().toLowerCase().trim();
 
-      if (!gl) blankTBGL++;
-      if (!desc) blankTBDesc++;
+      if (!gl || String(gl).trim() === '') blankTBGL++;
+      if (!desc || String(desc).trim() === '') blankTBDesc++;
       if (sub && !validSubtypes.has(sub)) invalidSubtypes++;
     }
 
@@ -296,19 +318,25 @@ export class FileController {
 
     // Constraint Validation on GL
     let blankDocNo = 0;
+    let blankGLInGL = 0;
     for (const row of glData.rows) {
-      const doc = row['DocumentNo'] || row['journal_number'] || row['accounting document'] || '';
-      if (!doc) blankDocNo++;
+      const doc = row['DocumentNo'] || row['journal_number'] || row['accounting document'] || row['Document Number'] || '';
+      const gl = row['G/L'] || row['G_L'] || row['account_number'] || row['GL Account'] || '';
+      if (!doc || String(doc).trim() === '') blankDocNo++;
+      if (!gl || String(gl).trim() === '') blankGLInGL++;
     }
     if (blankDocNo > 0) constraintWarnings.push(`General Ledger has ${blankDocNo} rows with missing Document / Journal Numbers.`);
+    if (blankGLInGL > 0) constraintWarnings.push(`General Ledger has ${blankGLInGL} rows with missing G/L account codes.`);
 
     datesNormalized = glCleaned * 2;
     numbersConverted = tbCleaned * 4 + glCleaned * 3;
 
+    const constraintsPassed = constraintWarnings.length === 0;
+
     RunManager.updateRunStatus(runId, {
-      status: 'CONFIGURED',
-      progress: 40,
-      currentStage: 'DATA_CLEANSED',
+      status: constraintsPassed ? 'CONFIGURED' : 'MAPPING',
+      progress: constraintsPassed ? 40 : 25,
+      currentStage: constraintsPassed ? 'DATA_CLEANSED' : 'CLEANSE_FAILED',
       totalInputRows: {
         tb: tbCleaned,
         gl: glCleaned,
@@ -317,15 +345,17 @@ export class FileController {
 
     res.json({
       success: true,
-      message: 'Auto-cleaning & constraint validation completed successfully.',
+      message: constraintsPassed
+        ? 'Auto-cleaning & constraint validation completed successfully.'
+        : 'Auto-cleaning completed with constraint check failures.',
       report: {
         tbRowsCleaned: tbCleaned,
         glRowsCleaned: glCleaned,
         datesStandardized: datesNormalized,
         numbersConverted,
-        constraintsPassed: constraintWarnings.length === 0,
+        constraintsPassed,
         warnings: constraintWarnings,
-        status: 'READY',
+        status: constraintsPassed ? 'READY' : 'FAILED',
       },
     });
   }
