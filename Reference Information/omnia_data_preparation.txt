@@ -1,0 +1,1053 @@
+# Databricks notebook source
+# DBTITLE 0,Journal Entry Read-In and Mapping
+# MAGIC %md
+# MAGIC #Overview
+# MAGIC
+# MAGIC This script reads in the raw General Ledger, Trial Balance and Chart of Accounts files, performs any necessary data preparation and transformations needed to map the fields required for the Common Data Models and Standard Analytics. 
+# MAGIC
+# MAGIC The General Ledger, Trial Balance and Chart of Accounts outputs from this script are provided as inputs to the Golden Checks Notebook before uploading to CDM. 
+# MAGIC
+# MAGIC Version: 9.4
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # 1. Installing Libraries 
+# MAGIC
+# MAGIC **Do not change any codes in this section**. Make sure to authenticate while this command is executed.
+
+# COMMAND ----------
+
+# DBTITLE 1,Set PYPI_TOKEN & CortexPy for Serverless Compute
+import os
+os.environ['PYPI_TOKEN'] = dbutils.secrets.get('all-users-scope', 'PYPI_TOKEN')
+cortexpy_package = dbutils.secrets.get("all-users-scope", "CORTEXPY_VERSION")
+os.environ["VERSION"] = cortexpy_package.split("==")[1].strip()
+
+# COMMAND ----------
+
+# DBTITLE 1,Install CortexPy
+pip install --index-url https://$PYPI_TOKEN@symphonyvsts.pkgs.visualstudio.com/_packaging/Cortex-PYPI/pypi/simple/ cortexpy==$VERSION --trusted-host symphonyvsts.pkgs.dev.azure.com --quiet 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Restart Python Process 
+dbutils.library.restartPython() 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Initialization 
+## Importing all the methods from the cortexpy library 
+from cortexpy.context.entry_context import *  
+from cortexpy.helper.utils import * 
+from cortexpy.helper.enums import * 
+from cortexpy.helper.logging_helper import * 
+set_global_logger_level(logging.INFO) 
+cp = get_context() 
+logger = get_logger(__name__, logging.INFO) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC #2. Importing Standard Functions 
+# MAGIC 
+# MAGIC **Do not change any codes in this section**. 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Import Standard Functions 
+# MAGIC %run /Workspace/CONTENT_LIBRARY/NOTEBOOKS/JEReadin/StandardFunctions 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Widgets 
+# Widget to enter the output file path to export the final GL/TB/COA outputs. 
+# Please update the output file path according to the testing period as this will ensure better organization of the folder structure within Staging.  
+# For example, if the testing period is Q1 through Q4 2022, then use FY22. If the testing period is Q1 through Q2 2022, then use Q1Q2_FY22. If there are multiple entities, please use ENT1_Q1Q2_FY22. 
+ 
+dbutils.widgets.text(name="output_path", defaultValue="", label="Enter a path to save the outputs") 
+output_path = dbutils.widgets.get('output_path') 
+ 
+# Widget to disable dataframe previews - The default input is 'No', please update to 'Yes' and re-run when ready to run for final documentation. 
+ 
+# Depending on the value of the widget, the `display()` function will update to be the function it should be. When the widget is "No", all `display()` function calls in the entire script will display per usual. When the widget's value is "Yes", all `display()` function calls in the entire script will be ignored and display will be disabled. 
+ 
+# Please use the display method instead of the display function if you prefer to enable the display irrespective of the widget input, which means, use `df.display()` instead of `display(df)`. 
+ 
+dbutils.widgets.dropdown( 
+    name="ready_for_logs",  
+    defaultValue="No",  
+    choices=["No", "Yes"],  
+    label="Disable 'display's that generate the data previews?" 
+) 
+ready_for_logs = False if dbutils.widgets.get("ready_for_logs") == "No" else True 
+display = DataFrame.display if not ready_for_logs else display_mask 
+ 
+# Widget to choose to perform zero balance exclusions in the TB - The default input is 'Yes', please update to 'No' if you do not want to exclude the zero balances in the final TB. 
+ 
+dbutils.widgets.dropdown( 
+    name="exclude_zero_lines", 
+    defaultValue="Yes", 
+    choices=["No", "Yes"], 
+    label="Exclude records with zero amounts in the Final TB?", 
+) 
+exclude_zero_lines = dbutils.widgets.get("exclude_zero_lines") 
+ 
+# Widget to choose decimal seperator for numeric fields during datatype casting - The default input is Period, please update to Comma or None based on the input data. 
+ 
+dbutils.widgets.dropdown( 
+    name="field_separator", 
+    defaultValue="Period", 
+    choices=["None","Comma","Period"], 
+    label="Decimal separator for numeric fields (period, comma, or none)") 
+field_seperator = dbutils.widgets.get('field_separator') 
+ 
+# Widget to choose the action for managing breakpoints  - The default is skip, please update to read or write intermediate files based on the requirements 
+dbutils.widgets.dropdown( 
+    name="action", 
+    defaultValue="skip", 
+    choices=["write","read","skip"], 
+    label="Breakpoint Action") 
+action = dbutils.widgets.get("action") 
+ 
+# COMMAND ---------- 
+ 
+# This cell is for the user to run all the prerequisite codes above this line. 
+# Please note that the user should scroll to the initialization section (Cmd 4) to initialize the notebook, else it would be waiting for all commands to run and it might time out and cause errors. 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC #3. GL Read-in, Preparing and Mapping 
+# MAGIC 
+# MAGIC 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Find Data 
+# Run this command to copy the file paths and names, and avoid typing them manually while data read-in. 
+ 
+cp.fs.ls('User Imported Data/EFT_UP', True) # Search recursively 
+ 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 3.1 Read-in General Ledger 
+# MAGIC 
+# MAGIC ####IMPORTANT 
+# MAGIC Please update the input file path and file name (copy from the listing output of the cp.fs.ls command in Cmd 10) for the General Ledger. 
+# MAGIC 
+# MAGIC Read the instructions below to understand the options within the cp.read command. 
+# MAGIC 
+# MAGIC 1.**header** 
+# MAGIC   If the raw data file has a header (column names in the first row) then set header=true. This will use the first row in the file as the dataframe's column names. Setting header=false (default option) will result in a dataframe with default column names: _c0, _c1, _c2, etc. 
+# MAGIC 
+# MAGIC 2.**inferSchema**  
+# MAGIC   The schema refered to here are the column types. A column can be of type String, Double, Long, etc. Using inferSchema=false (default option) will give a dataframe where all columns are strings (StringType). 
+# MAGIC 
+# MAGIC   By setting inferSchema=true, Spark will automatically go through the file and infer the schema of each column. This requires an extra pass over the file which will result in reading a file with inferSchema set to true being slower and is not recommended. 
+# MAGIC 
+# MAGIC 3.**multiLine** 
+# MAGIC    To parse records split across multiple lines due to carriage return into a single line. Set multiLine = True to correct for Split Line issues 
+# MAGIC 
+# MAGIC 4.**quote** 
+# MAGIC    To quote fields/columns containing values where delimiter/separator can be part of the value. The default value is double quote. 
+# MAGIC 
+# MAGIC 5.**escape** 
+# MAGIC    To set a single character as escaping character to override default escape character(\) 
+# MAGIC 
+# MAGIC 6.**ignoreLeadingWhiteSpace** 
+# MAGIC    To remove the leading spaces in all column names and column values 
+# MAGIC 
+# MAGIC 7.**ignoreTrailingWhiteSpace** 
+# MAGIC    To remove the trailing spaces in all column names and column values 
+# MAGIC 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Read-in JE Files 
+# Read-in JE file 
+JE_raw1 = cp.read("User Imported Data/EFT_UP/JE_Final/JE_Final.zip/JE_Final.csv", delimiter=",", multiLine= True, quote="\"", escape="\"", header=True, ignoreLeadingWhiteSpace=True, ignoreTrailingWhiteSpace=True) 
+ 
+# If multiple JE files exist then uncomment and use the below line which can read all the files in the given directory and append them as one combined dataframe. 
+ 
+#JE_raw = multifile_readin( 
+#     directoryPath="User Imported Data/EFT_UP/Q1Q4_FY16", 
+#     delimiter='\t', 
+#     quote="\"", 
+#     escape="\"", 
+#     multiLine=True, 
+#     header=True, 
+#     filesToSelect=[], 
+#     skiprows=1, 
+#     encoding="UTF-8" 
+# ) 
+ 
+# Use the 'skiprows' option within cp.read and specify the number of rows to skip if the headers in the Raw JE file are not present in the first row. For example, if the headers are in row number 7 then update 'skiprows = 6'. 
+ 
+# JE_raw = cp.read("User Imported Data/EFT_UP/Q1Q4_FY16/INPUT/Activity3_JE_Test.csv", delimiter=",", multiLine= True, quote="\"", escape="\"",header=True, skiprows = 6, ignoreLeadingWhiteSpace=True, ignoreTrailingWhiteSpace=True) 
+ 
+# For Reading Excel Files, please use cp.pandas.read() method. Below is the example 
+ 
+# JE_raw = cp.pandas.read("User Imported Data/EFT_UP/Q1Q4_FY16/INPUT/Activity3_JE_Test.xlsx", header = 0, sheet_name = "Sheet1", dtype = "string").to_spark() 
+ 
+#Replace "." with "_" in the field names, remove leading + trailing spaces in the field names and field values 
+JE_raw1 = clean_df(JE_raw1) 
+ 
+display(JE_raw1.limit(100)) 
+ 
+# COMMAND ---------- 
+ 
+from pyspark.sql.functions import col, regexp_replace, length 
+ 
+# Step 1: Remove first two leading zeros (overwrite same columns) 
+JE_raw = ( 
+    JE_raw1 
+    .withColumn("account_number", regexp_replace(col("account_number"), r'^00', '')) 
+    .withColumn("journal_line_number", regexp_replace(col("journal_line_number"), r'^00', '')) 
+) 
+ 
+# # Step 2: Check for invalid rows (but do NOT filter main DF) 
+# invalid_count = df_cleaned.filter( 
+#     (~col("account_number").rlike("^[0-9]{8}$")) | 
+#     (~col("journal_line_number").rlike("^[0-9]{8}$")) 
+# ).count() 
+ 
+# # Step 3: Validation result 
+# if invalid_count > 0: 
+#     raise Exception(f"Data validation failed: {invalid_count} rows are not 8-digit numeric") 
+# else: 
+#     print("✅ Data validation passed: all rows have valid 8-digit values") 
+ 
+ 
+# COMMAND ---------- 
+ 
+display(JE_raw.limit(100)) 
+ 
+# COMMAND ---------- 
+ 
+# JE_raw = JE_raw.withColumn( 
+#     "is_standard", 
+#     when(col("transaction_type").isin("SA", "AB"), "N")  # Non Standard 
+#     .otherwise("S")                                     # Standard 
+# ) 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Export JE as Parquet 
+# Export the JE_raw dataframe as a parquet file output and import it again for efficiencies in the processing time for the subsequent data transformations. Please make sure the 'JE_raw' dataframe is consolidated and complete if there are multiple files one for each month or each quarter. 
+cp.write(JE_raw, f'{output_path}/JE_raw.parquet', 'overwrite', register=True) 
+JE_raw=cp.read(f'{output_path}/JE_raw.parquet') 
+ 
+# COMMAND ---------- 
+ 
+JE_raw = JE_raw.withColumn("fiscal_period_new",expr("((month(to_date(date_effective, 'dd-MMM-yyy')) + 8) % 12) + 1") ) 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Decimal Type Casting 
+# Type Casting numeric fields from String to Decimal format 
+ 
+# The 'StringtoNum' function removes special characters, symbols, and alphabets from a numeric column based on the decimal separator selected in the widget, while preserving only the following characters: period or comma "." or "," (depending on the widget input), digits from 0 to 9, opening parenthesis "(", and hyphen "-"". Additionally, it replaces the opening parenthesis with a negative sign and converts the resulting string to a numeric format and rounding to 6 decimal places. Also displays the total number of records containing null values in the column before and after the type conversion.  
+ 
+# Example 1: To convert a single string column to numeric: 
+# df = StringtoNum(df, ["col_name"]) 
+ 
+# Example 2: To convert a multiple string columns to numeric: 
+# columns = ["col1", "col2", "col3"] 
+# df=StringtoNum(df, columns)   
+ 
+columns = ["net_amount_ec", "net_amount_gc", "net_amount_oc", "credit_amount_ec", "debit_amount_ec", "credit_amount_gc", "debit_amount_gc", "credit_amount_oc", "debit_amount_oc", "fiscal_year"] 
+JE_raw=StringtoNum(JE_raw, columns) 
+ 
+display(JE_raw.limit(100)) 
+ 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Control Totals 
+# Computes and displays the total line count and sum of the specified numeric columns of the DataFrame. 
+# Parameters: 
+  # JE_raw (DataFrame): The DataFrame to compute the totals for. 
+  # columns (list): A list of column names to compute the totals. These columns should be numeric type. 
+ 
+#display(Control_Totals(JE_raw, columns)) 
+Control_Totals(JE_raw, columns).display() 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Dates Type Casting 
+# Type Casting date fields from String to Date format 
+ 
+# Please use the 'StringtoDate' function to convert the date fields and update the input date format of the date field within the raw data in the third parameter. The output date format after conversion is "yyyy-MM-dd" which can be fed into Golden Checks Notebook. 
+JE_raw = StringtoDate(JE_raw, "date_posted", "dd-MMM-yy")  
+JE_raw = StringtoDate(JE_raw, "date_effective", "dd-MMM-yy")  
+ 
+# Type Casting the standard field 'time_posted' to yyyy-MM-dd HH:mm:ss 
+# 1. Update "Post Time" with the field indicating time_posted from your data. 
+# 2. Update "MM/dd/yy H:mm" based on the input date format within the raw data. For example, if the "Post Time" is 12/29/15 0:00 then input "MM/dd/yy H:mm". 
+# if the field is not available, then comment the code below. 
+# if the field is available, then use the code below. 
+JE_raw = FormatTime(JE_raw, "time_posted", "dd-MMM-yy HH:mm:ss") 
+ 
+display(JE_raw.limit(100)) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## Note on taiwanese/minguo date format 
+# MAGIC If data has taiwanese or minguo date format then refer the method convert_to_gregorian_date_format() from Standard Functions script. 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 3.2 Preparing General Ledger 
+# MAGIC 
+# MAGIC In this section, the raw General Ledger file after read-in is assigned to a new dataframe and all the required field transformations are performed in order to map the fields in the next section to provide as an input into the Golden Checks Notebook and then into the CDM.  
+# MAGIC 
+# MAGIC Some example transformations are shown here. Edit/add the transformations as needed if the fields are not a direct mapping from the raw file to CDM fields. 
+ 
+# COMMAND ---------- 
+ 
+from pyspark.sql.functions import col 
+ 
+JE_raw.select(col("is_standard")).distinct().show(truncate=False) 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Custom JE Transformations 
+JE = JE_raw 
+JE = JE.select("*", (when(col('account_number').contains(':'), trim(split(col('account_number'), ":").getItem(1))) 
+    .otherwise(trim(col('account_number')))).alias("Account_number_final")) 
+    # (when(trim(col("BATCHNO")) == "1", "N").when(trim(col("BATCHNO")) == "3", "S").otherwise("N")).alias("ManSys")) 
+  
+JE = JE.withColumn( 
+    "is_standard", 
+    when(col("is_standard") == "Non Standard", "NO").otherwise(col("is_standard")) 
+) 
+display(JE.limit(100)) 
+ 
+JE2 = JE 
+JE2 = JE2.withColumn( 
+    "account_number", 
+    regexp_replace(trim(col("account_number")), "^0000", "") 
+) 
+display(JE2.limit(100)) 
+ 
+# COMMAND ---------- 
+ 
+from pyspark.sql.functions import col 
+ 
+JE2.select(col("is_standard")).distinct().show(truncate=False) 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Data Summaries and Null Validation 
+# # Group by any raw data field or combination of fields to obtain the line count and sum of the numeric columns 
+# # Parameters: 
+#   # df (DataFrame): The DataFrame to compute the totals for. 
+#   # grp_col (list): The column names to group the DataFrame by. 
+#   # sum_col (list): A list of column names to compute the totals. These columns should be numeric. 
+ 
+# per_summ = grp_totals(JE, ["ENTITY", "Period30"], ["NET_EC", "NET_GC", "NET_OC"]) 
+# display(per_summ) 
+ 
+# mansys_summ = grp_totals(JE, "ManSys", ["NET_EC", "NET_GC", "NET_OC"]) 
+# display(mansys_summ) 
+ 
+# # Count the records having null values in specific column(s) in a dataframe 
+# null_vals = disp_nulls(JE, ["USERID", "ENTITY"])  
+# display(null_vals) 
+ 
+# # Return a dataframe which contains the number of records with null values in all the columns 
+# # dict_null = JE.select(*[sum(col(column).isNull().cast("int")).alias(column) for column in JE.columns]) 
+# # print("Total number of null records in all the columns is ") 
+# # display(dict_null) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 3.3 Mapping General Ledger 
+# MAGIC 
+# MAGIC **IMPORTANT**: Field mapping should be completed by the user for the input tables - General Ledger, Trial Balance and Chart of Accounts (sections 3.3, 4.3 and 5.3 respectively). Please read the instructions below carefully and map input fields to standard fields. 
+# MAGIC *** 
+# MAGIC ####Field Mapping Instructions 
+# MAGIC 1. Each line represents a column in the input table - "standard field": "actual input field". 
+# MAGIC 2. Update the value on the right side of colon (:) with the input column name. 
+# MAGIC 3. Do NOT remove or change the standard field names, the values before colon (:) 
+# MAGIC 4. If a column to map does not exist in the input, leave the value on the right as "" 
+# MAGIC 5. Examples - "entity_id": "Entity Number" or "extract_date": "" 
+# MAGIC 4. The first parameter of the 'map_input_fields' function (last second command line in this section) should be updated with the final GL data frame name created in section 3.2. For example, the final data frames created in sections 3.2, 4.2, 5.2 are "JE", "TB_Full", "COA" and are used as the first parameter of the 'map_input_fields' function in sections 3.3, 4.3 and 5.3 respectively. 
+# MAGIC 
+ 
+# COMMAND ---------- 
+ 
+dict_general_ledger_mapping = { 
+## Mapping mandatory fields 
+    "entity_id": "entity_id", 
+    "account_number": "account_number", 
+    "journal_number": "journal_number", 
+    "fiscal_year": "HC:2026", 
+    "fiscal_period": "fiscal_period_new", 
+    "net_amount_oc": "net_amount_ec", 
+    "net_amount_ec": "net_amount_ec", 
+    "net_amount_gc": "net_amount_gc", 
+    "entity_currency_ec": "entity_currency_ec", 
+    "original_currency_oc": "entity_currency_ec", 
+    "group_currency_gc": "group_currency_gc", 
+    "date_posted": "date_posted", 
+    "date_effective": "date_effective", 
+## Mandatory but auto-corrected if Blank/Unmapped 
+    "entity_name": "entity_name", 
+    "time_posted": "time_posted", 
+    "debit_amount_ec": "debit_amount_ec", 
+    "debit_amount_gc": "debit_amount_gc", 
+    "debit_amount_oc": "debit_amount_ec", 
+    "credit_amount_ec": "credit_amount_ec", 
+    "credit_amount_gc": "credit_amount_gc", 
+    "credit_amount_oc": "credit_amount_ec", 
+    "is_standard": "is_standard", 
+## Mapping optional fields 
+    "journal_header_description": "journal_header_description", 
+    "transaction_type": "transaction_type", 
+    "userid_entered": "userid_entered", 
+    "user_name_entered": "userid_entered", 
+    "userid_approved": "userid_approved", 
+    "user_name_approved": "userid_entered", 
+    "dc_indicator": "", 
+    "journal_line_number": "journal_line_number", 
+    "journal_line_description": "journal_line_description", 
+    "transaction_type_description": "", 
+    "source": "", 
+    "location": "", 
+    "account_description": "", 
+    "date_updated": "", 
+    "updated_by": "", 
+    "name_of_user_updated": "", 
+    "time_updated": "", 
+    "date_approved": "", 
+    "time_approved": "", 
+    "is_manual": "", 
+    "source_description": "", 
+    "coa_account_key": "", 
+    "exchange_rate": "", 
+    "foreign_exchange_date": "", 
+    "forex_conversion_method": "", 
+    "business_area": "", 
+    "controlling_area_for_cost_and_profit_center": "", 
+    "cost_center": "", 
+    "profit_center": "", 
+    "project": "", 
+    "custom_exclusion": "", 
+    "extract_date": "", 
+    "chart_of_accounts": "", 
+    "import_date": "", 
+    "ledger_id": "", 
+    "ledger_group": "", 
+    "debit_amount_oc": "", 
+    "credit_amount_oc": "", 
+    "misc1": "", 
+    "misc2": "", 
+    "misc3": "", 
+    "misc4": "", 
+    "misc5": "" 
+} 
+JE_Final_before_zero_exc = map_input_fields(JE2,dict_general_ledger_mapping) 
+ 
+display(JE_Final_before_zero_exc.limit(100)) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## GL Breakpoint 
+# MAGIC 1. Update the Breakpoint Action widget value above to select the desired operation: 
+# MAGIC    - "write" to save the intermediate DataFrame (overwriting existing data if necessary) and read it back. 
+# MAGIC    - "read" to load the previously saved DataFrame from the specified file path. 
+# MAGIC    - "skip" to bypass saving/loading and continue with the current DataFrame. 
+# MAGIC 2. Run the below cell after updating the widget to apply the selected operation. 
+# MAGIC 
+# MAGIC Note:  
+# MAGIC    - For "write" and "skip", a valid Datafarme must be passed as parameter. If the session has just started and no file has been read or no Dataframe has been assigned, it will result in a NameError. 
+ 
+# COMMAND ---------- 
+ 
+from pyspark.sql.functions import col 
+ 
+JE_Final_before_zero_exc.select(col("is_standard")).distinct().show(truncate=False) 
+ 
+# COMMAND ---------- 
+ 
+JE_Final_before_zero_exc = handle_breakpoint(action=action, file_path=f"{output_path}/JE_Final_before_zero_exc.parquet", 
+                                             dataframe=JE_Final_before_zero_exc if action !="read" else None) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC #4. TB Read-in, Preparing and Mapping 
+# MAGIC 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 4.1 Read-in Trial Balance 
+# MAGIC 
+# MAGIC Please update the file path and file name (copy from the listing output of the cp.fs.ls command in Cmd 10) for the Trial Balance. 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Omnia TB Read-in and Prep 
+## IMPORTANT Note: Uncomment the below code to read-in and prepare the TB using an Omnia TB input file. The 'read_omnia_tb' function includes type casting and prepares the final TB to proceed with mapping. Please follow the steps below after uncommenting and running the below code. 
+## 1. Validate 'TB_Full' dataframe. 
+## 2. Comment the subsequent transformations after this cell until section 4.3. 
+## 3. Skip to section 4.3 for Mapping TB. 
+ 
+# # Update TB_path to the Omnia TB input file location 
+# TB_path = "User Imported Data/EFT_UP/Q1Q4_FY16/INPUT/TB Omnia_Multiple entities.xlsx" 
+# detail = cp.pandas.read(TB_path, header=0, dtype="string").to_spark() 
+ 
+## Replace "." with "_" in the field names, remove leading + trailing spaces in the field names and field values 
+# detail = clean_df(detail) 
+# display(detail) 
+ 
+# # Update below entities and period_end_dates lists to be included in the TB, please make sure the period_end_dates align with the date values within the Omnia TB input file 
+# entities = ["Entity 1", "Entity 2"] 
+# period_end_dates = ["12/31/2023", "12/31/2022"] 
+ 
+# # Update the input date format of the 'Period End Date' within the Omnia TB input file  
+# TB_Full = read_omnia_tb(detail, entities, period_end_dates, period_enddate_format = "MM/dd/yyyy") 
+# display(TB_Full) 
+# display(Control_Totals(TB_Full, ["Balance"])) 
+# Control_Totals(TB_Full, ["Balance"]).display() 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Read-in TB Files 
+# Read-in Beginning Balance file 
+TB_Beg_raw = cp.read("User Imported Data/EFT_UP/TB_Start_11_8.csv", delimiter=",", multiLine= True, quote="\"", escape="\"", header=True, ignoreLeadingWhiteSpace=True, ignoreTrailingWhiteSpace=True) 
+ 
+# Replace "." with "_" in the field names, remove leading + trailing spaces in the field names and field values 
+TB_Beg_raw = clean_df(TB_Beg_raw) 
+ 
+display(TB_Beg_raw) 
+ 
+# Read-in Ending Balance file 
+TB_End_raw = cp.read("User Imported Data/EFT_UP/TB_End_11_8.csv", delimiter=",", multiLine= True, quote="\"", escape="\"", header=True, ignoreLeadingWhiteSpace=True, ignoreTrailingWhiteSpace=True) 
+ 
+#Replace "." with "_" in the field names, remove leading + trailing spaces in the field names and field values 
+TB_End_raw = clean_df(TB_End_raw) 
+ 
+display(TB_End_raw) 
+ 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Beginning TB Type Casting 
+# Type Casting numeric fields from String to Decimal format 
+TB_Beg_raw = StringtoNum(TB_Beg_raw, ["ending_balance_gc","ending_balance_ec"]) 
+  
+# Type Casting date fields from String to Date format 
+# Please use the 'StringtoDate' function to convert the date fields and update the input date format of the date field within the raw data in the third parameter. The output date format after conversion is "yyyy-MM-dd" which can be fed into Golden Checks Notebook. 
+TB_Beg_raw = StringtoDate(TB_Beg_raw, "period_end_date", "dd-MMM-yy") 
+  
+display(TB_Beg_raw) 
+  
+# Call the Control Totals function to print the control totals 
+#display(Control_Totals(TB_Beg_raw, ["ending_balance_gc"])) 
+Control_Totals(TB_Beg_raw, ["ending_balance_gc","ending_balance_ec"]).display() 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Ending TB Type Casting 
+# Type Casting numeric fields from String to Decimal format 
+TB_End_raw = StringtoNum(TB_End_raw, ["ending_balance_gc","ending_balance_ec"]) 
+  
+# Type Casting date fields from String to Date format 
+# Please use the 'StringtoDate' function to convert the date fields and update the input date format of the date field within the raw data in the third parameter. The output date format after conversion is "yyyy-MM-dd" which can be fed into Golden Checks Notebook. 
+TB_End_raw = StringtoDate(TB_End_raw, "period_end_date", "dd-MMM-yy") 
+  
+display(TB_End_raw) 
+  
+# Call the Control Totals function to print the control totals 
+#display(Control_Totals(TB_End_raw, ["Balance"])) 
+Control_Totals(TB_End_raw, ["ending_balance_gc","ending_balance_ec"]).display() 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## Note on taiwanese/minguo date format 
+# MAGIC If data has taiwanese or minguo date format then refer the method convert_to_gregorian_date_format() from Standard Functions script. 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 4.2 Preparing Trial Balance 
+# MAGIC 
+# MAGIC In this section, the raw Trial Balance files are combined to a new dataframe and all the required field transformations are performed in order to map the fields in the next section to provide as an input into the Golden Checks Notebook and then into the CDM.  
+# MAGIC 
+# MAGIC Some example transformations are shown here. Edit/add the transformations as needed if the fields are not a direct mapping from the raw file to CDM fields. 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Custom TB Transformations 
+TB_End_raw = TB_End_raw.select(col('account_number').alias('account_number'),col('account_description').alias('account_desc'), 
+                               col('period_end_date').alias('period_end_date'),col('ending_balance_gc').alias('ending_balance_gc'), "entity_currency_ec", "ending_balance_ec", "group_currency_gc", "chart_of_accounts", "period_type", "fiscal_year", "fiscal_period", "entity_name", 
+                               (when(col("entity_id") == "Comp_32", lit("ENT1")).otherwise(col("entity_id"))).alias("entity_id")) 
+  
+TB_Beg_raw = TB_Beg_raw.select(col('entity_id').alias('entity_id'),'account_number',col('account_description').alias('account_desc'),'period_end_date','ending_balance_gc', 'ending_balance_ec', 'entity_currency_ec', 'group_currency_gc', 'chart_of_accounts', 'period_type', 'fiscal_year', 'fiscal_period', 'entity_name') 
+  
+#Appending Begining and Ending TB files 
+TB_Full = TB_Beg_raw.unionByName(TB_End_raw) 
+  
+display(TB_Beg_raw) 
+display(TB_End_raw) 
+display(TB_Full) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 4.3 Mapping Trial Balance 
+# MAGIC 
+# MAGIC Refer to section 3.3 for instructions. 
+ 
+# COMMAND ---------- 
+ 
+dict_trial_balance_mapping = { 
+## Mapping mandatory fields 
+    "entity_id": "entity_id", 
+    "account_number": "account_number", 
+    "account_description": "account_desc", 
+    "period_end_date": "period_end_date", 
+    "entity_currency_ec": "HC:INR", 
+    "ending_balance_gc": "ending_balance_gc", 
+    "ending_balance_ec": "ending_balance_gc", 
+    "group_currency_gc": "HC:INR", 
+    "chart_of_accounts": "chart_of_accounts", 
+## Mandatory but auto-corrected if Blank/Unmapped 
+    "entity_name": "entity_name", 
+    "period_type": "", 
+## Mapping optional fields 
+    "fiscal_year": "HC:2026", 
+    "fiscal_period": "fiscal_period", 
+    "period_activity_ec": "", 
+    "period_activity_gc": "", 
+    "preliminary_ec": "", 
+    "adjusted_journal_entry_ec": "", 
+    "adjusted_ec": "", 
+    "reclassification_journal_entry_ec": "", 
+    "preliminary_gc": "", 
+    "adjusted_journal_entry_gc": "", 
+    "adjusted_gc": "", 
+    "reclassification_journal_entry_gc": "", 
+    "consolidation_journal_entry_gc": "", 
+    "extract_date": "", 
+    "import_date": "", 
+    "ledger_id": "", 
+    "ledger_group": "", 
+    "coa_account_key": "", 
+    "beginning_balance_ec": "", 
+    "beginning_balance_gc": "", 
+    "misc1": "", 
+    "misc2": "" 
+} 
+  
+TB_Final_before_zero_exc = map_input_fields(TB_Full,dict_trial_balance_mapping) 
+  
+display(TB_Final_before_zero_exc) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## TB Breakpoint 
+# MAGIC 1. Update the Breakpoint Action widget value above to select the desired operation: 
+# MAGIC    - "write" to save the intermediate DataFrame (overwriting existing data if necessary) and read it back. 
+# MAGIC    - "read" to load the previously saved DataFrame from the specified file path. 
+# MAGIC    - "skip" to bypass saving/loading and continue with the current DataFrame. 
+# MAGIC 2. Run the below cell after updating the widget to apply the selected operation. 
+# MAGIC 
+# MAGIC Note:  
+# MAGIC    - For "write" and "skip", a valid Datafarme must be passed as parameter. If the session has just started and no file has been read or no Dataframe has been assigned, it will result in a NameError. 
+ 
+# COMMAND ---------- 
+ 
+TB_Final_before_zero_exc = handle_breakpoint(action=action, file_path=f"{output_path}/TB_Final_before_zero_exc.parquet", 
+                                             dataframe=TB_Final_before_zero_exc if action !="read" else None) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC #5. COA Read-in, Preparing and Mapping 
+# MAGIC 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 5.1 Read-in Chart of Accounts 
+# MAGIC 
+# MAGIC Please update the file path and file name (copy from the listing output of the cp.fs.ls command in Cmd 10) for the Chart of Accounts. 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Omnia COA Read-in and Prep 
+## IMPORTANT Note: Uncomment the below code to read-in and prepare the COA using an Omnia TB input file (same file used for preparing the TB in section 4). Please make sure this file contains the additional tabs "Account Grouping 1" and "Financial Statement Line" with the Account Grouping and Financial Statement mapping information. The 'read_omnia_coa' function prepares the final COA to proceed with mapping. Please follow the steps below after uncommenting and running the below code. 
+## 1. Validate 'COA_raw' dataframe. 
+## 2. Comment the subsequent transformations after this cell until section 5.3. 
+## 3. Skip to section 5.3 for Mapping COA. 
+ 
+# COA_raw = read_omnia_coa(TB_path) 
+ 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Read-in COA File 
+# Read-in COA file 
+COA_raw = cp.read("User Imported Data/EFT_UP/COA_11_8.csv", delimiter=",", multiLine= True, quote="\"", escape="\"", header=True, ignoreLeadingWhiteSpace=True, ignoreTrailingWhiteSpace=True) 
+ 
+#Replace "." with "_" in the field names, remove leading + trailing spaces in the field names and field values 
+COA_raw = clean_df(COA_raw) 
+ 
+display(COA_raw) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 5.2 Preparing Chart of Accounts 
+# MAGIC 
+# MAGIC In this section, the raw Chart of Accounts file after read-in is assigned to a new dataframe and all the required field transformations are performed in order to map the fields in the next section to provide as an input into the Golden Checks Notebook and then into the CDM.  
+# MAGIC 
+# MAGIC Some example transformations are shown here. Edit/add the transformations as needed if the fields are not a direct mapping from the raw file to CDM fields. 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,Custom COA Transformations 
+COA = COA_raw 
+# COA = COA.select("*", 
+#         (when(COA['ACCT'].substr(1, 1) == '1', 'Assets') 
+#         .when(COA['ACCT'].substr(1, 1) == '2', 'Liabilities') 
+#         .when(COA['ACCT'].substr(1, 1) == '3', 'Equity') 
+#         .when(COA['ACCT'].substr(1, 1) == '4', 'Revenue') 
+#         .otherwise('Expenses')).alias('AccountSubType') 
+#         ) 
+ 
+display(COA) 
+ 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## 5.3 Mapping Chart of Accounts 
+# MAGIC 
+# MAGIC Refer to section 3.3 for instructions. 
+ 
+# COMMAND ---------- 
+ 
+dict_chart_of_accounts_mapping = { 
+## Mapping mandatory fields 
+    "entity_id": "entity_id", 
+    "account_grouping_1_num": "account_grouping_1_num", 
+    "account_grouping_1": "account_grouping_1", 
+    "financial_statement_line_num": "financial_statement_line_num", 
+    "financial_statement_line": "financial_statement_line",    
+    "account_number": "account_number", 
+    "account_description": "account_description", 
+    "financial_statement_category": "financial_statement_category", 
+    "chart_of_accounts": "chart_of_accounts", 
+## Mandatory but auto-corrected if Blank/Unmapped 
+    "entity_name": "entity_name", 
+    "financial_statement_subtotal_category": "financial_statement_subtotal_category", 
+    "financial_statement_type": "financial_statement_type", 
+## Mapping optional fields 
+    "revision_date": "", 
+    "abcotd": "", 
+    "financial_statement_subtotal_category_id": "", 
+    "financial_statement_category_id": "", 
+    "abcotd_id": "", 
+    "abcotd_significance": "", 
+    "content_area_id": "", 
+    "content_area": "", 
+    "extract_date": "", 
+    "import_date": "", 
+    "tags": "", 
+    "coa_account_key": "" 
+} 
+ 
+COA_Final = map_input_fields(COA,dict_chart_of_accounts_mapping) 
+ 
+display(COA_Final) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC ## COA Breakpoint 
+# MAGIC 1. Update the Breakpoint Action widget value above to select the desired operation: 
+# MAGIC    - "write" to save the intermediate DataFrame (overwriting existing data if necessary) and read it back. 
+# MAGIC    - "read" to load the previously saved DataFrame from the specified file path. 
+# MAGIC    - "skip" to bypass saving/loading and continue with the current DataFrame. 
+# MAGIC 2. Run the below cell after updating the widget to apply the selected operation. 
+# MAGIC 
+# MAGIC Note:  
+# MAGIC    - When resuming from a saved breakpoint by reading COA_Final, ensure that COA_raw is also read. The Final COA transformation requires both of them. 
+# MAGIC    - For "write" and "skip", a valid Datafarme must be passed as parameter. If the session has just started and no file has been read or no Dataframe has been assigned, it will result in a NameError. 
+ 
+# COMMAND ---------- 
+ 
+COA_Final = handle_breakpoint(action=action, file_path=f"{output_path}/Final_COA.parquet", dataframe=COA_Final if action !="read" else None) 
+ 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC #6. Final Transformations 
+# MAGIC 
+# MAGIC **Do not change any codes in this section**. 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,FINAL GL TRANSFORMATIONS - DO NOT EDIT 
+# The 'transform_journal_entry' function performs the below on the 'JE_Final_before_zero_exc' DataFrame: 
+# 1. Excludes records where all the net amounts columns (net_amount_oc, net_amount_ec, net_amount_gc) are zero. 
+# 2. Converts entity_id and account_number columns to upper case. 
+# 3. Derives debit/credit amounts from net amount. 
+# 4. Type casts fiscal_period field to Integer. 
+# 5. Type casts numeric fields to Decimal. 
+# 6. Removes Single and Double Quotes in string fields. 
+# 7. Produces the 'Journal Entry Tie-Out' table - helpful for review/validation and tie-out purposes. 
+#       '1. Mapped JE' relates to the 'JE_Final_before_zero_exc' DataFrame from section 3.3 
+#       '2. Excluded JE' relates to the 'JE_ZeroLines' DataFrame which contains the records with zero net amounts 
+#       '3. Final JE' relates to the 'JE_Final' DataFrame after excluding records with zero net amounts,  
+#       and all the amount columns (net/debit/credit oc/ec/gc) are rounded to 6 decimal places 
+#       '4. Truncated JE' relates to the 'JE_Final' DataFrame after excluding records with zero net amounts,  
+#       and all the amount columns (net/debit/credit oc/ec/gc) are truncated to 2 decimal places to help tie-out with the Golden Checks output 
+# 8. Produces the 'Journal Entry Period Summary' table - helpful for review/validation and tie-out purposes. 
+ 
+JE_Final, JE_ZeroLines = transform_journal_entry(data=JE_Final_before_zero_exc) 
+display(JE_Final.limit(50)) 
+ 
+# COMMAND ---------- 
+ 
+from pyspark.sql.functions import col, rand 
+ 
+# Step 1: Filter only Non-Standard entries 
+non_standard_df = JE_Final.filter(col("is_standard") == "N") 
+ 
+# Step 2: Select distinct journal numbers and randomly sample 45 
+control_stg1 = ( 
+    non_standard_df 
+    .select(col("journal_number").alias("Key")) 
+    .distinct() 
+    .orderBy(rand(seed=26)) 
+    .limit(15) 
+) 
+ 
+print(control_stg1.count()) 
+ 
+# Step 3: Get full journal entries for selected journal numbers 
+csd = ( 
+    control_stg1 
+    .join(JE_Final, control_stg1["Key"] == JE_Final["journal_number"], "inner") 
+    .drop("Key") 
+) 
+ 
+# Step 4: Write output 
+cp.write(csd, f'{output_path}/15_Tata_Advanced_Nonstd_CSD_Q1_26.csv', 'overwrite', register=True) 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,FINAL TB TRANSFORMATIONS - DO NOT EDIT 
+# The 'transform_trial_balance' function performs the below on the 'TB_Final_before_zero_exc' DataFrame: 
+# 1. Excludes records where ending_balance_ec and ending_balance_gc are zero based on the widget "Exclude records with zero amounts in the Final TB?".  
+#       If the widget is set to 'Yes', then records with zero balances will be excluded. 
+#       If the widget is set to 'No', then records with zero balances will not be excluded. 
+# 2. Converts entity_id and account_number columns to upper case. 
+# 3. Type casts numeric fields to Decimal. 
+# 4. Removes Single and Double Quotes in string fields 
+# 5. Produces the 'Trial Balance Tie-Out' table - helpful for review/validation and tie-out purposes. 
+#       '1. Mapped TB' relates to the 'TB_Final_before_zero_exc' DataFrame from section 4.3 
+#       '2. Excluded TB' relates to the 'TB_ZeroLines' DataFrame which contains the records with zero balances 
+#       '3. Final TB' relates to the 'TB_Final' DataFrame after excluding records with zero balances 
+ 
+TB_Final, TB_ZeroLines = transform_trial_balance( 
+    data=TB_Final_before_zero_exc, 
+    exclude_zero_lines=exclude_zero_lines 
+) 
+display(TB_Final.limit(50)) 
+ 
+# COMMAND ---------- 
+ 
+# DBTITLE 1,FINAL COA TRANSFORMATIONS - DO NOT EDIT 
+# The 'transform_chart_of_accounts' function performs the below on the 'COA_Final' DataFrame from section 5.3: 
+# 1. Converts entity_id and account_number columns to upper case. 
+# 2. Converts account_description, account_grouping_1, financial_statement_line, financial_statement_category, financial_statement_subtotal_category, and abcotd columns to proper case. 
+# 3. Removes Single and Double Quotes in string fields 
+# 4. Produces the 'COA Record Count Tie-Out' table - helpful for review/validation and tie-out purposes. 
+# Note: If handle_breakpoint() is used to restore COA_Final, ensure reading COA_raw before runnning this transformation. 
+ 
+COA_Final = transform_chart_of_accounts(raw_data=COA_raw, data=COA_Final) 
+display(COA_Final.limit(50)) 
+ 
+# COMMAND ---------- 
+ 
+# MAGIC %md 
+# MAGIC #7. Writing Output Tables 
+# MAGIC 
+# MAGIC **Do not change any codes in this section.** 
+ 
+# COMMAND ---------- 
+ 
+cp.write(TB_Final, f'{output_path}/TB_Final.parquet', 'overwrite', register=True)  
+cp.write(COA_Final, f'{output_path}/COA_Final.parquet', 'overwrite', register=True) 
+cp.write(JE_Final, f'{output_path}/JE_Final.parquet', 'overwrite', register=True) 
+ 
+# COMMAND ---------- 
+ 
+# # -------------------------------------------- 
+# # Imports 
+# # -------------------------------------------- 
+# from pyspark.sql.functions import col, count, sum, format_number 
+ 
+ 
+# # -------------------------------------------- 
+# # Step 1: Group by Entity + DocNum + Description 
+# # -------------------------------------------- 
+# dump18 = ( 
+#     JE_Final 
+#     .groupBy( 
+#         col("entity_id").alias("Entity"), 
+#         col("journal_number").alias("DocNum"), 
+#         col("journal_header_description") 
+#     ) 
+#     .agg(count("journal_number").alias("cnt")) 
+# ) 
+ 
+ 
+# # -------------------------------------------- 
+# # Step 2: Find journals with multiple descriptions 
+# # -------------------------------------------- 
+# dump18_stg1 = ( 
+#     dump18 
+#     .groupBy("Entity", "DocNum") 
+#     .agg(count("*").alias("CNT")) 
+#     .filter(col("CNT") > 1) 
+# ) 
+ 
+ 
+# # -------------------------------------------- 
+# # Step 3: Join back to get full violating records 
+# # -------------------------------------------- 
+# dump18_stg2 = ( 
+#     JE_Final 
+#     .join( 
+#         dump18_stg1, 
+#         (JE_Final.journal_number == dump18_stg1.DocNum) & 
+#         (JE_Final.entity_id == dump18_stg1.Entity), 
+#         "inner" 
+#     ) 
+#     .select(JE_Final["*"]) 
+# ) 
+ 
+ 
+# # -------------------------------------------- 
+# # Step 4: Metrics on FULL violating data 
+# # -------------------------------------------- 
+# cnt_18 = dump18_stg2.count() 
+ 
+# sum_18 = ( 
+#     dump18_stg2 
+#     .select( 
+#         format_number(sum("debit_amount_ec"), 2).alias("Debit"), 
+#         format_number(sum("credit_amount_ec"), 2).alias("Credit") 
+#     ) 
+#     .first() 
+# ) 
+ 
+# print( 
+#     f"18_Observation_JE_Multiple_Entry_Description --> " 
+#     f"Count: {cnt_18} | " 
+#     f"Debit: {sum_18['Debit']} | " 
+#     f"Credit: {sum_18['Credit']}" 
+# ) 
+ 
+ 
+# # -------------------------------------------- 
+# # Step 5: TAKE ONLY 2 SAMPLE ROWS FOR OUTPUT 
+# # -------------------------------------------- 
+# dump18_sample = dump18_stg2.limit(2) 
+ 
+ 
+# # -------------------------------------------- 
+# # Step 6: Write sample output 
+# # -------------------------------------------- 
+# if cnt_18 > 0: 
+#     ( 
+#        cp.write(dump18_sample, f'{output_path}/18_DIC.csv', 'overwrite', register=True) 
+#     ) 
+ 
+ 
+# COMMAND ---------- 
+ 
+# from pyspark.sql.functions import col, coalesce, lit 
+ 
+# # ---- Step 1: Cast & Handle Nulls ---- 
+# df_amt = JE_Final \ 
+#     .withColumn("ec", coalesce(col("net_amount_ec").cast("double"), lit(0))) \ 
+#     .withColumn("gc", coalesce(col("net_amount_gc").cast("double"), lit(0))) \ 
+#     .withColumn("oc", coalesce(col("net_amount_oc").cast("double"), lit(0))) 
+ 
+# # ---- Step 2: Currency Net Amount Mismatch Condition ---- 
+# dump12 = df_amt.filter( 
+#     ((col("ec") == 0) & ((col("gc") != 0) | (col("oc") != 0))) | 
+#     ((col("gc") == 0) & ((col("ec") != 0) | (col("oc") != 0))) | 
+#     ((col("oc") == 0) & ((col("ec") != 0) | (col("gc") != 0))) 
+# ).drop("ec","gc","oc") 
+ 
+# # ---- Step 3: Take 2 Sample Records ---- 
+# dump12_sample = dump12.limit(2) 
+ 
+# # ---- Step 4: Write Output ---- 
+# cp.write(dump12_sample, f'{output_path}/12_DIC.csv', 'overwrite', register=True) 
+ 
+# COMMAND ---------- 
+ 
+# from pyspark.sql.functions import col, countDistinct 
+ 
+# # ---- Step 1: Identify User IDs mapped to multiple User Names ---- 
+# multi_userid = JE_Final.groupBy("userid_entered") \ 
+#     .agg(countDistinct("user_name_entered").alias("name_count")) \ 
+#     .filter(col("name_count") > 1) \ 
+#     .select("userid_entered") 
+ 
+# # ---- Step 2: Get Records for Those User IDs ---- 
+# dump20 = JE_Final.join(multi_userid, on="userid_entered", how="inner") 
+ 
+# # ---- Step 3: Take 2 Sample Rows ---- 
+# dump20_sample = dump20.limit(2) 
+ 
+# # ---- Step 4: Write Output ---- 
+# cp.write(dump20_sample, f'{output_path}/20_DIC.csv', 'overwrite', register=True) 
+ 
+ 
+# COMMAND ---------- 
+ 
+# print("cnt_18 =", cnt_18) 
+ 
+# COMMAND ---------- 
+ 
+# dump18_stg2.show(5, truncate=False) 
+# dump18_sample.show(truncate=False) 
+ 
+ 
+# COMMAND ---------- 
+ 
+ 
+ 
+# COMMAND ---------- 
+ 
+# dump18_stg2.count() 
+# dump18_sample.count() 
+ 
+# COMMAND ---------- 
+ 
+# cp.write(TB_Final, f'{output_path}/TB_Final.csv', 'overwrite', register=True, header=True, sep=',')  
+# cp.write(COA_Final, f'{output_path}/COA_Final.csv', 'overwrite', register=True, header=True, sep=',')  
+# cp.write(JE_Final, f'{output_path}/JE_Final.csv', 'overwrite', register=True, header=True, sep=',')

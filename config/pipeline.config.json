@@ -1,0 +1,25 @@
+{
+  "defaultWorkflow": "SPARK_JET",
+  "supportedWorkflows": ["SPARK_JET", "OMNIA_JET"],
+  "engineOptions": {
+    "SPARK_JET": ["PYTHON", "PYSPARK", "SCALA_SPARK"],
+    "OMNIA_JET": ["PYTHON", "PYSPARK", "SCALA_SPARK"]
+  },
+  "defaultEngine": "PYTHON",
+  "sparkSettings": {
+    "master": "local[*]",
+    "driverMemory": "8g",
+    "executorMemory": "8g",
+    "legacyTimeParserPolicy": "LEGACY",
+    "ansiEnabled": false
+  },
+  "tolerances": {
+    "reconciliationAmountTolerance": 1.0,
+    "journalBalanceTolerance": 0.01
+  },
+  "dqcDefaults": {
+    "enableObservationChecks": true,
+    "enableUserChecks": true,
+    "enableTransactionTypeChecks": true
+  }
+}

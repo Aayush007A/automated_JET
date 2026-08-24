@@ -1,0 +1,16 @@
+{
+  "name": "jet-automation-platform",
+  "version": "1.0.0",
+  "description": "Enterprise Journal Entry Testing (JET) Automation Platform",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "test:backend": "cd backend && npm test",
+    "test:pipelines": "python tests/verify_pipelines.py",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "keywords": ["deloitte", "audit", "jet", "spark", "omnia", "accounting", "pyspark", "reconciliation"],
+  "author": "Deloitte JET Engineering Team",
+  "license": "UNLICENSED"
+}

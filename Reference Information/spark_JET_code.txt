@@ -1,0 +1,1217 @@
+spark.sql("set spark.sql.legacy.timeParserPolicy=LEGACY") 
+import org.apache.spark.sql.expressions.Window 
+import org.apache.spark.sql.functions 
+import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerType, DoubleType, DecimalType, LongType}; 
+ 
+### Input & Output File Path 
+val file_path: String = "C:/Users/aayupadhyay.ext/OneDrive - Deloitte (O365D)/Live_Client_Data/4944015 - Maxion Wheels Aluminum India Private Limited/" 
+ 
+### Data Cleaning 
+val raw_dump = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Uncleaned_JE.csv") 
+ 
+raw_dump.printSchema 
+ 
+raw_dump.createOrReplaceTempView("raw_dump") 
+ 
+var population_stage2 =spark.sql(""" 
+SELECT 
+  TRIM(`GL Account`) AS G_L, 
+  TRIM(`Accounting document`) AS DocumentNo, 
+  TRIM(`Document type`) AS Type, 
+  TRIM(`Accounting date`) AS Entry_Date, 
+  TRIM(`Posting date`) AS Pstng_Date, 
+  TRIM(`Document date`) AS Doc_Date, 
+  TRIM(`Amount in local currency`) AS Amount_in_local_cur, 
+  NULL AS Debit_Credit, 
+  'INR' AS Lcurr, 
+  NULL AS Amount_in_doc_curr, 
+  TRIM(`Currency code`) AS Curr, 
+  NULL AS Amount_in_loc_curr_2, 
+  NULL AS LCur2, 
+  TRIM(`Text Header`) AS Document_Header_Text, 
+  TRIM(`Text Details`) AS Text, 
+  TRIM(`User UD`) AS User_name 
+FROM raw_dump 
+""") 
+ 
+population_stage2.createOrReplaceTempView("population_stage2") 
+ 
+var population_stage3 = spark.sql("""select STRING(G_L), STRING(DocumentNo), 
+STRING(Type), 
+TO_DATE(CAST(UNIX_TIMESTAMP(Entry_Date, 'yyyyMMdd') AS TIMESTAMP)) AS Entry_Date, 
+TO_DATE(CAST(UNIX_TIMESTAMP(Pstng_Date, 'yyyyMMdd') AS TIMESTAMP)) AS Pstng_Date, 
+TO_DATE(CAST(UNIX_TIMESTAMP(Doc_Date, 'yyyyMMdd') AS TIMESTAMP)) AS Doc_Date, 
+Double(replace(Amount_in_local_cur,',','')) as Amount_in_local_cur,String(Lcurr), 
+Double(replace(Amount_in_doc_curr,',','')) as Amount_in_doc_curr,String(Curr),  
+Double(replace(Amount_in_loc_curr_2,',','')) as Amount_in_loc_curr_2, String(LCur2), 
+STRING(replace(Document_Header_Text,',',' ')) as Document_Header_Text ,  
+STRING(LOWER(replace(Text,',',' '))) as Text, STRING(User_name), 
+STRING(Debit_Credit)from population_stage2""") 
+ 
+population_stage3.createOrReplaceTempView("population_stage3") 
+ 
+val population = population_stage3.withColumn("Entry_Date", date_format(to_date(col("Entry_Date"), "yyyy-MM-dd"), "dd-MMM-yy")) 
+.withColumn("Pstng_Date", date_format(to_date(col("Pstng_Date"), "yyyy-MM-dd"), "dd-MMM-yy")) 
+.withColumn("Doc_Date", date_format(to_date(col("Doc_Date"), "yyyy-MM-dd"), "dd-MMM-yy")) 
+ 
+population.createOrReplaceTempView("population") 
+spark.sql("""select round(sum(Amount_in_local_cur),2) AS Total_Sum from population""").show() 
+ 
+population.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.save(file_path + "JE") 
+ 
+ 
+### Population & TB Part 
+### Stage-1 
+ 
+val population = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "JE2.csv") 
+ 
+population.createOrReplaceTempView("population") 
+ 
+population.show(5,false) 
+ 
+### Sample Look of Population 
++--------+----------+----+----------+----------+---------+-------------------+-----+------------------+----+--------------------+-----+--------------------+----+---------+------------+ 
+|G_L     |DocumentNo|Type|Entry_Date|Pstng_Date|Doc_Date |Amount_in_local_cur|Lcurr|Amount_in_doc_curr|Curr|Amount_in_loc_curr_2|LCur2|Document_Header_Text|Text|User_name|Debit_Credit| 
++--------+----------+----+----------+----------+---------+-------------------+-----+------------------+----+--------------------+-----+--------------------+----+---------+------------+ 
+|11401000|2500007294|RV  |03-Nov-25 |03-Nov-25 |03-Nov-25|1339512.0          |INR  |NULL              |INR |NULL                |NULL |NULL                |NULL|SATPUTD  |NULL        | 
+|11202200|2500007294|RV  |03-Nov-25 |03-Nov-25 |03-Nov-25|-1135180.0         |INR  |NULL              |INR |NULL                |NULL |NULL                |NULL|SATPUTD  |NULL        | 
+|21302630|2500007294|RV  |03-Nov-25 |03-Nov-25 |03-Nov-25|-204332.0          |INR  |NULL              |INR |NULL                |NULL |NULL                |NULL|SATPUTD  |NULL        | 
+|11401000|2500007295|RV  |03-Nov-25 |03-Nov-25 |03-Nov-25|798689.0           |INR  |NULL              |INR |NULL                |NULL |NULL                |NULL|SATPUTD  |NULL        | 
+|11202200|2500007295|RV  |03-Nov-25 |03-Nov-25 |03-Nov-25|-676855.0          |INR  |NULL              |INR |NULL                |NULL |NULL                |NULL|SATPUTD  |NULL        | 
++--------+----------+----+----------+----------+---------+-------------------+-----+------------------+----+--------------------+-----+--------------------+----+---------+------------+ 
+only showing top 5 rows 
+ 
+val documentNo_dump_stg1 = spark.sql("""SELECT DocumentNo, ROUND(SUM(Amount_in_local_cur),1) as Amount from population group by DocumentNo having Amount!=0.0""") 
+ 
+documentNo_dump_stg1.count() 
+ 
+val trial_balance = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.option("multiline","True") 
+.load(file_path + "TB.csv") 
+ 
+trial_balance.count() and trial_balance.select("G_L").distinct.count() should be same 
+ 
+trial_balance.createOrReplaceTempView("trial_balance") 
+ 
+### Stage-2 
+ 
+var population_new = spark.sql("""select STRING(G_L) as G_L, STRING(DocumentNo) as DocumentNo, CONCAT(G_L,DocumentNo) as BU ,STRING(Type),  
+STRING(Entry_Date), STRING(Pstng_Date), STRING(Doc_Date), DOUBLE(Amount_in_local_cur), STRING(Lcurr),  
+DOUBLE(Amount_in_doc_curr), STRING(`Curr`), DOUBLE(Amount_in_loc_curr_2), STRING(LCur2), STRING(Document_Header_Text),  
+STRING(LOWER(Text)) as Text, STRING(User_name) from population""") 
+ 
+val trial_balance_new = spark.sql("""select STRING(G_L) as G_L, STRING(Description), DOUBLE(Opening_Balance), DOUBLE(Debit),  
+DOUBLE(Credit), DOUBLE(Closing_Balance), '' as Movement,  
+STRING(Account_Subtype), STRING(FS_Line_Item) from trial_balance""") 
+ 
+population_new.createOrReplaceTempView("population_new") 
+trial_balance_new.createOrReplaceTempView("trial_balance_new") 
+ 
+### Stage-3 
+ 
+val GL_withoutNull = population_new.na.fill(0.0, Array("Amount_in_local_cur")) 
+.na.fill(0.0, Array("Amount_in_doc_curr")) 
+.na.fill(0.0, Array("Amount_in_loAc_curr_2")) 
+.na.fill("0", Array("G_L")) 
+.na.fill("0", Array("DocumentNo")) 
+.na.fill("0", Array("Text")) 
+ 
+var tb_WithoutNull = trial_balance_new.na.fill(0.0, Array("Opening_Balance")) 
+.na.fill(0.0, Array("Debit")) 
+.na.fill(0.0, Array("Credit")) 
+.na.fill(0.0, Array("Closing_Balance")) 
+.na.fill(0.0, Array("Movement")) 
+.na.fill("0", Array("Description")) 
+.na.fill("0", Array("G_L")) 
+ 
+GL_withoutNull.createOrReplaceTempView("GL_withoutNull") 
+tb_WithoutNull.createOrReplaceTempView("tb_WithoutNull") 
+ 
+val GL_new_unique = spark.sql("""select G_L, sum(Amount_in_local_cur) as Total_Amount_in_local_cur  
+from GL_withoutNull group by G_L""") 
+ 
+ 
+GL_new_unique.createOrReplaceTempView("GL_new_unique") 
+spark.catalog.dropTempView("population_new") 
+spark.catalog.dropTempView("population") 
+ 
+### Control Samples 
+ 
+val a = population 
+ 
+a.createOrReplaceTempView("a") 
+ 
+val report4_stage1 = spark.sql("""select DocumentNo, Pstng_Date from a group by DocumentNo, Pstng_Date""") 
+ 
+report4_stage1.createOrReplaceTempView("report4_stage1") 
+ 
+val report4_stage2 = spark.sql(""" select DocumentNo, Pstng_Date from report4_stage1 order by RAND(42) LIMIT 61""") 
+ 
+report4_stage2.createOrReplaceTempView("report4_stage2") 
+ 
+val report4_stage3 = spark.sql(""" select a.* from a a INNER JOIN report4_stage2 b ON a.DocumentNo = b.DocumentNo""") 
+ 
+report4_stage3.createOrReplaceTempView("report4_stage3") 
+ 
+spark.sql(""" select * from report4_stage2 
+where not exists (select * from report4_stage3 where report4_stage3.DocumentNo = report4_stage2.DocumentNo)""").show() 
+ 
+report4_stage3.repartition(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Contol_Samples") 
+ 
+### Integrity Testing 
+ 
+### IR Exception-1 
+ 
+val IR_Exception_1 = spark.sql("""select * from tb_WithoutNull  
+where not exists (select distinct G_L from GL_withoutNull where GL_withoutNull.G_L = tb_WithoutNull.G_L)""") 
+ 
+IR_Exception_1.count() 
+ 
+IR_Exception_1.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("Overwrite") 
+.save(file_path + "Outputs/Integrity_Result/IR_Exception_1")  
+ 
+### IR Exception-3 
+ 
+val IR_Exception_3 = spark.sql("""select * from GL_new_unique  
+where not exists (select G_L from tb_WithoutNull where GL_new_unique.G_L = tb_WithoutNull.G_L)""") 
+ 
+IR_Exception_3.count() 
+ 
+IR_Exception_3.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("Overwrite") 
+.save(file_path + "Outputs/Integrity_Result/IR_Exception_3") 
+ 
+### IR Exception-2 
+ 
+val Trial_Left_Popultation = tb_WithoutNull.join(GL_new_unique,Seq("G_L"),"left") 
+ 
+Trial_Left_Popultation.createOrReplaceTempView("Trial_Left_Popultation") 
+ 
+val Trial_Left_Popultation_Stage2 = Trial_Left_Popultation.na.fill(0.0, Array("Total_Amount_in_local_cur")) 
+ 
+Trial_Left_Popultation_Stage2.createOrReplaceTempView("Trial_Left_Popultation_Stage2") 
+ 
+val IR_Exception_2 = spark.sql("""select G_L, Opening_Balance, Debit, Credit, Closing_Balance, Total_Amount_in_local_cur AS GL_Activity,  
+((Debit - Credit) - Total_Amount_in_local_cur) AS Difference_In_Activity,  
+CASE WHEN (Closing_Balance-Opening_Balance) != 0 and ROUND(Total_Amount_in_local_cur,2) = 0 THEN 'Exception'  
+WHEN ABS(ROUND(Total_Amount_in_local_cur,2) - (Closing_Balance-Opening_Balance)) <= 1 THEN ' No Exception'  
+ELSE 'Exception' END AS Exception2 
+from Trial_Left_Popultation_Stage2  
+group by G_L, Opening_Balance, Debit, Credit, Closing_Balance, Total_Amount_in_local_cur  
+order by G_L""") 
+ 
+IR_Exception_2.createOrReplaceTempView("IR_Exception_2") 
+ 
+val output = spark.sql("select * from IR_Exception_2 where Exception2='Exception'") 
+ 
+output.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("Overwrite") 
+.save(file_path + "Outputs/Integrity_Result/IR_Exception_2") 
+ 
+### IR Exception-4/ Seldom Accounts 
+ 
+val IR_Exception_4 = spark.sql("""select a.G_L, count(b.G_L) AS Count  
+from tb_WithoutNull a LEFT JOIN GL_withoutNull b 
+ON a.G_L = b.G_L 
+group by a.G_L""") 
+ 
+IR_Exception_4.count() 
+ 
+IR_Exception_4.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("Overwrite") 
+.save(file_path + "Outputs/Integrity_Result/Parameter_2_Seldom Accounts_Inputs") 
+ 
+### Parameter Testing 
+ 
+## Exception-1 (Entries made to Unusual Accounts) 
+ 
+val Input_Exception1 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_1.csv") 
+.select("G_L").distinct 
+ 
+Input_Exception1.createOrReplaceTempView("Input_Exception1") 
+ 
+Input_Exception1.show() 
++----------+ 
+|       G_L| 
++----------+ 
+|0059100000| 
+|0059100001| 
+|0058809000| 
+|0034100000| 
++----------+ 
+ 
+val InputException1_Left_PopulationGL = Input_Exception1.join(GL_withoutNull,Seq("G_L"),"left") 
+ 
+InputException1_Left_PopulationGL.createOrReplaceTempView("InputException1_Left_PopulationGL") 
+ 
+val InputException1_Left_PopulationGL_Stage2 = spark.sql("""select * from GL_withoutNull  
+where DocumentNo in(select DocumentNo from InputException1_Left_PopulationGL)""") 
+ 
+InputException1_Left_PopulationGL_Stage2.createOrReplaceTempView("InputException1_Left_PopulationGL_Stage2") 
+ 
+val Exception1 = spark.sql("""select a.G_L, '' AS FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, 
+a.Document_Header_Text, a.Text, a.User_name,  
+CASE WHEN a.G_L = b.G_L and a.Amount_in_local_cur != 0 THEN 'Exception1'  
+ELSE 'NO Exception' END AS Exception  
+from InputException1_Left_PopulationGL_Stage2 a lEFT JOIN Input_Exception1 b ON a.G_l = b.G_L order by a.G_L""") 
+ 
+Exception1.coalesce(1).write 
+.format("csv") 
+// .option("escape", "\"") 
+// .option("quote", "\"") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_1") 
+ 
+### Exception-2 (Entries made to Seldom-based Accounts) 
+ 
+val Input_Exception2 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_2.csv") 
+.select("G_L").distinct() 
+ 
+Input_Exception2.createOrReplaceTempView("Input_Exception2") 
+ 
+ 
+Input_Exception2.show(false) 
++--------+ 
+|G_L     | 
++--------+ 
+|11301060| 
+|11601900| 
+|52002500| 
+|11301115| 
+|53001208| 
+|11101100| 
+|51008010| 
+|21501140| 
+|31404640| 
+|11401705| 
+|21501480| 
+|11201510| 
+|11802800| 
+|11603630| 
+|12101220| 
+|21501401| 
+|11809240| 
+|12101110| 
+|32001000| 
+|52001020| 
++--------+ 
+only showing top 20 rows 
+ 
+val InputException2_Left_PopulationGL = Input_Exception2.join(GL_withoutNull,Seq("G_L"),"left") 
+ 
+InputException2_Left_PopulationGL.createOrReplaceTempView("InputException2_Left_PopulationGL") 
+ 
+val InputException2_Left_PopulationGL_Stage2 = spark.sql("""select * from GL_withoutNull  
+where DocumentNo in(select DocumentNo from InputException2_Left_PopulationGL)""") 
+ 
+InputException2_Left_PopulationGL_Stage2.createOrReplaceTempView("InputException2_Left_PopulationGL_Stage2") 
+ 
+val Exception2 = spark.sql("""select a.G_L, '' AS FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name,  
+CASE WHEN a.G_L = b.G_L and a.Amount_in_local_cur != 0 THEN 'Exception2'  
+ELSE 'NO Exception' END AS Exception  
+from InputException2_Left_PopulationGL_Stage2 a lEFT JOIN Input_Exception2 b ON a.G_l = b.G_L order by a.G_L""") 
+ 
+Exception2.coalesce(1).write 
+.format("csv") 
+.mode("overwrite") 
+.option("header",true) 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_2") 
+ 
+### Exception-3 (Large Debits to Revenue During the Period) 
+ 
+var Input_Final1 = tb_WithoutNull.filter(lower($"Account_Subtype")==="revenue") 
+ 
+if(Input_Final1.count()==0){ 
+    Input_Final1 = tb_WithoutNull.filter(lower($"Account_Subtype")==="income") 
+} 
+ 
+if(Input_Final1.count()==0){ 
+    println("No Revenue/Income GL - Notify ET") 
+} 
+ 
+Input_Final1.select(length(col("G_L"))).distinct.show() 
+ 
+Input_Final1.show(false) 
++--------+------------------------------------+----------------+-----+------+----------------+--------+---------------+--------------------------------------+ 
+|G_L     |Description                         |Opening_Balance |Debit|Credit|Closing_Balance |Movement|Account_Subtype|FS_Line_Item                          | 
++--------+------------------------------------+----------------+-----+------+----------------+--------+---------------+--------------------------------------+ 
+|41001000|Sales - Free Samples Dom            |16000.0         |0.0  |0.0   |16000.0         |        |Revenue        |NET SALES REVENUE                     | 
+|41001400|Sales - Domestic                    |-4.29530684085E9|0.0  |0.0   |-5.34399028318E9|        |Revenue        |NET SALES REVENUE                     | 
+|41001500|Sales - Exports                     |-775851.91      |0.0  |0.0   |-775851.91      |        |Revenue        |NET SALES REVENUE                     | 
+|41001510|Sales - Intercompany                |-2753213.7      |0.0  |0.0   |-2753213.7      |        |Revenue        |NET SALES REVENUE                     | 
+|41201000|Sales Mfg Scrap                     |-7.6721259E7    |0.0  |0.0   |-1.00466623E8   |        |Revenue        |NET SALES REVENUE                     | 
+|41201200|Sales - Trading                     |-1857597.0      |0.0  |0.0   |-1748516.0      |        |Revenue        |NET SALES REVENUE                     | 
+|41301200|Interest received                   |-4112690.12     |0.0  |0.0   |-3545833.12     |        |Revenue        |Finance income                        | 
+|41301310|Exp.Incentive Duty Drawback-Income  |-63429.0        |0.0  |0.0   |-63429.0        |        |Revenue        |Other operating income (expenses), net| 
+|41301330|Accrual Income against PSI Scheme   |-2.564896765E8  |0.0  |0.0   |-2.933348215E8  |        |Revenue        |Other operating income (expenses), net| 
+|41301600|Misc. Income                        |-1820.0         |0.0  |0.0   |-8544210.0      |        |Revenue        |Other operating income (expenses), net| 
+|41301820|Sales of Tooling                    |-4098000.0      |0.0  |0.0   |-4098000.0      |        |Revenue        |NET SALES REVENUE                     | 
+|41301900|Sales of Non Mfg Scrap              |-1372587.0      |0.0  |0.0   |-1748986.0      |        |Revenue        |Other operating income (expenses), net| 
+|41302200|Gain from Exchange Rate Fluctuation |-4232.93        |0.0  |0.0   |-12019.54       |        |Revenue        |General and administrative expenses   | 
+|41302210|Realized Gain -Account Payable      |-1.611011362E7  |0.0  |0.0   |-1.662158385E7  |        |Revenue        |General and administrative expenses   | 
+|41302220|Realised Gain- Accounts receivable  |-21409.58       |0.0  |0.0   |-36053.68       |        |Revenue        |Exchange rate changes, net            | 
+|41302310|Unrealized Gain -Account Payable    |3662083.82      |0.0  |0.0   |4116294.28      |        |Revenue        |Exchange rate changes, net            | 
+|53001001|INTEREST INCOME - US GAAP PNL       |-878431.54      |0.0  |0.0   |-1756881.8      |        |Revenue        |Finance income                        | 
+|53001100|Sales Account US GAAP               |7.6721259E7     |0.0  |0.0   |1.00466623E8    |        |Revenue        |NET SALES REVENUE                     | 
+|53001800|Other Comprehensive Income - US GAAP|1.8698889E7     |0.0  |0.0   |1.849009E7      |        |Revenue        |OCI - Pension Plan                    | 
++--------+------------------------------------+----------------+-----+------+----------------+--------+---------------+--------------------------------------+ 
+ 
+val Input_Final2 = spark.sql("""select a.G_L, b.DocumentNo, b.Type, b.Entry_Date, b.Pstng_Date, b.Doc_Date,  
+b.Amount_in_local_cur, b.Lcurr, b.Amount_in_doc_curr, b.Curr, b.Amount_in_loc_curr_2, b.LCur2, 
+b.Document_Header_Text, b.Text, b.User_name from  
+Input_Final1 a INNER JOIN GL_withoutNull b 
+ON a.G_L = b.G_L  
+""") 
+ 
+Input_Final2.createOrReplaceTempView("Input_Final2") 
+ 
+val Input_Final2_Stage2 = Input_Final2.na.fill(0.0, Array("Amount_in_local_cur")) 
+.na.fill("0", Array("G_L")) 
+.na.fill("0", Array("DocumentNo")) 
+.na.fill("0", Array("Text")) 
+ 
+Input_Final2_Stage2.createOrReplaceTempView("Input_Final2_Stage2") 
+ 
+val Input_Final3 = spark.sql("""select DocumentNo, SUM(Amount_in_local_cur) AS Amount_in_local_cur  
+from Input_Final2 group by DocumentNo""") 
+ 
+Input_Final3.createOrReplaceTempView("Input_Final3") 
+ 
+val Exception3_Stage1 = spark.sql("""select a.G_L, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2,  
+a.Document_Header_Text, a.Text, a.User_name, 
+CASE WHEN a.DocumentNo = b.DocumentNo and b.Amount_in_local_cur > 0 THEN 'Exception' 
+ELSE  'NO Exception' END AS Exception3 
+from Input_Final2 a LEFT JOIN Input_Final3 b ON a.DocumentNo = b.DocumentNo 
+""") 
+ 
+Exception3_Stage1.createOrReplaceTempView("Exception3_Stage1") 
+ 
+val output_stage2 = spark.sql("""select G_L,DocumentNo,Amount_in_local_cur,Exception3  
+from Exception3_Stage1 where Exception3='Exception' 
+group by G_L,DocumentNo,Amount_in_local_cur,Exception3 
+""") 
+ 
+output_stage2.createOrReplaceTempView("output_stage2") 
+ 
+val Exception3_Stage2 = spark.sql("""select * from GL_withoutNull  
+where DocumentNo in(select DocumentNo from Exception3_Stage1 where Exception3='Exception' group by DocumentNo)""") 
+ 
+ 
+Exception3_Stage2.createOrReplaceTempView("Exception3_Stage2") 
+ 
+val Exception3_Stage3 = spark.sql("""select a.G_L, '' AS FS_Line_Item,a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2,  
+a.Document_Header_Text, a.Text, a.User_name, 
+CASE WHEN b.Exception3='Exception' THEN 'Exception3' 
+ELSE 'NO Exception' END AS Exception 
+from Exception3_Stage2 a LEFT JOIN output_stage2 b  
+ON a.G_L = b.G_L and a.DocumentNo = b.DocumentNo and a.Amount_in_local_cur = b.Amount_in_local_cur""") 
+ 
+### Optional -> Run If Specific Quarter Data Require (Replace Below two dates accroding to quarter) 
+ 
+val output2 = spark.sql("""select * from Exception3_Stage1 where Exception3='Exception'  
+and Pstng_Date >= '2019-10-01' and Pstng_Date <= '2019-12-31' """) 
+ 
+output2.coalesce(1).write 
+.format("csv") 
+// .option("escape", "\"") 
+// .option("quote", "\"") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_3") 
+ 
+### else 
+ 
+Exception3_Stage3.coalesce(1).write 
+.format("csv") 
+// .option("escape", "\"") 
+// .option("quote", "\"") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_3") 
+ 
+### Exception-4 Users with few Postings 
+ 
+val Input_Exception4 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_4.csv") 
+ 
+Input_Exception4.createOrReplaceTempView("Input_Exception4") 
+ 
+Input_Exception4.show() 
++-----+ 
+|Value| 
++-----+ 
+|    1| 
++-----+ 
+ 
+val Input_Exception4_Stage2 = spark.sql("""select INT(Value) from Input_Exception4""") 
+ 
+Input_Exception4_Stage2.createOrReplaceTempView("Input_Exception4_Stage2") 
+ 
+val Exception4_Stage1 = spark.sql("select DocumentNo,User_name from GL_withoutNull group by DocumentNo,User_name") 
+ 
+Exception4_Stage1.createOrReplaceTempView("Exception4_Stage1") 
+ 
+val Exception4_Stage2 = spark.sql("select User_name, count(*) as Count from Exception4_Stage1 group by User_name") 
+ 
+Exception4_Stage2.createOrReplaceTempView("Exception4_Stage2") 
+ 
+spark.sql("""SELECT * from Exception4_Stage2 ORDER BY COUNT""").show() 
++------------+-----+ 
+|   User_name|Count| 
++------------+-----+ 
+|OCPL-PRASHAN|    1| 
+|     CHOUDHR|    2| 
+|       PUNDE|    3| 
+|     RAKSHEK|    3| 
+|      REDDYM|   66| 
+|      SKRAUT|   82| 
+| CHAKRAPANIE|   88| 
+|     DAPHALA|  235| 
+|     CHANDRT|  266| 
+|     KANNIYJ|  286| 
+|     SRINIVR|  290| 
+|      SMULEY|  308| 
+|      PKADAM|  315| 
+|       BATCH|  422| 
+|      PATILP|  509| 
+|       HWANI|  979| 
+|     VLIGADE| 1361| 
+|     SBPATIL| 1740| 
+|    PDSHELKE| 2463| 
+|     SATPUTD| 2556| 
++------------+-----+ 
+ 
+val Exception4_Stage3 = spark.sql("""select User_name, Count,  
+CASE WHEN Count <= b.Value THEN 'Exception' ELSE 'NO Exception'  
+END AS Exception4 from Exception4_Stage2 LEFT JOIN Input_Exception4_Stage2 b ON b.Value = b.Value""") 
+ 
+Exception4_Stage3.createOrReplaceTempView("Exception4_Stage3") 
+ 
+val Exception4_Stage4 = spark.sql("""select a.G_L, '' AS FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2,  
+a.Document_Header_Text, a.Text,a.User_name,  
+CASE WHEN a.User_name = b.User_name and b.Exception4 = 'Exception' THEN 'Exception4'  
+ELSE 'NO Exception' END AS Exception from GL_withoutNull a  
+LEFT JOIN Exception4_Stage3 b ON a.User_name = b.User_name""") 
+ 
+Exception4_Stage4.createOrReplaceTempView("Exception4_Stage4") 
+ 
+val output_Exception4 = spark.sql("select * from Exception4_Stage4 where Exception='Exception4'") 
+ 
+output_Exception4.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path+"Outputs/Parameter_Result/Parameter_Exception_4") 
+ 
+### Exception-5 (Users of Interest) 
+ 
+val Input_Exception5 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_5.csv") 
+.select("User_Name").distinct 
+ 
+Input_Exception5.count() and Input_Exception5.select(lower($"User_Name")).distinct.count() should be same 
+ 
+Input_Exception5.createOrReplaceTempView("Input_Exception5") 
+ 
+Input_Exception5.show() 
++-----------+ 
+|  User_Name| 
++-----------+ 
+|    SBPATIL| 
+|     PKADAM| 
+|   PDSHELKE| 
+|    VLIGADE| 
+|     SKRAUT| 
+|    NYEVALE| 
+|    KANNIYJ| 
+|      BATCH| 
+|    SATPUTD| 
+|CHAKRAPANIE| 
+|     YBHAND| 
+|     REDDYM| 
+|      PUNDE| 
+|    CHOUDHR| 
+|    SRINIVR| 
+|     PATILP| 
+|      HWANI| 
+|    RAKSHEK| 
+|    CHANDRT| 
+|     SMULEY| 
++-----------+ 
+ 
+val Exception5 = spark.sql("""select a.G_L, '' AS FS_Line_Item, a.DocumentNo,a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur,a.Lcurr,a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name,  
+CASE WHEN a.User_name = b.User_name THEN 'Exception5'  
+ELSE 'NO Exception' END AS Exception  
+from GL_withoutNull a lEFT JOIN Input_Exception5 b ON a.User_name = b.User_name order by a.G_L""") 
+ 
+Exception5.createOrReplaceTempView("Exception5") 
+ 
+val output_Exception5 = spark.sql("select * from Exception5 where Exception='Exception5'") 
+ 
+output_Exception5.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_5") 
+ 
+### Exception-6 (Closing Entries) 
+ 
+val Input_Exception6 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_6.csv") 
+ 
+Input_Exception6.createOrReplaceTempView("Input_Exception6") 
+ 
+Input_Exception6.show() 
++----------------------+---------------------+------------+---------+ 
+|Closing_Entries_before|Closing_Entries_after|Closing_Date|Frequency| 
++----------------------+---------------------+------------+---------+ 
+|                     1|                   10|   31-Mar-25| Annually| 
++----------------------+---------------------+------------+---------+ 
+ 
+val Input_Exception6_Stage2 = spark.sql("""select  
+TO_DATE(CAST(UNIX_TIMESTAMP(Closing_Date, 'dd-MMM-yy') AS TIMESTAMP)) AS Closing_Date, 
+INT(Closing_Entries_before), INT(Closing_Entries_after) from Input_Exception6""") 
+ 
+ 
+Input_Exception6_Stage2.createOrReplaceTempView("Input_Exception6_Stage2") 
+ 
+val Input_Exception6_Stage3 = spark.sql("""select Closing_Date, date_add(Closing_Date,Closing_Entries_after) as End_Date,  
+date_sub(Closing_Date,Closing_Entries_before) as Start_Date from Input_Exception6_Stage2""") 
+ 
+Input_Exception6_Stage3.createOrReplaceTempView("Input_Exception6_Stage3") 
+ 
+### Stage-4 (Input Require from Previous Stage, Replace '2020-12-26' with Start_Date & '2021-01-05' with End_Date) 
+ 
+val Exception6 = spark.sql("""select G_L, '' AS FS_Line_Item, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date, Amount_in_local_cur,  
+Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2, Document_Header_Text, Text, User_name,  
+CASE WHEN TO_DATE(CAST(UNIX_TIMESTAMP(Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))  
+between '2025-03-30' and '2025-04-10' THEN 'Exception6'  
+ELSE 'NO Exception' END AS Exception from GL_withoutNull left join Input_Exception6_Stage3""") 
+ 
+Exception6.createOrReplaceTempView("Exception6") 
+ 
+val output_Exception6 = spark.sql("select * from Exception6 where Exception='Exception6'") 
+ 
+output_Exception6.coalesce(1).write 
+.format("csv") 
+// .option("escape", "\"") 
+// .option("quote", "\"") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_6") 
+ 
+### Exception-7 (Entries posted on Dates of Interest) 
+ 
+val Input_Exception7_stage1 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_7.csv") 
+ 
+Input_Exception7_stage1.createOrReplaceTempView("Input_Exception7_stage1") 
+ 
+Input_Exception7_stage1.show() 
++----------+ 
+|Pstng_Date| 
++----------+ 
+| 05-Nov-25| 
+| 25-Dec-25| 
+| 31-Dec-25| 
++----------+ 
+ 
+Input_Exception7_stage1.select(length($"Pstng_Date")).distinct.show(false) and GL_withoutNull.select(length(col("Pstng_Date"))).distinct.show(false) // checkpoint should be same 
+ 
+val Exception7 = spark.sql("""select a.G_L, '' AS FS_Line_Item, a.DocumentNo,a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur,a.Lcurr,a.Amount_in_doc_curr,a.Curr,a.Amount_in_loc_curr_2,a.LCur2,a.Document_Header_Text, 
+a.Text,a.User_name,  
+CASE WHEN a.Pstng_Date == b.Pstng_Date THEN 'Exception7'  
+ELSE 'NO Exception' END AS Exception  
+from GL_withoutNull a lEFT JOIN Input_Exception7_stage1 b ON a.Pstng_Date = b.Pstng_Date order by a.G_L""") 
+ 
+Exception7.createOrReplaceTempView("Exception7") 
+ 
+val output_Exception7 = spark.sql("select * from Exception7 where Exception='Exception7'") 
+ 
+output_Exception7.coalesce(1).write 
+.format("csv") 
+// .option("escape", "\"") 
+// .option("quote", "\"") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_7") 
+ 
+### Exception-8 (Entries with round Amounts or recurring ending Digits) 
+ 
+val Input_Exception8 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_8.csv") 
+ 
+Input_Exception8.createOrReplaceTempView("Input_Exception8") 
+ 
+val Input_Exception8_Stage2 = spark.sql("select Digits from Input_Exception8 where Value='Yes'") 
+ 
+Input_Exception8_Stage2.createOrReplaceTempView("Input_Exception8_Stage2") 
+ 
+Input_Exception8_Stage2.show() 
++---------+ 
+|   Digits| 
++---------+ 
+|        6| 
+|        7| 
+|        8| 
+|        9| 
+|  1000000| 
+| 10000000| 
+|100000000| 
++---------+ 
+ 
+val Exception8_Stage1 = spark.sql("""select a.G_L, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr,a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text,  
+a.Text, a.User_name, 
+CASE WHEN 
+('2' = b.Digits and (ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),2) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),2),1)) = 11)) or 
+('3' = b.Digits and (ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),3) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),3),1)) = 111)) or 
+('4' = b.Digits and (ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),4) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),4),1)) = 1111)) or 
+('5' = b.Digits and (ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),5) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),5),1)) = 11111)) or 
+('6' = b.Digits and (ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),6) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),6),1)) = 111111)) or 
+('7' = b.Digits and (ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),7) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),7),1)) = 1111111)) or 
+('8' = b.Digits and (ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),8) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),8),1)) = 11111111)) or 
+('9' = b.Digits and (ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),9) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),9),1)) = 111111111)) or 
+ 
+('1000' = b.Digits and (RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),3) = '000')) or 
+('10000' = b.Digits and (RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),4) = '0000')) or 
+('100000' = b.Digits and (RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),5) = '00000')) or 
+('1000000' = b.Digits and (RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),6) = '000000')) or 
+('10000000' = b.Digits and (RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),7) = '0000000')) or 
+('100000000' = b.Digits and (RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),8) = '00000000')) or 
+('1000000000' = b.Digits and (RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),9) = '000000000')) 
+THEN 'Exception' 
+ELSE 'NO Exception' 
+END AS Exception8 
+from GL_withoutNull a LEFT JOIN Input_Exception8_Stage2 b ON  
+'2' = b.Digits or '3' = b.Digits or '4' = b.Digits or '5' = b.Digits or '6' = b.Digits or  
+'7' = b.Digits or '8' = b.Digits or '9' = b.Digits or '1000' = b.Digits or '10000' = b.Digits or 
+'100000' = b.Digits or '1000000' = b.Digits or '10000000' = b.Digits or '100000000' = b.Digits or 
+'1000000000' = b.Digits""") 
+ 
+Exception8_Stage1.createOrReplaceTempView("Exception8_Stage1") 
+ 
+var Exception8 = spark.sql("""select G_L,DocumentNo,Amount_in_local_cur,Exception8  
+from Exception8_Stage1 where Exception8='Exception' 
+group by G_L,DocumentNo,Amount_in_local_cur,Exception8""") 
+ 
+Exception8.createOrReplaceTempView("Exception8") 
+ 
+val Exception8_stage2 = spark.sql("""select * from GL_withoutNull  
+where DocumentNo in(select DocumentNo from Exception8 where Exception8='Exception' group by DocumentNo)""") 
+ 
+Exception8_stage2.createOrReplaceTempView("Exception8_stage2") 
+ 
+val Exception8_Stage3 = spark.sql("""select a.G_L, '' AS FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2,  
+a.Document_Header_Text, a.Text, a.User_name, 
+CASE WHEN b.Exception8='Exception' THEN 'Exception8' 
+ELSE 'NO Exception' END AS Exception 
+from Exception8_stage2 a LEFT JOIN Exception8 b  
+ON a.G_L = b.G_L and a.DocumentNo = b.DocumentNo and a.Amount_in_local_cur = b.Amount_in_local_cur""") 
+ 
+Exception8_Stage3.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_8") 
+ 
+### Exception- 9 (Duplicate Entries) 
+ 
+val Input_Exception9_stage1 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_9.csv") 
+ 
+Input_Exception9_stage1.createOrReplaceTempView("Input_Exception9_stage1") 
+ 
+val Input_Exception9_stage2 = spark.sql("""select INT(Value), DOUBLE(Threshold) from Input_Exception9_stage1""") 
+ 
+Input_Exception9_stage2.createOrReplaceTempView("Input_Exception9_stage2") 
+ 
+Input_Exception9_stage2.show() 
++-----+---------+ 
+|Value|Threshold| 
++-----+---------+ 
+|    2|      0.0| 
++-----+---------+ 
+ 
+val Exception9_stage1_part1 = spark.sql("""select *, CONCAT(G_L,CAST(Amount_in_local_cur AS LONG)) AS ST1 from GL_withoutNull""") 
+                              .withColumn("ID", monotonically_increasing_id()) 
+ 
+Exception9_stage1_part1.createOrReplaceTempView("Exception9_stage1_part1") 
+ 
+val Exception9_stage1_part2 = spark.sql("""select * from Exception9_stage1_part1 order by DocumentNo, G_L, Amount_in_local_cur, ID""").repartition(1) 
+ 
+Exception9_stage1_part2.createOrReplaceTempView("Exception9_stage1_part2") 
+ 
+val Exception9_stage2_part1 = spark.sql("""select DocumentNo, array_join(sort_array(collect_list(ST1)), '_') AS Combo 
+from Exception9_stage1_part2 group by DocumentNo 
+""") 
+ 
+Exception9_stage2_part1.createOrReplaceTempView("Exception9_stage2_part1") 
+ 
+val Exception9_stage2_part2 = spark.sql("""select Combo, Count(*) AS Count  
+from Exception9_stage2_part1 group by Combo""") 
+ 
+Exception9_stage2_part2.createOrReplaceTempView("Exception9_stage2_part2") 
+ 
+val Exception9_stage2_part3 = spark.sql("""select *, ROW_NUMBER() OVER (ORDER BY Combo) AS ROWNUM  
+from Exception9_stage2_part2""") 
+ 
+Exception9_stage2_part3.createOrReplaceTempView("Exception9_stage2_part3") 
+ 
+val Exception9_stage3_part1 = spark.sql("""select * from Exception9_stage2_part2  
+where Count > (select Value from Input_Exception9_stage2) 
+""") 
+ 
+Exception9_stage3_part1.createOrReplaceTempView("Exception9_stage3_part1") 
+ 
+val Exception9_stage3_part2 = spark.sql("""select DocumentNo  
+from Exception9_stage2_part1  
+where exists(select Combo from Exception9_stage3_part1 where Exception9_stage3_part1.Combo = Exception9_stage2_part1.Combo)""") 
+ 
+Exception9_stage3_part2.createOrReplaceTempView("Exception9_stage3_part2") 
+ 
+val Exception9_stage3_part3 = spark.sql("""select *  
+from GL_withoutNull  
+where exists(select DocumentNo from Exception9_stage3_part2 where Exception9_stage3_part2.DocumentNo = GL_withoutNull.DocumentNo)""") 
+ 
+Exception9_stage3_part3.createOrReplaceTempView("Exception9_stage3_part3") 
+ 
+val Exception9_stage3_part4 = spark.sql("""select a.*, 'Exception9' AS Exception, b.Combo 
+from Exception9_stage3_part3 a LEFT JOIN Exception9_stage2_part1 b ON a.DocumentNo = b.DocumentNo""") 
+ 
+Exception9_stage3_part4.createOrReplaceTempView("Exception9_stage3_part4") 
+ 
+val Exception9_stage3_part5 = spark.sql("""select a.G_L, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, 
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, 
+a.Text, a.User_name, a.Exception, b.Count, b.ROWNUM AS Index 
+from Exception9_stage3_part4 a LEFT JOIN Exception9_stage2_part3 b ON a.Combo = b.Combo 
+""") 
+ 
+Exception9_stage3_part5.coalesce(1).drop(col("Count")).drop(col("Index")).write 
+.format("csv") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_9") 
+ 
+Exception9_stage4_par4.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+//.option("escape", "") 
+//.option("quote", "") 
+.option("quote","\"") 
+.option("escape","\"") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_9") 
+ 
+### Stage-4 (Run this stage only if Threshold provided) 
+ 
+Exception9_stage3_part5.createOrReplaceTempView("Exception9_stage3_part5") 
+ 
+val Exception9_stage4_part1 = spark.sql("""select * from Exception9_stage3_part5 where Amount_in_local_cur >= 0""") 
+ 
+Exception9_stage4_part1.createOrReplaceTempView("Exception9_stage4_part1") 
+ 
+val Exception9_stage4_part2 = spark.sql("""select DocumentNo, SUM(Amount_in_local_cur) AS Total_Amount_in_local_cur 
+from Exception9_stage4_part1 group by DocumentNo""") 
+ 
+Exception9_stage4_part2.createOrReplaceTempView("Exception9_stage4_part2") 
+ 
+val Exception9_stage4_par3 = spark.sql("""select DocumentNo  
+from Exception9_stage4_part2  
+where Total_Amount_in_local_cur > (select Threshold from Input_Exception9_stage2)""") 
+ 
+Exception9_stage4_par3.createOrReplaceTempView("Exception9_stage4_par3") 
+ 
+val Exception9_stage4_par4 = spark.sql("""select *  
+from Exception9_stage3_part5  
+where exists(select DocumentNo from Exception9_stage4_par3 where Exception9_stage4_par3.DocumentNo = Exception9_stage3_part5.DocumentNo)""") 
+ 
+Exception9_stage4_par4.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+//.option("escape", "") 
+//.option("quote", "") 
+.option("quote","\"") 
+.option("escape","\"") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_9") 
+ 
+### Exception-10 (Entries Containing Keywords in Journal) 
+ 
+val Input_Exception10 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_10.csv") 
+ 
+Input_Exception10.count() and Input_Exception10.select(lower(trim($"text"))).distinct.count() //checkpoint should be same 
+ 
+Input_Exception10.createOrReplaceTempView("Input_Exception10") 
+ 
+val Input_Exception10_Stage2 = spark.sql("select LOWER(Text) AS Text from Input_Exception10") 
+ 
+Input_Exception10_Stage2.show(false) 
++--------------------+ 
+|Text                | 
++--------------------+ 
+|fault               | 
+|bribe               | 
+|auditor's adjustment| 
+|mistake             | 
+|risk                | 
+|misstatement        | 
+|officer             | 
+|prize               | 
+|abuse               | 
+|alter               | 
+|seizure             | 
+|bury                | 
+|conceal             | 
+|conting             | 
+|corrupt             | 
+|demand              | 
+|embezzle            | 
+|theft               | 
+|fictitious          | 
+|fraud               | 
++--------------------+ 
+ 
+Input_Exception10_Stage2.createOrReplaceTempView("Input_Exception10_Stage2") 
+ 
+val pattern = concat(lit("\\b"), Input_Exception10_Stage2("Text"), lit("\\b")) 
+ 
+val output = GL_withoutNull.join(Input_Exception10_Stage2, regexp_replace(GL_withoutNull("Text"), pattern, lit("")) =!= GL_withoutNull("Text")).drop(Input_Exception10_Stage2("Text")) 
+ 
+val final_output = output.withColumn("Exception", lit("Exception10")) 
+ 
+final_output.createOrReplaceTempView("final_output") 
+ 
+val Exception10_Stage1 = spark.sql("""select G_L, '' AS FS_Line_Item, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date,  
+Amount_in_local_cur, Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2,  
+Document_Header_Text, Text, User_name, Exception 
+from final_output""") 
+ 
+Exception10_Stage1.createOrReplaceTempView("Exception10_Stage1") 
+ 
+var Exception10_Stage2 = spark.sql("""select G_L,DocumentNo,Amount_in_local_cur,Text,Exception  
+from Exception10_Stage1 where Exception='Exception10' 
+group by G_L,DocumentNo,Amount_in_local_cur,Text,Exception""") 
+ 
+Exception10_Stage2.createOrReplaceTempView("Exception10_Stage2") 
+ 
+val Exception10_Stage3 = spark.sql("""select * from GL_withoutNull  
+where DocumentNo in(select DocumentNo from Exception10_Stage2 where Exception='Exception10' group by DocumentNo)""") 
+ 
+Exception10_Stage3.createOrReplaceTempView("Exception10_Stage3") 
+ 
+val Exception10_Stage4 = spark.sql("""select a.G_L, '' AS FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2,  
+a.Document_Header_Text, a.Text, a.User_name, 
+ 
+CASE WHEN b.Exception='Exception10' THEN 'Exception10' 
+ELSE 'NO Exception' END AS Exception 
+from Exception10_Stage3 a LEFT JOIN Exception10_Stage2 b  
+ON a.G_L = b.G_L and a.DocumentNo = b.DocumentNo and a.Amount_in_local_cur = b.Amount_in_local_cur and a.Text = b.Text""") 
+ 
+Exception10_Stage4.createOrReplaceTempView("Exception10_Stage4") 
+ 
+Exception10_Stage4.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/ITR2/Parameter_Exception_10") 
+ 
+### Exception-11 (Entries Posted after closing date for Quarter/Month/Half Year/Annual) 
+ 
+val Input_Exception11 = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_11.csv") 
+ 
+Input_Exception11.createOrReplaceTempView("Input_Exception11") 
+ 
+Input_Exception11.show() 
++---------+---+------------+ 
+|Frequency|Day|Closing_Date| 
++---------+---+------------+ 
+| Annually| 10|   31-Dec-25| 
++---------+---+------------+ 
+ 
+val Input_Exception11_Stage2 = spark.sql("select STRING(Frequency),INT(Day),to_date(`Closing_Date`,'dd-MMM-yy') as Closing_Date from Input_Exception11") 
+ 
+Input_Exception11_Stage2.createOrReplaceTempView("Input_Exception11_Stage2") 
+ 
+val Exception11 = spark.sql("""select a.G_L, '' AS FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, a.Amount_in_local_cur,  
+a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name,  
+ 
+CASE WHEN 'Annually' = b.Frequency  
+and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date,b.Day) THEN 'Exception11'  
+ELSE 'NO Exception' END AS Exception  
+from GL_withoutNull a LEFT JOIN Input_Exception11_Stage2 b ON b.Frequency = 'Annually'""") 
+ 
+Exception11.createOrReplaceTempView("Exception11") 
+ 
+val output_Exception11 = spark.sql("select * from Exception11 where Exception='Exception11'") 
+ 
+output_Exception11.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_11") 
+ 
+### Exception-12 (Unrelated Accounts) 
+ 
+val input = spark.read 
+.format("csv") 
+.option("header",true) 
+.option("delimiter",",") 
+.load(file_path + "Inputs/ex_12.csv") 
+.distinct 
+ 
+input.createOrReplaceTempView("input") 
+ 
+input.show(false) 
++-----------------------------------+--------------------------------------+ 
+|Debit                              |Credit                                | 
++-----------------------------------+--------------------------------------+ 
+|Trade Receivables                  |COST OF SALES AND SERVICES            | 
+|Property, plant and equipment      |General and administrative expenses   | 
+|Trade Payables                     |NET SALES REVENUE                     | 
+|General and administrative expenses|Other operating income (expenses), net| 
+|Selling expenses                   |Other operating income (expenses), net| 
+|Selling expenses                   |Finance income                        | 
+|Other payables                     |NET SALES REVENUE                     | 
+|Other receivables                  |COST OF SALES AND SERVICES            | 
+|Property, plant and equipment      |NET SALES REVENUE                     | 
+|Property, plant and equipment      |Selling expenses                      | 
+|General and administrative expenses|Finance income                        | 
++-----------------------------------+--------------------------------------+ 
+ 
+val input_list = input.collect() 
+ 
+val ex_12_stage1 = spark.sql("""select a.G_L, b.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text,  
+a.Text, a.User_name 
+from GL_withoutNull a LEFT JOIN tb_WithoutNull b 
+ON a.G_L = b.G_L""") 
+ 
+ex_12_stage1.createOrReplaceTempView("ex_12_stage1") 
+ 
+var ex_12_stage3_case = """select G_L, DocumentNo, FS_Line_Item, Type, Entry_Date, Pstng_Date, Doc_Date,  
+Amount_in_local_cur, Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2, Document_Header_Text,  
+Text, User_name, """ 
+var ex_12_stage3_cnt = 1 
+for(i<-input_list){ 
+    if(ex_12_stage3_cnt != input_list.size){ 
+        ex_12_stage3_case += """ 
+            CASE WHEN FS_Line_Item = '%s' and Amount_in_local_cur > 0 then 1 
+            ELSE 0 END AS Debit_CQ_B%d, 
+            CASE WHEN FS_Line_Item = '%s' and Amount_in_local_cur < 0 then 1 
+            ELSE 0 END AS Credit_CQ_B%d, 
+        """.format(i(0), ex_12_stage3_cnt, i(1), ex_12_stage3_cnt) 
+    } 
+    if(ex_12_stage3_cnt == input_list.size){ 
+        ex_12_stage3_case += """ 
+            CASE WHEN FS_Line_Item = '%s' and Amount_in_local_cur > 0 then 1 
+            ELSE 0 END AS Debit_CQ_B%d, 
+            CASE WHEN FS_Line_Item = '%s' and Amount_in_local_cur < 0 then 1 
+            ELSE 0 END AS Credit_CQ_B%d 
+        """.format(i(0), ex_12_stage3_cnt, i(1), ex_12_stage3_cnt) 
+    } 
+    ex_12_stage3_cnt += 1 
+} 
+ex_12_stage3_case += " from ex_12_stage1" 
+ 
+val ex_12_stage3 = spark.sql(ex_12_stage3_case) 
+ 
+ex_12_stage3.createOrReplaceTempView("ex_12_stage3") 
+ 
+var ex_12_stage4_case = """select DocumentNo, """ 
+var ex_12_stage4_cnt = 1 
+for(i<-input_list){ 
+    if(ex_12_stage4_cnt != input_list.size){ 
+        ex_12_stage4_case += """ 
+            SUM(Debit_CQ_B%d) AS SUM_Debit_CQ_B%d, SUM(Credit_CQ_B%d) AS SUM_Credit_CQ_B%d, 
+            CASE WHEN SUM(Debit_CQ_B%d) >= 1 and SUM(Credit_CQ_B%d) >= 1 then 'Exception' 
+            ELSE 'NO Exception' END AS Exception_B%d, 
+        """.format(ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt) 
+    } 
+    if(ex_12_stage4_cnt == input_list.size){ 
+        ex_12_stage4_case += """ 
+            SUM(Debit_CQ_B%d) AS SUM_Debit_CQ_B%d, SUM(Credit_CQ_B%d) AS SUM_Credit_CQ_B%d, 
+            CASE WHEN SUM(Debit_CQ_B%d) >= 1 and SUM(Credit_CQ_B%d) >= 1 then 'Exception' 
+            ELSE 'NO Exception' END AS Exception_B%d 
+        """.format(ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt, ex_12_stage4_cnt) 
+    } 
+    ex_12_stage4_cnt += 1 
+} 
+ex_12_stage4_case += " from ex_12_stage3 group by DocumentNo" 
+ 
+val ex_12_stage4 = spark.sql(ex_12_stage4_case) 
+ 
+ex_12_stage4.createOrReplaceTempView("ex_12_stage4") 
+ 
+var ex_12_stage5_case = """select a.G_L, a.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text,  
+a.Text, a.User_name, 
+CASE WHEN""" 
+var ex_12_stage5_cnt = 1 
+for(i<-input_list){ 
+    if(ex_12_stage5_cnt != input_list.size){ 
+        ex_12_stage5_case += """ b.Exception_B%d = 'Exception' or""".format(ex_12_stage5_cnt) 
+    } 
+    if(ex_12_stage5_cnt == input_list.size){ 
+        ex_12_stage5_case += """ b.Exception_B%d = 'Exception'""".format(ex_12_stage5_cnt) 
+    } 
+    ex_12_stage5_cnt += 1 
+} 
+ex_12_stage5_case += """ then 'Exception' 
+ELSE 'NO Exception' END AS Exception12 
+from ex_12_stage3 a LEFT JOIN ex_12_stage4 b ON a.DocumentNo = b.DocumentNo""" 
+ 
+val ex_12_stage5 = spark.sql(ex_12_stage5_case) 
+ 
+ex_12_stage5.createOrReplaceTempView("ex_12_stage5") 
+ 
+val Ex_12_stage6 = spark.sql("""select * from GL_withoutNull  
+where DocumentNo in(select DocumentNo from ex_12_stage5 where Exception12='Exception' group by DocumentNo)  
+order by DocumentNo""") 
+ 
+Ex_12_stage6.createOrReplaceTempView("Ex_12_stage6") 
+ 
+var output_stage2 = spark.sql("""select G_L,DocumentNo,Amount_in_local_cur,Exception12  
+from ex_12_stage5 where Exception12='Exception' 
+group by G_L,DocumentNo,Amount_in_local_cur,Exception12""") 
+ 
+output_stage2.createOrReplaceTempView("output_stage2") 
+ 
+val Ex_12_stage7 = spark.sql("""select a.G_L, '' AS FS_Line_Item,a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,  
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2,  
+a.Document_Header_Text, a.Text, a.User_name, 
+CASE WHEN b.Exception12='Exception' THEN 'Exception12' 
+ELSE 'NO Exception' END AS Exception 
+from Ex_12_stage6 a LEFT JOIN output_stage2 b  
+ON a.G_L = b.G_L and a.DocumentNo = b.DocumentNo and a.Amount_in_local_cur = b.Amount_in_local_cur  
+order by a.DocumentNo""") 
+ 
+Ex_12_stage7.coalesce(1).write 
+.format("csv") 
+.option("header",true) 
+.mode("overwrite") 
+.save(file_path + "Outputs/Parameter_Result/Parameter_Exception_12") 
+ 
+### Output Cleaning 
+ 
+import java.io.File 
+import org.apache.commons.io.FileUtils 
+ 
+val basePath = file_path + "Outputs/Parameter_Result/" 
+ 
+val baseDir = new File(basePath) 
+val exceptionFolders = baseDir.listFiles().filter(f => f.isDirectory && f.getName.startsWith("Parameter_Exception_")) 
+ 
+exceptionFolders.foreach { folder => 
+  val folderName = folder.getName 
+  val exceptionNumber = folderName.replaceAll("[^0-9]", "") 
+   
+  try { 
+    val csvFiles = folder.listFiles().filter(f => f.getName.endsWith(".csv") && !f.getName.endsWith(".csv.crc")) 
+    if (csvFiles.nonEmpty) { 
+      val latestCsv = csvFiles.maxBy(_.lastModified()) 
+      val targetName = s"Parameter_Exception_${exceptionNumber}.csv" 
+      val targetFile = new File(baseDir, targetName) 
+       
+      FileUtils.copyFile(latestCsv, targetFile) // copy instead of move to avoid permission issues 
+      println(s"Copied ${latestCsv.getName} -> ${targetName}") 
+    } 
+ 
+    // Clean up files inside folder 
+    folder.listFiles().foreach { f => 
+      if (f.getName.endsWith(".crc") || f.getName == "_SUCCESS" || f.getName.endsWith(".csv.crc") || f.getName.endsWith(".csv")) { 
+        try { 
+          f.delete() 
+          println(s"Deleted file: ${f.getName}") 
+        } catch { 
+          case e: Exception => println(s"Could not delete file ${f.getName}: ${e.getMessage}") 
+        } 
+      } 
+    } 
+ 
+    // Try to delete folder, but ignore if OneDrive locks it 
+    try { 
+      FileUtils.deleteDirectory(folder) 
+      println(s"Cleaned folder: ${folderName}") 
+      println(s"==============================================================================================================")   
+    } catch { 
+      case e: Exception => 
+        println(s"Could not delete folder ${folderName}: ${e.getMessage}") 
+        // Try to empty folder instead 
+        folder.listFiles().foreach(_.delete()) 
+    } 
+  } catch { 
+    case e: Exception => println(s"Skipping ${folderName}: ${e.getMessage}") 
+  } 
+} 
+ 
+println("All CSVs processed. Locked folders were skipped safely.") 

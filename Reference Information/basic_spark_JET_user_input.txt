@@ -1,0 +1,932 @@
+### ### Basic Inputs
+
+
+ 
+Module : Journal Entry Exceptions Solution Module				 
+Basic Inputs by the Engagement Team				 
+				 
+Engagement Name 	Jio Satellite Commuications Limited			 
+Start Date 	01-Apr-26			 
+End Date 	30-Jun-26			 
+Financial Year End 	30-Jun-26			 
+Engagement Code 	JIO00037-01-09-01-1000			 
+Hours expected to Save from usage of this solution	 10 			 
+				 
+Materiality	 3,75,00,000 			 
+Performance Materiality	 3,00,00,000 			 
+Clearly Trivial Threshold	 18,75,000 			 
+Currency name	Indian Rupee			 
+Currency Code 	INR			 
+				 
+				 
+E-mail id of the Engagement Partner	cmankad@deloitte.com			 
+E-mail id of the User Pracitioner	vkumarpurohit@deloitte.com			 
+				 
+Applicability 				 
+Whether Engagement is PCAOB Integrated or Non-Integrated or Listed audits 	No			 
+Engagement Tier Classification 	Tier IV			 
+ 
+ 
+### Trial Balance 
+ 
+									 
+	Jio Satellite Commuications Limited								 
+	Audit for the Year Ended 30 June 2026								 
+									 
+	Summary of Trial Balance for the period 01 April 2026 to 30 June 2026								 
+							 -   		 
+					 -   	 3,27,40,34,032 	 3,27,40,34,032 	 -   	 
+	G/L	Description	Account Subtype	FS Line Item	Opening Balance	Debit 	Credit 	Closing Balance	 
+	1009	ZeroBal Fund Trf	Assets	Control Account	 -   	 0 	 0 	 -   	 
+	1012	Zero Bal Others	Assets	Control Account	 -   	 16,04,13,148 	 16,04,13,148 	 -   	 
+	1000001	Eq.Sh.Cap-Rs.10	Liability	Share Capital	 -1,17,20,00,000 	 -   	 -   	 -1,17,20,00,000 	 
+	1081001	Preference Share Cap	Liability	Preference Share Capital	 -   	 -   	 -   	 -   	 
+	1081010	6% Opt Con Pref Sh	Liability	Preference Share Capital	 -   	 -   	 -   	 -   	 
+	1081012	Comp Con Pref Sh	Liability	Preference Share Capital	 -   	 -   	 -   	 -   	 
+	1130001	Share Premium - Equi	Liability	Securities Premium	 -   	 -   	 -   	 -   	 
+	1130005	Share Premium - Pref	Liability	Securities Premium	 -   	 -   	 -   	 -   	 
+	1160001	Profit And Loss A/c	Liability	Retained Earnings	 -3,25,16,305 	 -   	 -   	 -3,25,16,305 	 
+	1173002	Share Bsd Pay Res Ac	Liability	Retained Earnings	 -   	 -   	 -   	 -   	 
+	1170005	Unr G/L-Inc Fund-OCI	Expense	Actuarial Gain/ Loss	 -   	 -   	 -   	 -   	 
+	1174001	Act G/L-Gratuity	Liability	OCI - BS	 38,947 	 -   	 -   	 38,947 	 
+	2100049	Unsec CC Deb-INR-NC	Liability	Convertible Debentures	 -   	 -   	 -   	 -   	 
+	2500001	Prov For DeferedTax - BS	Liability	Deferred Tax Liability	 -65,51,101 	 70,61,006 	 69,00,315 	 -63,90,411 	 
+	3550012	Os Liab Agst Exp-Rev	Liability	Current financial liabilities - Other payables	 -4,96,05,945 	 59,78,51,782 	 62,37,67,824 	 -7,55,21,987 	 
+	3500001	S.Cr - Domestic	Liability	Trade Payables	 -31,64,019 	 5,54,10,257 	 10,34,57,461 	 -5,12,11,224 	 
+	3500002	RetentionPaybl -Dom	Liability	Trade Payables	 -   	 -   	 -   	 -   	 
+	3500003	S.Cr - Foreign	Liability	Creditors for Capital Expenditure	 -6,98,24,769 	 78,28,939 	 78,28,939 	 -6,98,24,769 	 
+	3500004	RetentionPaybl -Frgn	Liability	Trade Payables	 -   	 -   	 -   	 -   	 
+	3510001	Provisional Liabilit	Liability	Trade Payables	 -   	 1,35,300 	 1,35,300 	 -   	 
+	3510015	Prv Lia-Serv SRIR-Do	Liability	Current financial liabilities - Other payables	 -   	 11,18,57,042 	 11,18,57,042 	 -   	 
+	3550020	Current Liab-Others	Liability	Creditors for capex - Current	 -   	 -   	 -   	 -   	 
+	3550023	S.Cr - M. Post.	Liability	Current financial liabilities - Other payables	 -98,17,466 	 2,98,08,172 	 2,96,63,391 	 -96,72,685 	 
+	3550035	Short Term Suppliers	Liability	Creditors for capex - Current	 -   	 -   	 -   	 -   	 
+	3550036	Prepaid Cust Control	Liability	Revenue received in advance	 -   	 -   	 -   	 -   	 
+	3550070	Prepd Cus Cont Ac-MP	Liability	Revenue received in advance	 -   	 -   	 -   	 -   	 
+	3550040	Adv against Services	Liability	Revenue received in advance	 -   	 -   	 -   	 -   	 
+	3550071	Deferred Revenue Account - Manual Post	Liability	Revenue received in advance	 -   	 -   	 -   	 -   	 
+	3550038	Def Rev A/c-Time	Liability	Revenue received in advance	 -   	 -   	 -   	 -   	 
+	3550058	Sr. Crs-Agg._Man	Liability	Trade Payables	 -   	 -   	 -   	 -   	 
+	3550008	Provisional Liabilit	Liability	Trade Payables	 -   	 62,64,412 	 60,68,112 	 1,96,300 	 
+	3800001	Salaries Payable	Liability	Current financial liabilities - Other payables	 -   	 78,01,875 	 78,01,875 	 -   	 
+	3800002	Doc Split A/c - Pay.	Liability	Current financial liabilities - Other payables	 -   	 -   	 -   	 -   	 
+	3800006	Salary & Wages Payab	Liability	Current financial liabilities - Other payables	 -   	 4,20,000 	 8,40,000 	 -4,20,000 	 
+	3800007	S & W Payable - Hold	Liability	Current financial liabilities - Other payables	 -   	 -   	 -   	 -   	 
+	3800009	Lia. toward food cou	Liability	Current financial liabilities - Other payables	 -   	 42,000 	 63,000 	 -21,000 	 
+	3800010	Deduction from Payro	Liability	Current financial liabilities - Other payables	 -   	 -   	 -   	 -   	 
+	3800011	Ded.-Death Ben. fund	Liability	Current financial liabilities - Other payables	 -   	 -   	 -   	 -   	 
+	3800012	Employees' Con.-PF	Liability	Other Payables	 -71,161 	 3,70,131 	 3,77,294 	 -78,324 	 
+	3800013	Employers' Con.-PF	Liability	Other Payables	 -69,911 	 3,63,881 	 3,71,044 	 -77,074 	 
+	3800014	Employees' Con-VPF	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3800015	Emplr Con-Pension	Liability	Other Payables	 -1,250 	 6,250 	 6,250 	 -1,250 	 
+	3800017	Professional Tax Pay	Liability	Other Payables	 -400 	 2,000 	 2,000 	 -400 	 
+	3800031	Employers Contr. - E	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3800036	Emplr Con-NPS	Liability	Other Payables	 -   	 2,59,372 	 3,22,465 	 -63,093 	 
+	3800054	Cur liab-ABRY Refund	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805253	CGST - Output liabil	Liability	Other Payables	 -7,87,500 	 15,82,875 	 7,95,375 	 -   	 
+	3805254	SGST - Output liabil	Liability	Other Payables	 -7,87,500 	 15,82,875 	 7,95,375 	 -   	 
+	3805255	IGST -   Output liab	Liability	Other Payables	 -1,81,50,955 	 4,17,98,709 	 2,36,47,756 	 -1 	 
+	3805256	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805257	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805259	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805260	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805261	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805262	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805263	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805264	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805267	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805270	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805274	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805275	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805276	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805280	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805281	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805283	CGST - Output liabil	Liability	Other Payables	 -12,38,400 	 24,78,233 	 12,39,833 	 -   	 
+	3805284	SGST - Output liabil	Liability	Other Payables	 -12,38,400 	 24,78,233 	 12,39,833 	 -   	 
+	3805285	IGST -   Output liab	Liability	Other Payables	 -0 	 182 	 21,782 	 -21,600 	 
+	3805288	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805289	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805290	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805291	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805292	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805293	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805294	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805295	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805296	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805297	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805300	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805303	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805304	CGST - Output liabil	Liability	Other Payables	 -   	 267 	 267 	 -   	 
+	3805305	SGST - Output liabil	Liability	Other Payables	 -   	 267 	 267 	 -   	 
+	3805306	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805307	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805308	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805309	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805312	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805313	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805314	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805315	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805318	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805319	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805320	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805321	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805322	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805323	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805325	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805326	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805327	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805328	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805329	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805330	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805333	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805334	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805335	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805336	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805337	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805338	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805339	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805340	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805341	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805342	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805343	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805344	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805345	IGST -   Output liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805442	CGST - Output Liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805443	SGST - Output Liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805444	IGST -   Output Liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805445	CGST - Output Liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805446	SGST - Output Liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805447	IGST -   Output Liab	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805448	CGST - Output Liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805449	SGST - Output Liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805265	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805266	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805268	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805269	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805277	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805278	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805286	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805287	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805298	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805299	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805301	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805302	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805310	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805311	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805316	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805317	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805331	CGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805332	SGST - Output liabil	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805506	GST Cont Acc-Ven Ret	Assets	Balance with customs, central Excise Authorities	 10,871 	 2,43,232 	 2,54,022 	 81 	 
+	3821098	GST Control  Account	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	3805618	GST Liability-Manual	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3805619	CGST Intt lib Revers	Liability	Other Payables	 -2,858 	 -   	 -   	 -2,858 	 
+	3805620	SGST Int lib Revers	Liability	Other Payables	 -2,858 	 -   	 -   	 -2,858 	 
+	3805621	IGST Intt lib Revers	Liability	Other Payables	 -2,66,721 	 -   	 -   	 -2,66,721 	 
+	3805734	Kerala Flood Cess	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3815003	TDS	Liability	Other Payables	 -7,01,334 	 1,60,20,125 	 1,63,35,496 	 -10,16,705 	 
+	3815041	TDS Control Account	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3821007	Adv frm Customer-Dom	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3821096	IGST Prov Liability	Liability	Other Payables	 -   	 21,600 	 21,600 	 -   	 
+	3821011	Adv frm Empl-ESOS Tx	Assets	Current Financial Assets	 -   	 -   	 -   	 -   	 
+	3821150	Adv towards Sponsor	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3821008	Cust. Advances- MP	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3821044	Current Liab.- Inter	Liability	Interest accrued but not due	 -   	 -   	 -   	 -   	 
+	3821049	Current financial liabilities - Other payables	Liability	Current financial liabilities - Other payables	 -   	 -   	 -   	 -   	 
+	3821056	Adv frm Cust-Foreign	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3855001	Interest Payable - A	Liability	Interest accrued but not due	 -   	 -   	 -   	 -   	 
+	3890019	Loan from Related Pa	Liability	Borrowings	 -   	 -   	 -   	 -   	 
+	3900001	Provn-Gratuity	Liability	Provision for Leave Encashment / Gratuity / SA	 -18,16,445 	 18,16,445 	 21,48,969 	 -21,48,969 	 
+	3900002	Provn - Supranuation	Liability	Provision for Leave Encashment / Gratuity / SA	 -   	 -   	 -   	 -   	 
+	3900003	Provn-Leave Encash	Liability	Provision for Leave Encashment / Gratuity / SA	 -11,51,808 	 11,51,808 	 12,35,010 	 -12,35,010 	 
+	4000011	GB-Eqip	Assets	Office equipments	 11,81,383 	 -   	 -   	 11,81,383 	 
+	4000008	GB-Plant&Mech - MP	Assets	Plant and Machinery	 -   	 -   	 -   	 -   	 
+	4200001	Gross Block-Software	Assets	Software	 4,70,595 	 -   	 -   	 4,70,595 	 
+	4200002	Gross Block-Software	Assets	Intangible Assets	 -   	 -   	 -   	 -   	 
+	4200008	Gross Block-Intangible Asset - M. Post	Assets	Intangible Assets	 -   	 -   	 -   	 -   	 
+	4300001	Capital WIP	Assets	Capital Work in Progress	 -   	 -   	 -   	 -   	 
+	4300002	Capital WIP - MP	Assets	Capital Work in Progress	 41,35,71,637 	 29,89,070 	 -   	 41,65,60,706 	 
+	4300008	Capital Goods Invent	Assets	Capital Work in Progress	 -   	 -   	 -   	 -   	 
+	4300006	Cap Good Invnt-Loc	Assets	Capital Work in Progress	 -   	 -   	 -   	 -   	 
+	4400005	CWIP- IAUD MP	Assets	Intangible Assets under Development	 4,20,17,548 	 -   	 -   	 4,20,17,548 	 
+	4506001	LT Tr-SubEq-UQ-FP	Assets	Investment in Subsidiaries	 -   	 -   	 -   	 -   	 
+	4508001	LT Trade-Pr-UQ-FP	Assets	Investment in Subsidiaries	 -   	 -   	 -   	 -   	 
+	4812002	Loans To Employees -	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	4812008	Loans To Employees -	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	4812009	Loans To Employees -	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	4832008	TDS Cert Recvb-Custm	Assets	TDS Receivable	 10,58,167 	 12,83,78,810 	 11,77,04,210 	 1,17,32,766 	 
+	4832018	Income Tax Refund R	Assets	TDS Receivable	 -   	 -   	 -   	 -   	 
+	4832016	TDS Certificate Recd	Assets	TDS Receivable	 13,04,042 	 -   	 -   	 13,04,042 	 
+	4832025	TDS-Cont Account Rec	Assets	TDS Receivable	 -   	 -   	 -   	 -   	 
+	4520002	Fair Val-LT MF Inc F	Assets	Current Investment	 -   	 -   	 -   	 -   	 
+	5008001	Cur Invt - Others -	Assets	Current Investment	 3,63,00,746 	 11,91,92,388 	 3,23,82,674 	 12,31,10,459 	 
+	5008002	Cu Inv-MF Inc Fun	Assets	Current Investment	 -   	 -   	 -   	 -   	 
+	5170020	Inv. - Cons - Loc	Assets	Capital Work in Progress	 42,68,145 	 -   	 -   	 42,68,145 	 
+	5170080	Inv-Electro-Local	Assets	Capital Work in Progress	 27,37,97,062 	 1,18,87,049 	 79,02,149 	 27,77,81,961 	 
+	5301001	SDr-Domestic	Assets	Trade Receivables	 12,59,65,000 	 11,52,95,122 	 24,12,55,400 	 4,722 	 
+	5390001	Sundry Debtors - MP	Assets	Trade Receivables	 -   	 21,14,00,000 	 10,62,83,333 	 10,51,16,667 	 
+	5390003	ProvDoubtfulDebts-MP	Assets	Trade Receivables	 -   	 -   	 -   	 -   	 
+	5301007	Sundry Debtors - For	Assets	Trade Receivables	 -   	 -   	 -   	 -   	 
+	5301032	S.Debt-Domestic-FICA	Assets	Trade Receivables	 -   	 -   	 -   	 -   	 
+	5301035	S. Debt-Aggregator	Assets	Trade Receivables	 -   	 -   	 -   	 -   	 
+	5301036	S. Debt-Collection	Assets	Trade Receivables	 -   	 -   	 -   	 -   	 
+	5301034	Unbilled Debtors Acc	Assets	Current Financial Assets	 -   	 -   	 -   	 -   	 
+	5420280	ICICI-Fort-0853-M	Assets	Balances with Banks in current accounts	 96,43,681 	 14,82,35,888 	 15,63,66,632 	 15,12,937 	 
+	5420281	ICICI-Fort-0853-P	Assets	Balances with Banks in current accounts	 -   	 17,61,21,615 	 17,61,21,615 	 -   	 
+	5420282	ICICI-Fort-0853-R	Assets	Balances with Banks in current accounts	 -   	 26,38,61,767 	 26,38,61,767 	 -   	 
+	5594999	Bank Cur Control Ac	Assets	Balances with Banks in current accounts	 -4 	 -   	 -   	 -4 	 
+	5610030	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 16,52,701 	 1,11,08,582 	 40,98,420 	 86,62,864 	 
+	5610033	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610034	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610035	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610037	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610038	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610039	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610042	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610049	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610050	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610054	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610057	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610058	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 12,41,584 	 3,961 	 12,41,438 	 4,107 	 
+	5610059	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 12,41,584 	 3,961 	 12,41,438 	 4,107 	 
+	5610061	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610062	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610063	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610064	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610065	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610066	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610069	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610070	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610071	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610072	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610076	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610077	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610084	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610085	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610086	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610087	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610090	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610091	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610092	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610093	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610094	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610095	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610096	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610100	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610101	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610102	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610103	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610104	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610105	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610106	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610107	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610108	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610112	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610113	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610117	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610118	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610119	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610120	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610126	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610129	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610132	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610060	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 82,152 	 1,10,112 	 1,69,802 	 22,462 	 
+	5610073	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610074	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610075	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610088	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610089	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610097	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610098	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610130	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610131	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610028	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 1,80,000 	 10,80,540 	 10,80,000 	 1,80,540 	 
+	5610029	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 1,80,000 	 10,80,540 	 10,80,000 	 1,80,540 	 
+	5610268	CGST-ITC Cla- M P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610269	SGST-ITC Cla- M P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610079	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 1,519 	 77,767 	 3,258 	 76,028 	 
+	5610080	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 1,519 	 77,767 	 3,258 	 76,028 	 
+	5610081	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -6,17,068 	 16,83,550 	 8,43,035 	 2,23,446 	 
+	5610121	CGST - Clearing acco	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610122	SGST - Clearing acco	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610123	IGST - Clearing acco	Assets	Balance with customs, central Excise Authorities	 -   	 31,69,405 	 31,69,405 	 -   	 
+	5610168	GST Refundable Accou	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610193	IGST Ref rec acc-Mah	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610204	IGST Ref rec acc-U P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610274	CGST-ITC Cla- Odisha	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610275	SGST-ITC Cla- Odisha	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610241	CGST-ITC Cla-Gujarat	Assets	Balance with customs, central Excise Authorities	 49,38,169 	 12,41,352 	 -   	 61,79,520 	 
+	5610242	SGST-ITC Cla-Gujarat	Assets	Balance with customs, central Excise Authorities	 49,38,169 	 12,41,352 	 -   	 61,79,520 	 
+	5610243	IGST-ITC Cla-Gujarat	Assets	Balance with customs, central Excise Authorities	 86,98,679 	 85,081 	 -   	 87,83,760 	 
+	5610262	CGST-ITC Cla- Mah	Assets	Balance with customs, central Excise Authorities	 1,519 	 3,243 	 3,133 	 1,629 	 
+	5610263	SGST-ITC Cla- Mah	Assets	Balance with customs, central Excise Authorities	 17,218 	 3,243 	 3,133 	 17,328 	 
+	5610264	IGST-ITC Cla- Mah	Assets	Balance with customs, central Excise Authorities	 18,33,207 	 2,520 	 3,094 	 18,32,633 	 
+	5610213	IGST-ITC Claimd- A P	Assets	Balance with customs, central Excise Authorities	 14,40,31,040 	 33,39,153 	 2,00,92,347 	 12,72,77,847 	 
+	5610216	IGST-ITC Cl-Arunachl	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610217	CGST-ITC Cla- Assam	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610218	SGST-ITC Cla- Assam	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610219	IGST-ITC Cla- Assam	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610220	CGST-ITC Cla- Bihar	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610221	SGST-ITC Cla- Bihar	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610222	IGST-ITC Cla- Bihar	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610225	IGST-ITC Cla- Chandi	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610228	IGST-ITC Cla-Chattis	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610234	IGST-ITC Cla- Delhi	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610237	IGST-ITC Cla-D & N H	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610240	IGST-ITC Cla- Goa	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610244	CGST-ITC Claimd- H P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610245	SGST-ITC Claimd- H P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610246	IGST-ITC Claimd- H P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610247	CGST-ITC Cla-Haryana	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610248	SGST-ITC Cla-Haryana	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610249	IGST-ITC Cla-Haryana	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610252	IGST-ITC Cla- Jharkh	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610253	CGST-ITC Cla- J & K	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610254	SGST-ITC Cla- J & K	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610255	IGST-ITC Cla- J & K	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610256	CGST-ITC Cla- Karnat	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610257	SGST-ITC Cla- Karnat	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610258	IGST-ITC Cla- Karnat	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610259	CGST-ITC Cla- Kerala	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610260	SGST-ITC Cla- Kerala	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610261	IGST-ITC Cla- Kerala	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610267	IGST-ITC Cla- MeghaL	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610270	IGST-ITC Cla- M P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610273	IGST-ITC Cla-Nagalan	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610276	IGST-ITC Cla- Odisha	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610277	CGST-ITC Cla- Punjab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610278	SGST-ITC Cla- Punjab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610279	IGST-ITC Cla- Punjab	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610282	IGST-ITC Cla- Pondi	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610283	CGST-ITC Cla- Rajast	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610284	SGST-ITC Cla- Rajast	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610285	IGST-ITC Cla- Rajast	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610286	CGST-ITC Cla- Telang	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610287	SGST-ITC Cla- Telang	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610288	IGST-ITC Cla- Telang	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610289	CGST-ITC Cla- T N	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610290	SGST-ITC Cla- T N	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610291	IGST-ITC Cla- T N	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610294	IGST-ITC Cla-Tripura	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610295	CGST-ITC Cla- U P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610296	SGST-ITC Cla- U P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610297	IGST-ITC Cla- U P	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610300	IGST-ITC Cla-Uttarak	Assets	Balance with customs, central Excise Authorities	 3,67,805 	 -   	 -   	 3,67,805 	 
+	5610301	CGST-ITC Cla- West B	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610302	SGST-ITC Cla- West B	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610303	IGST-ITC Cla- West B	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610306	IGST-ITC Cla-Manipur	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610309	IGST-ITC Cla-Mizoram	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610312	IGST-ITC Cla-Sikkim	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610455	GST Recovble-Manual	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5640006	Deposits to Oths-Dom	Assets	Other Non Financial Current assets	 45,000 	 -   	 -   	 45,000 	 
+	5640016	Deposits Paid - Othe	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5650013	Adv-o Empl-Sal/Bonus	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5652019	TCS-REC.INWARD MATER	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5650021	Adv to Emp-For. Tour	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5650022	Advance To Employees	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5650072	Adv-to Empl-Incentiv	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5650024	Adv to Emp - Medical	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5655027	Adv to Vendors -Frgn	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5652012	Claims Rcvbl - Oths	Assets	Current Financial Assets	 -   	 -   	 -   	 -   	 
+	5654002	Prepaid Insurance	Assets	Other Non Financial Current assets	 4,21,122 	 84,430 	 3,52,676 	 1,52,876 	 
+	5655007	Receivables-Treasury	Assets	Current Financial Assets	 -   	 13,75,00,000 	 13,75,00,000 	 -   	 
+	5655014	Oth Receivable-Accr	Assets	Trade Receivables	 -   	 -   	 -   	 -   	 
+	5655023	Adv to Vendors - MP	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	5655024	Adv to Vendors -Dom	Liability	Other Payables	 2,69,296 	 15,001 	 1,68,296 	 1,16,001 	 
+	6000082	CGST Recovered	Expense	GST Expense	 -   	 -   	 -   	 -   	 
+	6000083	SGST Recovered	Expense	GST Expense	 -   	 -   	 -   	 -   	 
+	6000084	IGST Recovered	Expense	GST Expense	 -   	 -   	 -   	 -   	 
+	6070011	IDT Inter Segment	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6070035	Rech-Supply of Serv	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100013	Income - Commission	Revenue	Other Income	 -   	 -   	 -   	 -   	 
+	6100016	Income from Manpower Supply	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100023	Incm-IT Sup Ser Chgs	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6500023	Misc Income-Oths	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100056	Rent Received Guest	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	6100066	Incm-Advt & Branding	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100146	JioThings - Sub Chrg	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100160	Adv Revenue - Video	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100161	Adv Revenue - Audio	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100162	Adv Revenue-Display	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100163	Adv Revenue - Native	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100169	Sponsorship Revenue	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6100164	Gaming-Sale of Serv	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6200012	Int In-Cure Invt-Acc	Revenue	Profit on Sale of Current Investments - Units	 -   	 -   	 -   	 -   	 
+	6200016	Int Inc-MFOCI-TRF	Revenue	Profit on Sale of Current Investments - Units	 -   	 -   	 -   	 -   	 
+	6210004	Int Recd-Emp loans	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	6400002	Profit/Loss - Units	Revenue	Profit on Sale of Current Investments - Units	 -   	 23,82,674 	 41,97,762 	 -18,15,088 	 
+	6400020	Prf/Los-MF Incm Fund	Revenue	Profit on Sale of Current Investments - Units	 -   	 -   	 -   	 -   	 
+	6400032	P/L-MFOCI-Trf to Int	Revenue	Profit on Sale of Current Investments - Units	 -   	 -   	 -   	 -   	 
+	6500015	Penal/Comp RcvrdCont	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	6500022	Misc. Recoveries	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	6600032	3rd Prty OTT Sub Ser	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6615023	Other Operational In	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	7007126	Content Charges	Expense	Content Charges	 -   	 -   	 -   	 -   	 
+	7007029	Lice and Appln Fee	Assets	Intangible Assets under Development	 -   	 -   	 -   	 -   	 
+	7009506	Project Contract Exp	Assets	Intangible Assets under Development	 -   	 -   	 -   	 -   	 
+	7016001	Salaries & Wages	Expense	Payment to and Provision for Employees	 -   	 73,66,905 	 19,44,322 	 54,22,583 	 
+	7016009	Ex-Gratia	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	7016023	S&W Incentive	Expense	Payment to and Provision for Employees	 -   	 34,36,595 	 -   	 34,36,595 	 
+	7026001	Leave Encashment	Expense	Payment to and Provision for Employees	 -   	 12,35,010 	 11,51,808 	 83,202 	 
+	7026006	Co Cont  Provid Fund	Expense	Contribution to Provident and Pension Fund	 -   	 3,01,133 	 69,911 	 2,31,222 	 
+	7026007	Co Cont  Pension Sch	Expense	Contribution to Provident and Pension Fund	 -   	 5,000 	 1,250 	 3,750 	 
+	7026008	Co Cont To Gratuity	Expense	Contribution to Provident and Pension Fund	 -   	 20,64,182 	 17,77,498 	 2,86,684 	 
+	7026009	Co Cont  Superann	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	7026010	Co Cont To ESIC	Expense	Contribution to Provident and Pension Fund	 -   	 -   	 -   	 -   	 
+	7026011	PF Adm. & Insp.Chgs.	Expense	Payment to and Provision for Employees	 -   	 9,718 	 -   	 9,718 	 
+	7026012	Emp.Dep.Lin.Ins.Chgs	Expense	Payment to and Provision for Employees	 -   	 450 	 -   	 450 	 
+	7026014	Co. Cont. EDLI Admin	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	7026016	Co Cont To NPS	Expense	Contribution to Provident and Pension Fund	 -   	 2,55,872 	 66,593 	 1,89,279 	 
+	7031001	Leave Travel Allow	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	7031002	Medical Exp-Reimb	Expense	Payment to and Provision for Employees	 -   	 3,40,201 	 -   	 3,40,201 	 
+	7031003	Med Exps-Taxable	Expense	Payment to and Provision for Employees	 -   	 3,67,141 	 6,75,619 	 -3,08,478 	 
+	7031004	Medical Exp - Oths	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	7070181	Gratitus pymtCOVID19	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	7031005	Catering/Canteen Exp	Expense	Employee Welfare and Other amenities	 -   	 -   	 -   	 -   	 
+	7031006	Food & Bev. Coupons	Expense	Payment to and Provision for Employees	 -   	 63,000 	 -   	 63,000 	 
+	7031019	Oth Empl Welfar&Amen	Expense	Employee Welfare and Other amenities	 -   	 -   	 -   	 -   	 
+	7031022	Electricity Exp-Resi	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	7031023	Seminar& Traing Exp	Expense	Training Expenses	 -   	 -   	 -   	 -   	 
+	7031035	Team Building expens	Expense	Employee Welfare and Other amenities	 -   	 -   	 -   	 -   	 
+	7031036	Petr Rem-Ownd 2 Whel	Expense	Employee Welfare and Other amenities	 -   	 -   	 -   	 -   	 
+	7051006	Hire Chg-Con Serv Op	Expense	Professional Fees	 -   	 -   	 -   	 -   	 
+	7057047	Loadg&Unloadg Chgs	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7058015	CGST Paid	Expense	GST Expense	 -   	 -   	 -   	 -   	 
+	7058016	SGST Paid	Expense	GST Expense	 -   	 -   	 -   	 -   	 
+	7058017	IGST Paid	Expense	GST Expense	 -   	 -   	 -   	 -   	 
+	7059009	Sales Promotion Exp	Expense	Business promotion	 -   	 -   	 -   	 -   	 
+	7059005	Mkt Research Exp	Expense	Business promotion	 -   	 -   	 -   	 -   	 
+	7059010	Ads Exps India-Sales	Expense	Business promotion	 -   	 -   	 -   	 -   	 
+	7059061	Prov for Bad Debts	Expense	Provision for bad debts	 -   	 -   	 -   	 -   	 
+	7059068	Prod Cost-Media	Expense	Business promotion	 -   	 -   	 -   	 -   	 
+	7069009	Reimb. to Foreign Co	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7069014	Legal Fees	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070002	Reg&Stamp Duty Chgs	Expense	Rates and Taxes	 -   	 5,375 	 -   	 5,375 	 
+	7070006	Bank Charges	Expense	Bank Charges	 -   	 30,353 	 16,871 	 13,482 	 
+	7070023	Local Conveyance	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070030	Telephone Exp-Mobile	Expense	Payment to and Provision for Employees	 -   	 24,436 	 -   	 24,436 	 
+	7070031	Telephn Exp-Landline	Expense	Telephone Expenses	 -   	 -   	 -   	 -   	 
+	7070037	Cable TV Charges	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070041	Printing&Stationery	Expense	Printing & Stationary	 -   	 -   	 -   	 -   	 
+	7070044	Loan Admin. Charges	Expense	Bank Charges	 -   	 -   	 -   	 -   	 
+	7070048	Books&Periodicals	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070050	Subscription Fees	Expense	Subscription Fees	 -   	 -   	 -   	 -   	 
+	7070056	Entertainment Exp	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070081	Rounding Off Diff	Expense	General Administration Expenses	 -   	 4 	 1 	 3 	 
+	7070084	Other Misc Exp	Expense	General Administration Expenses	 -   	 1,07,100 	 -   	 1,07,100 	 
+	7059117	Busin Promotion Exp	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070086	Housekeeping / laund	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7071011	Rent - Residential P	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7072001	Ins - Fixed Assets	Expense	Insurance	 -   	 2,04,753 	 -   	 2,04,753 	 
+	7072012	Insurance - Others	Expense	Insurance	 -   	 4,793 	 -   	 4,793 	 
+	7072004	Ins-Group Medi Cover	Expense	Insurance	 -   	 1,22,368 	 -   	 1,22,368 	 
+	7072006	Ins - Marine Transit	Expense	Insurance	 -   	 1,68,859 	 84,430 	 84,429 	 
+	7073002	Rates&Taxes - Oths	Expense	Rates and Taxes	 -   	 6,132 	 -   	 6,132 	 
+	7074005	Petrol For COC Cars	Expense	Employee Welfare and Other amenities	 -   	 -   	 -   	 -   	 
+	7074025	Rep&Maint - Oths	Expense	Repairs & Maintenance	 -   	 -   	 -   	 -   	 
+	7075007	Travel-Inland-Fare	Expense	Travelling and Conveyance	 -   	 -   	 -   	 -   	 
+	7075008	TrvlInld-Lodg/Brd/Aw	Expense	Travelling and Conveyance	 -   	 94,599 	 10,457 	 84,142 	 
+	7075009	Travl-Inland-Oth Exp	Expense	Travelling and Conveyance	 -   	 12,167 	 2,639 	 9,528 	 
+	7075011	TraveFrn-Lod/Brd/All	Expense	Travelling and Conveyance	 -   	 -   	 -   	 -   	 
+	7070064	Sitting Fee-Director	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070070	GiftsSoc Prog Spon	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070079	Software Dev. Charge	Expense	Professional Fees	 -   	 -   	 -   	 -   	 
+	7085066	Gaming Sub: COS	Expense	Professional Fees	 -   	 -   	 -   	 -   	 
+	7070080	Software License Fee	Expense	AMC charges	 -   	 -   	 -   	 -   	 
+	7009009	IDT Pur.Inter Segmnt	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	7009051	Rech-Rec of Service	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	7071003	Rent - Office Premis	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7074011	Annual Maint Chgs	Expense	Repairs & Maintenance	 -   	 -   	 -   	 -   	 
+	7074014	RepCOC Cars-LabrChgs	Expense	Employee Welfare and Other amenities	 -   	 -   	 -   	 -   	 
+	8000014	Interest-Short Term	Expense	Interest and Finance Charges	 -   	 -   	 -   	 -   	 
+	8000027	Interest - Others	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	8000057	Int exp-GST	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	8100003	Dep - Plant&Mech	Expense	Amortisation	 -   	 42,59,067 	 -   	 42,59,067 	 
+	8100005	Dep - Equipment	Expense	Amortisation	 -   	 46,635 	 -   	 46,635 	 
+	8110002	Depreciation - Software	Expense	Amortisation	 -   	 11,733 	 -   	 11,733 	 
+	8110011	Depreciation-Intangible Assets	Expense	Amortisation	 -   	 44,157 	 -   	 44,157 	 
+	3840006	Cum Dep-Plnt&Mech-MP	Assets	Acc Depreciation	 -2,99,07,075 	 -   	 42,59,067 	 -3,41,66,142 	 
+	3840010	Cum dep - Equipments	Assets	Acc Depreciation	 -3,27,470 	 -   	 46,635 	 -3,74,105 	 
+	3850007	Cum dep - Software	Assets	Acc Depreciation	 -82,386 	 -   	 11,733 	 -94,119 	 
+	3850008	Cumu Depre - Software - M. Post	Assets	Acc Depreciation	 -   	 -   	 -   	 -   	 
+	3850001	Cumu Depre. - Intangible Assets	Assets	Acc Depreciation	 -   	 -   	 -   	 -   	 
+	3850014	Cum Dep-EntryFees-UL	Assets	Acc Depreciation	 -3,10,068 	 -   	 44,157 	 -3,54,225 	 
+	7054002	Real Forex G/L- Crs	Expense	Exchange Difference	 -   	 89,306 	 -   	 89,306 	 
+	7054046	RealForG/LCurAst/Lia	Expense	Exchange Difference	 -   	 -   	 -   	 -   	 
+	7054005	RealForexG/LSetleDrs	Expense	Exchange Difference	 -   	 -   	 -   	 -   	 
+	7054047	Real Ex Gain-Set Crs	Expense	Exchange Difference	 -   	 -   	 55,811 	 -55,811 	 
+	7054049	Real Ex Gain-Set Dbt	Expense	Exchange Difference	 -   	 -   	 -   	 -   	 
+	7054027	U/RForexG/LReval Crs	Expense	Exchange Difference	 -   	 2,96,63,391 	 2,98,08,172 	 -1,44,781 	 
+	3821043	Current Liab.- Others-Treasury	Liability	Current financial liabilities - Other payables	 -   	 -   	 -   	 -   	 
+	7069003	Professional Fees Paid To Others	Expense	Professional Fees	 -   	 1,36,99,386 	 14,04,625 	 1,22,94,761 	 
+	7069001	Prof Fee Pd FTConsul	Expense	Professional Fees	 -   	 -   	 -   	 -   	 
+	7069004	Prof Fee- Frgn Consl	Expense	Professional Fees	 -   	 -   	 -   	 -   	 
+	7069006	Reimb. to Indian Con	Expense	Professional Fees	 -   	 -   	 -   	 -   	 
+	6600026	Apps Sub Rev -Retail	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	6600027	Apps Sub Rev Mob	Revenue	Revenue from Operations	 -   	 -   	 -   	 -   	 
+	1008	Other Transfer	Assets	Control Account	 -0 	 -   	 -   	 -0 	 
+	5655008	Receivables-Treasury - M. Post	Assets	Current Financial Assets	 -   	 -   	 -   	 -   	 
+	7070093	Rating Agency Fees	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7076001	Audit Fees	Expense	Payment to Auditors	 -   	 49,00,000 	 45,50,000 	 3,50,000 	 
+	7076003	Fee Cert&Consul Work	Expense	Payment to Auditors	 -   	 3,32,500 	 3,08,750 	 23,750 	 
+	8890002	Provision for Deferred Tax - PL	Expense	Deferred Tax Expense	 -   	 69,00,315 	 70,61,006 	 -1,60,691 	 
+	8910006	Actuarial Gain/Loss on Gratuity - OCI	Expense	Actuarial Gain/ Loss	 -   	 84,787 	 38,947 	 45,840 	 
+	8910001	Unr G/L-Inc Fund-OCI	Expense	Actuarial Gain/ Loss	 -   	 -   	 -   	 -   	 
+	5610036	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610045	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610051	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610078	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610114	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	1018	Vendo Migrat frm P10	Assets	Control Account	 -   	 -   	 -   	 -   	 
+	1021	GL Migration frm P10	Assets	Control Account	 -   	 -   	 -   	 -   	 
+	1029	Bank Chgs Ctr. A/c	Assets	Control Account	 -   	 4,215 	 4,215 	 -   	 
+	1030	GST Notice Pay Rec C	Assets	Control Account	 -   	 -   	 -   	 -   	 
+	3821065	Prov O/s Expenses	Liability	Trade Payables	 -   	 -   	 -   	 -   	 
+	3510019	Prv Liab-Expenses	Liability	Current financial liabilities - Other payables	 -   	 -   	 -   	 -   	 
+	7085067	3rd Party OTT Subscription - Cost of  Sale	Expense	Content Charges	 -   	 -   	 -   	 -   	 
+	5610099	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610111	IGST -   ITC recover	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	7031025	Recruitment Expenses	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7036170	Sto&Spr Ele Cons-Lo	Assets	Capital Work in Progress	 -   	 -   	 39,17,250 	 -39,17,250 	 
+	7036314	Electro Cons-Diff.	Expense	Repairs & Maintenance	 -   	 -   	 -   	 -   	 
+	7070028	Communicatn Exp-Oths	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070153	Integration Charges	Expense	Professional Fees	 -   	 -   	 -   	 -   	 
+	7074008	R&M-Comps/Off Equip	Expense	Repairs & Maintenance	 -   	 -   	 -   	 -   	 
+	7051009	Hire Charges - Oths	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7016008	Bonus	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	7031007	Uniform and Clothing	Expense	Employee Welfare and Other amenities	 -   	 -   	 -   	 -   	 
+	3821095	CGST Prov Liability	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	3821097	SGST Prov Liability	Liability	Other Payables	 -   	 -   	 -   	 -   	 
+	5610232	CGST-ITC Cla- Delhi	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	5610233	SGST-ITC Cla- Delhi	Assets	Balance with customs, central Excise Authorities	 -   	 -   	 -   	 -   	 
+	7071009	Rent - Others	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7059096	Payt Gtwy Chg -Digit	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7070016	Hire Chgs - Vehicle	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	5654007	Oth Prepaid Expenses	Assets	Other Non Financial Current assets	 -   	 -   	 -   	 -   	 
+	7076002	Tax Audit Fees	Expense	Payment to Auditors	 -   	 11,13,000 	 10,33,500 	 79,500 	 
+	7070032	Tele Exps/AT Chg	Expense	General Administration Expenses	 -   	 -   	 -   	 -   	 
+	7079001	Donation-Chtb.Trust	Expense	General Administration Expenses	 -   	 1,11,458 	 -   	 1,11,458 	 
+	5594066	IDFC-BKC-0101-Cont	Assets	Balances with Banks in current accounts	 -   	 -   	 -   	 -   	 
+	3840011	Cum dep - Eqip - MP	Assets	Acc Depreciation	 -   	 -   	 -   	 -   	 
+	4000012	GB-Eqip - MP	Assets	Office equipments	 -   	 -   	 -   	 -   	 
+	8890003	Income Tax for Earlier Years	Expense	Rates and Taxes	 -   	 -   	 -   	 -   	 
+	7084001	DOT Licence Fees	Expense	Jio-Regulatory Charges	 -   	 3,19,86,663 	 2,26,27,330 	 93,59,333 	 
+	5610211	CGST-ITC Claim-A P	Assets	Balance with customs, central Excise Authorities	 22,81,465 	 5,40,000 	 -   	 28,21,465 	 
+	5610212	SGST-ITC Claimed-A P	Assets	Balance with customs, central Excise Authorities	 22,81,465 	 5,40,000 	 -   	 28,21,465 	 
+	1013	ZeroBal -Mat	Assets	Control Account	 -   	 39,17,250 	 39,17,250 	 -   	 
+	7041004	Import Charges - Sto	Expense	Transportaion Charges	 -   	 17,205 	 1,224 	 15,981 	 
+	7082004	POI/Port Charges	Expense	POI/Port Charges	 -   	 -   	 -   	 -   	 
+	7084005	DOT Fees	Expense	Jio-Regulatory Charges	 -   	 1,20,000 	 -   	 1,20,000 	 
+	7036110	Cons Cons - Loc	Assets	Capital Work in Progress	 -   	 -   	 -   	 -   	 
+	8890001	Inc Tax for the Year	Expense	Current Tax Expense	 -   	 17,82,428 	 -   	 17,82,428 	 
+	5301043	Sun Drs- STO Supply	Expense	STO control account	 3,39,62,819 	 54,93,520 	 -   	 3,94,56,339 	 
+	6070028	STO Supplies Account	Expense	STO control account	 -   	 -   	 46,55,526 	 -46,55,526 	 
+	3550076	Sund Crs- STO trn-MP	Expense	STO control account	 -3,39,62,819 	 54,93,521 	 1,09,87,041 	 -3,94,56,339 	 
+	7009044	STO Receipt Account	Expense	STO control account	 -   	 93,11,052 	 46,55,526 	 46,55,526 	 
+	7069015	Legal Expenses	Expense	General Administration Expenses	 -   	 110 	 -   	 110 	 
+	7041024	Inward Freight/Del Costs-Stores and Spares- Imp	Expense	General Administration Expenses	 -   	 2,473 	 2,473 	 -   	 
+	2700000	Provn-Gratuity(Long term)	Liability	Provision for Leave Encashment / Gratuity / SA	 -   	 -   	 -   	 -   	 
+	3900005	Provn-Gratuity(Short term)	Liability	Provision for Leave Encashment / Gratuity / SA	 -   	 -   	 -   	 -   	 
+	3900007	Provn-Leave Encash(Short term)	Liability	Provision for Leave Encashment / Gratuity / SA	 -   	 -   	 -   	 -   	 
+	5595001	Fixed Dep Wth Banks	Assets	Current Investment	 -   	 -   	 -   	 -   	 
+	5655010	Int(Recv)Acc-Others	Assets	Int(Recv)Acc-Others	 -   	 -   	 -   	 -   	 
+	6210003	Interest Income - Fi	Revenue	Interest Income on FD	 -   	 -   	 -   	 -   	 
+	7036310	Electro Cons-Local	Assets	Capital Work in Progress	 -   	 -   	 -   	 -   	 
+	6100057	Service Charges for	Revenue	Revenue from Operations	 -   	 10,62,87,335 	 21,14,04,002 	 -10,51,16,667 	 
+	4000007	GB-Plant&Mech	Assets	Plant and Machinery	 32,36,79,238 	 -   	 -   	 32,36,79,238 	 
+	4200015	GB-Entry Fee-UL Fees	Assets	Intangible Right to Use	 32,57,902 	 -   	 -   	 32,57,902 	 
+	5170050	Inv-Strs&Sprs Ele-Lo	Assets	Capital Work in Progress	 12,123 	 -   	 -   	 12,123 	 
+	7082018	Bandwidth Charges	Expense	Bandwidth Charges	 -   	 22,76,71,094 	 17,98,62,901 	 4,78,08,193 	 
+	7070156	Land Deve & Const	Expense	Development Cost	 -   	 -   	 -   	 -   	 
+	7082022	Network Utility-AMC	Expense	AMC charges	 -   	 39,25,65,055 	 38,11,65,077 	 1,13,99,978 	 
+	4832007	TDS-Cert rec-Cust	Assets	TDS Receivable	 -   	 -   	 -   	 -   	 
+	5610055	CGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 270 	 -   	 270 	 
+	5610056	SGST - ITC recoverab	Assets	Balance with customs, central Excise Authorities	 -   	 270 	 -   	 270 	 
+	7084002	Spectrum Usage Chgs	Expense	Jio-Regulatory Charges	 -   	 1,40,93,334 	 98,88,668 	 42,04,666 	 
+	5610238	CGST-ITC Cla- Goa	Assets	Balance with customs, central Excise Authorities	 1,080 	 -   	 -   	 1,080 	 
+	5610239	SGST-ITC Cla- Goa	Assets	Balance with customs, central Excise Authorities	 1,080 	 -   	 -   	 1,080 	 
+	7031008	Gift Coupons	Expense	Payment to and Provision for Employees	 -   	 -   	 -   	 -   	 
+	8890004	Provision For Income Tax - OCI- P&L	Expense	Deferred Tax Expense - OCI	 -   	 -   	 -   	 -   	 
+	6210009	Int Inc- Tax Refund	Revenue	Interest on IT refund	 -   	 -   	 -   	 -   	 
+	3904001	Provision for Income tax	Liability	Current Tax Liabilities	 -1,02,73,281 	 -   	 17,82,428 	 -1,20,55,709 	 
+ 
+### Population 
+ 
+															 
+	Jio Satellite Commuications Limited														 
+	Audit for the Year Ended 30 June 2026														 
+															 
+	Journal Entry Dump for the period 01 April 2026 to 30 June 2026														 
+															 
+							 -   								 
+	G/L	DocumentNo	Type	Entry Date	Pstng Date	Doc. Date	 Amount in local cur. 	LCurr	 Amount in doc. curr. 	 Curr. 	 Amount in loc.curr.2 	LCur2	Document Header Text	Text	User name 
+															 
+															 
+															 
+															 
+ 
+### Input Sheet 
+ 
+				 
+	Jio Satellite Commuications Limited			 
+	Audit for the Year Ended 30 June 2026			 
+	Journal Entry Input Form 			 
+				 
+				 
+				 
+				 
+	S No	Exception	Scoped in?	TM  
+	1	Entries Made to Unusual Accounts		 
+	2	Entries Made to Seldom Used Accounts		 
+	3	Large Debits to Revenue During the Period		 
+	4	Users with Few Postings 		 
+	5	Users of Interest		 
+	6	Closing Entries		 
+	7	Entries Posted on Dates of Interest		 
+	8	Entries with Round Amounts or Recurring Ending Digits		 
+	9	Duplicate Entries		 
+	10	Entries Containing Keywords in Journal Entry and/or Journal Line Description		 
+	11	Entries Posted After Closing Period 		 
+	12	Unrelated Accounts		 
+				 
+				 
+				 
+				 
+	Exception 1 - Inputs for Entries Made to Unusual Account 			 
+		List down all the Unusual Accounts 	GL Code	 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+	Exception 2 - Inputs for Entries Made to Seldom Accounts			 
+		List down the Seldom Accounts	GL Code	 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+	Exception 3 - Large Debits to Revenue			 
+		Threshold (In Value) 		 
+				 
+	Exception 4 - Users With Few Postings 			 
+		Number of Entries Posted by Users 		 
+				 
+	Exception 5 - Users of Interest 			 
+		List down the Users	Users	 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+	Exception 6 - Closing Entries			 
+		Number of days  to be considered for determination of closing period before end of reporting period 		 
+		Number of days  to be considered for determination of closing period after end of reporting period 		 
+		Closing date of the Year 	30-Jun-26	 
+		Indicate the number of words to limit the test entries to little or no explanation 		 
+		Indicate the number of characters to limit the test entries to little or no explanation 		 
+				 
+	Exception 7 - Entries Posted on Dates of Interest			 
+		Dates of Interest 	Dates	 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+	Exception 8 - Round Amounts or Recurring Ending Digits			 
+		Recurring Digits (2 to 9) 	Yes or No 	 
+		2		 
+		3		 
+		4		 
+		5		 
+		6		 
+		7		 
+		8		 
+		9		 
+		Round Amounts (000 to 00000000)		 
+		1000		 
+		10000		 
+		100000		 
+		1000000		 
+		10000000		 
+		100000000		 
+				 
+	Exception 9 - Duplicate Entries			 
+		No. of occurences of duplicates encountered 		 
+		Value of occurences specified (In Value) 		 
+				 
+		Whether FS Line Item has been used by the ET for the purpose of selection of duplicate entries	No	 
+		DEBIT	CREDIT	 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+				 
+		Whether duplicate accounts has been used by the ET for the purpose of selection 	No	 
+		DEBIT	CREDIT	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+		Left Blank By ET	Left Blank By ET	 
+				 
+	Exception 10 - Keywords to be picked in Journal entry narration as an Exception			 
+	H.	Keywords to be picked in Journal entry narration as an exception	Words currently considered	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+			Left Blank By ET	 
+				 
+	Exception 11 - Entries Posted After Closing Period			 
+		Frequency of Book Closing		 
+		Day on which period is locked in the subsequent year		 
+		eg. If Books are closed monthly, and period is locked on 5th of next month, enter 5.		 
+				 
+	Exception 12  - Unrelated Accounts			 
+		Debit	Credit	 
+				#N/A 
+				#N/A 
+				#N/A 
+				#N/A 
+				#N/A 
+				#N/A 
+				#N/A 
+				#N/A 
+				#N/A 
+				#N/A 
+				 
+				 
+	L.	Additional Inputs 		 
+		Standard Document Types 	Document Type	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+			NIL	 
+				 
+		Rationale Supporting the decision of the ET made regarding the parameter		 
+	{a}			 
+	{b} 			 
+	{c}			 
+	{d}			 
+	{e}			 
+	{f}			 
+	{g}			 
+	{h}			 
+	{i}			 
+	{j}			 
+	{k}			 
+	{l}			 
+				 
+ 
+### Exception Guidance 
+ 
+				 
+	Jio Satellite Commuications Limited			 
+	Audit for the Year Ended 30 June 2026			 
+	Exception Guidance			 
+				 
+				 
+	S.No	Name	Guidance	 
+	Exception 1	Entries Made to Unusual Accounts	This test identifies entries made to unusual accounts. The identification of unusual accounts is based on the presence of certain keywords or phrases in the account description and/or the characteristic of, or activity in, certain account numbers. You can perform the search using either the account description or account number, or using both.	 
+	Exception 2	Entries Made to Seldom-Used Accounts	This test identifies all entries made to accounts to which less than Y lines were posted during the period.	 
+	Exception 3	Large Debits to Revenue During the Period	This test helps identify reversals in the current period of revenue that may have been improperly recognized in the current or prior year. It does so by identifying all entries in which the debits and credits to the revenue account subtype result in a net debit to revenue of more than $X. The search is performed on all accounts mapped to the “Revenue” account.	 
+	Exception 4	Users with Few Postings 	This test identifies entries posted by users who typically do not make journal entries. It does so by identifying users who posted less than X entries during the period.	 
+	Exception 5	Users of Interest	This test identifies all entries posted by specific users (“users of interest”).	 
+	Exception 6	Closing Entries	"This test identifies all entries with limited text / weak narration / blank narration recorded into the general ledger during the closing period.  
+ 
+For purposes of this test, the “closing period” is the period that begins the day when the entity begins to prepare and post closing entries to the general ledger (closing period start date) and ends on the date on which the last entry for a period is posted to the general ledger (closing period end date/closing date). "	 
+	Exception 7	Entries Posted on Dates of Interest	This test identifies entries posted on Saturdays, Sundays, or holidays. It also can identify entries posted on other dates selected by the engagement team (e.g., dates on which no entries were expected to be posted or dates falling on or around certain events).	 
+	Exception 8	Entries with Round Amounts or Recurring Ending Digits	"This test identifies journal entry line amounts that: 
+1. Are divisible by Rs.1,000, Rs.10,000, Rs.100,000, or Rs.1,000,000 (i.e., round amounts) or 
+2. Contain repetitive ending digits (i.e., recurring ending digits) "	 
+	Exception 9	Duplicate Entries	This test identifies entries that (1) contain the same combination of line accounts/amounts, (2) occur X or more times in the population, and (3) total more than Rs.Y.	 
+	Exception 10	Entries Containing Keywords in Journal Entry and/or Journal Line Description	This test identifies entries with keywords of interest in the journal entry and/or journal line description	 
+	Exception 11	Entries Posted After Closing Period	"This test identifies all entries input to the general ledger after the closing period specified used for Test 6 (specified in the Input form).  
+ 
+This test supplements Test 6 in that it identifies any entry recorded after the date estimated to be the last day of the closing period used for Test 6."	 
+	Exception 12	Unrelated Accounts	This test helps identify entries that record a transaction to unrelated accounts. For purposes of this test, unrelated accounts are any two accounts that are not typically used to record the accounting effect of a particular transaction. For example, to record a sale an entity credits sales and debits accounts receivable, not accounts payable. Therefore, a credit to sales and a debit to accounts payable would be considered an unrelated account combination for purposes of this test. 	 

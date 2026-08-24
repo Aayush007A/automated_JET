@@ -1,0 +1,122 @@
+SPARK JET Workflow 
+Trial Balance (TB): 
+1. Copy from input form and paste special into new file. 
+2. Change the headers to standard headers( JET Header file) 
+3. Clean: 
+a. Trim clean GL, GL description, Account subtype and FS line column 
+b. Convert Opening balance, Closing Balance, Debit and Credit into number columns) 
+4. Checkpoints: 
+a. G/L & Description should not have blank values, nor duplicates. 
+b. Account Subtype should contain Assets, Liabilities, Revenues/Income, and Expenses. 
+c. Opening balance should be 0 and equal to the Closing Balance. 
+d. Debit and Credit for each entry should be equal. 
+e. Total Column Sum of Opening & Closing Balance should be 0. 
+f. GL column should be unique(Check after trimclean) 
+g. No blanks should be there in GL, GL description, Account subtype and FS line column 
+h. Save in .csv format 
+Population/GL dump : 
+1. Copy from input form and paste normally into new file. 
+2. Remove fs line column 
+3. Change the headers to standard headers( JET Header file) 
+4. Clean: 
+a. Trim clean GL, DocumentNo and Type column 
+b. Convert Date into dd-MMM-yy format 
+c. Convert all the amounts into Number format and remove commas. 
+d. Replace comma with space in document header and Text column 
+e. Trim clean Document Heade text, Text and Username column 
+5. Checkpoints: 
+a. No blanks should be there in GL, DocumentNo, Type, EntryDate and Pstng Date 
+column. 
+b. Sum of “Amount in local cur” should be 0. 
+c. Posting Date should have dates within the range of Start and End Date. 
+d. For all document numbers, the sum against them should be 0. (Use PIVOT Table) 
+e. Save in .csv format 
+Once TB and Population is prepared, We will start with Integrity Results followed by Parameter Results. Extra requirement that et can ask for: JET Summary and Control Samples. 
+Integrity Results: 
+1. Run the code. 
+2. Check if the length of G/L is same for Population & Trial Balance files. 
+3. Write the output 
+4. Fill macro for integrity 
+a. Copy the Basic inputs from input form 
+b. Paste Test 1,2 and 3 from the extracted files. 
+c. Check: 
+i. Test_1: G/L present in Trial_Balance but not in Population. Use vlookup to verify 
+ii. Test_3: G/L present in Population but not in Trial_Balance.Use vlookup to verify 
+iii. Test 2: Amount in local curr of population for the GL should be equal to GL_activity of that GL in IR 2. plot a pivot table using entire population keeping GL as row and amount as values, then vlookup the GL in population amount in local curr with result of pivot. 
+iv. Test 4: The sum of count+the sum of GL’s coming in test3 should match exactly 
+with count of Population. 
+After receiving tickmarks send them for verification. Once its reviewed, start with Parameter Testing. 
+Inputs for Parameter: 
+1. Ex1: Copy from Inputsheet and trimclean 
+2. Ex2: Copy from Inputsheet and trimclean 
+3. Ex3: Filter Revenue or Income(If Revenue is not present) in tb, copy those gl codes, and 
+trimclean. Threshold should be 0. 
+4. Ex4: It has to be an integer 
+5. Ex5: Copy from Inputsheet and trimclean 
+6. Ex6: Copy from Inputsheet, If the below values are not zero, Give the output file to Shilpa’s team 
+7. Ex7: Copy from Inputsheet. Make sure date format is same as that of population i.e. dd-MMM-yy 
+8. Ex8: Copy from Inputsheet. 
+9. Ex9: Copy from Inputsheet (It has to be an integer). Threshold should be 0. 
+10. Ex10: Copy and trim clean. Remove duplicates. 
+11. Ex11: Frequency of Book closing should always be Annually. Copy the input (It has to be an 
+integer) 
+12. Ex12: VLOOKUP all debit and credit entries in TB fs line item. All should match (No #NA). Copy 
+and Trimclean 
+Parameter Testing: 
+Ex1: 1.Run the code. 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no 
+and No exception. 
+3. Filter Exception1 from Exception and check the distinct Gl if its matching with the inputs 
+Ex2: 1.Run the code. 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no 
+and No exception. 
+3. Filter Exception2 from Exception and check the distinct Gl if its matching with the inputs 
+Ex3: 1.Run the code. 
+2. Sum of Amount in local cur should be 0 and and Exception column should only have 
+Exception_no and No exception. 
+3. Filter Exception3 from Exception and check the distinct Gl if its matching with the Revenue or Income GLs from TB 
+Ex4: 1.Run the code. 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no. 
+3. Copy DocumentNo and Username column from population in new blank sheet. Remove 
+duplicates and plot a pivot table: documentno in values and username in rows. Count should match the 
+line item of ex4. 
+Ex5: 1.Run the code. 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no 
+and No exception. 
+3. Filter Exception5 from Exception and check the distinct Username if its matching with the 
+Inputs 
+Ex6: 1.Run the code. In stage 4 Check the start and end date 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no 
+and No exception. 
+3. Filter Exception6 from Exception and Check the range of dates in Entry date column 
+Ex7: 1.Run the code. 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no 
+and No exception. 
+3. Filter Exception7 from Exception and check the distinct Posting date if its matching with the 
+inputs. 
+Ex8: 1.Run the code. 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no 
+and No exception. 
+3. Filter Exception8 from Exception. Convert Amount in local cur to scientific. 10 power inputs 
+can be easily identified. 
+Ex9: 1.Run the code. 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no. 
+Ex10: 1.Run the code. Check for duplicates 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no 
+and No exception. 
+3. Filter Exception10 from Exception and Match exception text for words in input sheet then 
+search in text column of population. 
+Ex11: 1.Run the code. In stage 2, replace the date with the closing end date given in input form(Basic 
+inputs). 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no. 
+3. Check in population for entry date after the financial year end date + x days, for eg year end 
+mar 31 2023 and 15 days will check for entries done after 15 april 2023. 
+Ex12: 1.Run the code. Check if inputs are present in fs line item. 
+2. Sum of Amount in local cur should be 0 and Exception column should only have Exception_no 
+and No exception. 
+Extra Requirement: 
+Control Sample Dump: 
+1. ET will give the number of Samples they need. 
+2. Run the code for csd 
+3. Sum of Amount in local cur should be 0. The distinct Document Number should be equal to the 
+number et has provided.

@@ -1,0 +1,293 @@
+OMNIA
+Journal Entry
+Testing
+Overview
+Deloitte Omnia is a platform which aims to improve efficiency, the client and practitioner experience, and high-quality delivery.
+1. Connect to VPN:
+Start by connecting to the VPN for secure access.
+2. Access Omnia Portal:
+Once connected, go to the Omnia Portal.
+3. Create/Select an Engagement:
+In the portal, create a new engagement or select an existing one as needed.
+4. Data Kitchen Access:
+Navigate to Data Kitchen, where you can request data for your engagement.
+5. Request Data:
+
+•
+Check CDR Form: Verify if a Client Data Request (CDR) form is available. If it is, proceed to the next step. If not, contact the engagement team.
+
+•
+Create Data Request: Use the CDR form to make a formal data request.
+6. Upload Data:
+
+•
+Once the data is received, upload it to the "EFT_UP" folder within the data staging area.
+
+•
+If the data is not yet uploaded, click on "EFT_UP" to start the upload process.
+7. Data Validation:
+Data Integrity Check: Check the uploaded file for accuracy and completeness. If any discrepancies are found, re-upload corrected files.
+8. Specialist Tool Access:
+
+•
+Use the advanced scripting tools if additional data processing or analysis is needed.
+
+•
+Access the workspace where you can find necessary resources and run notebooks for further data processing.
+9. Run Notebooks:
+
+•
+Open and run the relevant Python notebooks to process data.
+
+•
+This step may include journal entry reconciliation and creation of final output files.
+10. Upload Processed Files:
+
+•
+Upload the processed files one by one to the specific Data Kitchen folders.
+
+•
+Ensure the files follow the required naming format, such as "General_Ledger_Default.parquet."
+11. End Process:
+The workflow is complete once all required files are uploaded and available for review.
+Flowchart
+OMNIA
+OMNIA
+JOURNAL ENTRY RECONCILIATION AND DQC GOLDEN CHECKS
+JOURNAL ENTRY RECONCILIATION AND DQC GOLDEN CHECKS
+Notebook Walkthrough
+This script reads in the raw General Ledger, Trial Balance and Chart of Accounts files, performs any necessary data preparation and transformations needed to map the fields required for the Common Data Models and Standard Analytics.
+Important Note: Do not change the original scripts of the Notebook. Please clone the notebook to the desired destination and use the same.
+1. Installing Libraries Step 1: Fill the widgets.
+Set the delimiter, output path based on the data.
+Step 2: Installing Libraries
+Step 3: Initialization Here, we must make sure to authenticate while this command is executed.
+2. Importing Standard Functions Step 4: Importing Standard Functions and Widgets
+Note: Do not change any codes in Step 2, 3 and 4.
+3. GL Read-in, Preparing and Mapping Step 5: Setting the path of Imported Data Here, mention the path where the imported data is present. Step 6: Reading JE files Update the input file path and file name for the General Ledger.
+Step 7: Custom JE Transformations For example: Here, column ‘ManSys’ contains Standard/Non-Standard Bifurcation performed based on the ‘BATCHNO’. Also, Account Number consists of ‘:’ that is removed by using split function.
+Step 8: Mapping General Ledger 1. Each line represents a column in the input table - "standard field": "actual input field". 2. Update the value on the right side of colon (:) with the input column name. 3. Do NOT remove or change the standard field names, the values before colon (:). 4. If a column to map does not exist in the input, leave the value on the right as "".
+4. TB Read-in, Preparing and Mapping Step 9: Reading TB files
+Update the input file path and file name for the TB files. Step 10: TB Type Casting Update the input date format of the date field within the raw data in the third parameter.
+Step 11: Custom TB Transformations Here, all the required field transformations are performed to map the fields in the next section to provide as an input. Step 12: Mapping Trial Balance 1. Each line represents a column in the input table - "standard field": "actual input field". 2. Update the value on the right side of colon (:) with the input column name. 3. Do NOT remove or change the standard field names, the values before colon (:). 4. If a column to map does not exist in the input, leave the value on the right as "".
+5. COA Read-in, Preparing and Mapping Step 13: Reading COA files Update the input file path and file name for the COA files.
+Step 14: Mapping Charts of Accounts 1. Each line represents a column in the input table - "standard field": "actual input field". 2. Update the value on the right side of colon (:) with the input column name. 3. Do NOT remove or change the standard field names, the values before colon (:). 4. If a column to map does not exist in the input, leave the value on the right as "". 6. Final Transformations Step 15: Final Transformations
+7. Writing Output Tables
+Step 16: Writing Output Tables Note: Do not change any codes in Step 15 and 16.
+OUTPUTS
+Four output files will be generated:
+1.
+JE_raw.parquet
+2.
+TB_Final.parquet
+3.
+COA_Final.parquet
+4.
+JE_Final.parquet
+OMNIA
+OMNIA
+JOURNAL ENTRY RECONCILIATION AND DQC GOLDEN CHECKS
+JOURNAL ENTRY RECONCILIATION AND DQC GOLDEN CHECKS
+Notebook Walkthrough
+This script transforms and prepares the General Ledger, Trial Balance and Chart of Accounts for Common Data Models and standard analytics. The script also performs reconciliation, provides General Ledger summary statistics, and identifies data integrity issues in the input data.
+Important Note: Do not change the original scripts of the Notebook. Please clone the notebook to the desired destination and use the same.
+Step 1: Fill the required widgets
+Some of the widgets are already filled and not to be disturbed. The widgets that can be modified are-
+1)
+Input file of COA Data: This widget can be referenced in code using ${input_file_coa} in SQL or dbutils.widgets.get("input_file_coa") in other languages.
+2)
+Input file of GL Data: Enter the input file path for the General Ledger Detail
+3)
+Input file of TB Data: Enter the input file path for the Trial Balance.
+4)
+Financial Year
+5)
+Fiscal Year-End (MM/dd/yyyy where MM=month, dd=day, yyyy=year)
+6)
+Input format of the Period_End_Date field (month=MM, day=dd, year=yyyy, hour=hh, minutes=mm, seconds=ss). Note the upper case MM for month.
+7)
+Testing Period First Day (MM/dd/yyyy where MM=month, dd=day, yyyy=year)
+8)
+Testing Period Last Day (MM/dd/yyyy where MM=month, dd=day, yyyy=year)
+1. Installing Libraries Step 2: Installing necessary Libraries
+Step 3: Importing all the required methods from the CortexPY Library
+In this step, users must Login to the Azure Databricks platform before moving forward.
+Step 4: Importing the necessary modules from PySpark
+2. Mapping Input Tables Step 5: Mapping of Input Tables (GL, TB, and COA)
+Important points to note here:
+
+•
+Each line represents a column in the input table - "standard field": "actual input field".
+
+•
+Update the value on the right side of colon (:) with the input column name.
+
+•
+Do NOT remove or change the standard field names, the values before colon (:)
+
+•
+If a column to map does not exist in the input, leave the value on the right as ""
+
+•
+Examples - "entity_id": "Entity Number" or "extract_date": ""
+3. Creating User Parameters Step 6: Populating User Parameters
+Guidance on the Parameters:
+1.
+Fiscal Calendar: If the fiscal year does not align with the calendar year, an additional input table with the fiscal calendar information containing the following 3 columns is required: fiscal_period, fiscal_period_start and fiscal_period_end.
+2.
+Input file path: Specify each input file by entering the file name and the Staging folder it is located in. The path must start with a slash (/). - E.g., /User Imported Data/EFT_UP/file_name.csv.
+3.
+Output path: Specify a Staging folder to which the outputs will be saved. The path must start with a slash (/). - E.g., /SPEC-DATAPREP/folder name. - WARNING: Any existing files in the output path will be overwritten. Create different folders for different runs (e.g., /SPEC-DATAPREP/Q1Q3 and /SPEC-DATAPREP/Q4) - Do not use a root folder other than SPEC-DATAPREP.
+Step 7: Reading User-Entered Parameter Values
+Instructions:
+
+•
+Make sure the field mapping is complete in section 2 before proceeding.
+
+•
+In the cell below (Cmd 17), click "Run All Above", which is an option in the dropdown right next to the right-pointing triangle ▶.
+
+•
+Sign in to Cortex Databricks by opening https://microsoft.com/devicelogin on a web browser and using the token displayed in the "CortexPy Libraries Installation" cell in section 1. 
+ 
+• 
+After the parameters are filled out at the top of this script, go to section 4 to continue. 
+4. Reading Input Tables Step 8: Read the Input Tables 
+Instructions: 
+ 
+• 
+Use this section if input data contains a risk of line breaks. 
+ 
+• 
+Update the default quote and escape characters in lines 13 - 15, if needed. 
+Do not edit, remove or disable any part of the code in this section other than those specified above. 
+5. Preparing General Ledger Step 9: Prepare the General Ledger 
+IMPORTANT: There are places where the user can enable optional transformation steps for specific fields. Please review the following lines in the cell below to appropriately define the fields as necessary: 
+ 
+• 
+Line 105: Replace text fields with another. 
+ 
+• 
+Line 213: Replace net amount fields with another. 
+ 
+• 
+Line 240: Add user-defined formula for Is_Standard 
+Do not edit, remove or disable any part of the code in this section other than those specified above. 
+6. Preparing Trial Balance Step 10: Preparing Trial Balance 
+IMPORTANT: In this section, there are places where the user can enable optional transformation steps for specific fields. Please review the following lines in the cell below to appropriately define the fields as necessary: 
+Line 33: Replace net amount fields with another 
+Do not edit, remove or disable any part of the code in this section other than those specified above. 
+7. Preparing Chart of Accounts Step 11: Prepare the Chart of Accounts 
+IMPORTANT: In this section, there are places where the user can enable optional transformation steps for specific fields. Please review the following lines in the cell below to appropriately define the fields as necessary: 
+Line 43: Add user-defined formula for Financial Statement Category 
+Do not edit, remove or disable any part of the code in this section other than those specified above 
+Step 12: Storing Output Data 
+8. Data Integrity Check Step 13: Given below are the Data Integrity checks that are conducted in this section with their descriptions. 
+Data Check Number Data Check Name Data Check Brief Description 1a 01a_Error_COA_Blank_Values Chart of accounts has blank values in critical fields 
+1b 
+01b_Error_TB_Blank_Values 
+Trial balance has blank values in critical fields 1c 01c_Error_JE_Blank_Values Journal entry data has blank values in critical fields 
+1d 
+01d_Warning_JE_Blank_UserID 
+Journal entry data has blank values in User ID 
+1e 01e_Warning_JE_Blank_Transaction_Type Journal entry data has blank values in Transaction Type 
+2a 
+02a_Error_TB_Accounts_Not_In_COA 
+Trial balance has accounts not in chart of accounts 2b 02b_Error_JE_Accounts_Not_In_COA Journal entry data has accounts not in chart of accounts 
+3a 
+03a_Error_TB_Amount_Digits_TooLong 
+Trial balance amounts have excess digits 3b 03b_Error_JE_Amount_Digits_TooLong Journal entry amounts have excess digits 
+4a 
+04a_Error_COA_Duplicate_Account_Numbers 
+Chart of accounts has duplicate account numbers 4b 04b_Error_TB_Duplicate_Account_Numbers Trial balance has duplicate account numbers 
+5 
+05_Error_JE_Unknown_Classification 
+Journal entry has lines with unknown classifications (standard or nonstandard) 6 06_Error_JE_Multiple_Classification Journal entry has lines with multiple classifications (standard or nonstandard) 
+7 
+07_Error_COA_Unknown_Financial_Statement_Category 
+Chart of accounts has accounts with a financial statement category other than assets, liabilities, equity, revenue, expenses 8 08_Warning_JE_Sum_of_Amount_by_Entry_Not_Net_Zero Journal entry data has entries that do not net to zero (this check excludes one line entries) 
+9 
+09_Warning_JE_One_Line_Entries 
+Journal entry has only one line 
+10 10_Warning_JE_Entry_Amount_Consistency Journal entry has lines with net amount inconsistent with debit and credit amounts 
+11 
+11_Warning_JE_Debit_Credit_Same_Line 
+Journal entry has lines with both debit and credit amounts 12 12_Warning_JE_Amount_Currency_Inconsistency Journal entry has lines with a currency net amount equal to zero while non-zero amounts for other currency net amounts 
+13a 
+13a_Warning_JE_Entity_Multiple_Currency 
+Journal entry data has individual entities with multiple entity currencies 13b 13b_Warning_JE_Group_Multiple_Currency Journal entry data has multiple group currencies 
+14 
+14_Warning_JE_Multiple_Date_Values 
+Journal entry has lines with multiple effective or posted dates or fiscal periods 15 15_Warning_JE_Multiple_Transaction_Type Journal entry has lines with multiple transaction types 
+16 
+16_Warning_JE_Prior_Post_Effective_Date 
+Journal entry has lines with effective dates prior or after the testing period 17 17_Observation_JE_Multiple_User_ID Journal entry has lines with multiple User IDs 
+18 
+18_Observation_JE_Multiple_Entry_Description 
+Journal entry has multiple entry descriptions 19 19_Observation_JE_Sum_of_Amount_by_Transaction_Type_Not_Net_Zero Journal entry data has transaction types that do not net to zero 
+20 
+20_Observation_UserID_Entered_Multiple_User_Name_Entered 
+User ID is mapped to more than one user name value 
+9. Writing Output Tables Step 14: Writing Output Tables 
+IMPORTANT: Most of the outputs generated from this script are not downloadable from Cortex Staging by default for the optimal performance. To save the outputs to downloadable CSV, go to lines 72 and 109 in the below cell and enable the section by removing '''. 
+Please note: 
+ 
+• 
+The 3 main outputs (GL, TB and COA) are downloadable after being uploaded to Common Data Model in Cortex, not from Staging. 
+ 
+• 
+GL summary outputs (Control Total by Period, Control Total by Standard/Non-Standard, Control Total by Currency, Control Total by Transaction Type, and JE Line Distribution) are saved in CSV, downloadable from Staging by default. 
+Warning! The change to enable the downloadable outputs may increase the runtime significantly. 
+OUTPUTS 
+We will obtain the following outputs in the output folder path that was provided by the user: 
+1. 
+General_Ledger_Detail.parquet 
+2. 
+Trial_Balance.parquet 
+3. 
+Chart_of_Accounts.parquet 
+4. 
+Control_Total_By_Period.csv 
+5. 
+Control_Total_By_Standard_Non_Standard.csv 
+6. 
+Control_Total_By_Currency.csv 
+7. 
+Control_Total_By_Transaction_Type.csv 
+8. 
+Control_Total_By_User.csv 
+9. 
+JE_Line_Distribution.csv 
+10. 
+JE_raw.parquet 
+11. 
+TB_Final.parquet 
+12. 
+COA_Final.parquet 
+13. 
+JE_Final 
+14. 
+Autocorrection_Summary.csv 
+15. 
+Parquet_Reconciliation.parquet 
+16. 
+Parquet_Data_Integrity_Check_00_Summary.parquet 
+17. 
+JE-Recon-and-DIC-Template.xlsx 
+18. 
+GCW_Script_Execution_Logs.csv 
+CHECKPOINTS 
+Download the JE-Recon-and-DIC-Template.xlsx file. 
+ 
+• 
+In the Reconciliation tab, the following table shows the number of accounts that do not reconcile and select related information. The number of reconciled accounts are to be informed to the ET and the request proceeds accordingly. 
+ 
+• 
+In the Data Check Summary tab, if the column ‘Present’ has a ‘Yes’ value present, the value against it should only be a ‘Warning’ or ‘Observation’ in the ‘Data Matter Type’ column. If the value ‘Error’ is encountered against a ‘Yes’, it should be flagged off to the Engagement team. 
+FINAL STEPS 
+Step 1: Under the Data Kitchen Tab, select the Upload and Select Data option. Under the same, select the existing file option. 
+Step 2: Upload the General_Ledger_Detail.parquet, JE_Final.parquet, TB_Final, and COA_Final.parquet files one by one following the next steps. 
+Select a file to upload and click on the ‘Next Step Mapping’ button. 
+Step 3: Enter the source formatting for the dates and the separator. The ‘Show mapped fields only’ option displays the column that have not been mapped. 
+Step 4: Post that, click on the ‘Next Step: Data Integrity Checks’ button. In this step, data integrity checks happen. 
+Step 5: The uploaded data can be found in the CDM folder. See these are just the steps okay so code will be given we need to create one project which performs the same.

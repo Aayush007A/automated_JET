@@ -1,0 +1,389 @@
+### Data Overview 
+ 
+				  
+"This tab contains an overview for all the data input forms present in this file along with the descriptions of each individual field. 
+Fields marked as required must be completed for every row.  Fields marked as optional do not need to be completed for every row, but the absence of data may impact your ability to produce certain analytics or affect your ability to link certain datasets, i.e. shipping to billing."				  
+				  
+				  
+				  
+In each data input form on the following tabs, the data types are color-coded as:				  
+				  
+Additionally, fields with a red border are for internal Deloitte use and will be completed by Deloitte professionals. These appear as: 				  
+				  
+IMPORTANT				  
+Fields that are marked with Required* (suffixed with asterisk) are mandatory for 'Management Override - Journal Entry Testing' (MO-JE) in Omnia Data and must be populated with actual values or an alternative value if not available from the source system. Additional information is given in the Guidance column for each relevant field.				  
+				  
+Fields that are marked with Optional* have additional important information given in the Guidance column. Please refer to the provided guidance about conditions regarding these fields.				  
+				  
+				  
+Shortcut to sections in the Data Overview:				  
+Fiscal Calendar				  
+General Ledger 				  
+Account Receivable				  
+Account Payable				  
+Journal Entry - Input Parameters				  
+				  
+Fiscal Calendar				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+fiscal_year	Required	Numeric	Identifier of the applicable fiscal year (e.g., 2022).	  
+fiscal_period	Required	Numeric	Identifier of a fiscal period within a given fiscal year.	"Values accepted: 
+- 1 - 13 (no decimals)"  
+fiscal_quarter	Required	Numeric	Identifier of a fiscal quarter within a given fiscal year.	"Values accepted: 
+- 1 - 4 (no decimals)"  
+fiscal_period_start	Required	Date/Time	First day in the fiscal period.	  
+fiscal_period_end	Required	Date/Time	Last day in the fiscal period.	  
+fiscal_year_identifier	Required*	Text	Identifier for indicating the Current Year and Prior Periods.(e.g. Current Period, Prior Period 1, Prior Period 2 )	This field is required to be populated for the MO-JE Testing application and cannot be empty.  
+import_date	Optional	Date/Time	Date the data was imported into Omnia Data.	  
+				  
+				  
+Trial Balance				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+entity_id	Required	Text	Alphanumeric reference used to uniquely identify a specific legal entity.	Entity IDs should be consistently presented in all data sets.  
+entity_name	Optional	Text	Name (or short description) of the legal entity.	Entity Names should be consistently presented in all data sets.  
+account_number	Required	Text	Alphanumeric reference used to uniquely identify a specific general ledger account.	  
+account_description	Required	Text	Name (or short description) of the general ledger account.	  
+period_end_date	Required	Date/Time	The 'as-of' date for point-in-time data models, or the cutoff date (i.e., the last date for which transactions are included within the data) for transactional data models.	  
+fiscal_year	Optional	Numeric	Identifier of the applicable fiscal year (e.g., 2022).	  
+fiscal_period	Optional	Numeric	Identifier of a fiscal period within a given fiscal year.	"Values accepted: 
+- 1 - 13 (no decimals)"  
+period_type	Required*	Text	Indicates if the periodic dataset includes year-to-date (YTD), quarter-to-date (QTD), or month-to-date (MTD) values.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 'YTD' if the data is not available.  
+entity_currency_ec	Required	Text	Currency code (e.g., USD, CAD, RMB) representing the functional currency of the underlying legal entity.	The currency code MUST be constant for each record of a given entity.  
+beginning_balance_ec	Optional	Numeric	Balance recorded as of the beginning of the period. Denominated in entity currency.	  
+period_activity_ec	Optional	Numeric	The Net amount of the transaction in the Entity Currency.	  
+ending_balance_ec	Required*	Numeric	Balance as of the specified end date. Denominated in entity currency.	At minimum, each row of data must have a valid value for the Ending Balance in Entity Currency.  
+preliminary_ec	Optional	Numeric	Preliminary balance prior to adjusting journal entries, reclassification journal entries, and consolidation journal entries. Denominated in entity currency.	  
+adjusted_journal_entry_ec	Optional	Numeric	A journal entry that occurs at the end of an accounting period to record any unrecognized income or expenses for the period. Denominated in entity currency.	  
+adjusted_ec	Optional	Numeric	Adjusted ending balance after adjusting and reclassification journal entries have been applied to the preliminary (ending) balance. Denominated in entity currency.	  
+reclassification_journal_entry_ec	Optional	Numeric	Total amount of reclassifying journal entries impacting the GL account during the reporting period. Denominated in entity currency.	  
+group_currency_gc	Required*	Text	Currency code (e.g., USD, CAD, RMB) representing the financial statement presentation currency of the consolidated entity.	"This field is required to be populated for the MO-JE Testing application and cannot be empty. If the group currency information does not apply or is not available, enter the prevalent currency code and set the group currency amounts to 0. 
+The currency code MUST be constant for all records in the population."  
+beginning_balance_gc	Optional	Numeric	Balance recorded as of the beginning of the period. Denominated in group currency.	  
+period_activity_gc	Optional	Numeric	The Net amount of the transaction in the Group Currency.	  
+ending_balance_gc	Required*	Numeric	Balance as of the specified end date. Denominated in group currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not applicable or available.  
+preliminary_gc	Optional	Numeric	Preliminary balance prior to adjusting journal entries, reclassification journal entries, and consolidation journal entries. Denominated in group currency.	  
+adjusted_journal_entry_gc	Optional	Numeric	A journal entry that occurs at the end of an accounting period to record any unrecognized income or expenses for the period. Denominated in group currency.	  
+adjusted_gc	Optional	Numeric	Adjusted ending balance after adjusting and reclassification journal entries have been applied to the preliminary (ending) balance. Denominated in group currency.	  
+reclassification_journal_entry_gc	Optional	Numeric	Total amount of reclassifying journal entries impacting the GL account during the reporting period. Denominated in group currency.	  
+consolidation_journal_entry_gc	Optional	Numeric	Adjustments made in the process of consolidating accounts of a group of entities. Denominated in group currency.	  
+chart_of_accounts	Required*	Text	Alphanumeric reference used to uniquely identify which Chart of Accounts mapping is associated with the trial balance.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 'DEFAULT' if the data is not available.  
+coa_account_key	Optional	Text	Optional combination of chart-of-accounts and account number	  
+ledger_id	Optional	Text	Alphanumeric reference used to uniquely identify the entity's ledger	  
+ledger_group	Optional	Text	Unique identifier for the group that the ledger belongs to. Note that this is a technical term used in various accounting systems to distinguish the nature of a grouping of ledgers for various reporting purposes (e.g., statutory reporting). Leave blank if not applicable.	  
+extract_date	Optional	Date/Time	Date the data was extracted from the source system	  
+import_date	Optional	Date/Time	Date the data was imported into Omnia Data.	  
+Return to top				  
+				  
+Journal Entry Detail (General Ledger Detail)				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+entity_id	Required	Text	Alphanumeric reference used to uniquely identify a specific legal entity.	Entity IDs should be consistently presented in all data sets.  
+entity_name	Optional	Text	Name (or short description) of the legal entity.	Entity Names should be consistently presented in all data sets.  
+journal_number	Required	Text	Alphanumeric reference used to uniquely identify a specific journal entry.	  
+journal_header_description	Required	Text	Text description of the journal entry as a whole.	This is required for Test 9 (Entries with Keywords in Journal Entry and/or Line Description) in the MO-JE Testing application. If data is not available for this field, this test will be unavailable or invalid.  
+dc_indicator	Optional	Text	Indicator used to describe if the transaction is a debit ('D') or credit ('C') within the accounting system.	"Values accepted: 
+- Debit 
+- Credit"  
+journal_line_number	Required	Text	Alphanumeric reference used to uniquely identify individual journal entry lines within a single journal entry.	Duplicate values should not exist for Journal Line Number within a given journal entry.  
+journal_line_description	Required	Text	Text description of the journal entry line.	This is required for Test 9 (Entries with Keywords in Journal Entry and/or Line Description) in the MO-JE Testing application. If data is not available for this field, this test will be unavailable or invalid.  
+account_number	Required	Text	Alphanumeric reference used to uniquely identify a specific general ledger account.	Should match the Account Number in the Trial Balance.  
+date_effective	Required	Date/Time	Date which the transaction occurred, or was considered effective.	  
+fiscal_year	Required	Numeric	Identifier of the applicable fiscal year (e.g., 2022).	  
+fiscal_period	Required	Numeric	Identifier of a fiscal period within a given fiscal year.	"Values accepted: 
+- 1 - 13 (no decimals)"  
+entity_currency_ec	Required	Text	Currency code (e.g., USD, CAD, RMB) representing the functional currency of the underlying legal entity.	The currency code MUST be constant for each record of a given entity.  
+net_amount_ec	Required	Numeric	The net amount (including both debit and credit transactions) of the transaction. Denominated in entity currency.	  
+credit_amount_ec	Required*	Numeric	The amount of the transaction if the resulting impact is a credit. Denominated in entity currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. For each row, the credit_amount_ec and debit_amount_ec must sum to the net_amount_ec. Also, both the debit and credit amounts cannot be non-zero.  
+debit_amount_ec	Required*	Numeric	The amount of the transaction if the resulting impact is a debit. Denominated in entity currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. For each row, the credit_amount_ec and debit_amount_ec must sum to the net_amount_ec. Also, both the debit and credit amounts cannot be non-zero.  
+group_currency_gc	Required	Text	Currency code (e.g., USD, CAD, RMB) representing the financial statement presentation currency of the consolidated entity.	"This field is required to be populated if Group Currency amounts are provided. Can be blank if Group Currency amounts are not available. 
+If populated, the currency code MUST be constant for all records in the population."  
+credit_amount_gc	Required*	Numeric	The amount of the transaction if the resulting impact is a credit. Denominated in group currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+debit_amount_gc	Required*	Numeric	The amount of the transaction if the resulting impact is a debit. Denominated in group currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+net_amount_gc	Required*	Numeric	The net amount (including both debit and credit transactions) of the transaction. Denominated in group currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+original_currency_oc	Required	Text	Currency code (e.g., USD, CAD, RMB) representing the currency with which the transaction is denominated.	This field is required to be populated if Original Currency amounts are provided. Can be blank if Original Currency amounts are not available.  
+credit_amount_oc	Required*	Numeric	The amount of the transaction if the resulting impact is a credit. Denominated in original currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+debit_amount_oc	Required*	Numeric	The amount of the transaction if the resulting impact is a debit. Denominated in original currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+net_amount_oc	Required*	Numeric	The net amount (including both debit and credit transactions) of the transaction. Denominated in original currency.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+exchange_rate	Optional	Numeric	The ratio of exchange for Original Currency to Entity Currency (IFRS). The ratio between a unit of original currency and the amount of entity currency for which that unit can be exchanged at a particular time (US GAAP).	  
+foreign_exchange_date	Optional	Date/Time	The date on which the transaction is initiated	  
+forex_conversion_method	Optional	Text	The foreign exchange conversion method	  
+transaction_type	Required	Text	Alphanumeric reference used to uniquely identify a grouping of transactions that exhibit similar characteristics. For example, within SAP, the standard transaction type (or 'document type' in SAP) for a customer invoice transaction is 'DR'. 	"This is required for 'Transaction Analysis - Journal Entry Analytics'. If data is not available for this field, this analytic will be  unavailable or invalid. 
+Each journal entry should have one designated transaction type. This transaction type should be populated for every line item within that journal entry. For example, if a six-line journal entry has a transaction type of ""DR"", then ""DR"" should be present in all six lines."  
+transaction_type_description	Optional	Text	Name (or short description) of the Transaction Type.	  
+date_posted	Required*	Date/Time	Date which the transaction was physically input into the accounting system.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+time_posted	Required*	Date/Time	Time which the transaction was physically input into the accounting system.	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+userid_entered	Required	Text	Alphanumeric reference used to uniquely identify the individual who entered the transaction into the entity's accounting system.	This is required for Test 5 (Users with Few Postings or Users of Interest) in  the MO-JE Testing application. If data is not available for this field, this test will be unavailable or invalid.  
+user_name_entered	Required	Text	Full Name of the individual who entered the transaction into the entity's accounting system.	  
+date_updated	Optional	Date/Time	Date the document or transaction was updated within the entity's accounting system.	  
+time_updated	Optional	Date/Time	Time which the transaction was last updated in the accounting system.	  
+updated_by	Optional	Text	Alphanumeric reference used to uniquely identify the individual who last updated the record within the entity's accounting system.	  
+name_of_user_updated	Optional	Text	The legal name associated with the username provided in field 'UserID Updated'.	  
+date_approved	Optional	Date/Time	Date the transaction was approved.	  
+time_approved	Optional	Date/Time	Time which the transaction was approved.	  
+userid_approved	Required	Text	Alphanumeric reference used to uniquely identify the individual who approved the transaction.	  
+user_name_approved	Required	Text	Full Name of the individual who approved the transaction.	  
+is_standard	Required*	Text	S' = (Automatic entries - Automated entries are standard entries or adjustments used to record routine transactions or events to the general ledger; Standard manual entries -Standard manual entries are manual entries or adjustments used on a—recurring—basis to record routine transactions and events). 'N' = (Nonstandard entries - Nonstandard entries are manual entries or adjustments that are used to record, adjust, or estimate infrequently occurring transactions or events and any entry not routinely booked by the entity as part of the closing process.)	This field is required to be populated for the MO-JE Testing application and cannot be empty. Enter 0 if the data is not available.  
+is_manual	Optional	Text	Value values - 'A' = Automatic, 'I' = interface, 'M' = manual	  
+chart_of_accounts	Optional	Text	Alphanumeric reference used to uniquely identify which Chart of Accounts mapping is associated with the trial balance.	  
+coa_account_key	Optional	Text	Optional combination of chart-of-accounts and account number	  
+ledger_id	Optional	Text	Alphanumeric reference used to uniquely identify the entity's ledger	  
+ledger_group	Optional	Text	Unique identifier for the group that the ledger belongs to. Note that this is a technical term used in various accounting systems to distinguish the nature of a grouping of ledgers for various reporting purposes (e.g., statutory reporting). Leave blank if not applicable.	  
+source	Optional	Text	The program/menu/transaction used in the ERP system to produce the posting. For SAP systems, this is the transaction code, e.g., FB01. This should not be confused with the document type which is included above.  This field can often be useful for establishing if a transaction was created automatically or manually.	  
+source_description	Optional	Text	A plain English description of the source. Some of the more common journals are purchases, sales, cash receipts, cash disbursements, and general journal.	  
+account_description	Optional	Text	Name (or short description) of the general ledger account.	  
+business_area	Optional	Text	A high-level grouping of the reporting entity (e.g., geographical areas: Americas, Asia, Europe, Middle East, Africa). A business area may also be referred to as 'business unit' or 'operating segment' in the entity's accounting system.	If "Business Area" overlaps with another field within the data set (e.g., "Operating Segment" or "Product or Service Type"), there is no need to populate both fields.  
+controlling_area_for_cost_and_profit_center	Optional	Text	Alphanumeric reference used to uniquely identify the top level grouping which 'Cost Center' and 'Profit Center' sit under.	  
+cost_center	Optional	Text	Alphanumeric reference used to uniquely identify a specific cost center. A cost center is an organizational unit (e.g., function or location) in accounting used by the entity for tracking costs internally. 	  
+profit_center	Optional	Text	Alphanumeric reference used to uniquely identify a specific profit center. A profit center is an organizational unit (e.g., revenue stream or location) in accounting used by the entity for tracking revenue and expenses internally.	  
+project	Optional	Text	Alphanumeric reference used to uniquely identify a project.	  
+location	Optional	Text	Alphanumeric reference used to uniquely identify a specific location (e.g., store, warehouse, geography).	  
+custom_exclusion	Optional	Text	User-defined field used to indicate if certain journal entry lines should be excluded from the analysis.	  
+extract_date	Optional	Date/Time	Date the data was extracted from the source system	  
+import_date	Optional	Date/Time	Date the data was imported into Omnia Data.	  
+Return to top				  
+				  
+Chart of Accounts				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+chart_of_accounts	Required	Text	Alphanumeric reference used to uniquely identify which Chart of Accounts mapping is associated with the trial balance.	  
+account_number	Required	Text	Alphanumeric reference used to uniquely identify a specific general ledger account.	  
+account_description	Required	Text	Name (or short description) of the general ledger account.	  
+account_grouping_1_num	Required	Text	Alphanumeric reference used to uniquely identify a specific account grouping. Account groupings are logical groupings of general ledger accounts that exhibit similar characteristics. Account Grouping 1 was previously referred to as 'Note Line' in legacy audit platforms (AS/2 and EMS).	  
+account_grouping_1	Required	Text	Name (or short description) of the account grouping. Account groupings are logical groupings of general ledger accounts that exhibit similar characteristics. Accounting Grouping 1 was previously referred to as 'Note Line' in legacy audit platforms (AS/2 and EMS).	  
+financial_statement_line_num	Required	Text	Alphanumeric reference used to uniquely identify a financial statement line (e.g., '1001' may be the Financial Statement Line Num associated with 'Cash and Cash Equivalents').	  
+financial_statement_line	Required*	Text	The name of the financial statement line (e.g., 'Cash and Cash Equivalents') as presented on the face of the financial statements.	This field is required to be populated for the MO-JE Testing application and cannot be empty.  
+financial_statement_subtotal_category_id	Optional	Text	Alphanumeric reference used to uniquely identify a specific financial statement sub-total category. A financial statement category is a grouping of financial statement lines that exhibit similar characteristics (e.g., Current Assets or Non Current Assets).	  
+financial_statement_subtotal_category	Required*	Text	Name (or short description) of the financial statement sub-total category. A financial statement category is a grouping of financial statement lines that exhibit similar characteristics (e.g., Current Assets or Non Current Assets).	This field is required to be populated for the MO-JE Testing application and cannot be empty.  
+financial_statement_category_id	Optional	Text	Alphanumeric reference used to uniquely identify a specific financial statement category (i.e., Assets, Liabilities, Equity, Revenue or Expenses).	  
+financial_statement_category	Required*	Text	Name (or short description) of the financial statement category (i.e., Assets, Liabilities, Equity, Revenue or Expenses).	"This field is required to be populated for the MO-JE Testing application and cannot be empty. 
+Values accepted: 
+- Assets 
+- Liabilities 
+- Revenue 
+- Expenses 
+- Equity"  
+financial_statement_type	Required*	Text	'Balance Sheet' or 'Income Statement',  or defined as  'Account Balance' or 'Class of Transactions'.	This field is required to be populated for the MO-JE Testing application and cannot be empty.  
+abcotd_id	Optional	Text	The unique identifier of the Account Balances, Class of Transactions and Disclosures (ABCOTD), identified either at the financial statement line item level or a level of disaggregation below. The ABCOTD is the level of aggregation that the auditor has determined it appropriate to plan and perform audit procedures.	  
+abcotd	Optional	Text	The name of the Account Balances, Class of Transactions and Disclosures (ABCOTD), identified either at the financial statement line item level or a level of disaggregation below. The ABCOTD is the level of aggregation that the auditor has determined it appropriate to plan and perform audit procedures.	  
+abcotd_significance	Optional	Text	Indicates whether the ABCOTD represents a 'material class of transactions, account balance or disclosure' (DTTL AAM) or a 'significant account or disclosure' (US AAM).	"Values accepted: 
+- Yes 
+- No"  
+content_area_id	Optional	Text	Alphanumeric reference used to identify the specific audit content selected by the auditor to be performed for the ABCOTD.	  
+content_area	Optional	Text	Name (or short description) of the audit content selected by the auditor to be performed for the ABCOTD.	  
+tags	Optional	Text	Custom tag values	  
+coa_account_key	Optional	Text	Optional combination of chart-of-accounts and account number	  
+entity_id	Required*	Text	Alphanumeric reference used to uniquely identify a specific legal entity.	"This field is required to be populated for the MO-JE Testing application and cannot be empty. Where provided, it cannot be 0 and must contain valid values. 
+Entity IDs should be consistently presented in all data sets."  
+entity_name	Optional	Text	Name (or short description) of the legal entity.	Entity Names should be consistently presented in all data sets.  
+revision_date	Optional	Date/Time	The date of the last revision	  
+extract_date	Optional	Date/Time	Date the data was extracted from the source system	  
+import_date	Optional	Date/Time	Date the data was imported into Omnia Data.	  
+Return to top				  
+				  
+AR Open Invoices				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+entity_id	Required	Text	Alphanumeric reference used to uniquely identify a specific legal entity.	Entity IDs should be consistently presented in all data sets.  
+entity_name	Optional	Text	Name (or short description) of the legal entity.	Entity Names should be consistently presented in all data sets.  
+customer_id	Required	Text	Alphanumeric reference used to uniquely identify a specific customer.	  
+customer_name	Optional	Text	Name (or short description) of the customer.	  
+document_number	Required	Text	Alphanumeric reference used to uniquely identify a specific document (e.g., invoice) associated with the transaction.	  
+period_end_date	Required	Date/Time	The 'as-of' date for point-in-time data models, or the cutoff date (i.e., the last date for which transactions are included within the data) for transactional data models.	  
+description	Optional	Text	Description	  
+document_type	Optional	Text	The type of document (e.g. Invoice or Credit Note)	  
+date_effective	Required	Date/Time	Date which the transaction occurred, or was considered effective. 	Date on the physical or original document (e.g. Invoice Date).  
+due_date	Optional	Date/Time	Due date of an individual invoice. Used to age the transaction. 	  
+original_currency_oc	Optional	Text	Currency code (e.g., USD, CAD, RMB) representing the currency with which the transaction is denominated.	  
+amount_oc	Optional	Numeric	Depending on the nature of the model, this represents either the transaction amount, aggregate value over a period of time (e.g., aggregate value of transactions occuring during a fiscal period), or balance as of the reporting period. Denominated in original currency.	Input debit values as positive and credit values as negative.  
+entity_currency_ec	Required	Text	Currency code (e.g., USD, CAD, RMB) representing the functional currency of the underlying legal entity.	The currency code MUST be constant for each record of a given entity.  
+amount_ec	Required	Numeric	Depending on the nature of the model, this represents either the transaction amount, aggregate value over a period of time (e.g., aggregate value of transactions occuring during a fiscal period), or balance as of the reporting period. Denominated in entity currency.	Input debit values as positive and credit values as negative.  
+group_currency_gc	Optional*	Text	Currency code (e.g., USD, CAD, RMB) representing the financial statement presentation currency of the consolidated entity.	"If populated, the currency code MUST be constant for all records in the population. 
+This field is required if there are multiple entities and analytics are required to be performed using data with multiple entity currencies."  
+amount_gc	Optional*	Numeric	Depending on the nature of the model, this represents either the transaction amount, aggregate value over a period of time (e.g., aggregate value of transactions occuring during a fiscal period), or balance as of the reporting period. Denominated in group currency.	"Input debit values as positive and credit values as negative. 
+This field is required if there are multiple entities and analytics are required to be performed using data with multiple entity currencies."  
+account_number	Optional	Text	Alphanumeric reference used to uniquely identify a specific general ledger account.	  
+extract_date	Optional	Date/Time	Date the data was extracted from the source system	  
+import_date	Optional	Date/Time	Date the data was imported into Omnia Data.	  
+Return to top				  
+				  
+AP Open Invoices				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+entity_id	Required	Text	Alphanumeric reference used to uniquely identify a specific legal entity.	Entity IDs should be consistently presented in all data sets.  
+entity_name	Optional	Text	Name (or short description) of the legal entity.	Entity Names should be consistently presented in all data sets.  
+supplier_id	Required	Text	Alphanumeric reference used to uniquely identify a specific supplier or vendor.	  
+supplier_name	Optional	Text	Name (or short description) of an individual supplier.	  
+supplier_type	Optional	Text	Alphanumeric reference used to uniquely identify a grouping of suppliers that exhibit similar characteristics.	  
+userid_entered	Optional	Text	Alphanumeric reference used to uniquely identify the individual who entered the transaction into the entity's accounting system.	  
+date_effective	Required	Date/Time	Date which the transaction occurred, or was considered effective.	Date on the physical or original document (e.g. Invoice Date).  
+document_number	Required	Text	Alphanumeric reference used to uniquely identify a specific document (e.g., invoice) associated with the transaction.	  
+period_end_date	Required	Date/Time	The 'as-of' date for point-in-time data models, or the cutoff date (i.e., the last date for which transactions are included within the data) for transactional data models.	  
+group_currency_gc	Optional*	Text	Currency code (e.g., USD, CAD, RMB) representing the financial statement presentation currency of the consolidated entity.	"If populated, the currency code MUST be constant for all records in the population. 
+This field is required if there are multiple entities and analytics are required to be performed using data with multiple entity currencies."  
+amount_gc	Optional*	Numeric	Depending on the nature of the model, this represents either the transaction amount, aggregate value over a period of time (e.g., aggregate value of transactions occuring during a fiscal period), or balance as of the reporting period. Denominated in group currency.	This field is required if there are multiple entities and analytics are required to be performed using data with multiple entity currencies.  
+entity_currency_ec	Required	Text	Currency code (e.g., USD, CAD, RMB) representing the functional currency of the underlying legal entity.	The currency code MUST be constant for each record of a given entity.  
+amount_ec	Required	Numeric	Depending on the nature of the model, this represents either the transaction amount, aggregate value over a period of time (e.g., aggregate value of transactions occuring during a fiscal period), or balance as of the reporting period. Denominated in entity currency.	  
+original_currency_oc	Optional	Text	Currency code (e.g., USD, CAD, RMB) representing the currency with which the transaction is denominated.	  
+amount_oc	Optional	Numeric	Depending on the nature of the model, this represents either the transaction amount, aggregate value over a period of time (e.g., aggregate value of transactions occuring during a fiscal period), or balance as of the reporting period. Denominated in original currency.	Input debit values as positive and credit values as negative.  
+account_number	Optional	Text	Alphanumeric reference used to uniquely identify a specific general ledger account.	  
+extract_date	Optional	Date/Time	Date the data was extracted from the source system	  
+import_date	Optional	Date/Time	Date the data was imported into Omnia Data.	  
+Return to top				  
+				  
+Prior Closing Periods				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+quarter	Required	Text	Identifier of a fiscal quarter within a given fiscal year.	  
+start_date	Required	Date/Time	The start date of the analysis period.	  
+end_date	Required	Date/Time	The end date of the analysis period.	  
+closing_period_start_date	Required	Date/Time	The date when the entity begins to prepare and post closing entries to the general ledger.	  
+closing_period_end_date	Required	Date/Time	The date when the last entry for the period is posted to the general ledger.	  
+Return to top				  
+				  
+Current Closing Periods				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+quarter	Required	Text	Identifier of a fiscal quarter within a given fiscal year.	  
+start_date	Required	Date/Time	The start date of the analysis period.	  
+end_date	Required	Date/Time	The end date of the analysis period.	  
+closing_period_start_date	Required	Date/Time	The date when the entity begins to prepare and post closing entries to the general ledger.	  
+closing_period_end_date	Required	Date/Time	The date when the last entry for the period is posted to the general ledger.	  
+Return to top				  
+				  
+Custom Closing Date Ranges				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+custom_date_range_description	Required	Date/Time	Name (or short description) of the custom date range. For example, soft close, hard close, pre-press release, post-press release.	  
+start_date	Required	Date/Time	The start date of the analysis period.	  
+end_date	Required	Date/Time	The end date of the analysis period.	  
+closing_period_start_date	Required	Date/Time	The date when the entity begins to prepare and post closing entries to the general ledger.	  
+closing_period_end_date	Required	Date/Time	The date when the last entry for the period is posted to the general ledger.	  
+Return to top				  
+				  
+Dates of Interest				  
+Technical Field Name	Optional/Required	Field Type	Field Description	Guidance  
+date_of_interest_description	Required	Text	Short description of the date of interest.	  
+date_of_interest	Required	Date/Time	The date of interest.	  
+Return to top				  
+ 
+### Trial Balance 
+ 
+entity_id	entity_name	account_number	account_description	period_end_date	fiscal_year	fiscal_period	period_type	entity_currency_ec	beginning_balance_ec	period_activity_ec	ending_balance_ec	preliminary_ec	adjusted_journal_entry_ec	adjusted_ec	reclassification_journal_entry_ec	group_currency_gc	beginning_balance_gc	period_activity_gc	ending_balance_gc	preliminary_gc	adjusted_journal_entry_gc	adjusted_gc	reclassification_journal_entry_gc	consolidation_journal_entry_gc	chart_of_accounts	coa_account_key	ledger_id	ledger_group	extract_date	import_date 
+IN07		10101100	MARKETING AND SIMILAR RIGHTS	3/31/2026				INR	 -   		 -   														10101100					 
+IN07		10103100	KNOW HOW PATENTS PRODUCTION TECHNOLOGY	3/31/2026				INR	 -   		 -   														10103100					 
+IN07		10103200	ACCUM DEPR PATENTS PRODUCTION TECHNOLOGY	3/31/2026				INR	 (6,45,04,072)		 (6,45,04,072)														10103200					 
+IN07		10105100	PURCHASED SOFTWARE	3/31/2026				INR	 1,09,52,612 		 2,07,00,088 														10105100					 
+IN07		10105200	ACCUMULATED DEPRECIATION PURCHASED SOFTWARE	3/31/2026				INR	 (82,97,211)		 (93,11,730)														10105200					 
+ 
+ 
+### Journal Entry 
+ 
+entity_id	entity_name	journal_number	dc_indicator	journal_header_description	journal_line_number	journal_line_description	account_number	date_effective	fiscal_year	fiscal_period	entity_currency_ec	net_amount_ec	credit_amount_ec	debit_amount_ec	group_currency_gc	credit_amount_gc	debit_amount_gc	net_amount_gc	original_currency_oc	credit_amount_oc	debit_amount_oc	net_amount_oc	transaction_type	date_posted	time_posted	userid_entered	user_name_entered	userid_approved	user_name_approved	is_standard 
+IN07		2000265878		Accrual entry for AP Reversal__JP09	40	Accrual entry for AP Reversal__JP09	41118215	31-12-2025	2025	9	INR	4008626112	0	4008626112	INR	0	4008626112	4008626112	USD	0	44479459.3	44479459.3	AD	31-12-2025	2025-12-31T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000265879		Accrual entry for AP Reversal__JP09	50	Accrual entry for AP Reversal__JP09	41118215	01-01-2026	2025	10	INR	-4008626112	4008626112	0	INR	4008626112	0	-4008626112	USD	44479459.3	0	-44479459.3	AD	31-12-2025	2025-12-31T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000272142			40		41118215	31-01-2026	2025	10	INR	4554937344	0	4554937344	INR	0	4554937344	4554937344	USD	0	49542854.2	49542854.2	AB	31-01-2026	2026-01-31T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000272143			50		41118215	01-02-2026	2025	11	INR	-4554937344	4554937344	0	INR	4554937344	0	-4554937344	USD	49542854.2	0	-49542854.2	AB	31-01-2026	2026-01-31T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000281460		ML Accrual	40	ML Accrual	41189800	28-02-2026	2025	11	INR	164508.16	0	164508.16	INR	0	164508.16	164508.16	INR	0	164508.16	164508.16	AD	28-02-2026	2026-02-28T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000281461		ML Accrual	50	ML Accrual	41189800	01-03-2026	2025	12	INR	-164508.16	164508.16	0	INR	164508.16	0	-164508.16	INR	164508.16	0	-164508.16	AD	28-02-2026	2026-02-28T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000266112		Reversal of Accrued interest against payment	40	Reversal of Accrued interest against payment	44208900	31-12-2025	2025	9	INR	6150137.07	0	6150137.07	INR	0	6150137.07	6150137.07	INR	0	6150137.07	6150137.07	AD	31-12-2025	2025-12-31T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000266113		Reversal of Accrued interest against payment	50	Reversal of Accrued interest against payment	44208900	01-01-2026	2025	10	INR	-6150137.07	6150137.07	0	INR	6150137.07	0	-6150137.07	INR	6150137.07	0	-6150137.07	AD	31-12-2025	2025-12-31T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	40	FX RECLASS	58811020	01-02-2026	2025	11	INR	224024.65	0	224024.65	INR	0	224024.65	224024.65	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	40	FX RECLASS	58811020	01-02-2026	2025	11	INR	2051.89	0	2051.89	INR	0	2051.89	2051.89	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	40	FX RECLASS	58811020	01-02-2026	2025	11	INR	380545.57	0	380545.57	INR	0	380545.57	380545.57	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	40	FX RECLASS	58811020	01-02-2026	2025	11	INR	120606.89	0	120606.89	INR	0	120606.89	120606.89	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	40	FX RECLASS	58811020	01-02-2026	2025	11	INR	1242893.89	0	1242893.89	INR	0	1242893.89	1242893.89	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	40	FX RECLASS	58811020	01-02-2026	2025	11	INR	5125723.75	0	5125723.75	INR	0	5125723.75	5125723.75	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	40	FX RECLASS	58811020	01-02-2026	2025	11	INR	36120.1	0	36120.1	INR	0	36120.1	36120.1	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	50	FX RECLASS	58811020	01-02-2026	2025	11	INR	-36120.1	36120.1	0	INR	36120.1	0	-36120.1	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	50	FX RECLASS	58811020	01-02-2026	2025	11	INR	-5125723.75	5125723.75	0	INR	5125723.75	0	-5125723.75	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	50	FX RECLASS	58811020	01-02-2026	2025	11	INR	-1242893.89	1242893.89	0	INR	1242893.89	0	-1242893.89	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	50	FX RECLASS	58811020	01-02-2026	2025	11	INR	-120606.89	120606.89	0	INR	120606.89	0	-120606.89	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	50	FX RECLASS	58811020	01-02-2026	2025	11	INR	-380545.57	380545.57	0	INR	380545.57	0	-380545.57	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	50	FX RECLASS	58811020	01-02-2026	2025	11	INR	-2051.89	2051.89	0	INR	2051.89	0	-2051.89	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	50	FX RECLASS	58811020	01-02-2026	2025	11	INR	-224024.65	224024.65	0	INR	224024.65	0	-224024.65	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000253964		Knock off of Rohit pitale acrual journal	40	Knock off of Rohit pitale acrual journal	57900090	21-11-2025	2025	8	INR	8452581.81	0	8452581.81	INR	0	8452581.81	8452581.81	INR	0	8452581.81	8452581.81	SA	21-11-2025	2025-11-21T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000266140		Knock off of Rohit pitale acrual journal	50	Knock off of Rohit pitale acrual journal	57900090	31-12-2025	2025	9	INR	-8452581.81	8452581.81	0	INR	8452581.81	0	-8452581.81	INR	8452581.81	0	-8452581.81	SA	21-11-2025	2025-11-21T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275709		FX RECLASS	40	FX RECLASS	58711020	01-02-2026	2025	11	INR	6883182.98	0	6883182.98	INR	0	6883182.98	6883182.98	INR	0	6883182.98	6883182.98	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280430		FX RECLASS	50	FX RECLASS	58711020	01-02-2026	2025	11	INR	-6883182.98	6883182.98	0	INR	6883182.98	0	-6883182.98	INR	6883182.98	0	-6883182.98	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-100575.78	100575.78	0	INR	100575.78	0	-100575.78	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-997387.03	997387.03	0	INR	997387.03	0	-997387.03	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-317451.14	317451.14	0	INR	317451.14	0	-317451.14	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-71868.36	71868.36	0	INR	71868.36	0	-71868.36	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-3006018.6	3006018.6	0	INR	3006018.6	0	-3006018.6	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-281553.05	281553.05	0	INR	281553.05	0	-281553.05	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-515034.62	515034.62	0	INR	515034.62	0	-515034.62	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-1042730.5	1042730.5	0	INR	1042730.5	0	-1042730.5	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-524909.48	524909.48	0	INR	524909.48	0	-524909.48	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-1169192.84	1169192.84	0	INR	1169192.84	0	-1169192.84	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-383728.04	383728.04	0	INR	383728.04	0	-383728.04	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-320960.77	320960.77	0	INR	320960.77	0	-320960.77	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-220911.71	220911.71	0	INR	220911.71	0	-220911.71	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-1322474.41	1322474.41	0	INR	1322474.41	0	-1322474.41	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-246012.2	246012.2	0	INR	246012.2	0	-246012.2	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-100224.07	100224.07	0	INR	100224.07	0	-100224.07	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-52629.53	52629.53	0	INR	52629.53	0	-52629.53	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-19893.41	19893.41	0	INR	19893.41	0	-19893.41	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-83003.34	83003.34	0	INR	83003.34	0	-83003.34	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-405223.63	405223.63	0	INR	405223.63	0	-405223.63	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-41371.85	41371.85	0	INR	41371.85	0	-41371.85	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-357920.04	357920.04	0	INR	357920.04	0	-357920.04	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-75939.86	75939.86	0	INR	75939.86	0	-75939.86	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-139364.06	139364.06	0	INR	139364.06	0	-139364.06	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-1663704.56	1663704.56	0	INR	1663704.56	0	-1663704.56	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-245672.27	245672.27	0	INR	245672.27	0	-245672.27	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-49365.72	49365.72	0	INR	49365.72	0	-49365.72	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-782829.97	782829.97	0	INR	782829.97	0	-782829.97	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-22247.86	22247.86	0	INR	22247.86	0	-22247.86	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275717		FX RECLASS	50	FX RECLASS	58711070	01-02-2026	2025	11	INR	-24983.26	24983.26	0	INR	24983.26	0	-24983.26	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	22247.86	0	22247.86	INR	0	22247.86	22247.86	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	24983.26	0	24983.26	INR	0	24983.26	24983.26	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	782829.97	0	782829.97	INR	0	782829.97	782829.97	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	49365.72	0	49365.72	INR	0	49365.72	49365.72	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	245672.27	0	245672.27	INR	0	245672.27	245672.27	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	1663704.56	0	1663704.56	INR	0	1663704.56	1663704.56	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	139364.06	0	139364.06	INR	0	139364.06	139364.06	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	75939.86	0	75939.86	INR	0	75939.86	75939.86	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	357920.04	0	357920.04	INR	0	357920.04	357920.04	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	41371.85	0	41371.85	INR	0	41371.85	41371.85	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	405223.63	0	405223.63	INR	0	405223.63	405223.63	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	83003.34	0	83003.34	INR	0	83003.34	83003.34	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	19893.41	0	19893.41	INR	0	19893.41	19893.41	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	52629.53	0	52629.53	INR	0	52629.53	52629.53	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	100224.07	0	100224.07	INR	0	100224.07	100224.07	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	246012.2	0	246012.2	INR	0	246012.2	246012.2	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	1322474.41	0	1322474.41	INR	0	1322474.41	1322474.41	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	220911.71	0	220911.71	INR	0	220911.71	220911.71	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	1042730.5	0	1042730.5	INR	0	1042730.5	1042730.5	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	515034.62	0	515034.62	INR	0	515034.62	515034.62	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	281553.05	0	281553.05	INR	0	281553.05	281553.05	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	3006018.6	0	3006018.6	INR	0	3006018.6	3006018.6	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	997387.03	0	997387.03	INR	0	997387.03	997387.03	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	100575.78	0	100575.78	INR	0	100575.78	100575.78	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	317451.14	0	317451.14	INR	0	317451.14	317451.14	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	71868.36	0	71868.36	INR	0	71868.36	71868.36	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	524909.48	0	524909.48	INR	0	524909.48	524909.48	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	1169192.84	0	1169192.84	INR	0	1169192.84	1169192.84	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	383728.04	0	383728.04	INR	0	383728.04	383728.04	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280432		FX RECLASS	40	FX RECLASS	58711070	01-02-2026	2025	11	INR	320960.77	0	320960.77	INR	0	320960.77	320960.77	USD	0	0	0	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000275709		FX RECLASS	50	FX RECLASS	58811010	01-02-2026	2025	11	INR	-36363088.41	36363088.41	0	INR	36363088.41	0	-36363088.41	INR	36363088.41	0	-36363088.41	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+IN07		2000280430		FX RECLASS	40	FX RECLASS	58811010	01-02-2026	2025	11	INR	36363088.41	0	36363088.41	INR	0	36363088.41	36363088.41	INR	0	36363088.41	36363088.41	AB	01-02-2026	2026-02-01T00:00:00.000+05:30	NA	NA	NA	NA	N 
+ 
+### Chart of Accounts 
+ 
+chart_of_accounts	account_number	account_description	account_grouping_1_num	account_grouping_1	financial_statement_line_num	financial_statement_line	financial_statement_subtotal_category_id	financial_statement_subtotal_category	financial_statement_category_id	financial_statement_category	financial_statement_type	abcotd_id	abcotd	abcotd_significance	content_area_id	content_area	tags	coa_account_key	entity_id	entity_name	revision_date	extract_date	import_date 
+10101100	10101100	MARKETING AND SIMILAR RIGHTS	129	Fixed Asset	9	Fixed Asset (ROU)		Non Current Asset		Asset	BS												 
+10103100	10103100	KNOW HOW PATENTS PRODUCTION TECHNOLOGY	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10103110	10103110	AUC INTANGIBLE ASSETS	137	Intangible assets under development	5	CWIP		Non Current Asset		Asset	BS												 
+10103200	10103200	ACCUM DEPR PATENTS PRODUCTION TECHNOLOG	104	Accumulated depreciation	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10104100	10104100	SELF DEVELOPED SOFTWARE	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10104200	10104200	ACCUMULATED DEPRECIATION SELF DEVELOPED	104	Accumulated depreciation	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10105100	10105100	PURCHASED SOFTWARE	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10105200	10105200	ACCUMULATED DEPRECIATION PURCHASED SOFT	104	Accumulated depreciation	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10107100	10107100	GOODWILL	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10301100	10301100	LAND AND PROPERTIES	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10302190	10302190	LAND USE RIGHTS	129	Fixed Asset	9	Fixed Asset (ROU)		Non Current Asset		Asset	BS												 
+10302290	10302290	ACCUMULATED DEPRECIATION LAND USE RIGHT	104	Accumulated depreciation	9	Fixed Asset (ROU)		Non Current Asset		Asset	BS												 
+10303100	10303100	BUILDINGS	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10303110	10303110	INFRASTRUCTURE AND GROUND INSTALLATIONS	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10303120	10303120	BUILDING CONSTRUCTIONS AND CIVIL ENGINE	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10303200	10303200	ACCUMULATED DEPRECIATION BUILDINGS	104	Accumulated depreciation	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10303210	10303210	ACCUM DEPR INFRASTRUCTURE AND GROUND IN	104	Accumulated depreciation	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10303220	10303220	ACCUM DEPR BUILDING CONSTR CIVIL ENGINE	104	Accumulated depreciation	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10304100	10304100	LEASED BUILDINGS	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10304200	10304200	ACCUMULATED DEPRECIATION LEASED BUILDIN	104	Accumulated depreciation	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10305100	10305100	MACHINERY TECHNICAL EQUIPMENT FOR PRODU	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10305200	10305200	ACCUM DEPR MACHINERY TECHNICAL EQUIPMEN	104	Accumulated depreciation	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10307100	10307100	FACTORY AND OFFICE EQUIPMENT FIXTURES	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
+10307110	10307110	IT HADWARE AND EQUIPMENT	129	Fixed Asset	8	Fixed Asset		Non Current Asset		Asset	BS												 
