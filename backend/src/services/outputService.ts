@@ -61,17 +61,14 @@ export class OutputService {
     }
 
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      let content = fs.readFileSync(filePath, 'utf-8');
+      if (content.charCodeAt(0) === 0xFEFF) {
+        content = content.slice(1);
+      }
       const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
       if (lines.length === 0) return { headers: [], rows: [], totalRows: 0 };
 
-      // Parse CSV header
-      const headers = lines[0].split(',').map((h) => h.trim().replace(/^["']|["']$/g, ''));
-      const rows: Record<string, any>[] = [];
-
-      for (let i = 1; i < Math.min(lines.length, maxRows + 1); i++) {
-        const line = lines[i];
-        // Handle basic quoted comma parsing
+      const parseCsvLine = (line: string): string[] => {
         const values: string[] = [];
         let inQuotes = false;
         let currentValue = '';
@@ -88,7 +85,14 @@ export class OutputService {
           }
         }
         values.push(currentValue.trim().replace(/^["']|["']$/g, ''));
+        return values;
+      };
 
+      const headers = parseCsvLine(lines[0]);
+      const rows: Record<string, any>[] = [];
+
+      for (let i = 1; i < Math.min(lines.length, maxRows + 1); i++) {
+        const values = parseCsvLine(lines[i]);
         const rowObj: Record<string, any> = {};
         headers.forEach((h, idx) => {
           rowObj[h] = values[idx] !== undefined ? values[idx] : '';

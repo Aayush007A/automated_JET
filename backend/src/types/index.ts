@@ -61,20 +61,28 @@ export interface SparkJetParameters {
   performanceMateriality?: number;
   clearlyTrivialThreshold?: number;
   
+  selectedExceptions?: number[];
+  runControlSamples?: boolean;
+
   // Specific Spark JET Exception Rule inputs
   ex1UnusualAccounts?: string[];
   ex2SeldomAccounts?: string[];
   ex3RevenueDebitsThreshold?: number;
+  ex3QuarterStartDate?: string;
+  ex3QuarterEndDate?: string;
   ex4FewPostingsUserThreshold?: number;
   ex5UsersOfInterest?: string[];
   ex6ClosingEntriesBeforeDays?: number;
   ex6ClosingEntriesAfterDays?: number;
+  ex6ClosingDate?: string;
+  ex6Frequency?: string;
   ex7DatesOfInterest?: string[];
   ex8RoundDigits?: string[];
   ex9DuplicateCountThreshold?: number;
   ex9DuplicateAmountThreshold?: number;
   ex10Keywords?: string[];
   ex11Frequency?: string;
+  ex11ClosingDate?: string;
   ex11DaysAfterClosing?: number;
   ex12UnrelatedRules?: Array<{ debitFSLine: string; creditFSLine: string }>;
   controlSampleCount?: number;

@@ -447,18 +447,35 @@ export const SparkJetWorkflow: React.FC = () => {
     setCurrentStep(targetStepAfter);
 
     try {
+      const selectedList = Object.entries(enabledExceptions)
+        .filter(([_, isEnabled]) => isEnabled)
+        .map(([key]) => parseInt(key.replace('ex', ''), 10));
+
       const payloadParams: SparkJetParameters = {
         ...sparkParams,
-        ex1UnusualAccounts: unusualAccounts.map((a) => a.gl),
-        ex2SeldomAccounts: seldomAccounts.map((a) => a.gl),
-        ex4FewPostingsUserThreshold: sparkParams.ex4FewPostingsUserThreshold || 2,
-        ex5UsersOfInterest: usersOfInterest.map((u) => u.userId),
-        ex6ClosingEntriesBeforeDays: sparkParams.ex6ClosingEntriesBeforeDays || 1,
-        ex6ClosingEntriesAfterDays: sparkParams.ex6ClosingEntriesAfterDays || 10,
-        ex7DatesOfInterest: datesOfInterest.map((d) => d.date),
-        ex10Keywords: keywords,
-        ex11DaysAfterClosing: sparkParams.ex11DaysAfterClosing || 10,
+        selectedExceptions: selectedList,
+        runControlSamples: runControlSample,
+        ex1UnusualAccounts: unusualAccounts.map((a) => a.gl).filter(Boolean),
+        ex2SeldomAccounts: seldomAccounts.map((a) => a.gl).filter(Boolean),
+        ex3RevenueDebitsThreshold: Number(ex3Threshold || 0),
+        ex3QuarterStartDate: ex3QuarterStart,
+        ex3QuarterEndDate: ex3QuarterEnd,
+        ex4FewPostingsUserThreshold: Number(ex4Threshold || 1),
+        ex5UsersOfInterest: usersOfInterest.map((u) => u.userId).filter(Boolean),
+        ex6ClosingEntriesBeforeDays: Number(ex6BeforeDays || 1),
+        ex6ClosingEntriesAfterDays: Number(ex6AfterDays || 10),
+        ex6ClosingDate: ex6ClosingDate || '31-Dec-25',
+        ex6Frequency: ex6Frequency || 'Annually',
+        ex7DatesOfInterest: datesOfInterest.map((d) => d.date).filter(Boolean),
+        ex8RoundDigits: ex8SelectedDigits,
+        ex9DuplicateCountThreshold: Number(ex9CountThreshold || 2),
+        ex9DuplicateAmountThreshold: Number(ex9AmountThreshold || 0),
+        ex10Keywords: keywords.filter(Boolean),
+        ex11ClosingDate: ex11ClosingDate || '31-Dec-25',
+        ex11DaysAfterClosing: Number(ex11DaysAfterClosing || 10),
+        ex11Frequency: ex11Frequency || 'Annually',
         ex12UnrelatedRules: unrelatedRules.map((r) => ({ debitFSLine: r.debitFSLine, creditFSLine: r.creditFSLine })),
+        controlSampleCount: Number(sampleDocCount || 61),
       };
 
       await RunService.updateConfig(runId, {
@@ -543,6 +560,24 @@ export const SparkJetWorkflow: React.FC = () => {
     return status?.integritySummary?.[summaryField] ?? 0;
   };
 
+  // Dedicated state for each of the 12 exceptions
+  const [ex3Threshold, setEx3Threshold] = useState<number>(0.0);
+  const [ex3QuarterStart, setEx3QuarterStart] = useState<string>('');
+  const [ex3QuarterEnd, setEx3QuarterEnd] = useState<string>('');
+  const [ex4Threshold, setEx4Threshold] = useState<number>(1);
+  const [ex6BeforeDays, setEx6BeforeDays] = useState<number>(1);
+  const [ex6AfterDays, setEx6AfterDays] = useState<number>(10);
+  const [ex6ClosingDate, setEx6ClosingDate] = useState<string>('31-Dec-25');
+  const [ex6Frequency, setEx6Frequency] = useState<string>('Annually');
+  const [ex8SelectedDigits, setEx8SelectedDigits] = useState<string[]>(['1000', '10000', '100000', '1000000', '10000000', '6', '7', '8', '9']);
+  const [ex9CountThreshold, setEx9CountThreshold] = useState<number>(2);
+  const [ex9AmountThreshold, setEx9AmountThreshold] = useState<number>(0.0);
+  const [ex11ClosingDate, setEx11ClosingDate] = useState<string>('31-Dec-25');
+  const [ex11DaysAfterClosing, setEx11DaysAfterClosing] = useState<number>(10);
+  const [ex11Frequency, setEx11Frequency] = useState<string>('Annually');
+  const [runControlSample, setRunControlSample] = useState<boolean>(true);
+  const [sampleDocCount, setSampleDocCount] = useState<number>(61);
+
   // Filtered Preview Rows for Step 5
   const filteredPreviewRows = useMemo(() => {
     if (!previewData || !previewData.rows) return [];
@@ -561,18 +596,24 @@ export const SparkJetWorkflow: React.FC = () => {
     );
   }, [irPreviewData, irPreviewSearch]);
 
-  // Compute Enabled Parameter Tabs (Show inputs ONLY if checked)
+  // Compute Enabled Parameter Tabs (Show separate individual tab for EACH selected exception)
   const visibleParamTabs = useMemo(() => {
     const list: Array<{ id: string; label: string; count: number | null }> = [];
     if (enabledExceptions.ex1) list.push({ id: 'ex1', label: 'Ex1: Unusual Accounts', count: unusualAccounts.length });
     if (enabledExceptions.ex2) list.push({ id: 'ex2', label: 'Ex2: Seldom Accounts', count: seldomAccounts.length });
-    if (enabledExceptions.ex4 || enabledExceptions.ex5) list.push({ id: 'users', label: 'Ex4 & Ex5: Users', count: usersOfInterest.length });
-    if (enabledExceptions.ex6 || enabledExceptions.ex7 || enabledExceptions.ex11) list.push({ id: 'dates', label: 'Ex6, Ex7, Ex11: Dates', count: datesOfInterest.length });
-    if (enabledExceptions.ex10) list.push({ id: 'keywords', label: 'Ex10: Keywords', count: keywords.length });
-    if (enabledExceptions.ex12) list.push({ id: 'unrelated', label: 'Ex12: Unrelated Lines', count: unrelatedRules.length });
-    if (enabledExceptions.ex3 || enabledExceptions.ex8 || enabledExceptions.ex9) list.push({ id: 'thresholds', label: 'Ex3, Ex8, Ex9: Thresholds', count: null });
+    if (enabledExceptions.ex3) list.push({ id: 'ex3', label: 'Ex3: Revenue Debits', count: null });
+    if (enabledExceptions.ex4) list.push({ id: 'ex4', label: 'Ex4: Few Postings Users', count: null });
+    if (enabledExceptions.ex5) list.push({ id: 'ex5', label: 'Ex5: Users of Interest', count: usersOfInterest.length });
+    if (enabledExceptions.ex6) list.push({ id: 'ex6', label: 'Ex6: Closing Entries', count: null });
+    if (enabledExceptions.ex7) list.push({ id: 'ex7', label: 'Ex7: Dates of Interest', count: datesOfInterest.length });
+    if (enabledExceptions.ex8) list.push({ id: 'ex8', label: 'Ex8: Round Amounts', count: ex8SelectedDigits.length });
+    if (enabledExceptions.ex9) list.push({ id: 'ex9', label: 'Ex9: Duplicate Entries', count: null });
+    if (enabledExceptions.ex10) list.push({ id: 'ex10', label: 'Ex10: Keywords in Text', count: keywords.length });
+    if (enabledExceptions.ex11) list.push({ id: 'ex11', label: 'Ex11: Post-Closing Entries', count: null });
+    if (enabledExceptions.ex12) list.push({ id: 'ex12', label: 'Ex12: Unrelated Pairings', count: unrelatedRules.length });
+    if (runControlSample) list.push({ id: 'controlSample', label: 'Control Sample Dump', count: sampleDocCount });
     return list;
-  }, [enabledExceptions, unusualAccounts, seldomAccounts, usersOfInterest, datesOfInterest, keywords, unrelatedRules]);
+  }, [enabledExceptions, unusualAccounts, seldomAccounts, usersOfInterest, datesOfInterest, ex8SelectedDigits, keywords, unrelatedRules, runControlSample, sampleDocCount]);
 
   // Keep paramTab synchronized with visible tabs
   useEffect(() => {
@@ -592,19 +633,19 @@ export const SparkJetWorkflow: React.FC = () => {
 
   // Parameter Exception definitions for Step 5 executive cards
   const EXCEPTION_CARDS = [
-    { num: 1, key: 'Ex1_Unusual_Accounts', file: 'Parameter_Exception_1.csv', title: 'Unusual Accounts Postings', desc: 'Entries posted to accounts flagged as unusual or suspense' },
-    { num: 2, key: 'Ex2_Seldom_Accounts', file: 'Parameter_Exception_2.csv', title: 'Seldom Used Accounts', desc: 'Entries in seldom accounts exceeding posting count threshold' },
-    { num: 3, key: 'Ex3_Revenue_Debits', file: 'Parameter_Exception_3.csv', title: 'Revenue Account Debits', desc: 'Unusual debit transactions posted to revenue line items' },
-    { num: 4, key: 'Ex4_Few_Postings_Users', file: 'Parameter_Exception_4.csv', title: 'Users with Infrequent Postings', desc: 'Entries created by personnel with minimal historical volume' },
-    { num: 5, key: 'Ex5_Users_Of_Interest', file: 'Parameter_Exception_5.csv', title: 'Users of Specific Interest', desc: 'Transactions authored by key management or IT personnel' },
-    { num: 6, key: 'Ex6_Closing_Entries', file: 'Parameter_Exception_6.csv', title: 'Period-End Closing Entries', desc: 'Journals posted immediately before or after year-end closing' },
-    { num: 7, key: 'Ex7_Dates_Of_Interest', file: 'Parameter_Exception_7.csv', title: 'Dates of Interest (Holidays/Weekends)', desc: 'Postings during non-working days, company holidays, or weekends' },
-    { num: 8, key: 'Ex8_Round_Amounts', file: 'Parameter_Exception_8.csv', title: 'Round Sum Amounts', desc: 'Entries ending in multiple consecutive zeros (e.g. 100K, 1M)' },
-    { num: 9, key: 'Ex9_Duplicate_Entries', file: 'Parameter_Exception_9.csv', title: 'Duplicate Journal Postings', desc: 'Identical amount, date, and GL account combinations' },
-    { num: 10, key: 'Ex10_Keyword_Entries', file: 'Parameter_Exception_10.csv', title: 'Fraud & Risk Keywords in Text', desc: 'Journals containing suspicious words (mistake, audit, bribe, error)' },
-    { num: 11, key: 'Ex11_Post_Closing_Entries', file: 'Parameter_Exception_11.csv', title: 'Post-Closing Adjustments', desc: 'Transactions dated strictly after the official balance sheet date' },
-    { num: 12, key: 'Ex12_Unrelated_Accounts', file: 'Parameter_Exception_12.csv', title: 'Unrelated Line Item Pairings', desc: 'Incompatible debit/credit account pairings (e.g. Debtors to PPE)' },
-    { num: 13, key: 'Control_Sample', file: 'Control_Sample_Dump.csv', title: 'Representative Control Sample', desc: 'Randomly selected representative sample of journal documents' },
+    { num: 1, id: 'ex1', key: 'Ex1_Unusual_Accounts', file: 'Parameter_Exception_1.csv', title: 'Unusual Accounts Postings', desc: 'Entries posted to accounts flagged as unusual or suspense' },
+    { num: 2, id: 'ex2', key: 'Ex2_Seldom_Accounts', file: 'Parameter_Exception_2.csv', title: 'Seldom Used Accounts', desc: 'Entries in seldom accounts exceeding posting count threshold' },
+    { num: 3, id: 'ex3', key: 'Ex3_Revenue_Debits', file: 'Parameter_Exception_3.csv', title: 'Revenue Account Debits', desc: 'Unusual debit transactions posted to revenue line items' },
+    { num: 4, id: 'ex4', key: 'Ex4_Few_Postings_Users', file: 'Parameter_Exception_4.csv', title: 'Users with Infrequent Postings', desc: 'Entries created by personnel with minimal historical volume' },
+    { num: 5, id: 'ex5', key: 'Ex5_Users_Of_Interest', file: 'Parameter_Exception_5.csv', title: 'Users of Specific Interest', desc: 'Transactions authored by key management or IT personnel' },
+    { num: 6, id: 'ex6', key: 'Ex6_Closing_Entries', file: 'Parameter_Exception_6.csv', title: 'Period-End Closing Entries', desc: 'Journals posted immediately before or after year-end closing' },
+    { num: 7, id: 'ex7', key: 'Ex7_Dates_Of_Interest', file: 'Parameter_Exception_7.csv', title: 'Dates of Interest (Holidays/Weekends)', desc: 'Postings during non-working days, company holidays, or weekends' },
+    { num: 8, id: 'ex8', key: 'Ex8_Round_Amounts', file: 'Parameter_Exception_8.csv', title: 'Round Sum Amounts', desc: 'Entries ending in multiple consecutive zeros (e.g. 100K, 1M)' },
+    { num: 9, id: 'ex9', key: 'Ex9_Duplicate_Entries', file: 'Parameter_Exception_9.csv', title: 'Duplicate Journal Postings', desc: 'Identical amount, date, and GL account combinations' },
+    { num: 10, id: 'ex10', key: 'Ex10_Keyword_Entries', file: 'Parameter_Exception_10.csv', title: 'Fraud & Risk Keywords in Text', desc: 'Journals containing suspicious words (mistake, audit, bribe, error)' },
+    { num: 11, id: 'ex11', key: 'Ex11_Post_Closing_Entries', file: 'Parameter_Exception_11.csv', title: 'Post-Closing Adjustments', desc: 'Transactions dated strictly after the official balance sheet date' },
+    { num: 12, id: 'ex12', key: 'Ex12_Unrelated_Accounts', file: 'Parameter_Exception_12.csv', title: 'Unrelated Line Item Pairings', desc: 'Incompatible debit/credit account pairings (e.g. Debtors to PPE)' },
+    { num: 13, id: 'controlSample', key: 'Control_Sample', file: 'Control_Sample_Dump.csv', title: 'Representative Control Sample', desc: 'Randomly selected representative sample of journal documents' },
   ];
 
   return (
@@ -1343,9 +1384,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         )}
                       </button>
                     ))}
-                  </div>
-
-                  {/* TAB: EX1 UNUSUAL ACCOUNTS */}
+                  </div>                  {/* TAB: EX1 UNUSUAL ACCOUNTS */}
                   {paramTab === 'ex1' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
@@ -1443,7 +1482,7 @@ export const SparkJetWorkflow: React.FC = () => {
                                     type="text"
                                     className="jet-input"
                                     value={row.notes || ''}
-                                    placeholder="Rationale"
+                                    placeholder="Suspense / clearing note"
                                     onChange={(e) => {
                                       const val = e.target.value;
                                       setUnusualAccounts((prev) => {
@@ -1597,16 +1636,85 @@ export const SparkJetWorkflow: React.FC = () => {
                     </div>
                   )}
 
-                  {/* TAB: EX4 & EX5 USERS */}
-                  {paramTab === 'users' && (
+                  {/* TAB: EX3 LARGE DEBITS TO REVENUE */}
+                  {paramTab === 'ex3' && (
+                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                        Ex3: Large Debits to Revenue During Period
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                        Flags unusual debit transactions to Revenue or Income accounts exceeding the configured threshold.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                        <div>
+                          <label className="jet-label">Debit Amount Threshold ({sparkParams.currencyCode || 'INR'})</label>
+                          <input
+                            type="number"
+                            className="jet-input"
+                            value={ex3Threshold}
+                            onChange={(e) => setEx3Threshold(Number(e.target.value))}
+                            placeholder="0.0"
+                          />
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default is 0.0 (Flags all positive debit entries)</span>
+                        </div>
+                        <div>
+                          <label className="jet-label">Optional Quarter Filter: Start Date</label>
+                          <input
+                            type="date"
+                            className="jet-input"
+                            value={ex3QuarterStart}
+                            onChange={(e) => setEx3QuarterStart(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="jet-label">Optional Quarter Filter: End Date</label>
+                          <input
+                            type="date"
+                            className="jet-input"
+                            value={ex3QuarterEnd}
+                            onChange={(e) => setEx3QuarterEnd(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB: EX4 FEW POSTINGS USERS */}
+                  {paramTab === 'ex4' && (
+                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                        Ex4: Users with Few Postings
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                        Flags transactions created by users with a total distinct document count at or below this threshold.
+                      </p>
+
+                      <div style={{ maxWidth: '320px' }}>
+                        <label className="jet-label">Max Distinct Document Count Threshold</label>
+                        <input
+                          type="number"
+                          className="jet-input"
+                          value={ex4Threshold}
+                          onChange={(e) => setEx4Threshold(Math.max(1, Number(e.target.value)))}
+                          min="1"
+                          placeholder="1"
+                        />
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Users posting &le; this number of journals are flagged.</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB: EX5 USERS OF INTEREST */}
+                  {paramTab === 'ex5' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
                           <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex4 & Ex5: Users of Interest & Few Postings Users
+                            Ex5: Users of Interest
                           </h4>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Track specific usernames (executives, contractors, IT admins) or set few-postings threshold.
+                            Target specific user accounts (management, IT admins, automated service accounts) for 100% testing.
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -1723,16 +1831,73 @@ export const SparkJetWorkflow: React.FC = () => {
                     </div>
                   )}
 
-                  {/* TAB: EX6, EX7, EX11 DATES */}
-                  {paramTab === 'dates' && (
+                  {/* TAB: EX6 CLOSING ENTRIES */}
+                  {paramTab === 'ex6' && (
+                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                        Ex6: Period-End Closing Entries
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                        Detects entries dated in the sensitive period immediately around financial year-end.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                        <div>
+                          <label className="jet-label">Closing Date (DD-MMM-YY)</label>
+                          <input
+                            type="text"
+                            className="jet-input"
+                            value={ex6ClosingDate}
+                            onChange={(e) => setEx6ClosingDate(e.target.value)}
+                            placeholder="31-Dec-25"
+                          />
+                        </div>
+                        <div>
+                          <label className="jet-label">Days Before Closing</label>
+                          <input
+                            type="number"
+                            className="jet-input"
+                            value={ex6BeforeDays}
+                            onChange={(e) => setEx6BeforeDays(Number(e.target.value))}
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="jet-label">Days After Closing</label>
+                          <input
+                            type="number"
+                            className="jet-input"
+                            value={ex6AfterDays}
+                            onChange={(e) => setEx6AfterDays(Number(e.target.value))}
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <label className="jet-label">Frequency</label>
+                          <select
+                            className="jet-select"
+                            value={ex6Frequency}
+                            onChange={(e) => setEx6Frequency(e.target.value)}
+                          >
+                            <option value="Annually">Annually</option>
+                            <option value="Quarterly">Quarterly</option>
+                            <option value="Monthly">Monthly</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB: EX7 DATES OF INTEREST */}
+                  {paramTab === 'ex7' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
                           <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex6, Ex7 & Ex11: Dates of Interest & Holidays
+                            Ex7: Dates of Interest (Holidays / Weekends)
                           </h4>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Specify holidays, non-working days, and year-end closing thresholds.
+                            Flags postings made on specific company holidays or non-working calendar dates.
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -1828,8 +1993,146 @@ export const SparkJetWorkflow: React.FC = () => {
                     </div>
                   )}
 
+                  {/* TAB: EX8 ROUND AMOUNTS */}
+                  {paramTab === 'ex8' && (
+                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                        Ex8: Entries with Round Amounts or Recurring Digits
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                        Select the round thousands magnitudes and ending repeating digit rules to flag.
+                      </p>
+
+                      <div style={{ marginBottom: '18px' }}>
+                        <label className="jet-label" style={{ marginBottom: '10px' }}>Round Magnitudes</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                          {[
+                            { val: '1000', label: '1,000' },
+                            { val: '10000', label: '10,000' },
+                            { val: '100000', label: '100,000' },
+                            { val: '1000000', label: '1,000,000' },
+                            { val: '10000000', label: '10,000,000' },
+                            { val: '100000000', label: '100,000,000' },
+                            { val: '1000000000', label: '1,000,000,000' },
+                          ].map((item) => {
+                            const isSelected = ex8SelectedDigits.includes(item.val);
+                            return (
+                              <label
+                                key={item.val}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: isSelected ? 'var(--deloitte-teal-light)' : '#F8FAFC',
+                                  border: isSelected ? '1px solid var(--deloitte-teal)' : '1px solid #E2E8F0',
+                                  cursor: 'pointer',
+                                  fontSize: '0.82rem',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setEx8SelectedDigits((prev) => [...prev, item.val]);
+                                    } else {
+                                      setEx8SelectedDigits((prev) => prev.filter((x) => x !== item.val));
+                                    }
+                                  }}
+                                  style={{ accentColor: 'var(--deloitte-teal)' }}
+                                />
+                                {item.label}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="jet-label" style={{ marginBottom: '10px' }}>Recurring Ending Digits (e.g. 99, 999, 9999)</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                          {['2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => {
+                            const isSelected = ex8SelectedDigits.includes(digit);
+                            return (
+                              <label
+                                key={digit}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: isSelected ? 'var(--deloitte-teal-light)' : '#F8FAFC',
+                                  border: isSelected ? '1px solid var(--deloitte-teal)' : '1px solid #E2E8F0',
+                                  cursor: 'pointer',
+                                  fontSize: '0.82rem',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setEx8SelectedDigits((prev) => [...prev, digit]);
+                                    } else {
+                                      setEx8SelectedDigits((prev) => prev.filter((x) => x !== digit));
+                                    }
+                                  }}
+                                  style={{ accentColor: 'var(--deloitte-teal)' }}
+                                />
+                                {digit} Digits Repeating
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB: EX9 DUPLICATE ENTRIES */}
+                  {paramTab === 'ex9' && (
+                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                        Ex9: Duplicate Entries Configuration
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                        Flags documents sharing exact identical account and amount distribution combos.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                        <div>
+                          <label className="jet-label">Duplicate Count Threshold (Value)</label>
+                          <input
+                            type="number"
+                            className="jet-input"
+                            value={ex9CountThreshold}
+                            onChange={(e) => setEx9CountThreshold(Math.max(1, Number(e.target.value)))}
+                            min="1"
+                            placeholder="2"
+                          />
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Identical combos appearing &gt; this count are flagged.</span>
+                        </div>
+                        <div>
+                          <label className="jet-label">Minimum Total Positive Amount (Threshold)</label>
+                          <input
+                            type="number"
+                            className="jet-input"
+                            value={ex9AmountThreshold}
+                            onChange={(e) => setEx9AmountThreshold(Number(e.target.value))}
+                            placeholder="0.0"
+                          />
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>0.0 evaluates all duplicate amounts.</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* TAB: EX10 KEYWORDS */}
-                  {paramTab === 'keywords' && (
+                  {paramTab === 'ex10' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
@@ -1904,8 +2207,56 @@ export const SparkJetWorkflow: React.FC = () => {
                     </div>
                   )}
 
+                  {/* TAB: EX11 POST-CLOSING ENTRIES */}
+                  {paramTab === 'ex11' && (
+                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                        Ex11: Entries Posted After Closing Date
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                        Flags entries recorded strictly after the financial year-end cutoff plus grace period.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                        <div>
+                          <label className="jet-label">Financial Year Closing Date (DD-MMM-YY)</label>
+                          <input
+                            type="text"
+                            className="jet-input"
+                            value={ex11ClosingDate}
+                            onChange={(e) => setEx11ClosingDate(e.target.value)}
+                            placeholder="31-Dec-25"
+                          />
+                        </div>
+                        <div>
+                          <label className="jet-label">Cutoff Days After Closing</label>
+                          <input
+                            type="number"
+                            className="jet-input"
+                            value={ex11DaysAfterClosing}
+                            onChange={(e) => setEx11DaysAfterClosing(Number(e.target.value))}
+                            min="0"
+                            placeholder="10"
+                          />
+                        </div>
+                        <div>
+                          <label className="jet-label">Frequency</label>
+                          <select
+                            className="jet-select"
+                            value={ex11Frequency}
+                            onChange={(e) => setEx11Frequency(e.target.value)}
+                          >
+                            <option value="Annually">Annually</option>
+                            <option value="Quarterly">Quarterly</option>
+                            <option value="Monthly">Monthly</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* TAB: EX12 UNRELATED ACCOUNTS */}
-                  {paramTab === 'unrelated' && (
+                  {paramTab === 'ex12' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
@@ -2008,48 +2359,28 @@ export const SparkJetWorkflow: React.FC = () => {
                     </div>
                   )}
 
-                  {/* TAB: THRESHOLDS */}
-                  {paramTab === 'thresholds' && (
+                  {/* TAB: CONTROL SAMPLE DUMP */}
+                  {paramTab === 'controlSample' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px' }}>
-                        General Thresholds & Round Digits
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                        Representative Control Sample Dump Configuration
                       </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                        Randomly extracts full journal documents using seed 42 to satisfy ET sample testing requirements.
+                      </p>
+
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
                         <div>
-                          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                            Financial Year End
-                          </label>
-                          <input
-                            type="text"
-                            className="jet-input"
-                            value={sparkParams.financialYearEnd || '31-Dec-25'}
-                            onChange={(e) => setSparkParams((prev) => ({ ...prev, financialYearEnd: e.target.value }))}
-                            style={{ marginTop: '4px' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                            Few Postings Threshold (Count)
-                          </label>
+                          <label className="jet-label">Sample Document Count Requested</label>
                           <input
                             type="number"
                             className="jet-input"
-                            value={sparkParams.ex4FewPostingsUserThreshold || 2}
-                            onChange={(e) => setSparkParams((prev) => ({ ...prev, ex4FewPostingsUserThreshold: Number(e.target.value) }))}
-                            style={{ marginTop: '4px' }}
+                            value={sampleDocCount}
+                            onChange={(e) => setSampleDocCount(Math.max(1, Number(e.target.value)))}
+                            min="1"
+                            placeholder="61"
                           />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                            Days After Closing Threshold
-                          </label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={sparkParams.ex11DaysAfterClosing || 10}
-                            onChange={(e) => setSparkParams((prev) => ({ ...prev, ex11DaysAfterClosing: Number(e.target.value) }))}
-                            style={{ marginTop: '4px' }}
-                          />
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default is 61 randomized documents.</span>
                         </div>
                       </div>
                     </div>
@@ -2194,9 +2525,12 @@ export const SparkJetWorkflow: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* PROFESSIONAL GRID OF 13 EXCEPTION CARDS (NO DROPDOWNS) */}
+                    {/* PROFESSIONAL GRID OF SELECTED EXCEPTION CARDS (NO DROPDOWNS) */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-                      {EXCEPTION_CARDS.map((card) => {
+                      {EXCEPTION_CARDS.filter((card) => {
+                        if (card.id === 'controlSample') return runControlSample;
+                        return enabledExceptions[card.id as keyof typeof enabledExceptions];
+                      }).map((card) => {
                         const isSelected = selectedPreviewFile === card.file;
                         const count = card.num <= 12 ? getExceptionCount(card.num, card.key) : (status?.controlSampleCount || 4);
 

@@ -1,0 +1,583 @@
+SPARK JET  
+ 
+Full Workflow Development Plan  
+ 
+Manager Review / Proposed End-to-End Workflow  
+ 
+  
+ 
+1. Purpose and Scope  
+ 
+This document consolidates the three provided SPARK JET source documents into one step-wise development workflow. It describes the intended end-to-end flow from user access and file upload, through Trial Balance and Population preparation, data cleaning, mandatory data checkpoints, Integrity Testing, Parameter Testing, Control Sample Dump, output consolidation, download, and final visualization.  
+ 
+The workflow below is based only on the provided SPARK JET workflow notes, SPARK JET application-flow document, and the supplied Spark code. It is intended to serve as the development plan to be reviewed with the manager before implementation.  
+ 
+2. End-to-End Workflow at a Glance  
+ 
+1. Account / Login → Admin or User  
+ 
+2. Input File Selection → Select Trial Balance (TB) and Population sheets from uploaded file  
+ 
+3. Column Mapping → Map source columns to standard JET headers  
+ 
+4. Data Cleaning → Apply field-specific trimming, numeric conversion, date conversion and text cleanup  
+ 
+5. Data Checkpoints → Validate required data conditions; on failure show an error and discontinue processing  
+ 
+6. Standardized Data Output → Prepare TB and Population as CSV inputs  
+ 
+7. Integrity Testing → Run Spark processing and generate Integrity Results / exceptions  
+ 
+8. Integrity Review Gate → Verify Test 1, Test 2, Test 3 and Test 4; obtain tickmarks/review before continuing  
+ 
+9. Parameter Inputs → Prepare Ex1–Ex12 inputs according to the defined rules  
+ 
+10. Parameter Testing → Run Ex1–Ex12 and validate exception outputs  
+ 
+11. Control Sample Dump → Generate requested sample documents and validate count / balance  
+ 
+12. Output Consolidation → Integrate engagement details and test outputs into the macro output  
+ 
+13. Download → Provide a button to download the macro output file  
+ 
+14. Visualization → Present reconciled/unreconciled accounts and other standard visualizations  
+ 
+3. User/Application Flow  
+ 
+Account/Login page with Admin/User access.  
+ 
+After login, the user is redirected to the applicable pages.  
+ 
+The user uploads the input file and selects the Trial Balance sheet and Population sheet.  
+ 
+The system maps uploaded columns to the standard JET headers.  
+ 
+The system performs data cleaning and then runs the defined data checkpoints.  
+ 
+If a checkpoint fails, the system displays a pop-up error message with a description of the error and discontinues processing.  
+ 
+If the data passes the required checkpoints, the workflow proceeds to Integrity Testing, followed by Parameter Testing.  
+ 
+The application ultimately provides consolidated output, a download option for the macro output, and visualization.  
+ 
+4. Input Data Preparation – Trial Balance (TB)  
+ 
+The TB preparation flow defined in the workflow document is:  
+ 
+Copy the input form data and paste special into a new file.  
+ 
+Change the headers to the standard JET Header file headers.  
+ 
+Trim-clean GL, GL description, Account subtype and FS line columns.  
+ 
+Convert Opening Balance, Closing Balance, Debit and Credit into number columns.  
+ 
+Run all TB checkpoints.  
+ 
+Save the prepared TB in CSV format.  
+ 
+4.1 Trial Balance Checkpoints  
+ 
+Checkpoint  
+ 
+Area  
+ 
+Expected Condition  
+ 
+TB-01  
+ 
+G/L and Description  
+ 
+Should not contain blank values or duplicates.  
+ 
+TB-02  
+ 
+Account Subtype  
+ 
+Should contain Assets, Liabilities, Revenues/Income, and Expenses.  
+ 
+TB-03  
+ 
+Opening / Closing Balance  
+ 
+Opening balance should be 0 and equal to the Closing Balance.  
+ 
+TB-04  
+ 
+Debit / Credit  
+ 
+Debit and Credit for each entry should be equal.  
+ 
+TB-05  
+ 
+Total Opening / Closing  
+ 
+Total column sum of Opening Balance and Closing Balance should be 0.  
+ 
+TB-06  
+ 
+GL uniqueness  
+ 
+GL column should be unique after trim-clean.  
+ 
+TB-07  
+ 
+Required fields  
+ 
+No blanks in GL, GL description, Account subtype and FS line columns.  
+ 
+TB-08  
+ 
+Output format  
+ 
+Save the prepared TB as CSV.  
+ 
+5. Input Data Preparation – Population / GL Dump  
+ 
+Copy the input form data and paste normally into a new file.  
+ 
+Remove the FS line column.  
+ 
+Change the headers to the standard JET Header file headers.  
+ 
+Trim-clean GL, DocumentNo and Type.  
+ 
+Convert dates into dd-MMM-yy format.  
+ 
+Convert all amount fields into Number format and remove commas.  
+ 
+Replace commas with spaces in Document Header and Text fields.  
+ 
+Trim-clean Document Header text, Text and Username.  
+ 
+Run all Population checkpoints.  
+ 
+Save the prepared Population as CSV.  
+ 
+5.1 Population Checkpoints  
+ 
+Checkpoint  
+ 
+Area  
+ 
+Expected Condition  
+ 
+POP-01  
+ 
+Required fields  
+ 
+No blanks in GL, DocumentNo, Type, EntryDate and Pstng Date.  
+ 
+POP-02  
+ 
+Amount balance  
+ 
+Sum of Amount in local currency should be 0.  
+ 
+POP-03  
+ 
+Posting-date range  
+ 
+Posting Date should be within the Start Date and End Date range.  
+ 
+POP-04  
+ 
+Document balance  
+ 
+For all document numbers, the sum against each document should be 0; the workflow specifies using a Pivot Table.  
+ 
+POP-05  
+ 
+Output format  
+ 
+Save the prepared Population as CSV.  
+ 
+6. Spark Processing / Standardization Flow  
+ 
+The supplied Spark code implements the data-processing foundation. It reads CSV input, applies the specified transformations, creates standardized views, performs aggregation and joins between Population and Trial Balance, runs exception logic, and writes CSV outputs.  
+ 
+Population is read from CSV with headers and comma delimiter.  
+ 
+Source fields are trimmed and mapped into standardized fields including G_L, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date, Amount_in_local_cur, currency fields, document/text fields and User_name.  
+ 
+Dates are parsed and formatted as dd-MMM-yy.  
+ 
+Amount fields are converted to numeric values after removing commas.  
+ 
+Document header and Text commas are replaced with spaces; Text is converted to lower case in the supplied code.  
+ 
+A total sum of Amount_in_local_cur is calculated as a processing check.  
+ 
+Population and Trial Balance are then loaded into standardized processing structures.  
+ 
+Null values are filled in selected processing columns before exception logic.  
+ 
+Population is aggregated by GL to create GL-level local-currency activity used by Integrity Testing.  
+ 
+The supplied code also writes CSV outputs for control samples, integrity results and parameter results.  
+ 
+7. Integrity Testing  
+ 
+Integrity Testing starts after TB and Population are prepared. The workflow notes specify running the code, checking the G/L length between Population and Trial Balance, writing the output, and filling the integrity macro.  
+ 
+Run the Spark integrity processing.  
+ 
+Check whether the length/count of G/L is consistent between Population and Trial Balance as specified.  
+ 
+Generate the Integrity Result outputs.  
+ 
+Populate the integrity macro with Basic Inputs and the extracted Test 1, Test 2 and Test 3 results.  
+ 
+Perform the four integrity checks.  
+ 
+After receiving tickmarks, send the results for verification.  
+ 
+Only after review/verification proceed to Parameter Testing.  
+ 
+7.1 Integrity Tests  
+ 
+Test  
+ 
+Purpose  
+ 
+Execution / Verification  
+ 
+Test 1 / IR Exception 1  
+ 
+G/L present in Trial Balance but not in Population.  
+ 
+Use VLOOKUP to verify. The Spark code identifies TB GLs for which no matching Population GL exists.  
+ 
+Test 2 / IR Exception 2  
+ 
+Population GL activity should agree with the relevant Trial Balance activity / GL activity.  
+ 
+Aggregate Population Amount in local currency by GL and compare with the Integrity Result GL Activity; the workflow specifies Pivot Table + VLOOKUP verification.  
+ 
+Test 3 / IR Exception 3  
+ 
+G/L present in Population but not in Trial Balance.  
+ 
+Use VLOOKUP to verify. The Spark code identifies Population GLs without a matching TB GL.  
+ 
+Test 4 / IR Exception 4  
+ 
+Population count reconciliation.  
+ 
+The sum of the count plus the sum of GLs appearing in Test 3 should match exactly with the Population count.  
+ 
+7.2 Integrity Outputs in Supplied Spark Code  
+ 
+IR_Exception_1: Trial Balance GLs not found in Population.  
+ 
+IR_Exception_2: GL-level activity reconciliation exceptions.  
+ 
+IR_Exception_3: Population GLs not found in Trial Balance.  
+ 
+IR_Exception_4 / Seldom Accounts: GL-level count output used as an input for the related parameter testing flow.  
+ 
+8. Parameter Testing – Input Preparation  
+ 
+Before running Ex1–Ex12, the workflow specifies the following input preparation rules:  
+ 
+Parameter  
+ 
+Input Preparation  
+ 
+Ex1  
+ 
+Copy from Input sheet and trim-clean.  
+ 
+Ex2  
+ 
+Copy from Input sheet and trim-clean.  
+ 
+Ex3  
+ 
+Filter Revenue or Income (if Revenue is not present) in TB, copy those GL codes and trim-clean. Threshold should be 0.  
+ 
+Ex4  
+ 
+Input must be an integer.  
+ 
+Ex5  
+ 
+Copy from Input sheet and trim-clean.  
+ 
+Ex6  
+ 
+Copy from Input sheet. If the specified values are not zero, give the output file to Shilpa’s team.  
+ 
+Ex7  
+ 
+Copy from Input sheet; date format must match Population: dd-MMM-yy.  
+ 
+Ex8  
+ 
+Copy from Input sheet.  
+ 
+Ex9  
+ 
+Copy from Input sheet; input must be an integer and threshold should be 0.  
+ 
+Ex10  
+ 
+Copy and trim-clean; remove duplicates.  
+ 
+Ex11  
+ 
+Frequency of Book closing should always be Annually; input is an integer.  
+ 
+Ex12  
+ 
+VLOOKUP all debit and credit entries in TB FS line item. All should match with no #N/A. Copy and trim-clean.  
+ 
+9. Parameter Testing – Ex1 to Ex12  
+ 
+Test  
+ 
+Purpose  
+ 
+Required Verification  
+ 
+Ex1  
+ 
+Entries made to Unusual Accounts  
+ 
+Run code; Amount in local currency sum should be 0; Exception column should contain Exception_no / No exception; filter Exception1 and verify distinct GLs against inputs.  
+ 
+Ex2  
+ 
+Entries made to Seldom-based Accounts  
+ 
+Run code; Amount in local currency sum should be 0; validate exception values; filter Exception2 and verify distinct GLs against inputs.  
+ 
+Ex3  
+ 
+Large Debits to Revenue During the Period  
+ 
+Run code; Amount in local currency sum should be 0; validate exception values; filter Exception3 and verify GLs against Revenue/Income GLs from TB. Supplied code uses Revenue first and Income if Revenue is unavailable; if neither exists it notes that ET should be notified.  
+ 
+Ex4  
+ 
+Users with few Postings  
+ 
+Run code; Amount in local currency sum should be 0; validate Exception4; use distinct DocumentNo and Username with a Pivot Table, with DocumentNo in values and Username in rows, and compare the count with the Ex4 input.  
+ 
+Ex5  
+ 
+Users of Interest  
+ 
+Run code; Amount in local currency sum should be 0; validate exception values; filter Exception5 and verify distinct Username against inputs.  
+ 
+Ex6  
+ 
+Closing Entries  
+ 
+Run code; check Start Date and End Date; Amount in local currency sum should be 0; validate exception values; filter Exception6 and check Entry Date range.  
+ 
+Ex7  
+ 
+Entries posted on Dates of Interest  
+ 
+Run code; Amount in local currency sum should be 0; validate exception values; filter Exception7 and verify distinct Posting Dates against inputs.  
+ 
+Ex8  
+ 
+Entries with round amounts / recurring ending digits  
+ 
+Run code; Amount in local currency sum should be 0; validate exception values; filter Exception8; convert Amount in local currency to scientific notation so 10-power patterns can be identified.  
+ 
+Ex9  
+ 
+Duplicate Entries  
+ 
+Run code; check duplicates; Amount in local currency sum should be 0; Exception column should contain Exception_no as specified; the supplied code supports an optional threshold stage.  
+ 
+Ex10  
+ 
+Entries containing keywords in journal  
+ 
+Run code; check duplicates; Amount in local currency sum should be 0; validate exception values; filter Exception10 and match exception text/keywords from the input sheet against the Population Text column.  
+ 
+Ex11  
+ 
+Entries posted after closing date  
+ 
+Run code using the Basic Inputs closing/end date; Amount in local currency sum should be 0; validate exception values; check Population entries after financial year end plus the configured number of days.  
+ 
+Ex12  
+ 
+Unrelated Accounts  
+ 
+Run code; check whether input combinations are present in FS line items; Amount in local currency sum should be 0; validate exception values; identify documents where configured debit/credit FS-line combinations occur.  
+ 
+10. Control Sample Dump  
+ 
+ET provides the number of samples required.  
+ 
+Run the Control Sample Dump code.  
+ 
+Check that the sum of Amount in local currency is 0.  
+ 
+Check that the distinct Document Number count equals the number of samples requested by ET.  
+ 
+The supplied Spark code creates a randomized document-level sample and writes the corresponding sample dump as CSV.  
+ 
+11. Output Handling and Consolidation  
+ 
+The workflow calls for integrating engagement details and Test 1, Test 2 and Test 3 into the macro file.  
+ 
+The application should provide a download button for the macro output file.  
+ 
+The supplied Spark code writes parameter exception outputs as CSV files under the Parameter Result output structure.  
+ 
+The supplied code contains an Output Cleaning stage that identifies Parameter_Exception folders, copies the latest CSV into a standardized Parameter_Exception_<number>.csv name, removes intermediate CSV / CRC / _SUCCESS files, and attempts to clean the temporary folders.  
+ 
+The final workflow therefore needs a clear hand-off from generated Spark outputs to the consolidated macro output.  
+ 
+12. Final Visualization  
+ 
+After output consolidation and download capability, the application moves to the visualization stage. The SPARK JET application-flow document specifies standard visualization related to reconciled/unreconciled accounts and other visualization.  
+ 
+Reconciled accounts visualization.  
+ 
+Unreconciled accounts visualization.  
+ 
+Other standard visualizations required by the SPARK JET workflow.  
+ 
+13. Proposed Processing Sequence / Gate Structure  
+ 
+Gate  
+ 
+Stage  
+ 
+Exit Condition  
+ 
+Gate 1  
+ 
+Input Selection  
+ 
+TB and Population sheets selected from uploaded file.  
+ 
+Gate 2  
+ 
+Column Mapping  
+ 
+Source columns mapped to standard JET headers.  
+ 
+Gate 3  
+ 
+TB Validation  
+ 
+All TB cleaning and checkpoints pass.  
+ 
+Gate 4  
+ 
+Population Validation  
+ 
+All Population cleaning and checkpoints pass.  
+ 
+Gate 5  
+ 
+Integrity Testing  
+ 
+Test 1–4 outputs generated and checked.  
+ 
+Gate 6  
+ 
+Integrity Review  
+ 
+Tickmarks / verification received before Parameter Testing.  
+ 
+Gate 7  
+ 
+Parameter Testing  
+ 
+Ex1–Ex12 executed and required output checks completed.  
+ 
+Gate 8  
+ 
+Control Samples  
+ 
+Requested sample count and balance conditions validated when required.  
+ 
+Gate 9  
+ 
+Output Consolidation  
+ 
+Engagement details and required test outputs integrated into macro output.  
+ 
+Gate 10  
+ 
+Download & Visualization  
+ 
+Macro output downloadable and final reconciliation / exception visualizations available.  
+ 
+14. End-to-End System Build Scope  
+ 
+Based on the supplied documents, the complete system to be developed consists of the following functional areas:  
+ 
+User access: Account/Login with Admin/User.  
+ 
+Input upload and selection: TB and Population sheet selection.  
+ 
+Standard header mapping: mapping to JET Header standards.  
+ 
+Data cleaning engine: text trim-clean, numeric conversion, date standardization and text comma handling.  
+ 
+Checkpoint engine: TB and Population validations with failure message and processing stop.  
+ 
+Spark processing engine: standardized data preparation, aggregation, joins and exception generation.  
+ 
+Integrity module: Test 1, Test 2, Test 3 and Test 4.  
+ 
+Integrity review gate: output verification before Parameter Testing.  
+ 
+Parameter input module: Ex1–Ex12 input preparation rules.  
+ 
+Parameter testing module: Ex1–Ex12 execution and exception outputs.  
+ 
+Control Sample Dump module.  
+ 
+Output management: CSV output generation and cleanup of intermediate output folders.  
+ 
+Macro consolidation: engagement details and integrity results into the macro output as specified.  
+ 
+Download capability: download button for macro output.  
+ 
+Visualization module: reconciled, unreconciled and other standard visualizations.  
+ 
+15. Source-to-System Mapping  
+ 
+Source  
+ 
+Contribution to Planned System  
+ 
+SPARK JET_24_8.docx  
+ 
+Application flow, login, upload/sheet selection, column mapping, cleaning, checkpoint failure behavior, integrity tests, macro consolidation, download and visualization.  
+ 
+spark_JET_workflow.txt  
+ 
+Detailed operational workflow for TB and Population preparation, checkpoints, Integrity Results, Parameter input preparation, Ex1–Ex12 verification and Control Sample Dump.  
+ 
+spark_JET_code.txt  
+ 
+Spark implementation for data cleaning, standardized processing, control samples, Integrity Results, Parameter Exceptions 1–12 and output cleaning.  
+ 
+16. Manager Review Summary  
+ 
+The planned SPARK JET system is an end-to-end data-processing and testing workflow in which raw TB and Population inputs are standardized, cleaned and checkpointed before any testing is allowed to proceed. Integrity Testing establishes the Population-to-Trial-Balance relationship and is followed by a review gate. Parameter Testing then runs Ex1–Ex12 using the defined inputs and exception logic. Control Samples are handled as an additional requirement when requested. Finally, the generated results are consolidated into the required macro output, made downloadable, and presented through reconciliation / exception visualizations.  
+ 
+17. Important Source-Based Notes for Development  
+ 
+Checkpoint failure is explicitly defined as a hard stop in the application flow: show a pop-up error with the error description and discontinue processing.  
+ 
+The workflow explicitly places Integrity Testing before Parameter Testing and requires verification/tickmarks before moving forward.  
+ 
+The provided code contains more detailed implementation stages than the high-level application document, including null handling, GL-level aggregation, control-sample generation, individual parameter exception processing, and output-folder cleanup.  
+ 
+The source documents do not specify a final UI technology, deployment architecture, database, authentication provider, API framework, or hosting platform. Those implementation choices are therefore outside this source-based workflow plan.  
+ 
+The source documents also do not define the exact final visualization designs; they specify reconciled/unreconciled accounts and other standard visualizations. 
