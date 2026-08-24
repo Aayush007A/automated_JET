@@ -12,16 +12,39 @@ import {
   ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download, 
   FileSpreadsheet, Settings, ShieldCheck, Database, RefreshCw, Archive, FileCheck,
   Search, Filter, PieChart, BarChart3, Eye, Sparkles, Check, X, Trash2,
-  Table, Layers, HelpCircle, Activity, FileText
+  Table, Layers, HelpCircle, Activity, FileText, MoreVertical, Lock, Loader2, UploadCloud, Clock, Calendar
 } from 'lucide-react';
 
 const STEPS = [
-  { id: 1, label: '1. Ingest Data' },
-  { id: 2, label: '2. CDM Mapping' },
-  { id: 3, label: '3. Omnia Config' },
-  { id: 4, label: '4. Pipeline Progress' },
-  { id: 5, label: '5. Recon & DQC Matrix' },
+  { id: 1, label: 'Ingest Datasets', icon: UploadCloud },
+  { id: 2, label: 'CDM Mapping & Auto-Clean', icon: Sparkles },
+  { id: 3, label: 'Omnia Parameters', icon: Settings },
+  { id: 4, label: 'Data Quality & Recon', icon: Activity },
+  { id: 5, label: 'Executive Results', icon: BarChart3 },
 ];
+
+const formatExecutiveDate = (dateStr?: string, includeSeconds: boolean = false): string => {
+  if (!dateStr) return '--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[d.getMonth()];
+  const day = d.getDate();
+  const year = d.getFullYear();
+  
+  let hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  const seconds = d.getSeconds().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  
+  if (includeSeconds) {
+    return `${month} ${day}, ${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
+  }
+  return `${month} ${day}, ${year}, ${hours}:${minutes} ${ampm}`;
+};
 
 const DQC_DEFINITIONS = [
   { code: '01a', name: 'COA Blank Values', desc: 'Critical missing account numbers or descriptions in COA', dataset: 'COA', category: 'Completeness', severity: 'ERROR' },
@@ -379,94 +402,348 @@ export const OmniaJetWorkflow: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Responsive Grid Layout (Sidebar Rail + Content Workspace) */}
-      <div className="spark-workflow-grid">
+      {/* Main Two-Column Layout (Sidebar + Main Workspace) */}
+      <div className="spark-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 260px) 1fr', gap: '20px', alignItems: 'start' }}>
         
-        {/* Left Executive Navigation Rail */}
-        <div className="spark-rail-sidebar">
-          <div className="glass-panel" style={{ padding: '18px 14px', background: '#FFFFFF' }}>
-            <div style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '12px', paddingLeft: '8px' }}>
-              Workflow Steps
+        {/* LEFT EXECUTIVE SIDEBAR */}
+        <aside className="spark-sidebar" style={{
+          background: '#FFFFFF',
+          borderRadius: '24px',
+          border: '1px solid rgba(226, 232, 240, 0.85)',
+          boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 1px rgba(0, 0, 0, 0.08)',
+          padding: '24px 18px',
+          position: 'sticky',
+          top: '90px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+        }}>
+          {/* Run Header & Status */}
+          <div className="spark-run-header" style={{ paddingBottom: '16px', borderBottom: '1px solid #F1F5F9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '13px',
+                  background: 'linear-gradient(135deg, #02383C 0%, #004D54 100%)',
+                  color: '#4ADE80',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(2, 56, 60, 0.25)',
+                  flexShrink: 0,
+                }}>
+                  <Layers size={20} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '1.12rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2 }}>OMNIA JET</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500, marginTop: '2px' }}>Audit Automation Pipeline</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => {}}
+              >
+                <MoreVertical size={18} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: '0.76rem',
+                fontFamily: 'var(--font-mono)',
+                color: '#475569',
+                background: '#F8FAFC',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                border: '1px solid #E2E8F0',
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+              }}>
+                {runId}
+              </span>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: '20px',
+                background: '#E6F4F5',
+                border: '1px solid #BCE3E6',
+                color: '#007680',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}>
+                <Clock size={12} /> {status?.status || 'MAPPING'}
+              </span>
+            </div>
+          </div>
+
+          {/* Workflow Steps Navigation with Timeline Rail */}
+          <div className="spark-steps-col" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '14px', letterSpacing: '0.05em' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#007680' }} />
+              WORKFLOW STEPS
+            </div>
+
+            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Continuous vertical timeline connector line */}
+              <div style={{
+                position: 'absolute',
+                left: '-11px',
+                top: '20px',
+                bottom: '20px',
+                width: '2px',
+                background: '#E2E8F0',
+                zIndex: 0,
+              }} />
+
               {STEPS.map((s) => {
                 const isAllowed = canAccessStep(s.id);
                 const isActive = currentStep === s.id;
-                const isDone = currentStep > s.id;
+                const isCompleted = currentStep > s.id;
+                const IconComp = s.icon;
 
                 return (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      if (isAllowed) setCurrentStep(s.id);
-                    }}
-                    disabled={!isAllowed}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: isActive ? '1.5px solid var(--deloitte-teal)' : '1px solid transparent',
-                      background: isActive ? 'var(--deloitte-teal-light)' : isDone ? '#F8FAFC' : 'transparent',
-                      color: isActive ? 'var(--deloitte-teal)' : isAllowed ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontWeight: isActive ? 800 : 600,
-                      fontSize: '0.84rem',
-                      cursor: isAllowed ? 'pointer' : 'not-allowed',
-                      textAlign: 'left',
-                      transition: 'all 0.15s ease',
-                      width: '100%',
-                    }}
-                  >
+                  <div key={s.id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    {/* Timeline Node Dot */}
                     <div style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      background: isActive ? 'var(--deloitte-teal)' : isDone ? '#059669' : '#E2E8F0',
-                      color: isActive || isDone ? '#FFFFFF' : 'var(--text-muted)',
+                      position: 'absolute',
+                      left: '-18px',
+                      width: '16px',
+                      height: '16px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      fontWeight: 800,
-                      flexShrink: 0,
+                      zIndex: 1,
                     }}>
-                      {isDone ? <Check size={13} strokeWidth={3} /> : s.id}
+                      {isCompleted ? (
+                        <div style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          background: '#16A34A',
+                          border: '2px solid #FFFFFF',
+                          boxShadow: '0 0 0 2px #BBF7D0',
+                        }} />
+                      ) : isActive ? (
+                        <div style={{
+                          width: '14px',
+                          height: '14px',
+                          borderRadius: '50%',
+                          background: '#007680',
+                          border: '2px solid #FFFFFF',
+                          boxShadow: '0 0 0 3px rgba(0, 118, 128, 0.25)',
+                        }} />
+                      ) : (
+                        <div style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          background: '#FFFFFF',
+                          border: '2px solid #CBD5E1',
+                        }} />
+                      )}
                     </div>
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {s.label}
-                    </span>
-                  </button>
+
+                    {/* Step Card Button */}
+                    <button
+                      onClick={() => isAllowed && setCurrentStep(s.id)}
+                      disabled={!isAllowed}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '16px',
+                        border: isActive
+                          ? '1px solid #005E66'
+                          : isCompleted
+                          ? '1px solid #DCFCE7'
+                          : '1px solid #F1F5F9',
+                        background: isActive
+                          ? 'linear-gradient(135deg, #005E66 0%, #004D54 100%)'
+                          : isCompleted
+                          ? '#F0FDF4'
+                          : '#F8FAFC',
+                        color: isActive ? '#FFFFFF' : isCompleted ? '#0F172A' : '#64748B',
+                        fontWeight: isActive ? 700 : isCompleted ? 700 : 600,
+                        fontSize: '0.84rem',
+                        cursor: isAllowed ? 'pointer' : 'not-allowed',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        textAlign: 'left',
+                        boxShadow: isActive ? '0 6px 18px rgba(0, 94, 102, 0.35)' : 'none',
+                        opacity: isAllowed ? 1 : 0.65,
+                      }}
+                      onMouseOver={(e) => {
+                        if (isAllowed && !isActive) {
+                          e.currentTarget.style.borderColor = isCompleted ? '#BBF7D0' : '#E2E8F0';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (isAllowed && !isActive) {
+                          e.currentTarget.style.borderColor = isCompleted ? '#DCFCE7' : '#F1F5F9';
+                        }
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: isActive
+                            ? 'rgba(255,255,255,0.18)'
+                            : isCompleted
+                            ? '#DCFCE7'
+                            : '#F1F5F9',
+                          color: isActive ? '#FFFFFF' : isCompleted ? '#16A34A' : '#94A3B8',
+                          flexShrink: 0,
+                        }}>
+                          <IconComp size={16} />
+                        </div>
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          background: isActive
+                            ? '#FFFFFF'
+                            : isCompleted
+                            ? '#E2F7E7'
+                            : '#F1F5F9',
+                          color: isActive
+                            ? '#005E66'
+                            : isCompleted
+                            ? '#16A34A'
+                            : '#64748B',
+                          flexShrink: 0,
+                        }}>
+                          {s.id}
+                        </div>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.label}
+                        </span>
+                      </div>
+
+                      {/* Right Indicator */}
+                      <div style={{ flexShrink: 0, marginLeft: '8px' }}>
+                        {isCompleted ? (
+                          <CheckCircle2 size={18} color="#16A34A" />
+                        ) : isActive ? (
+                          <Loader2 size={18} color="#FFFFFF" className="spin-slow" />
+                        ) : (
+                          <Lock size={14} color="#94A3B8" />
+                        )}
+                      </div>
+                    </button>
+                  </div>
                 );
               })}
             </div>
+          </div>
 
-            {/* Run Status Summary Widget */}
-            <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '8px' }}>
-                Run Summary
+          {/* Sidebar Execution Summary Widget */}
+          <div className="spark-exec-summary" style={{
+            background: '#F8FAFC',
+            borderRadius: '16px',
+            padding: '16px',
+            border: '1px solid #E2E8F0',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', marginBottom: '14px', letterSpacing: '0.05em' }}>
+              <Activity size={14} color="#007680" />
+              EXECUTION SUMMARY
+            </div>
+
+            {/* 3 Metric Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+              {/* TB Accounts */}
+              <div style={{ background: '#FFFFFF', padding: '10px 8px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+                  <Database size={13} />
+                </div>
+                <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1 }}>
+                  TB ACCOUNTS
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '4px', lineHeight: 1.1 }}>
+                  {status?.totalInputRows?.tb || 0}
+                </div>
               </div>
-              <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '0.78rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Engine:</span>
-                  <span style={{ fontWeight: 700, color: 'var(--deloitte-teal)' }}>Omnia CDM Engine</span>
+
+              {/* GL Documents */}
+              <div style={{ background: '#FFFFFF', padding: '10px 8px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+                  <FileText size={13} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Files Uploaded:</span>
-                  <span style={{ fontWeight: 700 }}>{config?.files.length || 0}</span>
+                <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1 }}>
+                  GL DOCUMENTS
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Execution:</span>
-                  <span style={{ fontWeight: 700 }}>{status?.status || 'PENDING'}</span>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '4px', lineHeight: 1.1 }}>
+                  {status?.glCheckpointsSummary?.totalJournals || 0}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div style={{ background: '#FFFFFF', padding: '10px 8px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#F3E8FF', color: '#9333EA', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+                  <Clock size={13} />
+                </div>
+                <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1 }}>
+                  STATUS
+                </div>
+                <div style={{ marginTop: '4px' }}>
+                  <span style={{
+                    fontSize: '0.62rem',
+                    fontWeight: 800,
+                    color: '#007680',
+                    background: '#E6F4F5',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    letterSpacing: '0.02em',
+                  }}>
+                    {status?.status || 'MAPPING'}
+                  </span>
                 </div>
               </div>
             </div>
+
+            {/* Date Details */}
+            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em' }}>
+                  <Calendar size={13} color="#94A3B8" /> STARTED
+                </div>
+                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
+                  {formatExecutiveDate(status?.startedAt || config?.createdAt, true)}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em' }}>
+                  <CheckCircle2 size={13} color="#94A3B8" /> COMPLETED
+                </div>
+                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
+                  {formatExecutiveDate(status?.completedAt, false)}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+        </aside>
 
         {/* Right Active Workspace Content */}
-        <div className="spark-workspace-content">
+        <main style={{ minWidth: 0 }}>
 
           {/* STEP 1: FILE UPLOAD */}
           {currentStep === 1 && (
@@ -1440,7 +1717,7 @@ export const OmniaJetWorkflow: React.FC = () => {
               )}
             </div>
           )}
-        </div>
+        </main>
       </div>
 
       {/* Raw Sample 50 Rows Preview Modal */}
