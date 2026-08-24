@@ -339,11 +339,11 @@ a:hover {
 }
 
 .spark-sidebar {
-  /* Fixed width — compact enough to never push main area at 110% */
-  width: 256px;
+  /* Fixed width — wide enough for full step labels, compact enough at 110% zoom */
+  width: 300px;
   flex-shrink: 0;
 
-  /* Sticky — floats as user scrolls, no internal scroll */
+  /* Sticky — page scrolls, not sidebar */
   position: sticky;
   top: 80px;
 
@@ -362,16 +362,16 @@ a:hover {
 
 .spark-main {
   flex: 1;
-  min-width: 0; /* prevents flex child from overflowing */
+  min-width: 0;
 }
 
-/* At ≤1320px (medium desktops, mild zoom) — slight sidebar compress */
+/* At ≤1320px — compress sidebar slightly */
 @media (max-width: 1320px) {
-  .spark-sidebar { width: 240px; }
-  .spark-layout { gap: 18px; }
+  .spark-sidebar { width: 280px; }
+  .spark-layout { gap: 16px; }
 }
 
-/* At ≤1100px (heavy zoom or narrow window) — go vertical */
+/* At ≤1100px — go vertical */
 @media (max-width: 1100px) {
   .spark-layout {
     flex-direction: column;

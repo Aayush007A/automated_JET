@@ -1059,7 +1059,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         }}>
                           {s.id}
                         </div>
-                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontSize: '0.84rem', lineHeight: 1.3 }}>
                           {s.label}
                         </span>
                       </div>
@@ -1078,87 +1078,6 @@ export const SparkJetWorkflow: React.FC = () => {
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Sidebar Execution Summary Widget */}
-          <div className="spark-exec-summary" style={{
-            background: '#F8FAFC',
-            borderRadius: '16px',
-            padding: '14px',
-            border: '1px solid #E2E8F0',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
-              <Activity size={14} color="#007680" />
-              EXECUTION SUMMARY
-            </div>
-
-            {/* 2-Row Metric Layout: Row 1 = TB + GL cards, Row 2 = Status pill */}
-            {/* Row 1 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-              {/* TB Accounts */}
-              <div style={{ background: '#F0FDF9', padding: '10px', borderRadius: '12px', border: '1px solid #CCFBF1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Database size={13} />
-                </div>
-                <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>TB Rows</div>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-                  {dynamicTbCount > 0 ? dynamicTbCount.toLocaleString() : '—'}
-                </div>
-              </div>
-
-              {/* GL Documents */}
-              <div style={{ background: '#EFF6FF', padding: '10px', borderRadius: '12px', border: '1px solid #BFDBFE', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <FileText size={13} />
-                </div>
-                <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>GL Rows</div>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-                  {dynamicGlCount > 0 ? dynamicGlCount.toLocaleString() : '—'}
-                </div>
-              </div>
-            </div>
-
-            {/* Row 2: Status pill (full width) */}
-            <div style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '10px',
-              background: getStatusStyles(currentExecutionStatus).bg,
-              border: `1px solid ${getStatusStyles(currentExecutionStatus).border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={13} color={getStatusStyles(currentExecutionStatus).color} />
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</span>
-              </div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: getStatusStyles(currentExecutionStatus).color, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                {currentExecutionStatus}
-              </span>
-            </div>
-
-            {/* Date Details */}
-            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
-                  <Calendar size={13} color="#94A3B8" /> STARTED
-                </div>
-                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                  {formatExecutiveDate(status?.startedAt || config?.createdAt, false)}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
-                  <CheckCircle2 size={13} color="#94A3B8" /> COMPLETED
-                </div>
-                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                  {formatExecutiveDate(status?.completedAt, false)}
-                </span>
-              </div>
             </div>
           </div>
         </aside>
