@@ -878,23 +878,10 @@ export const SparkJetWorkflow: React.FC = () => {
       />
 
       {/* Main Two-Column Layout (Sidebar + Main Workspace) */}
-      <div className="spark-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(310px, 320px) minmax(0, 1fr)', gap: '24px', alignItems: 'start' }}>
+      <div className="spark-layout">
         
-        {/* LEFT EXECUTIVE SIDEBAR */}
-        <aside className="spark-sidebar" style={{
-          background: '#FFFFFF',
-          borderRadius: '24px',
-          border: '1px solid rgba(226, 232, 240, 0.85)',
-          boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 1px rgba(0, 0, 0, 0.08)',
-          padding: '24px 20px',
-          position: 'sticky',
-          top: '90px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px',
-          width: '100%',
-          boxSizing: 'border-box',
-        }}>
+        {/* LEFT EXECUTIVE SIDEBAR (Fixed & Responsive at all zoom levels) */}
+        <aside className="spark-sidebar">
           {/* Run Header & Status */}
           <div className="spark-run-header" style={{ paddingBottom: '16px', borderBottom: '1px solid #F1F5F9' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -1557,65 +1544,29 @@ export const SparkJetWorkflow: React.FC = () => {
                     </h4>
                     <button
                       onClick={() => window.open(RunService.getDownloadAllZipUrl(runId || ''), '_blank')}
-                      className="btn-secondary"
-                      style={{ fontSize: '0.76rem', padding: '4px 10px', gap: '5px' }}
-                      title="Download complete zip of all outputs"
+                      className="btn-soft-slate"
+                      style={{ fontSize: '0.78rem', padding: '5px 12px' }}
+                      title="Download complete zip of all IR exception outputs"
                     >
-                      <Download size={13} /> Export All (ZIP)
+                      <Download size={13} /> Export All IR (ZIP)
                     </button>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.86rem' }}>IR 1: GL in TB not in Population</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
-                        <button
-                          onClick={() => handleDownloadOutput('IR_Exception_1.csv')}
-                          style={{ background: 'none', border: 'none', color: 'var(--deloitte-teal)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                          title="Download IR_Exception_1.csv"
-                        >
-                          <Download size={13} />
-                        </button>
-                      </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
+                      <span style={{ fontSize: '0.86rem', color: '#334155' }}>IR 1: GL in TB not in Population</span>
+                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.86rem' }}>IR 2: Activity Mismatches</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
-                        <button
-                          onClick={() => handleDownloadOutput('IR_Exception_2.csv')}
-                          style={{ background: 'none', border: 'none', color: 'var(--deloitte-teal)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                          title="Download IR_Exception_2.csv"
-                        >
-                          <Download size={13} />
-                        </button>
-                      </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
+                      <span style={{ fontSize: '0.86rem', color: '#334155' }}>IR 2: Activity Mismatches</span>
+                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.86rem' }}>IR 3: GL in Population not in TB</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
-                        <button
-                          onClick={() => handleDownloadOutput('IR_Exception_3.csv')}
-                          style={{ background: 'none', border: 'none', color: 'var(--deloitte-teal)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                          title="Download IR_Exception_3.csv"
-                        >
-                          <Download size={13} />
-                        </button>
-                      </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
+                      <span style={{ fontSize: '0.86rem', color: '#334155' }}>IR 3: GL in Population not in TB</span>
+                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.86rem' }}>IR 4: Seldom Accounts (Transaction Counts)</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv')}</span>
-                        <button
-                          onClick={() => handleDownloadOutput('Parameter_2_Seldom_Accounts_Inputs.csv')}
-                          style={{ background: 'none', border: 'none', color: 'var(--deloitte-teal)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                          title="Download Parameter_2_Seldom_Accounts_Inputs.csv"
-                        >
-                          <Download size={13} />
-                        </button>
-                      </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
+                      <span style={{ fontSize: '0.86rem', color: '#334155' }}>IR 4: Seldom Accounts (Transaction Counts)</span>
+                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>{getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv')}</span>
                     </div>
                   </div>
                 </div>
@@ -1647,10 +1598,9 @@ export const SparkJetWorkflow: React.FC = () => {
                     </div>
                     <button
                       onClick={() => handleDownloadOutput(selectedIRFile)}
-                      className="btn-primary"
-                      style={{ fontSize: '0.82rem', padding: '7px 14px', gap: '6px' }}
+                      className="btn-soft-teal"
                     >
-                      <Download size={14} /> Download {selectedIRFile}
+                      <Download size={13} /> Export {selectedIRFile}
                     </button>
                   </div>
                 </div>
@@ -1668,16 +1618,17 @@ export const SparkJetWorkflow: React.FC = () => {
                       onClick={() => setSelectedIRFile(tab.file)}
                       style={{
                         padding: '8px 14px',
-                        borderRadius: '6px',
-                        border: selectedIRFile === tab.file ? '2px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
-                        background: selectedIRFile === tab.file ? 'var(--deloitte-teal-light)' : '#FFFFFF',
+                        borderRadius: '8px',
+                        border: selectedIRFile === tab.file ? '1px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
+                        background: selectedIRFile === tab.file ? 'var(--deloitte-teal-light)' : '#F8FAFC',
                         color: selectedIRFile === tab.file ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
-                        fontWeight: 700,
+                        fontWeight: selectedIRFile === tab.file ? 700 : 600,
                         fontSize: '0.82rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       <span>{tab.label}</span>
@@ -1914,7 +1865,7 @@ export const SparkJetWorkflow: React.FC = () => {
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => triggerImportFile('unusualAccounts')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <button onClick={() => triggerImportFile('unusualAccounts')} className="btn-soft-slate">
                             <FolderUp size={14} /> Import File (ex_1.csv)
                           </button>
                           <button
@@ -2040,10 +1991,10 @@ export const SparkJetWorkflow: React.FC = () => {
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={handleAutoPopulateSeldomFromIR4} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <button onClick={handleAutoPopulateSeldomFromIR4} className="btn-soft-teal">
                             <RefreshCw size={14} /> Auto-Populate from IR 4
                           </button>
-                          <button onClick={() => triggerImportFile('seldomAccounts')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <button onClick={() => triggerImportFile('seldomAccounts')} className="btn-soft-slate">
                             <FolderUp size={14} /> Import File (ex_2.csv)
                           </button>
                           <button
@@ -2171,10 +2122,10 @@ export const SparkJetWorkflow: React.FC = () => {
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={handleAutoPopulateRevenueFromTB} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <button onClick={handleAutoPopulateRevenueFromTB} className="btn-soft-teal">
                             <RefreshCw size={14} /> Auto-Populate from TB
                           </button>
-                          <button onClick={() => triggerImportFile('revenueAccounts')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <button onClick={() => triggerImportFile('revenueAccounts')} className="btn-soft-slate">
                             <FolderUp size={14} /> Import File (ex_3.csv)
                           </button>
                           <button
@@ -2412,7 +2363,7 @@ export const SparkJetWorkflow: React.FC = () => {
                             Flags transactions created by users with a total distinct document count at or below this threshold. Schema input: <code>Value</code>
                           </p>
                         </div>
-                        <button onClick={() => triggerImportFile('ex4Threshold')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                        <button onClick={() => triggerImportFile('ex4Threshold')} className="btn-soft-slate">
                           <FolderUp size={14} /> Import File (ex_4.csv)
                         </button>
                       </div>
@@ -2448,7 +2399,7 @@ export const SparkJetWorkflow: React.FC = () => {
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => triggerImportFile('usersOfInterest')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <button onClick={() => triggerImportFile('usersOfInterest')} className="btn-soft-slate">
                             <FolderUp size={14} /> Import File (ex_5.csv)
                           </button>
                           <button
@@ -2575,7 +2526,7 @@ export const SparkJetWorkflow: React.FC = () => {
                             Exact Schema: <code>Closing_Entries_before | Closing_Entries_after | Closing_Date | Frequency</code>
                           </p>
                         </div>
-                        <button onClick={() => triggerImportFile('closingEntries')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                        <button onClick={() => triggerImportFile('closingEntries')} className="btn-soft-slate">
                           <FolderUp size={14} /> Import File (ex_6.csv)
                         </button>
                       </div>
@@ -2642,7 +2593,7 @@ export const SparkJetWorkflow: React.FC = () => {
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => triggerImportFile('datesOfInterest')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <button onClick={() => triggerImportFile('datesOfInterest')} className="btn-soft-slate">
                             <FolderUp size={14} /> Import File (ex_7.csv)
                           </button>
                           <button
@@ -2746,7 +2697,7 @@ export const SparkJetWorkflow: React.FC = () => {
                             Select the round thousands magnitudes and ending repeating digit rules to flag. Schema input: <code>Digits</code>
                           </p>
                         </div>
-                        <button onClick={() => triggerImportFile('roundDigits')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                        <button onClick={() => triggerImportFile('roundDigits')} className="btn-soft-slate">
                           <FolderUp size={14} /> Import File (ex_8.csv)
                         </button>
                       </div>
@@ -2855,7 +2806,7 @@ export const SparkJetWorkflow: React.FC = () => {
                             Exact Schema: <code>Value | Threshold</code>
                           </p>
                         </div>
-                        <button onClick={() => triggerImportFile('duplicateEntries')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                        <button onClick={() => triggerImportFile('duplicateEntries')} className="btn-soft-slate">
                           <FolderUp size={14} /> Import File (ex_9.csv)
                         </button>
                       </div>
@@ -2900,7 +2851,7 @@ export const SparkJetWorkflow: React.FC = () => {
                             Search document header text and line text for suspicious keywords. Schema column: <code>Text</code>
                           </p>
                         </div>
-                        <button onClick={() => triggerImportFile('keywords')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                        <button onClick={() => triggerImportFile('keywords')} className="btn-soft-slate">
                           <FolderUp size={14} /> Import File (ex_10.csv)
                         </button>
                       </div>
@@ -2978,7 +2929,7 @@ export const SparkJetWorkflow: React.FC = () => {
                             Exact Schema: <code>Frequency | Day | Closing_Date</code>
                           </p>
                         </div>
-                        <button onClick={() => triggerImportFile('postClosing')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                        <button onClick={() => triggerImportFile('postClosing')} className="btn-soft-slate">
                           <FolderUp size={14} /> Import File (ex_11.csv)
                         </button>
                       </div>
@@ -3034,7 +2985,7 @@ export const SparkJetWorkflow: React.FC = () => {
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => triggerImportFile('unrelatedRules')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <button onClick={() => triggerImportFile('unrelatedRules')} className="btn-soft-slate">
                             <FolderUp size={14} /> Import File (ex_12.csv)
                           </button>
                           <button
@@ -3422,10 +3373,10 @@ export const SparkJetWorkflow: React.FC = () => {
                       </div>
                       <a
                         href={RunService.getDownloadOutputUrl(runId!, selectedPreviewFile)}
-                        className="btn-primary"
-                        style={{ padding: '5px 12px', fontSize: '0.76rem', gap: '4px', textDecoration: 'none' }}
+                        className="btn-soft-teal"
+                        style={{ padding: '6px 14px', fontSize: '0.8rem', gap: '5px', textDecoration: 'none' }}
                       >
-                        <Download size={12} /> Download Complete File
+                        <Download size={13} /> Download Complete File
                       </a>
                     </div>
 

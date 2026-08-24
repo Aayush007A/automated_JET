@@ -469,23 +469,10 @@ export const OmniaJetWorkflow: React.FC = () => {
       </div>
 
       {/* Main Two-Column Layout (Sidebar + Main Workspace) */}
-      <div className="spark-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(310px, 320px) minmax(0, 1fr)', gap: '24px', alignItems: 'start' }}>
+      <div className="spark-layout">
         
-        {/* LEFT EXECUTIVE SIDEBAR */}
-        <aside className="spark-sidebar" style={{
-          background: '#FFFFFF',
-          borderRadius: '24px',
-          border: '1px solid rgba(226, 232, 240, 0.85)',
-          boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 1px rgba(0, 0, 0, 0.08)',
-          padding: '24px 20px',
-          position: 'sticky',
-          top: '90px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px',
-          width: '100%',
-          boxSizing: 'border-box',
-        }}>
+        {/* LEFT EXECUTIVE SIDEBAR (Fixed & Responsive at all zoom levels) */}
+        <aside className="spark-sidebar">
           {/* Run Header & Status */}
           <div className="spark-run-header" style={{ paddingBottom: '16px', borderBottom: '1px solid #F1F5F9' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
