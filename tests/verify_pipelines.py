@@ -85,8 +85,7 @@ omnia_config = {
             "filePath": os.path.join(workspace_root, 'sample_data', 'omnia_jet', 'JET_Input.xlsx'),
             "extension": "xlsx",
             "sheets": [
-                {"sheetName": "TB_Beginning", "detectedDataset": "TRIAL_BALANCE"},
-                {"sheetName": "TB_Ending", "detectedDataset": "TRIAL_BALANCE"},
+                {"sheetName": "TB", "detectedDataset": "TRIAL_BALANCE"},
                 {"sheetName": "Population", "detectedDataset": "GENERAL_LEDGER"},
                 {"sheetName": "COA", "detectedDataset": "COA"}
             ]
@@ -94,6 +93,7 @@ omnia_config = {
     ],
     "datasetMap": {
         "tbFileId": "JET_Input.xlsx",
+        "tbSheetName": "TB",
         "glFileId": "JET_Input.xlsx",
         "glSheetName": "Population",
         "coaFileId": "JET_Input.xlsx",
@@ -122,8 +122,25 @@ else:
     print("SUCCESS: Omnia JET pipeline executed successfully!")
     out_dir = os.path.join(workspace_root, 'runs', 'TEST-OMNIA-001', 'output')
     print(f"Generated Omnia JET outputs: {os.listdir(out_dir)}")
-    assert os.path.exists(os.path.join(out_dir, 'Parquet_Reconciliation.csv'))
-    assert os.path.exists(os.path.join(out_dir, 'Parquet_Data_Integrity_Check_00_Summary.csv'))
-    assert os.path.exists(os.path.join(out_dir, 'JE-Recon-and-DIC-Template.xlsx'))
+    assert os.path.exists(os.path.join(out_dir, 'TB_Start.csv')), "TB_Start.csv must be auto-created"
+    assert os.path.exists(os.path.join(out_dir, 'TB_End.csv')), "TB_End.csv must be auto-created"
+    assert os.path.exists(os.path.join(out_dir, 'Trial_Balance.csv')), "Trial_Balance.csv must be generated"
+    assert os.path.exists(os.path.join(out_dir, 'Parquet_Reconciliation.csv')), "Parquet_Reconciliation.csv must exist"
+    assert os.path.exists(os.path.join(out_dir, 'Parquet_Data_Integrity_Check_00_Summary.csv')), "DIC summary must exist"
+    assert os.path.exists(os.path.join(out_dir, 'JE-Recon-and-DIC-Template.xlsx')), "Excel workbook must exist"
+
+    # Verify TB_Start has period_end_date = 2025-03-31 (1 day prior to 2025-04-01)
+    tb_start_df = pd.read_csv(os.path.join(out_dir, 'TB_Start.csv'))
+    assert (tb_start_df['period_end_date'] == '2025-03-31').all(), "TB_Start period_end_date must be 1 day prior to start"
+    assert (tb_start_df['Fiscal_Year_Identifier'] == 'Current Period Beginning').all()
+
+    # Verify TB_End has period_end_date = 2026-03-31
+    tb_end_df = pd.read_csv(os.path.join(out_dir, 'TB_End.csv'))
+    assert (tb_end_df['period_end_date'] == '2026-03-31').all(), "TB_End period_end_date must be current period end"
+    assert (tb_end_df['Fiscal_Year_Identifier'] == 'Current Period Ending').all()
+
+    # Verify unified Trial_Balance contains 52 rows (26 beg + 26 end)
+    tb_full_df = pd.read_csv(os.path.join(out_dir, 'Trial_Balance.csv'))
+    assert len(tb_full_df) == 52, f"Expected 52 rows in unified TB, got {len(tb_full_df)}"
 
 print("\n=== All End-to-End Pipeline Tests Passed with 100% Correctness! ===")

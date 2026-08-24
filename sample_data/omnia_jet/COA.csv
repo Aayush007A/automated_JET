@@ -1,0 +1,27 @@
+chart_of_accounts,entity_id,entity_name,account_number,account_description,account_grouping_1_num,account_grouping_1,financial_statement_line_num,financial_statement_line,financial_statement_subtotal_category,financial_statement_category,financial_statement_type,revision_date
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,10100000,Cash and Bank - Current Account,CA01,Cash & Bank,FSL001,Cash and cash equivalents,Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,10200000,Short-term Investments,CA01,Cash & Bank,FSL001,Cash and cash equivalents,Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,11401000,Trade Receivables - Domestic,CA02,Receivables,FSL002,Trade Receivables,Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,11402000,Trade Receivables - Export,CA02,Receivables,FSL002,Trade Receivables,Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,11500000,Prepaid Expenses,CA03,Prepayments,FSL003,Other current assets,Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,11600000,Security Deposits,NCA01,Deposits,FSL004,Other non-current assets,Non-Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,12100000,Inventories - Raw Materials,CA04,Inventory,FSL005,Inventories,Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,12200000,Inventories - Finished Goods,CA04,Inventory,FSL005,Inventories,Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,51001000,Property Plant and Machinery,NCA02,PPE - Gross,FSL006,"Property, plant and equipment",Non-Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,51002000,Accumulated Depreciation,NCA02,PPE - AccDep,FSL006,"Property, plant and equipment",Non-Current Assets,Assets,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,20100000,Short-Term Borrowings,CL01,Borrowings,FSL007,Borrowings,Current Liabilities,Liabilities,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,20200000,Long-Term Loans,NCL01,Long-term Loans,FSL007,Borrowings,Non-Current Liabilities,Liabilities,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,21100000,Trade Payables - Domestic,CL02,Payables,FSL008,Trade Payables,Current Liabilities,Liabilities,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,21200000,Accrued Liabilities,CL03,Accruals,FSL009,Other current liabilities,Current Liabilities,Liabilities,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,21302630,Output GST Clearing,CL04,Tax Payables,FSL010,Other Payables,Current Liabilities,Liabilities,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,1000001,Equity Share Capital Rs 10,EQ01,Share Capital,FSL011,Share Capital,Equity,Equity,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,1160001,Retained Earnings,EQ02,Reserves,FSL012,Retained Earnings,Equity,Equity,Balance Sheet,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,41001400,Sales Revenue - Domestic,REV01,Revenue,FSL013,NET SALES REVENUE,Revenue,Revenue,Income Statement,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,41001500,Sales Revenue - Export,REV01,Revenue,FSL013,NET SALES REVENUE,Revenue,Revenue,Income Statement,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,41301200,Interest Income,REV02,Other Income,FSL014,Finance income,Finance Income,Revenue,Income Statement,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,41301600,Miscellaneous Income,REV02,Other Income,FSL015,"Other operating income (expenses), net",Other Income,Revenue,Income Statement,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,50001000,Cost of Goods Sold,EXP01,COGS,FSL016,COST OF SALES AND SERVICES,Cost of Sales,Expenses,Income Statement,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,52001000,Employee Compensation,EXP02,Staff Costs,FSL017,General and administrative expenses,Operating Expenses,Expenses,Income Statement,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,52002500,Consultancy and Audit Fees,EXP02,Admin,FSL017,General and administrative expenses,Operating Expenses,Expenses,Income Statement,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,52003000,Depreciation Expense,EXP03,Depreciation,FSL018,Depreciation and amortisation,Operating Expenses,Expenses,Income Statement,03/31/2026
+JIOSAT,ENT01,JIOSAT Manufacturing Pvt. Ltd.,52004000,Finance Costs - Interest,EXP04,Finance Costs,FSL019,Finance costs,Finance Costs,Expenses,Income Statement,03/31/2026

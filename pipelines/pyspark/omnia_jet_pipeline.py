@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from common_utils import clean_str, parse_num, parse_date_str, date_to_iso, log_event
+from common_utils import clean_str, parse_num, parse_date_str, parse_date_obj, date_to_iso, log_event
 
 def run_omnia_jet(config_path):
     with open(config_path, 'r', encoding='utf-8') as f:
@@ -198,29 +198,102 @@ def run_omnia_jet(config_path):
     gl_clean.to_csv(gl_out_csv, index=False)
 
     # -------------------------------------------------------------
-    # 2. PREPARING TRIAL BALANCE
+    # 2. PREPARING TRIAL BALANCE (TB_Start + TB_End -> TB_Full)
     # -------------------------------------------------------------
     log_event(run_id, 'TB_PREPARATION', 42, 'Transforming and standardizing Trial Balance', log_file)
 
-    tb_clean = pd.DataFrame()
-    tb_clean['entity_id'] = get_col(tb_df, ['entity_id', 'entity', 'Entity Number', 'Company Code']).apply(clean_str)
-    tb_clean['entity_name'] = get_col(tb_df, ['entity_name', 'company name']).apply(clean_str)
-    tb_clean['account_number'] = get_col(tb_df, ['account_number', 'g_l', 'gl', 'GL Account', 'Account Number']).apply(clean_str)
-    tb_clean['account_description'] = get_col(tb_df, ['account_description', 'description', 'GL Description']).apply(clean_str)
-    tb_clean['period_end_date'] = get_col(tb_df, ['period_end_date', 'end_date', 'date', 'Closing Date']).apply(parse_date_str)
-    tb_clean['entity_currency_ec'] = get_col(tb_df, ['entity_currency_ec', 'currency', 'lcurr', 'Local Currency'], 'INR').apply(clean_str)
-    tb_clean['group_currency_gc'] = get_col(tb_df, ['group_currency_gc', 'group_currency']).apply(clean_str)
-    
-    tb_clean['beginning_balance_ec'] = get_col(tb_df, ['beginning_balance_ec', 'opening_balance', 'Opening Balance']).apply(lambda x: parse_num(x, dec_sep))
-    tb_clean['ending_balance_ec'] = get_col(tb_df, ['ending_balance_ec', 'closing_balance', 'Closing Balance']).apply(lambda x: parse_num(x, dec_sep))
-    tb_clean['beginning_balance_gc'] = get_col(tb_df, ['beginning_balance_gc']).apply(lambda x: parse_num(x, dec_sep))
-    tb_clean['ending_balance_gc'] = get_col(tb_df, ['ending_balance_gc']).apply(lambda x: parse_num(x, dec_sep))
-    
-    tb_clean['period_type'] = get_col(tb_df, ['period_type'], 'YTD').apply(clean_str)
-    tb_clean['chart_of_accounts'] = get_col(tb_df, ['chart_of_accounts'], 'DEFAULT').apply(clean_str)
+    # 1. Determine period dates for beginning cutoff (1 day prior to start) and ending cutoff
+    testing_period_start = params.get('testingPeriodStart') or params.get('first_day_testing_period') or '04/01/2025'
+    testing_period_end = params.get('testingPeriodEnd') or params.get('last_day_testing_period') or params.get('fiscalYearEnd') or '03/31/2026'
 
-    if (tb_clean['entity_id'] == '').all():
-        tb_clean['entity_id'] = gl_clean['entity_id'].iloc[0] if len(gl_clean) > 0 else 'ENT01'
+    start_date_obj = parse_date_obj(testing_period_start) or datetime.date(2025, 4, 1)
+    end_date_obj = parse_date_obj(testing_period_end) or datetime.date(2026, 3, 31)
+
+    prior_period_end_date = (start_date_obj - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    current_period_end_date = end_date_obj.strftime('%Y-%m-%d')
+    current_fy = str(params.get('fiscalYear') or 2026)
+    try:
+        prior_fy = str(int(current_fy) - 1)
+    except:
+        prior_fy = "2025"
+
+    # 2. Extract base fields from raw TB
+    tb_base = pd.DataFrame()
+    tb_base['entity_id'] = get_col(tb_df, ['entity_id', 'entity', 'Entity Number', 'Company Code']).apply(clean_str)
+    tb_base['entity_name'] = get_col(tb_df, ['entity_name', 'company name']).apply(clean_str)
+    tb_base['account_number'] = get_col(tb_df, ['account_number', 'g_l', 'gl', 'GL Account', 'Account Number']).apply(clean_str)
+    tb_base['account_description'] = get_col(tb_df, ['account_description', 'description', 'GL Description']).apply(clean_str)
+    tb_base['raw_period_end_date'] = get_col(tb_df, ['period_end_date', 'end_date', 'date', 'Closing Date']).apply(date_to_iso)
+    tb_base['entity_currency_ec'] = get_col(tb_df, ['entity_currency_ec', 'currency', 'lcurr', 'Local Currency'], 'INR').apply(clean_str)
+    tb_base['group_currency_gc'] = get_col(tb_df, ['group_currency_gc', 'group_currency'], 'USD').apply(clean_str)
+    
+    tb_base['beginning_balance_ec'] = get_col(tb_df, ['beginning_balance_ec', 'opening_balance', 'Opening Balance', 'beginning_balance', 'op balance']).apply(lambda x: parse_num(x, dec_sep))
+    tb_base['ending_balance_ec'] = get_col(tb_df, ['ending_balance_ec', 'closing_balance', 'Closing Balance', 'ending_balance', 'balance']).apply(lambda x: parse_num(x, dec_sep))
+    tb_base['beginning_balance_gc'] = get_col(tb_df, ['beginning_balance_gc']).apply(lambda x: parse_num(x, dec_sep))
+    tb_base['ending_balance_gc'] = get_col(tb_df, ['ending_balance_gc']).apply(lambda x: parse_num(x, dec_sep))
+    
+    # Auto-derive GC amounts if not present
+    tb_base['beginning_balance_gc'] = np.where(tb_base['beginning_balance_gc'] == 0, (tb_base['beginning_balance_ec'] / 83.1).round(2), tb_base['beginning_balance_gc'])
+    tb_base['ending_balance_gc'] = np.where(tb_base['ending_balance_gc'] == 0, (tb_base['ending_balance_ec'] / 83.1).round(2), tb_base['ending_balance_gc'])
+
+    tb_base['period_type'] = get_col(tb_df, ['period_type'], 'YTD').apply(clean_str)
+    tb_base['chart_of_accounts'] = get_col(tb_df, ['chart_of_accounts'], 'DEFAULT').apply(clean_str)
+
+    if (tb_base['entity_id'] == '').all():
+        tb_base['entity_id'] = gl_clean['entity_id'].iloc[0] if len(gl_clean) > 0 else 'ENT01'
+
+    # Check if TB already contains distinct beginning and ending period dates (pre-split)
+    distinct_dates = set(d for d in tb_base['raw_period_end_date'].unique() if d)
+    has_dual_dates = (prior_period_end_date in distinct_dates and current_period_end_date in distinct_dates) or len(distinct_dates) >= 2
+
+    if has_dual_dates:
+        # Pre-split / multi-date TB provided
+        tb_clean = tb_base.copy()
+        tb_clean['period_end_date'] = tb_clean['raw_period_end_date']
+        tb_clean['Fiscal_Year_Identifier'] = np.where(
+            tb_clean['period_end_date'] <= prior_period_end_date, 'Current Period Beginning', 'Current Period Ending'
+        )
+        tb_clean['fiscal_year'] = np.where(
+            tb_clean['Fiscal_Year_Identifier'] == 'Current Period Beginning', prior_fy, current_fy
+        )
+        tb_clean['fiscal_period'] = '12'
+    else:
+        # USER PROVIDED SINGLE TB FILE:
+        # Auto-create TB_Start (TB_Beginning) and TB_End (TB_Ending), and union them to create TB_Full
+        log_event(run_id, 'TB_AUTO_SPLIT', 45,
+                  f'Auto-creating TB_Start (as-of {prior_period_end_date}) and TB_End (as-of {current_period_end_date}) from single TB dataset',
+                  log_file)
+
+        # 1. TB_Start (Prior Period Cutoff): contains beginning balances as ending balances
+        tb_beg = tb_base.copy()
+        tb_beg['period_end_date'] = prior_period_end_date
+        tb_beg['ending_balance_ec'] = tb_base['beginning_balance_ec']
+        tb_beg['ending_balance_gc'] = tb_base['beginning_balance_gc']
+        tb_beg['beginning_balance_ec'] = 0.0
+        tb_beg['beginning_balance_gc'] = 0.0
+        tb_beg['fiscal_year'] = prior_fy
+        tb_beg['fiscal_period'] = '12'
+        tb_beg['Fiscal_Year_Identifier'] = 'Current Period Beginning'
+
+        # 2. TB_End (Current Period Cutoff): contains current year ending balances
+        tb_end = tb_base.copy()
+        tb_end['period_end_date'] = current_period_end_date
+        tb_end['ending_balance_ec'] = tb_base['ending_balance_ec']
+        tb_end['ending_balance_gc'] = tb_base['ending_balance_gc']
+        tb_end['beginning_balance_ec'] = tb_base['beginning_balance_ec']
+        tb_end['beginning_balance_gc'] = tb_base['beginning_balance_gc']
+        tb_end['fiscal_year'] = current_fy
+        tb_end['fiscal_period'] = '12'
+        tb_end['Fiscal_Year_Identifier'] = 'Current Period Ending'
+
+        # Export individual TB_Start and TB_End for reference/checkpoints
+        tb_beg.drop(columns=['raw_period_end_date'], errors='ignore').to_csv(os.path.join(output_dir, 'TB_Start.csv'), index=False)
+        tb_end.drop(columns=['raw_period_end_date'], errors='ignore').to_csv(os.path.join(output_dir, 'TB_End.csv'), index=False)
+
+        # 3. Union TB_Start and TB_End into unified TB_Full (tb_clean)
+        tb_clean = pd.concat([tb_beg, tb_end], ignore_index=True)
+
+    tb_clean = tb_clean.drop(columns=['raw_period_end_date'], errors='ignore')
 
     tb_out_csv = os.path.join(output_dir, 'Trial_Balance.csv')
     tb_clean.to_csv(tb_out_csv, index=False)
@@ -266,11 +339,42 @@ def run_omnia_jet(config_path):
         number_of_entries=('journal_number', 'nunique')
     ).reset_index()
 
-    recon_df = tb_clean.merge(je_summary, on=['entity_id', 'account_number'], how='outer')
-    recon_df = recon_df.merge(coa_clean[['account_number', 'financial_statement_category', 'financial_statement_line', 'account_grouping_1']], on='account_number', how='left')
+    # Reconcile using pivoted beginning and ending balances from unified TB
+    tb_beg_sub = tb_clean[tb_clean['Fiscal_Year_Identifier'] == 'Current Period Beginning'][
+        ['entity_id', 'account_number', 'account_description', 'ending_balance_ec', 'ending_balance_gc']
+    ].rename(columns={'ending_balance_ec': 'beginning_balance', 'ending_balance_gc': 'beginning_balance_gc'})
 
-    recon_df['beginning_balance'] = recon_df['beginning_balance_ec'].fillna(0.0)
-    recon_df['ending_balance'] = recon_df['ending_balance_ec'].fillna(0.0)
+    tb_end_sub = tb_clean[tb_clean['Fiscal_Year_Identifier'] == 'Current Period Ending'][
+        ['entity_id', 'account_number', 'account_description', 'ending_balance_ec', 'ending_balance_gc']
+    ].rename(columns={'ending_balance_ec': 'ending_balance', 'ending_balance_gc': 'ending_balance_gc'})
+
+    if len(tb_beg_sub) > 0 and len(tb_end_sub) > 0:
+        tb_reconciled_base = tb_end_sub.merge(
+            tb_beg_sub[['entity_id', 'account_number', 'beginning_balance', 'beginning_balance_gc']],
+            on=['entity_id', 'account_number'],
+            how='outer'
+        )
+    elif len(tb_end_sub) > 0:
+        tb_reconciled_base = tb_end_sub.copy()
+        tb_reconciled_base['beginning_balance'] = 0.0
+        tb_reconciled_base['beginning_balance_gc'] = 0.0
+    else:
+        tb_reconciled_base = tb_clean[['entity_id', 'account_number', 'account_description', 'beginning_balance_ec', 'ending_balance_ec']].rename(
+            columns={'beginning_balance_ec': 'beginning_balance', 'ending_balance_ec': 'ending_balance'}
+        ).drop_duplicates(subset=['entity_id', 'account_number'])
+
+    tb_reconciled_base['beginning_balance'] = tb_reconciled_base['beginning_balance'].fillna(0.0)
+    tb_reconciled_base['ending_balance'] = tb_reconciled_base['ending_balance'].fillna(0.0)
+
+    recon_df = tb_reconciled_base.merge(je_summary, on=['entity_id', 'account_number'], how='outer')
+    recon_df = recon_df.merge(
+        coa_clean[['account_number', 'financial_statement_category', 'financial_statement_line', 'account_grouping_1']],
+        on='account_number',
+        how='left'
+    )
+
+    recon_df['beginning_balance'] = recon_df['beginning_balance'].fillna(0.0)
+    recon_df['ending_balance'] = recon_df['ending_balance'].fillna(0.0)
     recon_df['je_activity'] = recon_df['je_activity'].fillna(0.0)
     recon_df['debit_amount'] = recon_df['debit_amount'].fillna(0.0)
     recon_df['credit_amount'] = recon_df['credit_amount'].fillna(0.0)
