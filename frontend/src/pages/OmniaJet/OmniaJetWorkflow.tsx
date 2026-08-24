@@ -136,7 +136,7 @@ export const OmniaJetWorkflow: React.FC = () => {
       setConfig((prev) => prev ? { ...prev, files: res.files, datasetMap: res.datasetMap, fieldMappings: res.fieldMappings } : null);
       await loadRun();
     } catch (err: any) {
-      alert(`Upload failed: ${err.message}`);
+      console.error(`Upload failed:`, err);
     } finally {
       setUploading(false);
     }
@@ -149,7 +149,7 @@ export const OmniaJetWorkflow: React.FC = () => {
       setConfig((prev) => prev ? { ...prev, files: res.files, datasetMap: res.datasetMap } : null);
       await loadRun();
     } catch (err: any) {
-      alert(`Remove failed: ${err.message}`);
+      console.error(`Remove failed:`, err);
     }
   };
 

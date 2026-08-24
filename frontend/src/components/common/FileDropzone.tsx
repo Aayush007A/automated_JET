@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { UploadCloud, FileSpreadsheet, Trash2, CheckCircle, AlertCircle, File, Eye } from 'lucide-react';
 import { UploadedFileInfo } from '../../types';
 import { StatusBadge } from './StatusBadge';
+import { ConfirmModal } from './ConfirmModal';
 
 interface FileDropzoneProps {
   files: UploadedFileInfo[];
@@ -19,6 +20,8 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   uploading = false,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<UploadedFileInfo | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -249,7 +252,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onRemove(file.fileId);
+                            setFileToDelete(file);
                           }}
                           className="btn-secondary"
                           style={{ padding: '6px 10px', color: 'var(--status-error)' }}
@@ -266,6 +269,33 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
           </div>
         </div>
       )}
+
+      {/* CUSTOM PREMIUM REMOVE FILE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={Boolean(fileToDelete)}
+        onClose={() => setFileToDelete(null)}
+        onConfirm={async () => {
+          if (!fileToDelete) return;
+          setIsRemoving(true);
+          try {
+            await onRemove(fileToDelete.fileId);
+            setFileToDelete(null);
+          } finally {
+            setIsRemoving(false);
+          }
+        }}
+        title={fileToDelete ? `Remove ${fileToDelete.originalName}?` : 'Remove File'}
+        message="Are you sure you want to remove this dataset from the execution workspace? Its extracted sheets, canonical field mappings, and cached sample records will be cleared."
+        confirmText="Remove File"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isRemoving}
+        itemDetails={fileToDelete ? [
+          { label: 'File Name', value: fileToDelete.originalName },
+          { label: 'Detected Dataset', value: fileToDelete.detectedDataset.replace(/_/g, ' ') },
+          { label: 'File Size', value: formatSize(fileToDelete.fileSize) },
+        ] : []}
+      />
     </div>
   );
 };

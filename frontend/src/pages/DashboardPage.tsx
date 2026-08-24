@@ -10,6 +10,8 @@ import {
   Trash2, BarChart3, Shield, Cpu, TrendingUp, BookOpen, ExternalLink
 } from 'lucide-react';
 
+import { ConfirmModal } from '../components/common/ConfirmModal';
+
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
@@ -17,6 +19,10 @@ export const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState<{ isOpen: boolean; run: RunSummary | null }>({
+    isOpen: false,
+    run: null,
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [workflowFilter, setWorkflowFilter] = useState<'ALL' | 'SPARK_JET' | 'OMNIA_JET'>('ALL');
 
@@ -37,7 +43,7 @@ export const DashboardPage: React.FC = () => {
       const res = await RunService.createRun(workflow, 'PYTHON');
       navigate(workflow === 'SPARK_JET' ? `/spark-jet?runId=${res.runId}` : `/omnia-jet?runId=${res.runId}`);
     } catch (err: any) {
-      alert(`Failed to create run: ${err.message}`);
+      console.error('Failed to create run:', err);
     } finally {
       setCreating(null);
     }
@@ -47,14 +53,20 @@ export const DashboardPage: React.FC = () => {
     navigate(run.workflow === 'SPARK_JET' ? `/spark-jet?runId=${run.runId}` : `/omnia-jet?runId=${run.runId}`);
   };
 
-  const handleDeleteRun = async (runId: string) => {
-    if (!window.confirm(`Permanently delete run ${runId}? All outputs and logs will be removed.`)) return;
+  const handleOpenDelete = (run: RunSummary) => {
+    setConfirmDeleteModal({ isOpen: true, run });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteModal.run) return;
+    const runId = confirmDeleteModal.run.runId;
     setDeletingId(runId);
     try {
       await RunService.deleteRun(runId);
       setRuns(prev => prev.filter(r => r.runId !== runId));
+      setConfirmDeleteModal({ isOpen: false, run: null });
     } catch (err: any) {
-      alert(`Failed to delete: ${err.message}`);
+      console.error('Failed to delete run:', err);
     } finally {
       setDeletingId(null);
     }
@@ -519,7 +531,7 @@ export const DashboardPage: React.FC = () => {
                         {run.status === 'COMPLETED' ? <ExternalLink size={12} /> : <Play size={12} />}
                         {run.status === 'COMPLETED' ? 'View' : 'Resume'}
                       </button>
-                      <button onClick={() => handleDeleteRun(run.runId)} disabled={deletingId === run.runId} className="btn-secondary"
+                      <button onClick={() => handleOpenDelete(run)} disabled={deletingId === run.runId} className="btn-secondary"
                         style={{ padding: '5px 9px', color: 'var(--status-error)' }} title="Delete run">
                         {deletingId === run.runId ? <RefreshCw size={12} className="spin-slow" /> : <Trash2 size={12} />}
                       </button>
@@ -546,6 +558,24 @@ export const DashboardPage: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* CUSTOM PREMIUM DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={confirmDeleteModal.isOpen}
+        onClose={() => setConfirmDeleteModal({ isOpen: false, run: null })}
+        onConfirm={handleConfirmDelete}
+        title={confirmDeleteModal.run ? `Delete Run ${confirmDeleteModal.run.runId}` : 'Delete Run'}
+        message="Are you sure you want to permanently delete this audit execution? All standardized outputs, integrity test results, and execution logs will be permanently deleted. This action cannot be undone."
+        confirmText="Delete Run"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={Boolean(deletingId)}
+        itemDetails={confirmDeleteModal.run ? [
+          { label: 'Run ID', value: confirmDeleteModal.run.runId },
+          { label: 'Workflow', value: confirmDeleteModal.run.workflow === 'SPARK_JET' ? 'Spark JET Automation' : 'Omnia JET Reconciliation' },
+          { label: 'Status', value: confirmDeleteModal.run.status },
+        ] : []}
+      />
     </div>
   );
 };
