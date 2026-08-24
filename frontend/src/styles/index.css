@@ -749,6 +749,11 @@ a:hover {
     align-items: flex-start !important;
     gap: 8px !important;
   }
+
+  /* Login page responsive: hide left illustration section on small screens */
+  .login-left-section {
+    display: none !important;
+  }
 }
 
 /* Very small mobile: ≤ 480px */
