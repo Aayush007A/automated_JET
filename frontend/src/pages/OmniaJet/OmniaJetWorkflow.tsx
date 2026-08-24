@@ -356,19 +356,6 @@ export const OmniaJetWorkflow: React.FC = () => {
     );
   }, [reconPreviewData, reconSearch]);
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
-        <RefreshCw size={32} className="spin-slow" style={{ margin: '0 auto 16px', color: 'var(--deloitte-teal)' }} />
-        Loading Omnia JET Execution Workspace...
-      </div>
-    );
-  }
-
-  const tbHeaders = config?.files.find(f => f.detectedDataset === 'TRIAL_BALANCE' || f.fileId === config.datasetMap.tbFileId)?.headers || [];
-  const glHeaders = config?.files.find(f => f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.fileId === config.datasetMap.glFileId)?.headers || [];
-  const coaHeaders = config?.files.find(f => f.detectedDataset === 'COA' || f.fileId === config.datasetMap.coaFileId)?.headers || [];
-
   // DYNAMIC EXECUTIVE SUMMARY METRICS
   const dynamicTbCount = useMemo(() => {
     if (status?.totalInputRows?.tb !== undefined && status.totalInputRows.tb > 0) {
@@ -416,6 +403,19 @@ export const OmniaJetWorkflow: React.FC = () => {
   const currentExecutionStatus = useMemo(() => {
     return status?.status || 'CREATED';
   }, [status?.status]);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
+        <RefreshCw size={32} className="spin-slow" style={{ margin: '0 auto 16px', color: 'var(--deloitte-teal)' }} />
+        Loading Omnia JET Execution Workspace...
+      </div>
+    );
+  }
+
+  const tbHeaders = config?.files.find(f => f.detectedDataset === 'TRIAL_BALANCE' || f.fileId === config.datasetMap.tbFileId)?.headers || [];
+  const glHeaders = config?.files.find(f => f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.fileId === config.datasetMap.glFileId)?.headers || [];
+  const coaHeaders = config?.files.find(f => f.detectedDataset === 'COA' || f.fileId === config.datasetMap.coaFileId)?.headers || [];
 
   return (
     <div className="container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 16px' }}>
