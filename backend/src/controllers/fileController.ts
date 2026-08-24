@@ -296,6 +296,31 @@ export class FileController {
       }
     }
 
+    // Robust helper to extract cell value from a row using mapped column name or normalized fallbacks
+    const getRowVal = (row: Record<string, any>, mappedCol?: string, fallbackAliases: string[] = []): string => {
+      if (mappedCol && row[mappedCol] !== undefined && row[mappedCol] !== null && String(row[mappedCol]).trim() !== '') {
+        return String(row[mappedCol]).trim();
+      }
+      const allAliases = mappedCol ? [mappedCol, ...fallbackAliases] : fallbackAliases;
+      const normalizedTargets = allAliases.map((t) => t.toLowerCase().replace(/[\s_-]/g, ''));
+      for (const [key, val] of Object.entries(row)) {
+        const cleanKey = key.toLowerCase().replace(/[\s_-]/g, '');
+        if (normalizedTargets.includes(cleanKey)) {
+          if (val !== undefined && val !== null && String(val).trim() !== '') {
+            return String(val).trim();
+          }
+        }
+      }
+      return '';
+    };
+
+    const tbGlCol = (config.fieldMappings.tb || []).find((m) => ['G_L', 'GL_Account', 'Account', 'Account_Number'].includes(m.standardField))?.sourceField;
+    const tbDescCol = (config.fieldMappings.tb || []).find((m) => ['Description', 'Account_Description'].includes(m.standardField))?.sourceField;
+    const tbSubtypeCol = (config.fieldMappings.tb || []).find((m) => ['Account_Subtype', 'Subtype'].includes(m.standardField))?.sourceField;
+
+    const glDocCol = (config.fieldMappings.gl || []).find((m) => ['DocumentNo', 'Document_Number', 'Journal_ID', 'Accounting_Document'].includes(m.standardField))?.sourceField;
+    const glAccCol = (config.fieldMappings.gl || []).find((m) => ['G_L', 'GL_Account', 'Account', 'Account_Number'].includes(m.standardField))?.sourceField;
+
     // Constraint Validation on TB
     let blankTBGL = 0;
     let blankTBDesc = 0;
@@ -303,12 +328,12 @@ export class FileController {
     const validSubtypes = new Set(['assets', 'asset', 'liabilities', 'liability', 'equity', 'revenue', 'revenues', 'income', 'expense', 'expenses']);
 
     for (const row of tbData.rows) {
-      const gl = row['G/L'] || row['G_L'] || row['account_number'] || row['GL Account'] || '';
-      const desc = row['Description'] || row['account_description'] || '';
-      const sub = (row['Account Subtype'] || row['account_subtype'] || '').toString().toLowerCase().trim();
+      const gl = getRowVal(row, tbGlCol, ['G_L', 'GL Account', 'GL_Account', 'G/L', 'Account', 'Account Number', 'account_number', 'Account Code']);
+      const desc = getRowVal(row, tbDescCol, ['Description', 'Account Description', 'account_description', 'Desc', 'Account Name']);
+      const sub = getRowVal(row, tbSubtypeCol, ['Account Subtype', 'account_subtype', 'Subtype', 'Account_Subtype']).toLowerCase();
 
-      if (!gl || String(gl).trim() === '') blankTBGL++;
-      if (!desc || String(desc).trim() === '') blankTBDesc++;
+      if (!gl) blankTBGL++;
+      if (!desc) blankTBDesc++;
       if (sub && !validSubtypes.has(sub)) invalidSubtypes++;
     }
 
@@ -320,10 +345,32 @@ export class FileController {
     let blankDocNo = 0;
     let blankGLInGL = 0;
     for (const row of glData.rows) {
-      const doc = row['DocumentNo'] || row['journal_number'] || row['accounting document'] || row['Document Number'] || '';
-      const gl = row['G/L'] || row['G_L'] || row['account_number'] || row['GL Account'] || '';
-      if (!doc || String(doc).trim() === '') blankDocNo++;
-      if (!gl || String(gl).trim() === '') blankGLInGL++;
+      const doc = getRowVal(row, glDocCol, [
+        'DocumentNo',
+        'Accounting document',
+        'accounting document',
+        'Accounting Document',
+        'Document Number',
+        'document_number',
+        'Journal Number',
+        'journal_number',
+        'Doc No',
+        'Voucher No',
+        'JE Number',
+        'Doc Number',
+      ]);
+      const gl = getRowVal(row, glAccCol, [
+        'G_L',
+        'GL Account',
+        'GL_Account',
+        'G/L',
+        'Account',
+        'Account Number',
+        'account_number',
+        'Account Code',
+      ]);
+      if (!doc) blankDocNo++;
+      if (!gl) blankGLInGL++;
     }
     if (blankDocNo > 0) constraintWarnings.push(`General Ledger has ${blankDocNo} rows with missing Document / Journal Numbers.`);
     if (blankGLInGL > 0) constraintWarnings.push(`General Ledger has ${blankGLInGL} rows with missing G/L account codes.`);
