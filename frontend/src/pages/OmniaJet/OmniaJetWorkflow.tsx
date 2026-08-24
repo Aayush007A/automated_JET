@@ -46,6 +46,24 @@ const formatExecutiveDate = (dateStr?: string, includeSeconds: boolean = false):
   return `${month} ${day}, ${year}, ${hours}:${minutes} ${ampm}`;
 };
 
+const getStatusStyles = (st: string) => {
+  switch (st) {
+    case 'COMPLETED':
+      return { bg: '#DCFCE7', border: '#BBF7D0', color: '#16A34A' };
+    case 'RUNNING':
+      return { bg: '#DBEAFE', border: '#BFDBFE', color: '#2563EB' };
+    case 'FAILED':
+      return { bg: '#FEE2E2', border: '#FECACA', color: '#DC2626' };
+    case 'CONFIGURED':
+    case 'MAPPING':
+      return { bg: '#E6F4F5', border: '#BCE3E6', color: '#007680' };
+    case 'WARNING':
+      return { bg: '#FEF3C7', border: '#FDE68A', color: '#D97706' };
+    default:
+      return { bg: '#F1F5F9', border: '#E2E8F0', color: '#475569' };
+  }
+};
+
 const DQC_DEFINITIONS = [
   { code: '01a', name: 'COA Blank Values', desc: 'Critical missing account numbers or descriptions in COA', dataset: 'COA', category: 'Completeness', severity: 'ERROR' },
   { code: '01b', name: 'TB Blank Values', desc: 'Critical missing GL or balance amounts in TB', dataset: 'TB', category: 'Completeness', severity: 'ERROR' },
@@ -351,6 +369,54 @@ export const OmniaJetWorkflow: React.FC = () => {
   const glHeaders = config?.files.find(f => f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.fileId === config.datasetMap.glFileId)?.headers || [];
   const coaHeaders = config?.files.find(f => f.detectedDataset === 'COA' || f.fileId === config.datasetMap.coaFileId)?.headers || [];
 
+  // DYNAMIC EXECUTIVE SUMMARY METRICS
+  const dynamicTbCount = useMemo(() => {
+    if (status?.totalInputRows?.tb !== undefined && status.totalInputRows.tb > 0) {
+      return status.totalInputRows.tb;
+    }
+    if (autoCleanReport?.tbRowsCleaned !== undefined && autoCleanReport.tbRowsCleaned > 0) {
+      return autoCleanReport.tbRowsCleaned;
+    }
+    // Check uploaded files and sheets
+    for (const f of config?.files || []) {
+      if (f.sheets && f.sheets.length > 0) {
+        const tbSheet = f.sheets.find(s => s.detectedDataset === 'TRIAL_BALANCE');
+        if (tbSheet?.rowCount && tbSheet.rowCount > 0) return tbSheet.rowCount;
+      }
+      if (f.detectedDataset === 'TRIAL_BALANCE' || f.fileId === config?.datasetMap?.tbFileId) {
+        if (f.sampleRows && f.sampleRows.length > 0) return f.sampleRows.length;
+      }
+    }
+    return 0;
+  }, [status?.totalInputRows?.tb, autoCleanReport?.tbRowsCleaned, config?.files, config?.datasetMap?.tbFileId]);
+
+  const dynamicGlCount = useMemo(() => {
+    if (status?.glCheckpointsSummary?.totalJournals !== undefined && status.glCheckpointsSummary.totalJournals > 0) {
+      return status.glCheckpointsSummary.totalJournals;
+    }
+    if (status?.totalInputRows?.gl !== undefined && status.totalInputRows.gl > 0) {
+      return status.totalInputRows.gl;
+    }
+    if (autoCleanReport?.glRowsCleaned !== undefined && autoCleanReport.glRowsCleaned > 0) {
+      return autoCleanReport.glRowsCleaned;
+    }
+    // Check uploaded files and sheets
+    for (const f of config?.files || []) {
+      if (f.sheets && f.sheets.length > 0) {
+        const glSheet = f.sheets.find(s => s.detectedDataset === 'GENERAL_LEDGER' || s.detectedDataset === 'POPULATION');
+        if (glSheet?.rowCount && glSheet.rowCount > 0) return glSheet.rowCount;
+      }
+      if (f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.fileId === config?.datasetMap?.glFileId) {
+        if (f.sampleRows && f.sampleRows.length > 0) return f.sampleRows.length;
+      }
+    }
+    return 0;
+  }, [status?.glCheckpointsSummary?.totalJournals, status?.totalInputRows?.gl, autoCleanReport?.glRowsCleaned, config?.files, config?.datasetMap?.glFileId]);
+
+  const currentExecutionStatus = useMemo(() => {
+    return status?.status || 'CREATED';
+  }, [status?.status]);
+
   return (
     <div className="container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 16px' }}>
       
@@ -471,16 +537,16 @@ export const OmniaJetWorkflow: React.FC = () => {
                 fontWeight: 800,
                 padding: '4px 10px',
                 borderRadius: '20px',
-                background: '#E6F4F5',
-                border: '1px solid #BCE3E6',
-                color: '#007680',
+                background: getStatusStyles(currentExecutionStatus).bg,
+                border: `1px solid ${getStatusStyles(currentExecutionStatus).border}`,
+                color: getStatusStyles(currentExecutionStatus).color,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
               }}>
-                <Clock size={12} /> {status?.status || 'MAPPING'}
+                <Clock size={12} /> {currentExecutionStatus}
               </span>
             </div>
           </div>
@@ -679,7 +745,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                   TB ACCOUNTS
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '3px', lineHeight: 1 }}>
-                  {status?.totalInputRows?.tb || 0}
+                  {dynamicTbCount}
                 </div>
               </div>
 
@@ -692,7 +758,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                   GL DOCUMENTS
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '3px', lineHeight: 1 }}>
-                  {status?.glCheckpointsSummary?.totalJournals || 0}
+                  {dynamicGlCount}
                 </div>
               </div>
 
@@ -708,8 +774,8 @@ export const OmniaJetWorkflow: React.FC = () => {
                   <span style={{
                     fontSize: '0.58rem',
                     fontWeight: 800,
-                    color: '#007680',
-                    background: '#E6F4F5',
+                    color: getStatusStyles(currentExecutionStatus).color,
+                    background: getStatusStyles(currentExecutionStatus).bg,
                     padding: '2px 4px',
                     borderRadius: '4px',
                     display: 'block',
@@ -718,7 +784,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}>
-                    {status?.status || 'MAPPING'}
+                    {currentExecutionStatus}
                   </span>
                 </div>
               </div>
