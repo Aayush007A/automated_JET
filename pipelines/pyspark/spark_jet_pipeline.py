@@ -340,7 +340,14 @@ def run_spark_jet_pipeline(config_path: str):
 
     # Ex3: Large Debits to Revenue During the Period
     if 3 in selected_exceptions:
-        rev_gls = set(tb_clean[tb_clean['Account_Subtype'].str.lower().isin(['revenue', 'income', 'revenues'])]['G_L'].unique())
+        custom_rev = params.get('ex3RevenueAccounts', [])
+        if custom_rev and len(custom_rev) > 0:
+            rev_gls = set([str(x).strip() for x in custom_rev if str(x).strip()])
+        else:
+            rev_gls = set(tb_clean[tb_clean['Account_Subtype'].str.lower().isin(['revenue', 'income', 'revenues'])]['G_L'].unique())
+            if len(rev_gls) == 0:
+                rev_gls = set(tb_clean[tb_clean['FS_Line_Item'].str.lower().str.contains('revenue|sales|income', regex=True, na=False)]['G_L'].unique())
+        
         rev_docs = gl_clean[gl_clean['G_L'].isin(rev_gls)]
         doc_rev_sums = rev_docs.groupby('DocumentNo')['Amount_in_local_cur'].sum().reset_index()
         ex3_threshold = float(params.get('ex3RevenueDebitsThreshold', 0.0))

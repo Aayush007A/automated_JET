@@ -73,6 +73,18 @@ interface AccountRow {
   notes?: string;
 }
 
+interface RevenueAccountRow {
+  gl: string;
+  description: string;
+  openingBalance: number | string;
+  debit: number | string;
+  credit: number | string;
+  closingBalance: number | string;
+  movement: number | string;
+  subtype: string;
+  fsLineItem: string;
+}
+
 interface UserRow {
   userId: string;
   name?: string;
@@ -164,6 +176,20 @@ export const SparkJetWorkflow: React.FC = () => {
     { gl: '11601900', description: 'Security Deposit Long Term', subtype: 'Assets', notes: 'Infrequent Postings' },
     { gl: '52002500', description: 'Gain on Sale of Assets', subtype: 'Revenue', notes: 'Infrequent Postings' },
     { gl: '1081001', description: 'Investment in Subs', subtype: 'Assets', notes: 'Infrequent Postings' },
+  ]);
+
+  const [revenueAccounts, setRevenueAccounts] = useState<RevenueAccountRow[]>([
+    { gl: '41001000', description: 'Sales - Free Samples Dom', openingBalance: 16000.0, debit: 0.0, credit: 0.0, closingBalance: 16000.0, movement: 0.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
+    { gl: '41001400', description: 'Sales - Domestic', openingBalance: -4295306840.85, debit: 0.0, credit: 0.0, closingBalance: -5343990283.18, movement: -1048683442.33, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
+    { gl: '41001500', description: 'Sales - Exports', openingBalance: -775851.91, debit: 0.0, credit: 0.0, closingBalance: -775851.91, movement: 0.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
+    { gl: '41001510', description: 'Sales - Intercompany', openingBalance: -2753213.7, debit: 0.0, credit: 0.0, closingBalance: -2753213.7, movement: 0.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
+    { gl: '41201000', description: 'Sales Mfg Scrap', openingBalance: -76721259.0, debit: 0.0, credit: 0.0, closingBalance: -100466623.0, movement: -23745364.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
+    { gl: '41201200', description: 'Sales - Trading', openingBalance: -1857597.0, debit: 0.0, credit: 0.0, closingBalance: -1748516.0, movement: 109081.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
+    { gl: '41301200', description: 'Interest received', openingBalance: -4112690.12, debit: 0.0, credit: 0.0, closingBalance: -3545833.12, movement: 566857.0, subtype: 'Revenue', fsLineItem: 'Finance income' },
+    { gl: '41301310', description: 'Exp.Incentive Duty Drawback-Income', openingBalance: -63429.0, debit: 0.0, credit: 0.0, closingBalance: -63429.0, movement: 0.0, subtype: 'Revenue', fsLineItem: 'Other operating income (expenses), net' },
+    { gl: '41301330', description: 'Accrual Income against PSI Scheme', openingBalance: -256489676.5, debit: 0.0, credit: 0.0, closingBalance: -293334821.5, movement: -36845145.0, subtype: 'Revenue', fsLineItem: 'Other operating income (expenses), net' },
+    { gl: '41301600', description: 'Misc. Income', openingBalance: -1820.0, debit: 0.0, credit: 0.0, closingBalance: -8544210.0, movement: -8542390.0, subtype: 'Revenue', fsLineItem: 'Other operating income (expenses), net' },
+    { gl: '41301820', description: 'Sales of Tooling', openingBalance: -4098000.0, debit: 0.0, credit: 0.0, closingBalance: -4098000.0, movement: 0.0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' },
   ]);
 
   const [usersOfInterest, setUsersOfInterest] = useState<UserRow[]>([
@@ -423,6 +449,28 @@ export const SparkJetWorkflow: React.FC = () => {
           setSeldomAccounts(parsedRows);
           setFileImportNotice(`Successfully imported ${parsedRows.length} Seldom Accounts from ${file.name}`);
         }
+      } else if (currentImportTarget === 'revenueAccounts') {
+        const parsedRev: RevenueAccountRow[] = [];
+        dataRows.forEach((line) => {
+          const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
+          if (cols[0]) {
+            parsedRev.push({
+              gl: cols[0],
+              description: cols[1] || '',
+              openingBalance: parseFloat(cols[2]) || 0,
+              debit: parseFloat(cols[3]) || 0,
+              credit: parseFloat(cols[4]) || 0,
+              closingBalance: parseFloat(cols[5]) || 0,
+              movement: parseFloat(cols[6]) || 0,
+              subtype: cols[7] || 'Revenue',
+              fsLineItem: cols[8] || 'NET SALES REVENUE',
+            });
+          }
+        });
+        if (parsedRev.length > 0) {
+          setRevenueAccounts(parsedRev);
+          setFileImportNotice(`Successfully imported ${parsedRev.length} Revenue Accounts from ${file.name}`);
+        }
       } else if (currentImportTarget === 'usersOfInterest') {
         const parsedUsers: UserRow[] = [];
         dataRows.forEach((line) => {
@@ -484,6 +532,71 @@ export const SparkJetWorkflow: React.FC = () => {
     }
   };
 
+  const handleAutoPopulateRevenueFromTB = async () => {
+    if (!runId) return;
+    try {
+      const tbFile = config?.files.find(f => f.detectedDataset === 'TRIAL_BALANCE' || f.sheets?.some(s => s.detectedDataset === 'TRIAL_BALANCE'));
+      if (!tbFile) return;
+      const res = await RunService.previewInputFile(runId, tbFile.fileId, tbFile.sheets?.[0]?.sheetName, 2000);
+      if (res && res.rows) {
+        const revRows = res.rows.filter(r => {
+          const sub = String(r.Account_Subtype || r['Account Subtype'] || r.subtype || '').toLowerCase();
+          const fs = String(r.FS_Line_Item || r['FS Line Item'] || r.fs_line_item || '').toLowerCase();
+          return sub.includes('revenue') || sub.includes('income') || fs.includes('revenue') || fs.includes('sales');
+        });
+        if (revRows.length > 0) {
+          const mapped: RevenueAccountRow[] = revRows.map(r => ({
+            gl: String(r.G_L || r['G/L'] || r.gl || r['GL Account'] || ''),
+            description: String(r.Description || r.description || r['Account Description'] || ''),
+            openingBalance: Number(r.Opening_Balance || r['Opening Balance'] || 0),
+            debit: Number(r.Debit || r.debit || 0),
+            credit: Number(r.Credit || r.credit || 0),
+            closingBalance: Number(r.Closing_Balance || r['Closing Balance'] || 0),
+            movement: Number(r.Movement || r.movement || 0),
+            subtype: String(r.Account_Subtype || r['Account Subtype'] || 'Revenue'),
+            fsLineItem: String(r.FS_Line_Item || r['FS Line Item'] || 'NET SALES REVENUE'),
+          })).filter(r => !!r.gl);
+          setRevenueAccounts(mapped);
+          setFileImportNotice(`Auto-populated ${mapped.length} Revenue & Income accounts directly from uploaded Trial Balance`);
+          setTimeout(() => setFileImportNotice(null), 6000);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to auto-populate revenue accounts from TB:', err);
+    }
+  };
+
+  const handleAutoPopulateSeldomFromIR4 = async () => {
+    if (!runId) return;
+    try {
+      const res = await RunService.previewOutput(runId, 'Parameter_2_Seldom_Accounts_Inputs.csv', 100);
+      if (res && res.rows && res.rows.length > 0) {
+        const mapped: AccountRow[] = res.rows
+          .filter(r => Number(r.Count || 0) <= 5 && Number(r.Count || 0) > 0)
+          .map(r => ({
+            gl: String(r.G_L || ''),
+            description: String(r.Description || 'Seldom Account'),
+            subtype: String(r.Account_Subtype || 'Assets'),
+            notes: `Posting count: ${r.Count || 0}`,
+          }))
+          .filter(r => !!r.gl);
+        if (mapped.length > 0) {
+          setSeldomAccounts(mapped);
+          setFileImportNotice(`Auto-populated ${mapped.length} Seldom Accounts from IR 4 (counts <= 5)`);
+          setTimeout(() => setFileImportNotice(null), 6000);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to auto-populate seldom accounts:', err);
+    }
+  };
+
+  const handleDownloadOutput = (fileName: string) => {
+    if (!runId) return;
+    const url = RunService.getDownloadOutputUrl(runId, fileName);
+    window.open(url, '_blank');
+  };
+
   const handleRunPipeline = async (targetStepAfter: number = 5) => {
     if (!runId) return;
     setExecuting(true);
@@ -500,6 +613,7 @@ export const SparkJetWorkflow: React.FC = () => {
         runControlSamples: runControlSample,
         ex1UnusualAccounts: unusualAccounts.map((a) => a.gl).filter(Boolean),
         ex2SeldomAccounts: seldomAccounts.map((a) => a.gl).filter(Boolean),
+        ex3RevenueAccounts: revenueAccounts.map((a) => a.gl).filter(Boolean),
         ex3RevenueDebitsThreshold: Number(ex3Threshold || 0),
         ex3QuarterStartDate: ex3QuarterStart,
         ex3QuarterEndDate: ex3QuarterEnd,
@@ -656,7 +770,7 @@ export const SparkJetWorkflow: React.FC = () => {
     const list: Array<{ id: string; label: string; count: number | null }> = [];
     if (enabledExceptions.ex1) list.push({ id: 'ex1', label: 'Ex1: Unusual Accounts', count: unusualAccounts.length });
     if (enabledExceptions.ex2) list.push({ id: 'ex2', label: 'Ex2: Seldom Accounts', count: seldomAccounts.length });
-    if (enabledExceptions.ex3) list.push({ id: 'ex3', label: 'Ex3: Revenue Debits', count: null });
+    if (enabledExceptions.ex3) list.push({ id: 'ex3', label: 'Ex3: Revenue Debits', count: revenueAccounts.length });
     if (enabledExceptions.ex4) list.push({ id: 'ex4', label: 'Ex4: Few Postings Users', count: null });
     if (enabledExceptions.ex5) list.push({ id: 'ex5', label: 'Ex5: Users of Interest', count: usersOfInterest.length });
     if (enabledExceptions.ex6) list.push({ id: 'ex6', label: 'Ex6: Closing Entries', count: null });
@@ -1437,25 +1551,71 @@ export const SparkJetWorkflow: React.FC = () => {
 
                 {/* IR 1 to IR 4 Summary */}
                 <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>
-                    Integrity Tests (IR 1 - 4) Summary
-                  </h4>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', margin: 0 }}>
+                      Integrity Tests (IR 1 - 4) Summary
+                    </h4>
+                    <button
+                      onClick={() => window.open(RunService.getDownloadAllZipUrl(runId || ''), '_blank')}
+                      className="btn-secondary"
+                      style={{ fontSize: '0.76rem', padding: '4px 10px', gap: '5px' }}
+                      title="Download complete zip of all outputs"
+                    >
+                      <Download size={13} /> Export All (ZIP)
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px' }}>
                       <span style={{ fontSize: '0.86rem' }}>IR 1: GL in TB not in Population</span>
-                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
+                        <button
+                          onClick={() => handleDownloadOutput('IR_Exception_1.csv')}
+                          style={{ background: 'none', border: 'none', color: 'var(--deloitte-teal)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                          title="Download IR_Exception_1.csv"
+                        >
+                          <Download size={13} />
+                        </button>
+                      </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px' }}>
                       <span style={{ fontSize: '0.86rem' }}>IR 2: Activity Mismatches</span>
-                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
+                        <button
+                          onClick={() => handleDownloadOutput('IR_Exception_2.csv')}
+                          style={{ background: 'none', border: 'none', color: 'var(--deloitte-teal)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                          title="Download IR_Exception_2.csv"
+                        >
+                          <Download size={13} />
+                        </button>
+                      </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px' }}>
                       <span style={{ fontSize: '0.86rem' }}>IR 3: GL in Population not in TB</span>
-                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
+                        <button
+                          onClick={() => handleDownloadOutput('IR_Exception_3.csv')}
+                          style={{ background: 'none', border: 'none', color: 'var(--deloitte-teal)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                          title="Download IR_Exception_3.csv"
+                        >
+                          <Download size={13} />
+                        </button>
+                      </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px' }}>
                       <span style={{ fontSize: '0.86rem' }}>IR 4: Seldom Accounts (Transaction Counts)</span>
-                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv')}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv')}</span>
+                        <button
+                          onClick={() => handleDownloadOutput('Parameter_2_Seldom_Accounts_Inputs.csv')}
+                          style={{ background: 'none', border: 'none', color: 'var(--deloitte-teal)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                          title="Download Parameter_2_Seldom_Accounts_Inputs.csv"
+                        >
+                          <Download size={13} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1473,16 +1633,25 @@ export const SparkJetWorkflow: React.FC = () => {
                     </p>
                   </div>
 
-                  <div style={{ position: 'relative', width: '240px' }}>
-                    <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type="text"
-                      className="jet-input"
-                      placeholder="Search IR rows..."
-                      value={irPreviewSearch}
-                      onChange={(e) => setIrPreviewSearch(e.target.value)}
-                      style={{ paddingLeft: '30px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', fontSize: '0.82rem' }}
-                    />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ position: 'relative', width: '220px' }}>
+                      <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input
+                        type="text"
+                        className="jet-input"
+                        placeholder="Search IR rows..."
+                        value={irPreviewSearch}
+                        onChange={(e) => setIrPreviewSearch(e.target.value)}
+                        style={{ paddingLeft: '30px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleDownloadOutput(selectedIRFile)}
+                      className="btn-primary"
+                      style={{ fontSize: '0.82rem', padding: '7px 14px', gap: '6px' }}
+                    >
+                      <Download size={14} /> Download {selectedIRFile}
+                    </button>
                   </div>
                 </div>
 
@@ -1730,21 +1899,23 @@ export const SparkJetWorkflow: React.FC = () => {
                         )}
                       </button>
                     ))}
-                  </div>                  {/* TAB: EX1 UNUSUAL ACCOUNTS */}
+                  </div>
+
+                  {/* TAB: EX1 UNUSUAL ACCOUNTS */}
                   {paramTab === 'ex1' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
                           <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex1: Unusual & Suspense Accounts Configuration
+                            Ex1: Entries made to Unusual Accounts
                           </h4>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Enter GL codes or import via CSV/Excel to flag entries touching clearing or suspense accounts.
+                            Target suspense, intercompany clearing, and zero-balance accounts to flag any unusual journal activity. Schema column: <code>G_L</code>
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => triggerImportFile('unusualAccounts')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
-                            <FolderUp size={14} /> Import File
+                            <FolderUp size={14} /> Import File (ex_1.csv)
                           </button>
                           <button
                             onClick={() => setUnusualAccounts((prev) => [...prev, { gl: '', description: '', subtype: 'Assets', notes: '' }])}
@@ -1760,7 +1931,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         <table className="jet-table">
                           <thead>
                             <tr>
-                              <th style={{ width: '180px' }}>G/L Account Code</th>
+                              <th style={{ width: '180px' }}>G_L (Account Code)</th>
                               <th>Description</th>
                               <th style={{ width: '160px' }}>Account Subtype</th>
                               <th>Audit Notes</th>
@@ -1862,15 +2033,18 @@ export const SparkJetWorkflow: React.FC = () => {
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
                           <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex2: Seldom Accounts Configuration
+                            Ex2: Entries made to Seldom-based Accounts
                           </h4>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Accounts with low transaction frequencies audited for unexpected journal surges.
+                            Accounts with infrequent postings audited for unexpected journal activity. Schema column: <code>G_L</code>
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={handleAutoPopulateSeldomFromIR4} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                            <RefreshCw size={14} /> Auto-Populate from IR 4
+                          </button>
                           <button onClick={() => triggerImportFile('seldomAccounts')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
-                            <FolderUp size={14} /> Import File
+                            <FolderUp size={14} /> Import File (ex_2.csv)
                           </button>
                           <button
                             onClick={() => setSeldomAccounts((prev) => [...prev, { gl: '', description: '', subtype: 'Assets', notes: '' }])}
@@ -1886,7 +2060,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         <table className="jet-table">
                           <thead>
                             <tr>
-                              <th style={{ width: '180px' }}>G/L Account Code</th>
+                              <th style={{ width: '180px' }}>G_L (Account Code)</th>
                               <th>Description</th>
                               <th style={{ width: '160px' }}>Account Subtype</th>
                               <th>Audit Notes</th>
@@ -1985,14 +2159,36 @@ export const SparkJetWorkflow: React.FC = () => {
                   {/* TAB: EX3 LARGE DEBITS TO REVENUE */}
                   {paramTab === 'ex3' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                        Ex3: Large Debits to Revenue During Period
-                      </h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                        Flags unusual debit transactions to Revenue or Income accounts exceeding the configured threshold.
-                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            Ex3: Large Debits to Revenue During the Period
+                          </h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            Flags unusual debit transactions to Revenue or Income accounts exceeding the configured threshold.
+                            <br />
+                            Exact Schema: <code>G_L | Description | Opening_Balance | Debit | Credit | Closing_Balance | Movement | Account_Subtype | FS_Line_Item</code>
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={handleAutoPopulateRevenueFromTB} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                            <RefreshCw size={14} /> Auto-Populate from TB
+                          </button>
+                          <button onClick={() => triggerImportFile('revenueAccounts')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                            <FolderUp size={14} /> Import File (ex_3.csv)
+                          </button>
+                          <button
+                            onClick={() => setRevenueAccounts((prev) => [...prev, { gl: '', description: '', openingBalance: 0, debit: 0, credit: 0, closingBalance: 0, movement: 0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' }])}
+                            className="btn-primary"
+                            style={{ fontSize: '0.82rem', padding: '6px 12px' }}
+                          >
+                            <Plus size={14} /> Add Revenue GL
+                          </button>
+                        </div>
+                      </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                      {/* Threshold and Date Controls */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px', padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <div>
                           <label className="jet-label">Debit Amount Threshold ({sparkParams.currencyCode || 'INR'})</label>
                           <input
@@ -2002,7 +2198,7 @@ export const SparkJetWorkflow: React.FC = () => {
                             onChange={(e) => setEx3Threshold(Number(e.target.value))}
                             placeholder="0.0"
                           />
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default is 0.0 (Flags all positive debit entries)</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default 0.0 flags all debit postings</span>
                         </div>
                         <div>
                           <label className="jet-label">Optional Quarter Filter: Start Date</label>
@@ -2023,21 +2219,206 @@ export const SparkJetWorkflow: React.FC = () => {
                           />
                         </div>
                       </div>
+
+                      {/* Ex3 Accounts Table */}
+                      <div className="table-container" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                        <table className="jet-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '130px' }}>G_L</th>
+                              <th style={{ minWidth: '180px' }}>Description</th>
+                              <th style={{ width: '120px' }}>Opening_Balance</th>
+                              <th style={{ width: '100px' }}>Debit</th>
+                              <th style={{ width: '100px' }}>Credit</th>
+                              <th style={{ width: '120px' }}>Closing_Balance</th>
+                              <th style={{ width: '110px' }}>Movement</th>
+                              <th style={{ width: '130px' }}>Account_Subtype</th>
+                              <th style={{ minWidth: '180px' }}>FS_Line_Item</th>
+                              <th style={{ width: '50px', textAlign: 'center' }}>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {revenueAccounts.map((row, idx) => (
+                              <tr key={idx}>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="jet-input"
+                                    value={row.gl}
+                                    placeholder="41001000"
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].gl = val;
+                                        return updated;
+                                      });
+                                    }}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="jet-input"
+                                    value={row.description}
+                                    placeholder="Description"
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].description = val;
+                                        return updated;
+                                      });
+                                    }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    className="jet-input"
+                                    value={row.openingBalance}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].openingBalance = val;
+                                        return updated;
+                                      });
+                                    }}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    className="jet-input"
+                                    value={row.debit}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].debit = val;
+                                        return updated;
+                                      });
+                                    }}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    className="jet-input"
+                                    value={row.credit}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].credit = val;
+                                        return updated;
+                                      });
+                                    }}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    className="jet-input"
+                                    value={row.closingBalance}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].closingBalance = val;
+                                        return updated;
+                                      });
+                                    }}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    className="jet-input"
+                                    value={row.movement}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].movement = val;
+                                        return updated;
+                                      });
+                                    }}
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="jet-input"
+                                    value={row.subtype}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].subtype = val;
+                                        return updated;
+                                      });
+                                    }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="jet-input"
+                                    value={row.fsLineItem}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setRevenueAccounts((prev) => {
+                                        const updated = [...prev];
+                                        updated[idx].fsLineItem = val;
+                                        return updated;
+                                      });
+                                    }}
+                                  />
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button
+                                    onClick={() => setRevenueAccounts((prev) => prev.filter((_, i) => i !== idx))}
+                                    className="btn-secondary"
+                                    style={{ padding: '6px', color: 'var(--status-error)' }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
 
                   {/* TAB: EX4 FEW POSTINGS USERS */}
                   {paramTab === 'ex4' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                        Ex4: Users with Few Postings
-                      </h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                        Flags transactions created by users with a total distinct document count at or below this threshold.
-                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            Ex4: Users with Few Postings
+                          </h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            Flags transactions created by users with a total distinct document count at or below this threshold. Schema input: <code>Value</code>
+                          </p>
+                        </div>
+                        <button onClick={() => triggerImportFile('ex4Threshold')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <FolderUp size={14} /> Import File (ex_4.csv)
+                        </button>
+                      </div>
 
-                      <div style={{ maxWidth: '320px' }}>
-                        <label className="jet-label">Max Distinct Document Count Threshold</label>
+                      <div style={{ maxWidth: '380px', padding: '20px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                        <label className="jet-label">User Posting Count Threshold (Value)</label>
                         <input
                           type="number"
                           className="jet-input"
@@ -2045,8 +2426,11 @@ export const SparkJetWorkflow: React.FC = () => {
                           onChange={(e) => setEx4Threshold(Math.max(1, Number(e.target.value)))}
                           min="1"
                           placeholder="1"
+                          style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}
                         />
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Users posting &le; this number of journals are flagged.</span>
+                        <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                          Any user in the Population whose total distinct journal count is &le; <strong>{ex4Threshold}</strong> will have all their postings flagged.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -2060,12 +2444,12 @@ export const SparkJetWorkflow: React.FC = () => {
                             Ex5: Users of Interest
                           </h4>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Target specific user accounts (management, IT admins, automated service accounts) for 100% testing.
+                            Target specific user accounts (management, IT admins, automated service accounts) for 100% testing. Schema column: <code>User_Name</code>
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => triggerImportFile('usersOfInterest')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
-                            <FolderUp size={14} /> Import File
+                            <FolderUp size={14} /> Import File (ex_5.csv)
                           </button>
                           <button
                             onClick={() => setUsersOfInterest((prev) => [...prev, { userId: '', name: '', role: '', category: 'General' }])}
@@ -2081,7 +2465,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         <table className="jet-table">
                           <thead>
                             <tr>
-                              <th style={{ width: '160px' }}>User ID / Username</th>
+                              <th style={{ width: '180px' }}>User_Name (User ID)</th>
                               <th>Full Name</th>
                               <th>Role / Position</th>
                               <th style={{ width: '150px' }}>Category</th>
@@ -2180,42 +2564,53 @@ export const SparkJetWorkflow: React.FC = () => {
                   {/* TAB: EX6 CLOSING ENTRIES */}
                   {paramTab === 'ex6' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                        Ex6: Period-End Closing Entries
-                      </h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                        Detects entries dated in the sensitive period immediately around financial year-end.
-                      </p>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
-                          <label className="jet-label">Closing Date (DD-MMM-YY)</label>
-                          <input
-                            type="text"
-                            className="jet-input"
-                            value={ex6ClosingDate}
-                            onChange={(e) => setEx6ClosingDate(e.target.value)}
-                            placeholder="31-Dec-25"
-                          />
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            Ex6: Period-End Closing Entries
+                          </h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            Detects entries dated in the sensitive period immediately around financial year-end.
+                            <br />
+                            Exact Schema: <code>Closing_Entries_before | Closing_Entries_after | Closing_Date | Frequency</code>
+                          </p>
                         </div>
+                        <button onClick={() => triggerImportFile('closingEntries')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <FolderUp size={14} /> Import File (ex_6.csv)
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', padding: '20px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <div>
-                          <label className="jet-label">Days Before Closing</label>
+                          <label className="jet-label">Closing_Entries_before (Days)</label>
                           <input
                             type="number"
                             className="jet-input"
                             value={ex6BeforeDays}
                             onChange={(e) => setEx6BeforeDays(Number(e.target.value))}
                             min="0"
+                            placeholder="1"
                           />
                         </div>
                         <div>
-                          <label className="jet-label">Days After Closing</label>
+                          <label className="jet-label">Closing_Entries_after (Days)</label>
                           <input
                             type="number"
                             className="jet-input"
                             value={ex6AfterDays}
                             onChange={(e) => setEx6AfterDays(Number(e.target.value))}
                             min="0"
+                            placeholder="10"
+                          />
+                        </div>
+                        <div>
+                          <label className="jet-label">Closing_Date (DD-MMM-YY)</label>
+                          <input
+                            type="text"
+                            className="jet-input"
+                            value={ex6ClosingDate}
+                            onChange={(e) => setEx6ClosingDate(e.target.value)}
+                            placeholder="31-Dec-25"
                           />
                         </div>
                         <div>
@@ -2240,15 +2635,15 @@ export const SparkJetWorkflow: React.FC = () => {
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
                           <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex7: Dates of Interest (Holidays / Weekends)
+                            Ex7: Entries posted on Dates of Interest
                           </h4>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Flags postings made on specific company holidays or non-working calendar dates.
+                            Flags postings made on specific company holidays or non-working calendar dates. Schema column: <code>Pstng_Date</code>
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => triggerImportFile('datesOfInterest')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
-                            <FolderUp size={14} /> Import File
+                            <FolderUp size={14} /> Import File (ex_7.csv)
                           </button>
                           <button
                             onClick={() => setDatesOfInterest((prev) => [...prev, { date: '', event: '', impact: 'Non-working day' }])}
@@ -2264,7 +2659,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         <table className="jet-table">
                           <thead>
                             <tr>
-                              <th style={{ width: '160px' }}>Date (DD-MMM-YY)</th>
+                              <th style={{ width: '180px' }}>Pstng_Date (DD-MMM-YY)</th>
                               <th>Event / Holiday Name</th>
                               <th>Impact / Reason</th>
                               <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
@@ -2342,15 +2737,22 @@ export const SparkJetWorkflow: React.FC = () => {
                   {/* TAB: EX8 ROUND AMOUNTS */}
                   {paramTab === 'ex8' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                        Ex8: Entries with Round Amounts or Recurring Digits
-                      </h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                        Select the round thousands magnitudes and ending repeating digit rules to flag.
-                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            Ex8: Entries with Round Amounts or Recurring Digits
+                          </h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            Select the round thousands magnitudes and ending repeating digit rules to flag. Schema input: <code>Digits</code>
+                          </p>
+                        </div>
+                        <button onClick={() => triggerImportFile('roundDigits')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <FolderUp size={14} /> Import File (ex_8.csv)
+                        </button>
+                      </div>
 
-                      <div style={{ marginBottom: '18px' }}>
-                        <label className="jet-label" style={{ marginBottom: '10px' }}>Round Magnitudes</label>
+                      <div style={{ marginBottom: '18px', padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                        <label className="jet-label" style={{ marginBottom: '10px' }}>Round Magnitudes (Digits according to check)</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                           {[
                             { val: '1000', label: '1,000' },
@@ -2371,7 +2773,7 @@ export const SparkJetWorkflow: React.FC = () => {
                                   gap: '6px',
                                   padding: '6px 12px',
                                   borderRadius: '6px',
-                                  background: isSelected ? 'var(--deloitte-teal-light)' : '#F8FAFC',
+                                  background: isSelected ? 'var(--deloitte-teal-light)' : '#FFFFFF',
                                   border: isSelected ? '1px solid var(--deloitte-teal)' : '1px solid #E2E8F0',
                                   cursor: 'pointer',
                                   fontSize: '0.82rem',
@@ -2397,8 +2799,8 @@ export const SparkJetWorkflow: React.FC = () => {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="jet-label" style={{ marginBottom: '10px' }}>Recurring Ending Digits (e.g. 99, 999, 9999)</label>
+                      <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                        <label className="jet-label" style={{ marginBottom: '10px' }}>Recurring Ending Digits (e.g. 666666, 7777777, 88888888, 999999999)</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                           {['2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => {
                             const isSelected = ex8SelectedDigits.includes(digit);
@@ -2411,7 +2813,7 @@ export const SparkJetWorkflow: React.FC = () => {
                                   gap: '6px',
                                   padding: '6px 12px',
                                   borderRadius: '6px',
-                                  background: isSelected ? 'var(--deloitte-teal-light)' : '#F8FAFC',
+                                  background: isSelected ? 'var(--deloitte-teal-light)' : '#FFFFFF',
                                   border: isSelected ? '1px solid var(--deloitte-teal)' : '1px solid #E2E8F0',
                                   cursor: 'pointer',
                                   fontSize: '0.82rem',
@@ -2442,14 +2844,23 @@ export const SparkJetWorkflow: React.FC = () => {
                   {/* TAB: EX9 DUPLICATE ENTRIES */}
                   {paramTab === 'ex9' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                        Ex9: Duplicate Entries Configuration
-                      </h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                        Flags documents sharing exact identical account and amount distribution combos.
-                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            Ex9: Duplicate Entries Configuration
+                          </h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            Flags documents sharing exact identical account and amount distribution combos.
+                            <br />
+                            Exact Schema: <code>Value | Threshold</code>
+                          </p>
+                        </div>
+                        <button onClick={() => triggerImportFile('duplicateEntries')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <FolderUp size={14} /> Import File (ex_9.csv)
+                        </button>
+                      </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', padding: '20px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <div>
                           <label className="jet-label">Duplicate Count Threshold (Value)</label>
                           <input
@@ -2483,14 +2894,14 @@ export const SparkJetWorkflow: React.FC = () => {
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                         <div>
                           <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex10: Risk & Fraud Keyword Entries
+                            Ex10: Fraud & Risk Keywords in Journal
                           </h4>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Search document header text and line text for suspicious keywords.
+                            Search document header text and line text for suspicious keywords. Schema column: <code>Text</code>
                           </p>
                         </div>
                         <button onClick={() => triggerImportFile('keywords')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
-                          <FolderUp size={14} /> Import File
+                          <FolderUp size={14} /> Import File (ex_10.csv)
                         </button>
                       </div>
 
@@ -2498,7 +2909,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         <input
                           type="text"
                           className="jet-input"
-                          placeholder="Add new keyword..."
+                          placeholder="Add new risk keyword (e.g. bribe, theft, override)..."
                           value={newKeyword}
                           onChange={(e) => setNewKeyword(e.target.value)}
                           onKeyDown={(e) => {
@@ -2509,7 +2920,7 @@ export const SparkJetWorkflow: React.FC = () => {
                               setNewKeyword('');
                             }
                           }}
-                          style={{ maxWidth: '300px' }}
+                          style={{ maxWidth: '340px' }}
                         />
                         <button
                           onClick={() => {
@@ -2521,7 +2932,7 @@ export const SparkJetWorkflow: React.FC = () => {
                           className="btn-primary"
                           style={{ padding: '6px 14px' }}
                         >
-                          <Plus size={14} /> Add
+                          <Plus size={14} /> Add Keyword
                         </button>
                       </div>
 
@@ -2556,35 +2967,23 @@ export const SparkJetWorkflow: React.FC = () => {
                   {/* TAB: EX11 POST-CLOSING ENTRIES */}
                   {paramTab === 'ex11' && (
                     <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                        Ex11: Entries Posted After Closing Date
-                      </h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                        Flags entries recorded strictly after the financial year-end cutoff plus grace period.
-                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            Ex11: Entries Posted After Closing Date
+                          </h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            Flags entries recorded strictly after the financial year-end cutoff plus grace period.
+                            <br />
+                            Exact Schema: <code>Frequency | Day | Closing_Date</code>
+                          </p>
+                        </div>
+                        <button onClick={() => triggerImportFile('postClosing')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
+                          <FolderUp size={14} /> Import File (ex_11.csv)
+                        </button>
+                      </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                        <div>
-                          <label className="jet-label">Financial Year Closing Date (DD-MMM-YY)</label>
-                          <input
-                            type="text"
-                            className="jet-input"
-                            value={ex11ClosingDate}
-                            onChange={(e) => setEx11ClosingDate(e.target.value)}
-                            placeholder="31-Dec-25"
-                          />
-                        </div>
-                        <div>
-                          <label className="jet-label">Cutoff Days After Closing</label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={ex11DaysAfterClosing}
-                            onChange={(e) => setEx11DaysAfterClosing(Number(e.target.value))}
-                            min="0"
-                            placeholder="10"
-                          />
-                        </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', padding: '20px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <div>
                           <label className="jet-label">Frequency</label>
                           <select
@@ -2596,6 +2995,27 @@ export const SparkJetWorkflow: React.FC = () => {
                             <option value="Quarterly">Quarterly</option>
                             <option value="Monthly">Monthly</option>
                           </select>
+                        </div>
+                        <div>
+                          <label className="jet-label">Day (Cutoff Days After Closing)</label>
+                          <input
+                            type="number"
+                            className="jet-input"
+                            value={ex11DaysAfterClosing}
+                            onChange={(e) => setEx11DaysAfterClosing(Number(e.target.value))}
+                            min="0"
+                            placeholder="10"
+                          />
+                        </div>
+                        <div>
+                          <label className="jet-label">Closing_Date (DD-MMM-YY)</label>
+                          <input
+                            type="text"
+                            className="jet-input"
+                            value={ex11ClosingDate}
+                            onChange={(e) => setEx11ClosingDate(e.target.value)}
+                            placeholder="31-Dec-25"
+                          />
                         </div>
                       </div>
                     </div>
@@ -2610,12 +3030,12 @@ export const SparkJetWorkflow: React.FC = () => {
                             Ex12: Unrelated Financial Statement Line Pairings
                           </h4>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Identify journals posting between incompatible FS line categories.
+                            Identify journals posting between incompatible FS line categories. Exact Schema: <code>Debit | Credit</code>
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => triggerImportFile('unrelatedRules')} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '6px 12px' }}>
-                            <FolderUp size={14} /> Import File
+                            <FolderUp size={14} /> Import File (ex_12.csv)
                           </button>
                           <button
                             onClick={() => setUnrelatedRules((prev) => [...prev, { debitFSLine: '', creditFSLine: '', category: 'General' }])}
@@ -2631,8 +3051,8 @@ export const SparkJetWorkflow: React.FC = () => {
                         <table className="jet-table">
                           <thead>
                             <tr>
-                              <th>Debit FS Line Item</th>
-                              <th>Credit FS Line Item</th>
+                              <th>Debit (Debit FS Line Item)</th>
+                              <th>Credit (Credit FS Line Item)</th>
                               <th>Risk Category</th>
                               <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
                             </tr>

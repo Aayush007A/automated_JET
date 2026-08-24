@@ -65,6 +65,7 @@ export interface SparkJetParameters {
 
   ex1UnusualAccounts?: string[];
   ex2SeldomAccounts?: string[];
+  ex3RevenueAccounts?: string[];
   ex3RevenueDebitsThreshold?: number;
   ex3QuarterStartDate?: string;
   ex3QuarterEndDate?: string;
