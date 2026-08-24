@@ -633,28 +633,39 @@ export const SparkJetWorkflow: React.FC = () => {
           top: '90px',
         }}>
           {/* Run Header & Status */}
-          <div style={{ paddingBottom: '16px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <div className="spark-run-header" style={{ paddingBottom: '16px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: 'var(--deloitte-green-light)',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, var(--deloitte-green-light), rgba(134,188,37,0.12))',
                 color: 'var(--deloitte-green-dark)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(134, 188, 37, 0.15)',
+                flexShrink: 0,
               }}>
                 <Layers size={18} />
               </div>
-              <div>
-                <div style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)' }}>SPARK JET</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Audit Automation Pipeline</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>SPARK JET</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>Audit Automation Pipeline</div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px' }}>
-              <span style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: '0.72rem',
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--text-secondary)',
+                background: '#F8FAFC',
+                padding: '3px 8px',
+                borderRadius: '5px',
+                border: '1px solid #E2E8F0',
+                letterSpacing: '0.02em',
+              }}>
                 {runId}
               </span>
               {status && <StatusBadge status={status.status} size="sm" />}
@@ -662,13 +673,14 @@ export const SparkJetWorkflow: React.FC = () => {
           </div>
 
           {/* Workflow Steps Navigation */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.04em' }}>
+          <div className="spark-steps-col" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.06em' }}>
               Workflow Steps
             </div>
             {STEPS.map((s) => {
               const isAllowed = canAccessStep(s.id);
               const isActive = currentStep === s.id;
+              const isCompleted = currentStep > s.id;
               const IconComp = s.icon;
 
               return (
@@ -681,59 +693,101 @@ export const SparkJetWorkflow: React.FC = () => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-md)',
-                    border: 'none',
-                    background: isActive ? 'var(--deloitte-teal)' : 'transparent',
+                    padding: '9px 12px',
+                    borderRadius: isActive ? '10px' : '8px',
+                    border: isActive ? '1px solid rgba(0, 118, 128, 0.3)' : '1px solid transparent',
+                    background: isActive
+                      ? 'linear-gradient(135deg, #007680 0%, #005A62 100%)'
+                      : isCompleted
+                        ? '#F0FDF4'
+                        : 'transparent',
                     color: isActive ? '#FFFFFF' : isAllowed ? 'var(--text-primary)' : 'var(--text-muted)',
                     fontWeight: isActive ? 700 : 600,
-                    fontSize: '0.84rem',
+                    fontSize: '0.82rem',
                     cursor: isAllowed ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     textAlign: 'left',
+                    boxShadow: isActive ? '0 4px 12px rgba(0, 118, 128, 0.25)' : 'none',
+                    opacity: isAllowed ? 1 : 0.5,
+                  }}
+                  onMouseOver={(e) => {
+                    if (isAllowed && !isActive) {
+                      e.currentTarget.style.background = '#F8FAFC';
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (isAllowed && !isActive) {
+                      e.currentTarget.style.background = isCompleted ? '#F0FDF4' : 'transparent';
+                      e.currentTarget.style.borderColor = 'transparent';
+                    }
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <IconComp size={16} color={isActive ? '#FFFFFF' : isAllowed ? 'var(--deloitte-teal)' : 'var(--text-muted)'} />
-                    <span>{s.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '7px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: isActive ? 'rgba(255,255,255,0.2)' : isCompleted ? '#D1FAE5' : '#F1F5F9',
+                      flexShrink: 0,
+                    }}>
+                      <IconComp size={14} color={isActive ? '#FFFFFF' : isCompleted ? '#059669' : isAllowed ? 'var(--deloitte-teal)' : '#94A3B8'} />
+                    </div>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
                   </div>
-                  {currentStep > s.id && <CheckCircle size={14} color={isActive ? '#FFFFFF' : '#10B981'} />}
+                  {isCompleted && <CheckCircle size={14} color={isActive ? '#FFFFFF' : '#10B981'} />}
                 </button>
               );
             })}
           </div>
 
-          {/* Sidebar Quick Metrics Widget */}
-          <div style={{
-            background: 'var(--bg-secondary)',
-            borderRadius: 'var(--radius-md)',
-            padding: '14px',
-            border: '1px solid var(--border-subtle)',
+          {/* Sidebar Execution Summary Widget */}
+          <div className="spark-exec-summary" style={{
+            background: 'linear-gradient(180deg, #F8FAFC, #F1F5F9)',
+            borderRadius: '12px',
+            padding: '16px',
+            border: '1px solid #E2E8F0',
           }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.06em' }}>
               Execution Summary
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>TB Accounts</span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>{status?.totalInputRows?.tb || 13}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>GL Documents</span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>{status?.glCheckpointsSummary?.totalJournals || 4}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px' }}>
+            {[
+              { label: 'TB Accounts', value: status?.totalInputRows?.tb || 13 },
+              { label: 'GL Documents', value: status?.glCheckpointsSummary?.totalJournals || 4 },
+            ].map((item) => (
+              <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', marginBottom: '6px' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
+                <strong style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }}>{item.value}</strong>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', marginBottom: '8px' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Status</span>
-              <strong style={{ color: '#16A34A', fontWeight: 800, fontSize: '0.76rem', letterSpacing: '0.04em' }}>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '5px',
+                background: '#D1FAE5',
+                color: '#065F46',
+                letterSpacing: '0.04em',
+              }}>
                 {status?.status || 'COMPLETED'}
-              </strong>
+              </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px', paddingTop: '4px', borderTop: '1px solid #E2E8F0' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Started At</span>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Aug 24, 2026 10:15 AM</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Completed At</span>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Aug 24, 2026 10:22 AM</span>
+
+            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '8px', marginTop: '4px' }}>
+              {[
+                { label: 'Started', value: status?.startedAt ? new Date(status.startedAt).toLocaleString() : 'Aug 24, 2026 10:15 AM' },
+                { label: 'Completed', value: status?.completedAt ? new Date(status.completedAt).toLocaleString() : 'Aug 24, 2026 10:22 AM' },
+              ].map((item) => (
+                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginBottom: '3px' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>{item.label}</span>
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.7rem' }}>{item.value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </aside>
@@ -881,7 +935,7 @@ export const SparkJetWorkflow: React.FC = () => {
                 onChangeMapping={(std, src) => handleMappingChange('gl', std, src)}
               />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
+              <div className="spark-step-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
                 <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '9px 18px', gap: '6px' }}>
                   <ArrowLeft size={15} /> Back
                 </button>
@@ -1123,7 +1177,7 @@ export const SparkJetWorkflow: React.FC = () => {
                 )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
+              <div className="spark-step-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
                 <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '9px 18px', gap: '6px' }}>
                   <ArrowLeft size={15} /> Back
                 </button>
@@ -2007,7 +2061,7 @@ export const SparkJetWorkflow: React.FC = () => {
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
+              <div className="spark-step-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
                 <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '9px 18px', gap: '6px' }}>
                   <ArrowLeft size={15} /> Back
                 </button>
@@ -2575,7 +2629,7 @@ export const SparkJetWorkflow: React.FC = () => {
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
+              <div className="spark-step-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
                 <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '9px 18px', gap: '6px' }}>
                   <ArrowLeft size={15} /> Back to Rules
                 </button>

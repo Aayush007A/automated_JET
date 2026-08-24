@@ -619,21 +619,58 @@ a:hover {
 
 /* ── RESPONSIVE BREAKPOINTS ─────────────────────────────── */
 
-/* Tablet: ≤ 1024px */
+/* Desktop tweaks: ≤ 1280px */
+@media (max-width: 1280px) {
+  .spark-layout {
+    grid-template-columns: minmax(0, 230px) 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+/* Tablet: ≤ 1024px — sidebar becomes a collapsible top strip */
 @media (max-width: 1024px) {
-  /* Spark JET sidebar layout collapses to stacked */
   .spark-layout {
     grid-template-columns: 1fr !important;
+    gap: 0 !important;
   }
   .spark-sidebar {
     position: static !important;
     top: auto !important;
+    border-radius: var(--radius-lg) !important;
+    margin-bottom: 16px !important;
+    padding: 16px !important;
+  }
+  /* Turn sidebar steps into a horizontal scrollable row */
+  .spark-sidebar .spark-steps-col {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    gap: 6px !important;
+    padding-bottom: 4px !important;
+  }
+  .spark-sidebar .spark-steps-col button {
+    white-space: nowrap !important;
+    min-width: auto !important;
+    padding: 8px 14px !important;
+    font-size: 0.8rem !important;
+    border-radius: 20px !important;
+  }
+  /* Hide the Execution Summary widget on tablets to save vertical space */
+  .spark-sidebar .spark-exec-summary {
+    display: none !important;
   }
 
   .jet-table th,
   .jet-table td {
     padding: 10px 12px;
     font-size: 0.82rem;
+  }
+
+  /* Buttons: smaller padding */
+  .btn-primary,
+  .btn-secondary,
+  .btn-green {
+    padding: 8px 16px !important;
+    font-size: 0.84rem !important;
   }
 }
 
@@ -642,7 +679,18 @@ a:hover {
   /* Navbar */
   header > div {
     padding: 0 14px;
-    height: 60px;
+    height: 56px !important;
+  }
+  /* Hide breadcrumb pill on mobile */
+  header .spark-breadcrumb-pill {
+    display: none !important;
+  }
+  /* Navbar brand text smaller */
+  header .brand-title {
+    font-size: 1rem !important;
+  }
+  header .brand-subtitle {
+    display: none !important;
   }
 
   /* Dashboard hero */
@@ -673,10 +721,42 @@ a:hover {
     width: 100%;
     justify-content: center;
   }
+
+  /* Spark JET sidebar: compact horizontal strip */
+  .spark-sidebar {
+    padding: 12px !important;
+  }
+  .spark-sidebar .spark-run-header {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* Step action bars: stack vertically */
+  .spark-step-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .spark-step-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Field Mapping Table: card-style on mobile */
+  .field-mapping-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
 }
 
 /* Very small mobile: ≤ 480px */
 @media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
   .feature-grid-4 {
     grid-template-columns: 1fr !important;
   }
@@ -695,4 +775,30 @@ a:hover {
   .workflow-cards-grid {
     grid-template-columns: 1fr !important;
   }
+
+  /* Buttons: compact */
+  .btn-primary,
+  .btn-secondary,
+  .btn-green {
+    padding: 8px 14px !important;
+    font-size: 0.82rem !important;
+    gap: 5px !important;
+  }
+
+  /* Sidebar steps: even more compact */
+  .spark-sidebar .spark-steps-col button {
+    padding: 6px 10px !important;
+    font-size: 0.76rem !important;
+  }
 }
+
+/* ── MODAL & OVERLAY ANIMATIONS ─────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+

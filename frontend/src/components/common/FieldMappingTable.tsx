@@ -32,7 +32,7 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
       }}
     >
       {/* Header with Title and Badges */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
+      <div className="field-mapping-header" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
         <div>
           <h3 style={{ fontSize: '1.12rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
             {datasetTitle} Field Mapping
