@@ -1,0 +1,10 @@
+{
+  "runId": "JET-20260824-023",
+  "workflow": "SPARK_JET",
+  "engine": "PYTHON",
+  "status": "CREATED",
+  "startedAt": "2026-08-24T16:48:32.038Z",
+  "progress": 0,
+  "currentStage": "INITIALIZED",
+  "outputs": []
+}
