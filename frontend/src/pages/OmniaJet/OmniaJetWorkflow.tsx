@@ -172,7 +172,7 @@ export const OmniaJetWorkflow: React.FC = () => {
       }
 
       if (data.status.status === 'COMPLETED') {
-        if (currentStep < 5) setCurrentStep(5);
+        setCurrentStep(5);
       }
     } catch (err) {
       console.error(err);
@@ -323,16 +323,20 @@ export const OmniaJetWorkflow: React.FC = () => {
 
   const isStep2Valid = Boolean(
     hasRequiredMappings &&
-    autoCleanReport &&
-    autoCleanReport.constraintsPassed === true
+    (
+      (autoCleanReport && autoCleanReport.constraintsPassed === true) ||
+      status?.status === 'COMPLETED' // completed runs bypass local autoCleanReport state
+    )
   );
 
   const canAccessStep = (stepId: number) => {
+    // For any COMPLETED run, all steps are unlocked
+    if (status?.status === 'COMPLETED') return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
     if (stepId === 3) return isStep1Valid && isStep2Valid;
     if (stepId === 4) return isStep1Valid && isStep2Valid;
-    if (stepId === 5) return status?.status === 'COMPLETED';
+    if (stepId === 5) return (status?.status as string) === 'COMPLETED';
     return false;
   };
 
@@ -687,7 +691,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                         }}>
                           {s.id}
                         </div>
-                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontSize: '0.84rem', lineHeight: 1.3 }}>
                           {s.label}
                         </span>
                       </div>
@@ -708,100 +712,10 @@ export const OmniaJetWorkflow: React.FC = () => {
               })}
             </div>
           </div>
-
-          {/* Sidebar Execution Summary Widget */}
-          <div className="spark-exec-summary" style={{
-            background: '#F8FAFC',
-            borderRadius: '16px',
-            padding: '14px',
-            border: '1px solid #E2E8F0',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
-              <Activity size={14} color="#007680" />
-              EXECUTION SUMMARY
-            </div>
-
-            {/* 3 Metric Cards Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px', marginBottom: '12px' }}>
-              {/* TB Accounts */}
-              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
-                  <Database size={12} />
-                </div>
-                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                  TB ACCOUNTS
-                </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '3px', lineHeight: 1 }}>
-                  {dynamicTbCount}
-                </div>
-              </div>
-
-              {/* GL Documents */}
-              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#DBEAFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
-                  <FileText size={12} />
-                </div>
-                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                  GL DOCUMENTS
-                </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)', marginTop: '3px', lineHeight: 1 }}>
-                  {dynamicGlCount}
-                </div>
-              </div>
-
-              {/* Status */}
-              <div style={{ background: '#FFFFFF', padding: '8px 6px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#F3E8FF', color: '#9333EA', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
-                  <Clock size={12} />
-                </div>
-                <div style={{ fontSize: '0.54rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                  STATUS
-                </div>
-                <div style={{ marginTop: '3px', width: '100%' }}>
-                  <span style={{
-                    fontSize: '0.58rem',
-                    fontWeight: 800,
-                    color: getStatusStyles(currentExecutionStatus).color,
-                    background: getStatusStyles(currentExecutionStatus).bg,
-                    padding: '2px 4px',
-                    borderRadius: '4px',
-                    display: 'block',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}>
-                    {currentExecutionStatus}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Date Details */}
-            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
-                  <Calendar size={13} color="#94A3B8" /> STARTED
-                </div>
-                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                  {formatExecutiveDate(status?.startedAt || config?.createdAt, false)}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#64748B', fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
-                  <CheckCircle2 size={13} color="#94A3B8" /> COMPLETED
-                </div>
-                <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
-                  {formatExecutiveDate(status?.completedAt, false)}
-                </span>
-              </div>
-            </div>
-          </div>
         </aside>
 
         {/* Right Active Workspace Content */}
-        <main style={{ minWidth: 0 }}>
+        <main className="spark-main">
 
           {/* STEP 1: FILE UPLOAD */}
           {currentStep === 1 && (
