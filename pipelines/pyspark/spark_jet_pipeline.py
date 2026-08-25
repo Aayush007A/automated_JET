@@ -93,23 +93,43 @@ def run_spark_jet_pipeline(config_path: str):
     log_event(run_id, 'MAPPING', 20, 'Applying standardized field mappings', log_file)
 
     def apply_mapping(df, mapping_list):
-        if not mapping_list:
+        if not mapping_list or df is None or len(df) == 0:
             return df
         rename_map = {}
+        col_lookup = {str(c).strip().lower(): c for c in df.columns}
         for m in mapping_list:
             std = m.get('standardField')
             src = m.get('sourceField')
-            if src and src in df.columns:
-                rename_map[src] = std
+            if src:
+                src_clean = str(src).strip().lower()
+                if src_clean in col_lookup:
+                    rename_map[col_lookup[src_clean]] = std
+                elif src in df.columns:
+                    rename_map[src] = std
         return df.rename(columns=rename_map)
 
     tb_df = apply_mapping(tb_df, field_mappings.get('tb', []))
     gl_df = apply_mapping(gl_df, field_mappings.get('gl', []))
 
     def get_col(df, target_names, default=""):
+        if df is None or len(df) == 0:
+            return pd.Series([], dtype=str)
+        # 1. Exact match
         for name in target_names:
             if name in df.columns:
                 return df[name]
+        # 2. Case-insensitive and trimmed match
+        col_map = {str(c).strip().lower(): c for c in df.columns}
+        for name in target_names:
+            clean_target = str(name).strip().lower()
+            if clean_target in col_map:
+                return df[col_map[clean_target]]
+        # 3. Normalized match (ignoring spaces, slashes, underscores)
+        norm_map = {re.sub(r'[^a-z0-9]', '', str(c).lower()): c for c in df.columns}
+        for name in target_names:
+            norm_target = re.sub(r'[^a-z0-9]', '', str(name).lower())
+            if norm_target in norm_map:
+                return df[norm_map[norm_target]]
         return pd.Series([default] * len(df), index=df.index)
 
     # -------------------------------------------------------------
@@ -118,7 +138,7 @@ def run_spark_jet_pipeline(config_path: str):
     log_event(run_id, 'TB_PREPARATION', 30, 'Preparing Trial Balance and evaluating checkpoints', log_file)
 
     tb_clean = pd.DataFrame()
-    tb_clean['G_L'] = get_col(tb_df, ['G_L', 'G/L', 'account_number', 'gl', 'GL Account', 'Account Number']).apply(clean_str)
+    tb_clean['G_L'] = get_col(tb_df, ['G_L', 'G/L', 'account_number', 'gl', 'GL Account', 'Account Number', 'saknr', 'hkont']).apply(clean_str)
     tb_clean['Description'] = get_col(tb_df, ['Description', 'account_description', 'gl description', 'Account Description']).apply(clean_str)
     tb_clean['Opening_Balance'] = get_col(tb_df, ['Opening_Balance', 'Opening Balance', 'beginning_balance_ec', 'beginning_balance']).apply(parse_num)
     tb_clean['Debit'] = get_col(tb_df, ['Debit', 'debit_amount_ec', 'debit', 'Debit Amount']).apply(parse_num)
@@ -128,16 +148,16 @@ def run_spark_jet_pipeline(config_path: str):
     tb_clean['Account_Subtype'] = get_col(tb_df, ['Account_Subtype', 'Account Subtype', 'account_subtype', 'subtype']).apply(clean_str)
     tb_clean['FS_Line_Item'] = get_col(tb_df, ['FS_Line_Item', 'FS Line Item', 'financial_statement_line', 'fs_line_item']).apply(clean_str)
 
-    # Fill NA / Nulls as per Spark code
-    tb_clean['G_L'] = tb_clean['G_L'].fillna('0').replace('', '0')
-    tb_clean['Description'] = tb_clean['Description'].fillna('0').replace('', '0')
+    # Fill NA / Nulls
+    tb_clean['G_L'] = tb_clean['G_L'].fillna('').astype(str).str.strip()
+    tb_clean['Description'] = tb_clean['Description'].fillna('')
     tb_clean['Opening_Balance'] = tb_clean['Opening_Balance'].fillna(0.0)
     tb_clean['Debit'] = tb_clean['Debit'].fillna(0.0)
     tb_clean['Credit'] = tb_clean['Credit'].fillna(0.0)
     tb_clean['Closing_Balance'] = tb_clean['Closing_Balance'].fillna(0.0)
     tb_clean['Movement'] = tb_clean['Movement'].fillna(0.0)
-    tb_clean['Account_Subtype'] = tb_clean['Account_Subtype'].fillna('').replace('0', '')
-    tb_clean['FS_Line_Item'] = tb_clean['FS_Line_Item'].fillna('').replace('0', '')
+    tb_clean['Account_Subtype'] = tb_clean['Account_Subtype'].fillna('')
+    tb_clean['FS_Line_Item'] = tb_clean['FS_Line_Item'].fillna('')
 
     # TB Checkpoints
     tb_blank_gl = int((tb_clean['G_L'] == '0').sum())
@@ -161,9 +181,9 @@ def run_spark_jet_pipeline(config_path: str):
     log_event(run_id, 'GL_PREPARATION', 45, 'Preparing Population / GL dump and calculating pivot balances', log_file)
 
     gl_clean = pd.DataFrame()
-    gl_clean['G_L'] = get_col(gl_df, ['G_L', 'G/L', 'account_number', 'gl', 'GL Account', 'Account Number']).apply(clean_str)
-    gl_clean['DocumentNo'] = get_col(gl_df, ['DocumentNo', 'journal_number', 'document number', 'Accounting document', 'Document number', 'Doc No']).apply(clean_str)
-    gl_clean['Type'] = get_col(gl_df, ['Type', 'transaction_type', 'Document type', 'doc type']).apply(clean_str)
+    gl_clean['G_L'] = get_col(gl_df, ['G_L', 'G/L', 'account_number', 'gl', 'GL Account', 'Account Number', 'saknr', 'hkont']).apply(clean_str)
+    gl_clean['DocumentNo'] = get_col(gl_df, ['DocumentNo', 'journal_number', 'document number', 'Accounting document', 'Document number', 'Doc No', 'belnr']).apply(clean_str)
+    gl_clean['Type'] = get_col(gl_df, ['Type', 'transaction_type', 'Document type', 'doc type', 'blart']).apply(clean_str)
     
     # Dates formatted as dd-MMM-yy
     def fmt_date(val):
@@ -176,29 +196,34 @@ def run_spark_jet_pipeline(config_path: str):
         except:
             return parsed
 
-    gl_clean['Entry_Date'] = get_col(gl_df, ['Entry_Date', 'Entry Date', 'date_effective', 'Accounting date']).apply(fmt_date)
-    gl_clean['Pstng_Date'] = get_col(gl_df, ['Pstng_Date', 'Pstng Date', 'date_posted', 'Posting date']).apply(fmt_date)
+    gl_clean['Entry_Date'] = get_col(gl_df, ['Entry_Date', 'Entry Date', 'date_effective', 'Accounting date', 'effective date', 'doc_date', 'bldat']).apply(fmt_date)
+    gl_clean['Pstng_Date'] = get_col(gl_df, ['Pstng_Date', 'Pstng Date', 'date_posted', 'Posting date', 'date_posted', 'budat']).apply(fmt_date)
     gl_clean['Doc_Date'] = get_col(gl_df, ['Doc_Date', 'Doc. Date', 'Doc Date', 'Document date']).apply(fmt_date)
     
-    gl_clean['Amount_in_local_cur'] = get_col(gl_df, ['Amount_in_local_cur', 'Amount in local cur.', 'Amount in local currency', 'net_amount_ec', 'Amount']).apply(parse_num)
-    gl_clean['Lcurr'] = get_col(gl_df, ['Lcurr', 'LCurr', 'entity_currency_ec', 'Local Currency', 'Currency code'], 'INR').apply(clean_str)
-    gl_clean['Amount_in_doc_curr'] = get_col(gl_df, ['Amount_in_doc_curr', 'Amount in doc. curr.', 'Amount in doc curr', 'net_amount_oc']).apply(parse_num)
+    gl_clean['Amount_in_local_cur'] = get_col(gl_df, ['Amount_in_local_cur', 'Amount in local cur.', 'Amount in local currency', 'net_amount_ec', 'Amount', 'dmbtr']).apply(parse_num)
+    gl_clean['Lcurr'] = get_col(gl_df, ['Lcurr', 'LCurr', 'entity_currency_ec', 'Local Currency', 'Currency code', 'curr', 'waers'], 'INR').apply(clean_str)
+    gl_clean['Amount_in_doc_curr'] = get_col(gl_df, ['Amount_in_doc_curr', 'Amount in doc. curr.', 'Amount in doc curr', 'net_amount_oc', 'wrbtr']).apply(parse_num)
     gl_clean['Curr'] = get_col(gl_df, ['Curr', 'Curr.', 'original_currency_oc', 'Currency code'], 'INR').apply(clean_str)
-    gl_clean['Amount_in_loc_curr_2'] = get_col(gl_df, ['Amount_in_loc_curr_2', 'Amount in loc.curr.2', 'Amount in group curr', 'net_amount_gc']).apply(parse_num)
-    gl_clean['LCur2'] = get_col(gl_df, ['LCur2', 'group_currency_gc', 'Group Currency']).apply(clean_str)
+    gl_clean['Amount_in_loc_curr_2'] = get_col(gl_df, ['Amount_in_loc_curr_2', 'Amount in loc.curr.2', 'Amount in group curr', 'net_amount_gc', 'dmbe2']).apply(parse_num)
+    gl_clean['LCur2'] = get_col(gl_df, ['LCur2', 'group_currency_gc', 'Group Currency', 'hwaer']).apply(clean_str)
     
-    gl_clean['Document_Header_Text'] = get_col(gl_df, ['Document_Header_Text', 'Document Header Text', 'journal_header_description', 'Text Header', 'Header Text']).apply(clean_str).str.replace(',', ' ')
-    gl_clean['Text'] = get_col(gl_df, ['Text', 'journal_line_description', 'Text Details', 'Line Text']).apply(clean_str).str.replace(',', ' ').str.lower()
-    gl_clean['User_name'] = get_col(gl_df, ['User_name', 'User name', 'userid_entered', 'User UD', 'User Name', 'Username']).apply(clean_str)
+    gl_clean['Document_Header_Text'] = get_col(gl_df, ['Document_Header_Text', 'Document Header Text', 'journal_header_description', 'Text Header', 'Header Text', 'bktxt']).apply(clean_str).str.replace(',', ' ')
+    gl_clean['Text'] = get_col(gl_df, ['Text', 'journal_line_description', 'Text Details', 'Line Text', 'sgtxt']).apply(clean_str).str.replace(',', ' ').str.lower()
+    gl_clean['User_name'] = get_col(gl_df, ['User_name', 'User name', 'userid_entered', 'User UD', 'User Name', 'Username', 'usnam']).apply(clean_str)
     gl_clean['Debit_Credit'] = ''
 
     # Clean nulls
-    gl_clean['G_L'] = gl_clean['G_L'].fillna('0').replace('', '0')
-    gl_clean['DocumentNo'] = gl_clean['DocumentNo'].fillna('0').replace('', '0')
+    gl_clean['G_L'] = gl_clean['G_L'].fillna('').astype(str).str.strip()
+    gl_clean['DocumentNo'] = gl_clean['DocumentNo'].fillna('').astype(str).str.strip()
     gl_clean['Amount_in_local_cur'] = gl_clean['Amount_in_local_cur'].fillna(0.0)
     gl_clean['Amount_in_doc_curr'] = gl_clean['Amount_in_doc_curr'].fillna(0.0)
     gl_clean['Amount_in_loc_curr_2'] = gl_clean['Amount_in_loc_curr_2'].fillna(0.0)
-    gl_clean['Text'] = gl_clean['Text'].fillna('0').replace('', '0')
+    gl_clean['Text'] = gl_clean['Text'].fillna('')
+
+    # Merge FS_Line_Item from TB into gl_clean
+    tb_fs_map = tb_clean[['G_L', 'FS_Line_Item']].drop_duplicates(subset=['G_L'])
+    gl_clean = gl_clean.merge(tb_fs_map, on='G_L', how='left')
+    gl_clean['FS_Line_Item'] = gl_clean['FS_Line_Item'].fillna('')
 
     gl_sum_total = float(gl_clean['Amount_in_local_cur'].sum())
 
@@ -323,7 +348,6 @@ def run_spark_jet_pipeline(config_path: str):
         ex1_gls_clean = [str(x).strip() for x in ex1_gls if str(x).strip()]
         ex1_docs = set(gl_clean[gl_clean['G_L'].isin(ex1_gls_clean)]['DocumentNo'].unique())
         ex1_df = gl_clean[gl_clean['DocumentNo'].isin(ex1_docs)].copy()
-        ex1_df['FS_Line_Item'] = ''
         ex1_df['Exception'] = np.where(ex1_df['G_L'].isin(ex1_gls_clean) & (ex1_df['Amount_in_local_cur'] != 0), 'Exception1', 'NO Exception')
         save_exception_file(ex1_df, 1, 'Unusual_Accounts')
 
@@ -336,7 +360,6 @@ def run_spark_jet_pipeline(config_path: str):
         ex2_gls_clean = [str(x).strip() for x in ex2_gls if str(x).strip()]
         ex2_docs = set(gl_clean[gl_clean['G_L'].isin(ex2_gls_clean)]['DocumentNo'].unique())
         ex2_df = gl_clean[gl_clean['DocumentNo'].isin(ex2_docs)].copy()
-        ex2_df['FS_Line_Item'] = ''
         ex2_df['Exception'] = np.where(ex2_df['G_L'].isin(ex2_gls_clean) & (ex2_df['Amount_in_local_cur'] != 0), 'Exception2', 'NO Exception')
         save_exception_file(ex2_df, 2, 'Seldom_Accounts')
 
@@ -354,7 +377,6 @@ def run_spark_jet_pipeline(config_path: str):
         if not rev_gls:
             # Leave blank if no revenue/income account subtype found
             ex3_df = gl_clean.head(0).copy()
-            ex3_df['FS_Line_Item'] = ''
             ex3_df['Exception'] = 'Exception3'
             save_exception_file(ex3_df, 3, 'Revenue_Debits')
         else:
@@ -375,7 +397,6 @@ def run_spark_jet_pipeline(config_path: str):
             flagged_ex3_docs = set(doc_rev_sums[doc_rev_sums['Amount_in_local_cur'] > ex3_threshold]['DocumentNo'].unique())
             
             ex3_df = gl_clean[gl_clean['DocumentNo'].isin(flagged_ex3_docs)].copy()
-            ex3_df['FS_Line_Item'] = ''
             ex3_df['Exception'] = np.where(ex3_df['G_L'].isin(rev_gls) & (ex3_df['Amount_in_local_cur'] > 0), 'Exception3', 'NO Exception')
             save_exception_file(ex3_df, 3, 'Revenue_Debits')
 
@@ -386,7 +407,6 @@ def run_spark_jet_pipeline(config_path: str):
         user_doc_counts.columns = ['User_name', 'DocCount']
         few_users = set(user_doc_counts[user_doc_counts['DocCount'] <= ex4_thresh]['User_name'].unique())
         ex4_df = gl_clean[gl_clean['User_name'].isin(few_users)].copy()
-        ex4_df['FS_Line_Item'] = ''
         ex4_df['Exception'] = 'Exception4'
         save_exception_file(ex4_df, 4, 'Few_Postings_Users')
 
@@ -396,7 +416,6 @@ def run_spark_jet_pipeline(config_path: str):
         ex5_users_clean = [str(u).strip().upper() for u in ex5_users]
         ex5_docs = set(gl_clean[gl_clean['User_name'].str.upper().isin(ex5_users_clean)]['DocumentNo'].unique())
         ex5_df = gl_clean[gl_clean['DocumentNo'].isin(ex5_docs)].copy()
-        ex5_df['FS_Line_Item'] = ''
         ex5_df['Exception'] = np.where(ex5_df['User_name'].str.upper().isin(ex5_users_clean), 'Exception5', 'NO Exception')
         save_exception_file(ex5_df, 5, 'Users_Of_Interest')
 
@@ -408,7 +427,6 @@ def run_spark_jet_pipeline(config_path: str):
         ex6_days_after = int(params.get('ex6ClosingEntriesAfterDays', 10))
         
         ex6_df = gl_clean.copy()
-        ex6_df['FS_Line_Item'] = ''
         try:
             ref_date = datetime.date.fromisoformat(fy_end_date) if fy_end_date else datetime.date(2025, 12, 31)
             start_w = ref_date - datetime.timedelta(days=ex6_days_before)
@@ -418,7 +436,6 @@ def run_spark_jet_pipeline(config_path: str):
             is_in_win = gl_dates.apply(lambda d: d is not None and start_w <= datetime.date.fromisoformat(d) <= end_w)
             ex6_docs = set(gl_clean[is_in_win]['DocumentNo'].unique())
             ex6_df = gl_clean[gl_clean['DocumentNo'].isin(ex6_docs)].copy()
-            ex6_df['FS_Line_Item'] = ''
             gl_dates_sub = ex6_df['Entry_Date'].apply(date_to_iso)
             ex6_df['Exception'] = np.where(gl_dates_sub.apply(lambda d: d is not None and start_w <= datetime.date.fromisoformat(d) <= end_w), 'Exception6', 'NO Exception')
         except:
@@ -433,7 +450,6 @@ def run_spark_jet_pipeline(config_path: str):
         gl_iso = gl_clean['Pstng_Date'].apply(date_to_iso)
         matched_docs = set(gl_clean[gl_iso.isin(ex7_dates_iso)]['DocumentNo'].unique())
         ex7_df = gl_clean[gl_clean['DocumentNo'].isin(matched_docs)].copy()
-        ex7_df['FS_Line_Item'] = ''
         gl_sub_iso = ex7_df['Pstng_Date'].apply(date_to_iso)
         ex7_df['Exception'] = np.where(gl_sub_iso.isin(ex7_dates_iso), 'Exception7', 'NO Exception')
         save_exception_file(ex7_df, 7, 'Dates_Of_Interest')
@@ -464,7 +480,6 @@ def run_spark_jet_pipeline(config_path: str):
         ex8_matches = gl_clean['Amount_in_local_cur'].apply(is_round_or_recurring)
         ex8_docs = set(gl_clean[ex8_matches]['DocumentNo'].unique())
         ex8_df = gl_clean[gl_clean['DocumentNo'].isin(ex8_docs)].copy()
-        ex8_df['FS_Line_Item'] = ''
         ex8_df['Exception'] = np.where(ex8_df['Amount_in_local_cur'].apply(is_round_or_recurring), 'Exception8', 'NO Exception')
         save_exception_file(ex8_df, 8, 'Round_Amounts')
 
@@ -486,7 +501,6 @@ def run_spark_jet_pipeline(config_path: str):
             dup_docs = dup_docs.intersection(qual_docs)
 
         ex9_df = gl_clean[gl_clean['DocumentNo'].isin(dup_docs)].copy()
-        ex9_df['FS_Line_Item'] = ''
         ex9_df['Exception'] = 'Exception9'
         save_exception_file(ex9_df, 9, 'Duplicate_Entries')
 
@@ -504,7 +518,6 @@ def run_spark_jet_pipeline(config_path: str):
         ex10_flagged_docs = set(gl_clean[match_header | match_text]['DocumentNo'].unique())
         
         ex10_df = gl_clean[gl_clean['DocumentNo'].isin(ex10_flagged_docs)].copy()
-        ex10_df['FS_Line_Item'] = ''
         ex10_df['Exception'] = np.where(
             ex10_df['Document_Header_Text'].str.lower().str.contains(pattern, regex=True, na=False) |
             ex10_df['Text'].str.lower().str.contains(pattern, regex=True, na=False),
@@ -518,7 +531,6 @@ def run_spark_jet_pipeline(config_path: str):
         fy_end_date = date_to_iso(fy_end)
         ex11_days = int(params.get('ex11DaysAfterClosing', 10))
         ex11_df = gl_clean.copy()
-        ex11_df['FS_Line_Item'] = ''
         try:
             ref_date = datetime.date.fromisoformat(fy_end_date) if fy_end_date else datetime.date(2025, 12, 31)
             cutoff = ref_date + datetime.timedelta(days=ex11_days)
@@ -526,7 +538,6 @@ def run_spark_jet_pipeline(config_path: str):
             is_after = gl_dates.apply(lambda d: d is not None and datetime.date.fromisoformat(d) > cutoff)
             ex11_docs = set(gl_clean[is_after]['DocumentNo'].unique())
             ex11_df = gl_clean[gl_clean['DocumentNo'].isin(ex11_docs)].copy()
-            ex11_df['FS_Line_Item'] = ''
             gl_dates_sub = ex11_df['Entry_Date'].apply(date_to_iso)
             ex11_df['Exception'] = np.where(gl_dates_sub.apply(lambda d: d is not None and datetime.date.fromisoformat(d) > cutoff), 'Exception11', 'NO Exception')
         except:
@@ -535,8 +546,7 @@ def run_spark_jet_pipeline(config_path: str):
 
     # Ex12: Unrelated Accounts (Debit and Credit FS Line Items)
     if 12 in selected_exceptions:
-        gl_with_fs = gl_clean.merge(tb_clean[['G_L', 'FS_Line_Item']], on='G_L', how='left')
-        gl_with_fs['FS_Line_Item'] = gl_with_fs['FS_Line_Item'].fillna('')
+        gl_with_fs = gl_clean.copy()
         
         unrelated_rules = params.get('ex12UnrelatedRules', [
             {"debit": "Trade Receivables", "credit": "COST OF SALES AND SERVICES"},

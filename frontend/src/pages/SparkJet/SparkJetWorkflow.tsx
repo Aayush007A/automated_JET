@@ -382,7 +382,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
       if (data.status.status === 'COMPLETED') {
         setMaxCompletedStep(6);
-        setCurrentStep(6);
+        setCurrentStep((prev) => (prev === 1 ? 6 : prev));
       } else if (data.config.files.length > 0) {
         setMaxCompletedStep((prev) => Math.max(prev, 2));
       }
@@ -948,8 +948,7 @@ export const SparkJetWorkflow: React.FC = () => {
         <>
           <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
           <button
-            onClick={() => { setCurrentStep(4); handleRunPipeline(4); }}
-            disabled={executing}
+            onClick={() => { setCurrentStep(4); setMaxCompletedStep((prev) => Math.max(prev, 3)); }}
             className="btn-primary"
             style={{ padding: '6px 16px', fontSize: '0.82rem' }}
           >

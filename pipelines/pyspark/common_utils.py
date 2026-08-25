@@ -11,7 +11,15 @@ import numpy as np
 def clean_str(val):
     if pd.isna(val) or val is None:
         return ""
-    return str(val).strip()
+    if isinstance(val, float):
+        if math.isnan(val):
+            return ""
+        if val.is_integer():
+            return str(int(val))
+    s = str(val).strip()
+    if re.match(r'^-?\d+\.0$', s):
+        s = s[:-2]
+    return s
 
 def parse_num(val, dec_sep="Period"):
     if pd.isna(val) or val is None:

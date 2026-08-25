@@ -1,11 +1,11 @@
 G_L,FS_Line_Item,DocumentNo,Type,Entry_Date,Pstng_Date,Doc_Date,Amount_in_local_cur,Lcurr,Amount_in_doc_curr,Curr,Amount_in_loc_curr_2,LCur2,Document_Header_Text,Text,User_name,Exception
-11401000,,2500007294,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,1339512.0,,Invoice Posting,normal sales batch,SATPUTD,Exception10
-11202200,,2500007294,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,-1135180.0,,Invoice Posting,normal sales batch,SATPUTD,Exception10
-21302630,,2500007294,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,-204332.0,,Invoice Posting,normal sales batch,SATPUTD,Exception10
-11401000,,2500007295,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,798689.0,,Invoice Posting,standard billing,SATPUTD,Exception10
-11202200,,2500007295,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,-676855.0,,Invoice Posting,standard billing,SATPUTD,Exception10
-21302630,,2500007295,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,-121834.0,,Invoice Posting,standard billing,SATPUTD,Exception10
-41001400,,2000001001,AB,31-Dec-25,31-Dec-25,31-Dec-25,0.0,INR,0.0,INR,500000.0,,Auditor adjustment,adjustment entry to revenue,SBPATIL,Exception10
-3500001,,2000001001,AB,31-Dec-25,31-Dec-25,31-Dec-25,0.0,INR,0.0,INR,-500000.0,,Auditor adjustment,adjustment entry to trade payables,SBPATIL,Exception10
-1009,,2000001002,SA,05-Nov-25,05-Nov-25,05-Nov-25,0.0,INR,0.0,INR,1000000.0,,Fund Transfer,unusual zero balance clearing,OCPL-PRASHAN,Exception10
-52002500,,2000001002,SA,05-Nov-25,05-Nov-25,05-Nov-25,0.0,INR,0.0,INR,-1000000.0,,Fund Transfer,consultancy charge,OCPL-PRASHAN,Exception10
+11401000,Trade Receivables,2500007294,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,1339512.0,,Invoice Posting,normal sales batch,SATPUTD,Exception10
+11202200,COST OF SALES AND SERVICES,2500007294,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,-1135180.0,,Invoice Posting,normal sales batch,SATPUTD,Exception10
+21302630,Other Payables,2500007294,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,-204332.0,,Invoice Posting,normal sales batch,SATPUTD,Exception10
+11401000,Trade Receivables,2500007295,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,798689.0,,Invoice Posting,standard billing,SATPUTD,Exception10
+11202200,COST OF SALES AND SERVICES,2500007295,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,-676855.0,,Invoice Posting,standard billing,SATPUTD,Exception10
+21302630,Other Payables,2500007295,RV,03-Nov-25,03-Nov-25,03-Nov-25,0.0,INR,0.0,INR,-121834.0,,Invoice Posting,standard billing,SATPUTD,Exception10
+41001400,NET SALES REVENUE,2000001001,AB,31-Dec-25,31-Dec-25,31-Dec-25,0.0,INR,0.0,INR,500000.0,,Auditor adjustment,adjustment entry to revenue,SBPATIL,Exception10
+3500001,Trade Payables,2000001001,AB,31-Dec-25,31-Dec-25,31-Dec-25,0.0,INR,0.0,INR,-500000.0,,Auditor adjustment,adjustment entry to trade payables,SBPATIL,Exception10
+1009,Control Account,2000001002,SA,05-Nov-25,05-Nov-25,05-Nov-25,0.0,INR,0.0,INR,1000000.0,,Fund Transfer,unusual zero balance clearing,OCPL-PRASHAN,Exception10
+52002500,General and administrative expenses,2000001002,SA,05-Nov-25,05-Nov-25,05-Nov-25,0.0,INR,0.0,INR,-1000000.0,,Fund Transfer,consultancy charge,OCPL-PRASHAN,Exception10

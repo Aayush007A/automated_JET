@@ -72,34 +72,34 @@ const getTimelineStatusVariant = (st?: string): 'default' | 'running' | 'complet
 };
 
 const DQC_DEFINITIONS = [
-  { code: '01a', name: 'COA Blank Values', desc: 'Critical missing account numbers or descriptions in COA', dataset: 'COA', category: 'Completeness', severity: 'ERROR' },
-  { code: '01b', name: 'TB Blank Values', desc: 'Critical missing GL or balance amounts in TB', dataset: 'TB', category: 'Completeness', severity: 'ERROR' },
-  { code: '01c', name: 'JE Blank Values', desc: 'Critical missing DocumentNo, date, or amount in JE', dataset: 'JE', category: 'Completeness', severity: 'ERROR' },
-  { code: '01d', name: 'JE Blank User ID', desc: 'Blank or null User ID who entered transaction', dataset: 'JE', category: 'User Integrity', severity: 'WARNING' },
-  { code: '01e', name: 'JE Blank TransType', desc: 'Blank or null transaction / document type', dataset: 'JE', category: 'Completeness', severity: 'WARNING' },
-  { code: '02a', name: 'TB Accounts Not In COA', desc: 'Trial Balance accounts not found in master COA', dataset: 'TB', category: 'Master Data', severity: 'ERROR' },
-  { code: '02b', name: 'JE Accounts Not In COA', desc: 'General Ledger accounts not found in master COA', dataset: 'JE', category: 'Master Data', severity: 'ERROR' },
-  { code: '03a', name: 'TB Precision Overflow', desc: 'Trial Balance amounts exceeding decimal precision', dataset: 'TB', category: 'Precision', severity: 'ERROR' },
-  { code: '03b', name: 'JE Precision Overflow', desc: 'Journal Entry amounts exceeding decimal precision', dataset: 'JE', category: 'Precision', severity: 'ERROR' },
-  { code: '04a', name: 'COA Duplicate Accounts', desc: 'Duplicate Account Numbers defined in Chart of Accounts', dataset: 'COA', category: 'Master Data', severity: 'ERROR' },
-  { code: '04b', name: 'TB Duplicate Accounts', desc: 'Duplicate Account Numbers defined in Trial Balance', dataset: 'TB', category: 'Master Data', severity: 'ERROR' },
-  { code: '05', name: 'JE Unknown Standard Type', desc: 'Transaction type unclassified as Standard / Non-Standard', dataset: 'JE', category: 'Classification', severity: 'ERROR' },
-  { code: '06', name: 'JE Multi Standard Type', desc: 'Single journal entry containing mixed Standard / Non-Standard lines', dataset: 'JE', category: 'Classification', severity: 'ERROR' },
-  { code: '07', name: 'COA Bad FS Category', desc: 'Unknown Financial Statement Category in COA', dataset: 'COA', category: 'Classification', severity: 'ERROR' },
-  { code: '08', name: 'JE Entry Not Zero Balanced', desc: 'Multi-line journal entries with net amount not equal to 0.0', dataset: 'JE', category: 'Balancing', severity: 'WARNING' },
-  { code: '09', name: '1-Line Journal Entries', desc: 'Single-line journal entries lacking offsetting entry', dataset: 'JE', category: 'Balancing', severity: 'WARNING' },
-  { code: '10', name: 'Debit/Credit Math Mismatch', desc: 'Inconsistent Net Amount vs Debit and Credit amount math', dataset: 'JE', category: 'Consistency', severity: 'WARNING' },
-  { code: '11', name: 'Debit Credit Same Line', desc: 'Lines with both Debit and Credit amounts populated simultaneously', dataset: 'JE', category: 'Consistency', severity: 'WARNING' },
-  { code: '12', name: 'Currency Inconsistency', desc: 'Local and Group currency amounts with conflicting polarity', dataset: 'JE', category: 'Currency', severity: 'WARNING' },
-  { code: '13a', name: 'Entity Multiple Currencies', desc: 'Legal Entity mapped to multiple distinct local currencies', dataset: 'TB / JE', category: 'Currency', severity: 'WARNING' },
-  { code: '13b', name: 'Group Multiple Currencies', desc: 'Multiple group reporting currencies present in single dataset', dataset: 'TB / JE', category: 'Currency', severity: 'WARNING' },
-  { code: '14', name: 'Multi Effective Dates', desc: 'Single journal entry with multiple posting / effective dates', dataset: 'JE', category: 'Dates', severity: 'WARNING' },
-  { code: '15', name: 'Multi Transaction Types', desc: 'Single journal entry with multiple transaction type codes', dataset: 'JE', category: 'Consistency', severity: 'WARNING' },
-  { code: '16', name: 'Prior / Post Period Dates', desc: 'Entries dated outside the active audit testing period window', dataset: 'JE', category: 'Dates', severity: 'WARNING' },
-  { code: '17', name: 'Multi User ID in Entry', desc: 'Single journal entry created by multiple distinct User IDs', dataset: 'JE', category: 'User Integrity', severity: 'OBSERVATION' },
-  { code: '18', name: 'Multi Descriptions in Entry', desc: 'Single journal entry with multiple conflicting header descriptions', dataset: 'JE', category: 'Consistency', severity: 'OBSERVATION' },
-  { code: '19', name: 'TransType Sum Not Zero', desc: 'Transaction type volume not netting to zero across period', dataset: 'JE', category: 'Balancing', severity: 'OBSERVATION' },
-  { code: '20', name: 'User ID Multiple Names', desc: 'Single User ID associated with multiple distinct user names', dataset: 'JE', category: 'User Integrity', severity: 'OBSERVATION' },
+  { code: '01a', name: 'COA Blank Values', desc: 'Critical missing account numbers or descriptions in COA', dataset: 'COA', category: 'Completeness', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_01a_Error_COA_Blank_Values.csv' },
+  { code: '01b', name: 'TB Blank Values', desc: 'Critical missing GL or balance amounts in TB', dataset: 'TB', category: 'Completeness', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_01b_Error_TB_Blank_Values.csv' },
+  { code: '01c', name: 'JE Blank Values', desc: 'Critical missing DocumentNo, date, or amount in JE', dataset: 'JE', category: 'Completeness', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_01c_Error_JE_Blank_Values.csv' },
+  { code: '01d', name: 'JE Blank User ID', desc: 'Blank or null User ID who entered transaction', dataset: 'JE', category: 'User Integrity', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_01d_Warning_JE_Blank_UserID.csv' },
+  { code: '01e', name: 'JE Blank TransType', desc: 'Blank or null transaction / document type', dataset: 'JE', category: 'Completeness', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_01e_Warning_JE_Blank_Transaction_Type.csv' },
+  { code: '02a', name: 'TB Accounts Not In COA', desc: 'Trial Balance accounts not found in master COA', dataset: 'TB', category: 'Master Data', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_02a_Error_TB_Accounts_Not_In_COA.csv' },
+  { code: '02b', name: 'JE Accounts Not In COA', desc: 'General Ledger accounts not found in master COA', dataset: 'JE', category: 'Master Data', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_02b_Error_JE_Accounts_Not_In_COA.csv' },
+  { code: '03a', name: 'TB Precision Overflow', desc: 'Trial Balance amounts exceeding decimal precision', dataset: 'TB', category: 'Precision', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_03a_Error_TB_Amount_Digits_TooLong.csv' },
+  { code: '03b', name: 'JE Precision Overflow', desc: 'Journal Entry amounts exceeding decimal precision', dataset: 'JE', category: 'Precision', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_03b_Error_JE_Amount_Digits_TooLong.csv' },
+  { code: '04a', name: 'COA Duplicate Accounts', desc: 'Duplicate Account Numbers defined in Chart of Accounts', dataset: 'COA', category: 'Master Data', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_04a_Error_COA_Duplicate_Account_Numbers.csv' },
+  { code: '04b', name: 'TB Duplicate Accounts', desc: 'Duplicate Account Numbers defined in Trial Balance', dataset: 'TB', category: 'Master Data', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_04b_Error_TB_Duplicate_Account_Numbers.csv' },
+  { code: '05', name: 'JE Unknown Standard Type', desc: 'Transaction type unclassified as Standard / Non-Standard', dataset: 'JE', category: 'Classification', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_05_Error_JE_Unknown_Classification.csv' },
+  { code: '06', name: 'JE Multi Standard Type', desc: 'Single journal entry containing mixed Standard / Non-Standard lines', dataset: 'JE', category: 'Classification', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_06_Error_JE_Multiple_Classification.csv' },
+  { code: '07', name: 'COA Bad FS Category', desc: 'Unknown Financial Statement Category in COA', dataset: 'COA', category: 'Classification', severity: 'ERROR', fileName: 'Parquet_Data_Integrity_Check_07_Error_COA_Unknown_Financial_Statement_Category.csv' },
+  { code: '08', name: 'JE Entry Not Zero Balanced', desc: 'Multi-line journal entries with net amount not equal to 0.0', dataset: 'JE', category: 'Balancing', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_08_Warning_JE_Sum_of_Amount_by_Entry_Not_Net_Zero.csv' },
+  { code: '09', name: '1-Line Journal Entries', desc: 'Single-line journal entries lacking offsetting entry', dataset: 'JE', category: 'Balancing', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_09_Warning_JE_One_Line_Entries.csv' },
+  { code: '10', name: 'Debit/Credit Math Mismatch', desc: 'Inconsistent Net Amount vs Debit and Credit amount math', dataset: 'JE', category: 'Consistency', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_10_Warning_JE_Entry_Amount_Consistency.csv' },
+  { code: '11', name: 'Debit Credit Same Line', desc: 'Lines with both Debit and Credit amounts populated simultaneously', dataset: 'JE', category: 'Consistency', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_11_Warning_JE_Debit_Credit_Same_Line.csv' },
+  { code: '12', name: 'Currency Inconsistency', desc: 'Local and Group currency amounts with conflicting polarity', dataset: 'JE', category: 'Currency', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_12_Warning_JE_Amount_Currency_Inconsistency.csv' },
+  { code: '13a', name: 'Entity Multiple Currencies', desc: 'Legal Entity mapped to multiple distinct local currencies', dataset: 'TB / JE', category: 'Currency', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_13a_Warning_JE_Entity_Multiple_Currency.csv' },
+  { code: '13b', name: 'Group Multiple Currencies', desc: 'Multiple group reporting currencies present in single dataset', dataset: 'TB / JE', category: 'Currency', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_13b_Warning_JE_Group_Multiple_Currency.csv' },
+  { code: '14', name: 'Multi Effective Dates', desc: 'Single journal entry with multiple posting / effective dates', dataset: 'JE', category: 'Dates', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_14_Warning_JE_Multiple_Date_Values.csv' },
+  { code: '15', name: 'Multi Transaction Types', desc: 'Single journal entry with multiple transaction type codes', dataset: 'JE', category: 'Consistency', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_15_Warning_JE_Multiple_Transaction_Type.csv' },
+  { code: '16', name: 'Prior / Post Period Dates', desc: 'Entries dated outside the active audit testing period window', dataset: 'JE', category: 'Dates', severity: 'WARNING', fileName: 'Parquet_Data_Integrity_Check_16_Warning_JE_Prior_Post_Effective_Date.csv' },
+  { code: '17', name: 'Multi User ID in Entry', desc: 'Single journal entry created by multiple distinct User IDs', dataset: 'JE', category: 'User Integrity', severity: 'OBSERVATION', fileName: 'Parquet_Data_Integrity_Check_17_Observation_JE_Multiple_User_ID.csv' },
+  { code: '18', name: 'Multi Descriptions in Entry', desc: 'Single journal entry with multiple conflicting header descriptions', dataset: 'JE', category: 'Consistency', severity: 'OBSERVATION', fileName: 'Parquet_Data_Integrity_Check_18_Observation_JE_Multiple_Entry_Description.csv' },
+  { code: '19', name: 'TransType Sum Not Zero', desc: 'Transaction type volume not netting to zero across period', dataset: 'JE', category: 'Balancing', severity: 'OBSERVATION', fileName: 'Parquet_Data_Integrity_Check_19_Observation_JE_Sum_of_Amount_by_Transaction_Type_Not_Net_Zero.csv' },
+  { code: '20', name: 'User ID Multiple Names', desc: 'Single User ID associated with multiple distinct user names', dataset: 'JE', category: 'User Integrity', severity: 'OBSERVATION', fileName: 'Parquet_Data_Integrity_Check_20_Observation_UserID_Entered_Multiple_User_Name_Entered.csv' },
 ];
 
 export const OmniaJetWorkflow: React.FC = () => {
@@ -1737,7 +1737,8 @@ export const OmniaJetWorkflow: React.FC = () => {
                           <th style={{ background: '#F8FAFC' }}>Category</th>
                           <th style={{ background: '#F8FAFC' }}>Dataset</th>
                           <th style={{ background: '#F8FAFC' }}>Severity</th>
-                          <th style={{ textAlign: 'center', width: '140px', background: '#F8FAFC' }}>Audit Status</th>
+                          <th style={{ textAlign: 'center', width: '130px', background: '#F8FAFC' }}>Audit Status</th>
+                          <th style={{ textAlign: 'center', width: '160px', background: '#F8FAFC' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1795,12 +1796,43 @@ export const OmniaJetWorkflow: React.FC = () => {
                                     </div>
                                   )}
                                 </td>
+                                <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handlePreviewArtifact(dqc.fileName, `DQC ${dqc.code}: ${dqc.name}`)}
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                        padding: '4px 8px', borderRadius: '5px', fontSize: '0.72rem', fontWeight: 700,
+                                        background: 'var(--deloitte-teal-light)', color: 'var(--deloitte-teal)',
+                                        border: '1px solid rgba(0, 118, 128, 0.25)', cursor: 'pointer',
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                      title={`Preview sample records for DQC ${dqc.code}`}
+                                    >
+                                      <Eye size={11} /> Preview
+                                    </button>
+                                    <a
+                                      href={RunService.getDownloadOutputUrl(runId!, dqc.fileName)}
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                        padding: '4px 8px', borderRadius: '5px', fontSize: '0.72rem', fontWeight: 600,
+                                        background: '#F1F5F9', color: 'var(--text-secondary)',
+                                        border: '1px solid #E2E8F0', textDecoration: 'none',
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                      title={`Download full ${dqc.fileName}`}
+                                    >
+                                      <Download size={11} /> CSV
+                                    </a>
+                                  </div>
+                                </td>
                               </tr>
                             );
                           })
                         ) : (
                           <tr>
-                            <td colSpan={6} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                            <td colSpan={7} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
                               {dqcFilter === 'FLAGGED' ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                                   <CheckCircle2 size={32} color="var(--deloitte-green)" />

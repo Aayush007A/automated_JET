@@ -805,6 +805,45 @@ def run_omnia_jet(config_path):
         'debit_ec': je_multi_name_users['debit_amount_ec'].sum(), 'credit_ec': je_multi_name_users['credit_amount_ec'].sum()
     })
 
+    def save_dqc_file(df, check_name):
+        filename = f'Parquet_Data_Integrity_Check_{check_name}.csv'
+        p = os.path.join(output_dir, filename)
+        if df is not None and len(df) > 0:
+            df.to_csv(p, index=False)
+        elif df is not None:
+            df.head(0).to_csv(p, index=False)
+        else:
+            pd.DataFrame().to_csv(p, index=False)
+
+    save_dqc_file(coa_blank, '01a_Error_COA_Blank_Values')
+    save_dqc_file(tb_blank, '01b_Error_TB_Blank_Values')
+    save_dqc_file(je_blank, '01c_Error_JE_Blank_Values')
+    save_dqc_file(je_blank_user, '01d_Warning_JE_Blank_UserID')
+    save_dqc_file(je_blank_type, '01e_Warning_JE_Blank_Transaction_Type')
+    save_dqc_file(tb_not_coa, '02a_Error_TB_Accounts_Not_In_COA')
+    save_dqc_file(je_not_coa, '02b_Error_JE_Accounts_Not_In_COA')
+    save_dqc_file(tb_long_digits, '03a_Error_TB_Amount_Digits_TooLong')
+    save_dqc_file(je_long_digits, '03b_Error_JE_Amount_Digits_TooLong')
+    save_dqc_file(coa_dup, '04a_Error_COA_Duplicate_Account_Numbers')
+    save_dqc_file(tb_dup, '04b_Error_TB_Duplicate_Account_Numbers')
+    save_dqc_file(je_unknown_class, '05_Error_JE_Unknown_Classification')
+    save_dqc_file(je_multi_class, '06_Error_JE_Multiple_Classification')
+    save_dqc_file(coa_bad_cat, '07_Error_COA_Unknown_Financial_Statement_Category')
+    save_dqc_file(je_unbalanced, '08_Warning_JE_Sum_of_Amount_by_Entry_Not_Net_Zero')
+    save_dqc_file(je_one_line, '09_Warning_JE_One_Line_Entries')
+    save_dqc_file(je_inconsistent, '10_Warning_JE_Entry_Amount_Consistency')
+    save_dqc_file(je_both_dr_cr, '11_Warning_JE_Debit_Credit_Same_Line')
+    save_dqc_file(je_curr_incons, '12_Warning_JE_Amount_Currency_Inconsistency')
+    save_dqc_file(je_multi_ent_curr, '13a_Warning_JE_Entity_Multiple_Currency')
+    save_dqc_file(gl_clean[gl_clean['group_currency_gc'] != ''] if grp_currs > 1 else gl_clean.head(0), '13b_Warning_JE_Group_Multiple_Currency')
+    save_dqc_file(je_multi_dates, '14_Warning_JE_Multiple_Date_Values')
+    save_dqc_file(je_multi_type, '15_Warning_JE_Multiple_Transaction_Type')
+    save_dqc_file(je_out_period, '16_Warning_JE_Prior_Post_Effective_Date')
+    save_dqc_file(je_multi_users, '17_Observation_JE_Multiple_User_ID')
+    save_dqc_file(je_multi_desc, '18_Observation_JE_Multiple_Entry_Description')
+    save_dqc_file(je_unbal_tt, '19_Observation_JE_Sum_of_Amount_by_Transaction_Type_Not_Net_Zero')
+    save_dqc_file(je_multi_name_users, '20_Observation_UserID_Entered_Multiple_User_Name_Entered')
+
     dqc_summary_df = pd.DataFrame(dqc_results)
     dqc_summary_df.columns = [
         'Data_Integrity_Check_Name', 'Description', 'Error_Warning', 'Capability_Impacted',
