@@ -5,6 +5,7 @@ import { RunService } from '../../services/runService';
 import { RunConfig, RunSummary, SparkJetParameters, FieldMappingItem } from '../../types';
 import { FileDropzone } from '../../components/common/FileDropzone';
 import { FieldMappingTable } from '../../components/common/FieldMappingTable';
+import { AutoCleanConstraintsPanel } from '../../components/common/AutoCleanConstraintsPanel';
 import { DataFileMappingWorkspace } from '../../components/common/DataFileMappingWorkspace';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { MetricCard } from '../../components/common/MetricCard';
@@ -22,18 +23,20 @@ import {
 
 const STEPS: TimelineStep[] = [
   { id: 1, label: 'Ingest Data', sub: 'Upload files', icon: UploadCloud },
-  { id: 2, label: 'Data File Mapping', sub: 'Map columns', icon: Table },
-  { id: 3, label: 'Integrity Tests', sub: 'IR 1-4', icon: Activity },
-  { id: 4, label: 'Parameter Rules', sub: 'Ex 1-12', icon: Settings },
-  { id: 5, label: 'Executive Results', sub: 'Review', icon: BarChart3 },
+  { id: 2, label: 'Auto-Cleansing', sub: 'Validate rules', icon: Sparkles },
+  { id: 3, label: 'Data File Mapping', sub: 'Map columns', icon: Table },
+  { id: 4, label: 'Integrity Tests', sub: 'IR 1-4', icon: Activity },
+  { id: 5, label: 'Parameter Rules', sub: 'Ex 1-12', icon: Settings },
+  { id: 6, label: 'Executive Results', sub: 'Review', icon: BarChart3 },
 ];
 
 const STEP_COPY: Record<number, { title: string; desc: string }> = {
   1: { title: 'Upload Trial Balance & Population', desc: 'Upload TB and Population files or an all-in-one workbook, then preview any sheet instantly.' },
-  2: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte SAP canonical schema for Trial Balance and Population.' },
-  3: { title: 'Integrity & Data Readiness Tests (IR 1-4)', desc: 'Execute and review core integrity checks (Control Totals, Gaps, Seldom Accounts).' },
-  4: { title: 'Exception Testing Parameters (Ex 1-12)', desc: 'Configure risk thresholds, account lists, keywords, and unrelated financial statement pairings.' },
-  5: { title: 'Executive Summary & Audit Deliverables', desc: 'Interactive visual analytics, exception distributions, and one-click ZIP download of all outputs.' },
+  2: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Verify column types, auto-standardize dates and numeric values, and validate audit constraints.' },
+  3: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte canonical schema for Trial Balance and Population.' },
+  4: { title: 'Integrity & Data Readiness Tests (IR 1-4)', desc: 'Execute and review core integrity checks (Control Totals, Gaps, Seldom Accounts).' },
+  5: { title: 'Exception Testing Parameters (Ex 1-12)', desc: 'Configure risk thresholds, account lists, keywords, and unrelated financial statement pairings.' },
+  6: { title: 'Executive Summary & Audit Deliverables', desc: 'Interactive visual analytics, exception distributions, and one-click ZIP download of all outputs.' },
 };
 
 const formatExecutiveDate = (dateStr?: string, includeSeconds: boolean = false): string => {
@@ -397,7 +400,7 @@ export const SparkJetWorkflow: React.FC = () => {
   }, [runId]);
 
   useEffect(() => {
-    if (currentStep === 3 && runId && selectedIRFile) {
+    if (currentStep === 4 && runId && selectedIRFile) {
       setLoadingIRPreview(true);
       RunService.previewOutput(runId, selectedIRFile, 50)
         .then((res) => setIrPreviewData(res))
@@ -407,7 +410,7 @@ export const SparkJetWorkflow: React.FC = () => {
   }, [currentStep, selectedIRFile, runId, status?.status]);
 
   useEffect(() => {
-    if (currentStep === 5 && runId && selectedPreviewFile) {
+    if (currentStep === 6 && runId && selectedPreviewFile) {
       setLoadingPreview(true);
       RunService.previewOutput(runId, selectedPreviewFile, 50)
         .then((res) => setPreviewData(res))
@@ -889,7 +892,6 @@ export const SparkJetWorkflow: React.FC = () => {
     );
   }
 
-  // 12 Exception Definitions + Control Sample
   const EXCEPTION_CARDS = [
     { num: 1, id: 'ex1', key: 'Ex1_Unusual_Accounts', file: 'Parameter_Exception_1.csv', title: 'Unusual Accounts Postings', desc: 'Entries posted to accounts flagged as unusual or suspense' },
     { num: 2, id: 'ex2', key: 'Ex2_Seldom_Accounts', file: 'Parameter_Exception_2.csv', title: 'Seldom Used Accounts', desc: 'Entries in seldom accounts exceeding posting count threshold' },
@@ -911,16 +913,42 @@ export const SparkJetWorkflow: React.FC = () => {
     if (currentStep === 1) {
       return (
         <button onClick={() => { setCurrentStep(2); setMaxCompletedStep(prev => Math.max(prev, 1)); }} disabled={!isStep1Valid} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
-          Continue to Mapping <ArrowRight size={13} />
+          Continue <ArrowRight size={13} />
         </button>
       );
     }
     if (currentStep === 2) {
       return (
         <>
-          <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
+          <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+            <ArrowLeft size={13} /> Back
+          </button>
           <button
-            onClick={() => { setCurrentStep(3); handleRunPipeline(3); }}
+            type="button"
+            onClick={handleRunAutoClean}
+            disabled={autoCleaning}
+            className="btn-soft-slate"
+            style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <RefreshCw size={13} className={autoCleaning ? 'spin-slow' : ''} />
+            {autoCleaning ? 'Validating...' : 'Re-Run Clean & Validate'}
+          </button>
+          <button
+            onClick={() => { setCurrentStep(3); setMaxCompletedStep(prev => Math.max(prev, 2)); }}
+            className="btn-primary"
+            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
+          >
+            Continue to Mapping <ArrowRight size={13} />
+          </button>
+        </>
+      );
+    }
+    if (currentStep === 3) {
+      return (
+        <>
+          <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
+          <button
+            onClick={() => { setCurrentStep(4); handleRunPipeline(4); }}
             disabled={executing}
             className="btn-primary"
             style={{ padding: '6px 16px', fontSize: '0.82rem' }}
@@ -930,30 +958,30 @@ export const SparkJetWorkflow: React.FC = () => {
         </>
       );
     }
-    if (currentStep === 3) {
-      return (
-        <>
-          <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button onClick={() => { setCurrentStep(4); setMaxCompletedStep(prev => Math.max(prev, 3)); }} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
-            Configure Exceptions <ArrowRight size={13} />
-          </button>
-        </>
-      );
-    }
     if (currentStep === 4) {
       return (
         <>
           <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button onClick={() => { setCurrentStep(5); handleRunPipeline(5); }} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
-            <Play size={13} fill="#FFFFFF" />
-            {executing ? 'Executing...' : 'Execute Exceptions'}
+          <button onClick={() => { setCurrentStep(5); setMaxCompletedStep(prev => Math.max(prev, 4)); }} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+            Configure Exceptions <ArrowRight size={13} />
           </button>
         </>
       );
     }
     if (currentStep === 5) {
       return (
-        <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+        <>
+          <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
+          <button onClick={() => { setCurrentStep(6); handleRunPipeline(6); }} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+            <Play size={13} fill="#FFFFFF" />
+            {executing ? 'Executing...' : 'Execute Exceptions'}
+          </button>
+        </>
+      );
+    }
+    if (currentStep === 6) {
+      return (
+        <button onClick={() => setCurrentStep(5)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
           <Settings size={13} /> Reconfigure Exceptions
         </button>
       );
@@ -993,7 +1021,7 @@ export const SparkJetWorkflow: React.FC = () => {
         </div>
 
         {/* Right side action if on completed step */}
-        {currentStep === 5 && (
+        {currentStep === 6 && (
           <div style={{ display: 'flex', gap: '10px' }}>
             <a
               href={RunService.getDownloadAllZipUrl(runId!)}
@@ -1056,15 +1084,28 @@ export const SparkJetWorkflow: React.FC = () => {
                     fontSize: '0.86rem'
                   }}
                 >
-                  Proceed to Data File Mapping <ArrowRight size={16} />
+                  Proceed to Auto-Cleansing & Constraints <ArrowRight size={16} />
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* STEP 2: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
+        {/* STEP 2: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
         {currentStep === 2 && (
+          <div>
+            <AutoCleanConstraintsPanel
+              workflowType="SPARK_JET"
+              tbRowCount={status?.totalInputRows?.tb || 22}
+              glRowCount={status?.totalInputRows?.gl || (status?.glCheckpointsSummary?.totalLines || 36)}
+              coaRowCount={0}
+              onProceed={() => setCurrentStep(3)}
+            />
+          </div>
+        )}
+
+        {/* STEP 3: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
+        {currentStep === 3 && (
           <div>
             <DataFileMappingWorkspace
               datasets={[
@@ -1088,19 +1129,19 @@ export const SparkJetWorkflow: React.FC = () => {
                 },
               ]}
               onProceed={() => {
-                setCurrentStep(3);
-                handleRunPipeline(3);
+                setCurrentStep(4);
+                handleRunPipeline(4);
               }}
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
-              <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <ArrowLeft size={15} /> Back to Ingestion
+              <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ArrowLeft size={15} /> Back to Auto-Cleansing
               </button>
               <button
                 onClick={() => {
-                  setCurrentStep(3);
-                  handleRunPipeline(3);
+                  setCurrentStep(4);
+                  handleRunPipeline(4);
                 }}
                 disabled={executing}
                 className="btn-primary"
@@ -1112,8 +1153,8 @@ export const SparkJetWorkflow: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 3: CHECKPOINTS & INTEGRITY TESTING (IR 1-4) */}
-        {currentStep === 3 && (
+        {/* STEP 4: CHECKPOINTS & INTEGRITY TESTING (IR 1-4) */}
+        {currentStep === 4 && (
           <div>
             {executing && (
               <div style={{ maxWidth: '680px', margin: '0 auto 30px' }}>
@@ -1263,7 +1304,7 @@ export const SparkJetWorkflow: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
               <button
                 type="button"
-                onClick={() => setCurrentStep(2)}
+                onClick={() => setCurrentStep(3)}
                 className="btn-secondary"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
@@ -1271,7 +1312,7 @@ export const SparkJetWorkflow: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setCurrentStep(4)}
+                onClick={() => setCurrentStep(5)}
                 className="btn-primary"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
@@ -1281,8 +1322,8 @@ export const SparkJetWorkflow: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 4: PARAMETER EXCEPTION TESTING CONFIGURATION */}
-        {currentStep === 4 && (
+        {/* STEP 5: PARAMETER EXCEPTION TESTING CONFIGURATION */}
+        {currentStep === 5 && (
           <div>
             {fileImportNotice && (
               <div className="notice-banner">
@@ -2110,7 +2151,7 @@ export const SparkJetWorkflow: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
               <button
                 type="button"
-                onClick={() => setCurrentStep(3)}
+                onClick={() => setCurrentStep(4)}
                 className="btn-secondary"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
@@ -2119,8 +2160,8 @@ export const SparkJetWorkflow: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  setCurrentStep(5);
-                  handleRunPipeline(5);
+                  setCurrentStep(6);
+                  handleRunPipeline(6);
                 }}
                 disabled={executing}
                 className="btn-primary"
@@ -2136,8 +2177,8 @@ export const SparkJetWorkflow: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 5: RESULTS & EXECUTIVE VISUALS */}
-        {currentStep === 5 && (
+        {/* STEP 6: RESULTS & EXECUTIVE VISUALS */}
+        {currentStep === 6 && (
           <div>
             {executing && (
               <div style={{ maxWidth: '680px', margin: '0 auto 30px' }}>

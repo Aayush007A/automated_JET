@@ -106,6 +106,8 @@ for acct in ACCOUNTS:
     acct_no, desc, fs_cat, fs_subtotal, fs_line, fs_type, grp1_num, grp1, _, _ = acct
     op_bal = prior_year_ending[acct_no]
     cl_bal = current_year_ending[acct_no]
+    dr = max(0.0, cl_bal - op_bal) if (cl_bal - op_bal) > 0 else 0.0
+    cr = max(0.0, op_bal - cl_bal) if (op_bal - cl_bal) > 0 else 0.0
     
     tb_rows.append({
         "entity_id":           ENTITY_ID,

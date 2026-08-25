@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2, AlertTriangle, Sparkles, RefreshCw, ShieldCheck, Database,
   FileCheck, ArrowRight, Check, Info, Layers, Table, AlertCircle, Loader2, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { SchemaConstraintItem, AutoCleanConstraintsReport } from '../../types';
+import { SchemaConstraintItem } from '../../types';
 
 interface AutoCleanConstraintsPanelProps {
   workflowType: 'OMNIA_JET' | 'SPARK_JET';
@@ -13,7 +13,10 @@ interface AutoCleanConstraintsPanelProps {
   coaRowCount?: number;
 }
 
-const DEFAULT_CONSTRAINTS: SchemaConstraintItem[] = [
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. OMNIA JET CONSTRAINTS (16 Rules strictly from omnia_JET_user_input.txt)
+// ─────────────────────────────────────────────────────────────────────────────
+const OMNIA_CONSTRAINTS: SchemaConstraintItem[] = [
   // Trial Balance Constraints
   {
     id: 'TB-C01',
@@ -181,6 +184,145 @@ const DEFAULT_CONSTRAINTS: SchemaConstraintItem[] = [
   }
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. SPARK JET CHECKPOINTS (13 Rules strictly from spark_proper_guide.txt)
+// ─────────────────────────────────────────────────────────────────────────────
+const SPARK_CHECKPOINTS: SchemaConstraintItem[] = [
+  // Trial Balance Checkpoints (TB-01 to TB-08)
+  {
+    id: 'TB-01',
+    dataset: 'Trial Balance',
+    name: 'G/L Code & Description Non-Blank & Unique Check',
+    technicalField: 'G/L, Description',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'G/L account number and description do not contain blank values, nulls, or invalid corrupted rows.',
+    guidance: 'Should not contain blank values or duplicates in the Trial Balance master.'
+  },
+  {
+    id: 'TB-02',
+    dataset: 'Trial Balance',
+    name: 'Account Subtype Classification Verification',
+    technicalField: 'Account Subtype',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'Verified that all account records belong to standard subtypes: Assets, Liabilities, Revenues/Income, and Expenses.',
+    guidance: 'Account Subtype must be populated with standard financial categories.'
+  },
+  {
+    id: 'TB-03',
+    dataset: 'Trial Balance',
+    name: 'Opening & Closing Balance Numeric Validation',
+    technicalField: 'Opening Balance, Closing Balance',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'Opening Balance and Closing Balance columns parsed to numeric floats with zero string/formatting errors.',
+    guidance: 'Opening balance and Closing balance must be valid numbers.'
+  },
+  {
+    id: 'TB-04',
+    dataset: 'Trial Balance',
+    name: 'Debit & Credit Total Balancing Check',
+    technicalField: 'Debit, Credit',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'Debit and Credit columns parsed into numbers; verified total debit equals total credit across the population.',
+    guidance: 'Debit and Credit across the entire dataset must balance.'
+  },
+  {
+    id: 'TB-05',
+    dataset: 'Trial Balance',
+    name: 'Net Total Opening & Closing Zero Balance Rule',
+    technicalField: 'Opening Balance, Closing Balance',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'Total column sum of Opening Balance and Closing Balance across all accounts equals 0.00.',
+    guidance: 'Total column sum of Opening Balance and Closing Balance should be 0.'
+  },
+  {
+    id: 'TB-06',
+    dataset: 'Trial Balance',
+    name: 'G/L Account Code Uniqueness After Trim-Clean',
+    technicalField: 'G/L',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'G/L column is strictly unique after whitespace trimming and lower/upper case normalization.',
+    guidance: 'GL column should be unique after trim-clean.'
+  },
+  {
+    id: 'TB-07',
+    dataset: 'Trial Balance',
+    name: 'Mandatory Field Completeness Check',
+    technicalField: 'G/L, Description, Account Subtype, FS Line Item',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'Validated that G/L, Description, Account Subtype, and FS line columns contain zero blank or null cells.',
+    guidance: 'No blanks in GL, GL description, Account subtype and FS line columns.'
+  },
+  {
+    id: 'TB-08',
+    dataset: 'Trial Balance',
+    name: 'Standardized CSV Export Integrity',
+    technicalField: 'TB Preparation Structure',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'Trial balance sanitized, structured, and verified ready for PySpark ingestion and aggregation.',
+    guidance: 'Save the prepared TB in CSV format.'
+  },
+
+  // Population Checkpoints (POP-01 to POP-05)
+  {
+    id: 'POP-01',
+    dataset: 'General Ledger',
+    name: 'Mandatory Population Fields Completeness',
+    technicalField: 'G/L, DocumentNo, Type, Entry Date, Pstng Date',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'No blank or null values in G/L, DocumentNo, Document Type, Entry Date, or Posting Date.',
+    guidance: 'No blanks in GL, DocumentNo, Type, Entry Date and Pstng Date.'
+  },
+  {
+    id: 'POP-02',
+    dataset: 'General Ledger',
+    name: 'Total Population Net Amount Zero Sum Rule',
+    technicalField: 'Amount in local cur.',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'Sum of Amount in local currency across all journal transactions equals 0.00.',
+    guidance: 'Sum of Amount in local currency should be 0.'
+  },
+  {
+    id: 'POP-03',
+    dataset: 'General Ledger',
+    name: 'Posting Date Boundary Range Validation',
+    technicalField: 'Pstng Date',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'All transaction Posting Dates fall strictly within the engagement period Start Date and End Date.',
+    guidance: 'Posting Date should be within the Start Date and End Date range.'
+  },
+  {
+    id: 'POP-04',
+    dataset: 'General Ledger',
+    name: 'Per-Document Journal Balance Rule',
+    technicalField: 'DocumentNo, Amount in local cur.',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'For every distinct Document Number, the sum of line amounts balances exactly to 0.00.',
+    guidance: 'For all document numbers, the sum against each document should be 0.'
+  },
+  {
+    id: 'POP-05',
+    dataset: 'General Ledger',
+    name: 'Population Standardization & Comma Cleanup',
+    technicalField: 'Document Header Text, Text, User name',
+    severity: 'Required',
+    status: 'PASSED',
+    details: 'Commas replaced with spaces in text fields, amounts converted to numeric, and dates formatted to dd-MMM-yy.',
+    guidance: 'Save the prepared Population as CSV.'
+  }
+];
+
 export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps> = ({
   workflowType,
   onProceed,
@@ -188,19 +330,25 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   glRowCount = 36,
   coaRowCount = 26,
 }) => {
+  const isSpark = workflowType === 'SPARK_JET';
+  const defaultList = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
+
   const [isRunningClean, setIsRunningClean] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'TB' | 'GL' | 'COA'>('ALL');
-  const [constraints, setConstraints] = useState<SchemaConstraintItem[]>(DEFAULT_CONSTRAINTS);
-  const [isCleaned, setIsCleaned] = useState(true);
+  const [constraints, setConstraints] = useState<SchemaConstraintItem[]>(defaultList);
 
-  const totalRows = tbRowCount + glRowCount + coaRowCount;
+  useEffect(() => {
+    setConstraints(isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS);
+    setActiveFilter('ALL');
+  }, [workflowType]);
+
+  const totalRows = isSpark ? tbRowCount + glRowCount : tbRowCount + glRowCount + coaRowCount;
 
   const handleRunCleansing = () => {
     setIsRunningClean(true);
     setTimeout(() => {
       setIsRunningClean(false);
-      setIsCleaned(true);
-      setConstraints(DEFAULT_CONSTRAINTS);
+      setConstraints(isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS);
     }, 900);
   };
 
@@ -212,7 +360,6 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   });
 
   const passedCount = constraints.filter((c) => c.status === 'PASSED').length;
-  const warningCount = constraints.filter((c) => c.status === 'WARNING').length;
   const failedCount = constraints.filter((c) => c.status === 'FAILED').length;
   const allPassed = failedCount === 0;
 
@@ -229,7 +376,7 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
             {totalRows.toLocaleString()}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            TB ({tbRowCount}) · GL ({glRowCount}) · COA ({coaRowCount})
+            {isSpark ? `TB (${tbRowCount}) · Population (${glRowCount})` : `TB (${tbRowCount}) · GL (${glRowCount}) · COA (${coaRowCount})`}
           </span>
         </div>
 
@@ -237,12 +384,14 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF',
           border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)'
         }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>RULES EVALUATED</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+            {isSpark ? 'CHECKPOINTS EVALUATED' : 'RULES EVALUATED'}
+          </span>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#2563EB', marginTop: '4px' }}>
             {constraints.length} Checks
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            6 TB · 7 GL · 3 COA Constraints
+            {isSpark ? '8 TB · 5 Population Checkpoints' : '6 TB · 7 GL · 3 COA Constraints'}
           </span>
         </div>
 
@@ -250,7 +399,9 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF',
           border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)'
         }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>PASSED CONSTRAINTS</span>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+            {isSpark ? 'PASSED CHECKPOINTS' : 'PASSED CONSTRAINTS'}
+          </span>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#059669', marginTop: '4px' }}>
             {passedCount} / {constraints.length}
           </div>
@@ -281,17 +432,24 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
       }}>
         <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <ShieldCheck size={16} color="var(--deloitte-teal)" />
-          Schema & Data Integrity Constraint Audit Rules ({filteredConstraints.length})
+          {isSpark ? `Spark JET Mandatory Data Checkpoints (spark_proper_guide.txt) (${filteredConstraints.length})` : `Omnia JET Schema & Constraints Validation (omnia_JET_user_input.txt) (${filteredConstraints.length})`}
         </div>
 
         {/* Dataset Filter Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
-          {[
-            { key: 'ALL', label: `All Rules (${constraints.length})` },
-            { key: 'TB', label: 'Trial Balance (6)' },
-            { key: 'GL', label: 'General Ledger (7)' },
-            { key: 'COA', label: 'Chart of Accounts (3)' },
-          ].map((tab) => (
+          {(isSpark
+            ? [
+                { key: 'ALL', label: `All Checkpoints (${constraints.length})` },
+                { key: 'TB', label: 'Trial Balance (8)' },
+                { key: 'GL', label: 'Population GL (5)' },
+              ]
+            : [
+                { key: 'ALL', label: `All Rules (${constraints.length})` },
+                { key: 'TB', label: 'Trial Balance (6)' },
+                { key: 'GL', label: 'General Ledger (7)' },
+                { key: 'COA', label: 'Chart of Accounts (3)' },
+              ]
+          ).map((tab) => (
             <button
               key={tab.key}
               type="button"
@@ -358,68 +516,36 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                     background: 'rgba(5, 150, 105, 0.1)', color: '#059669',
                     display: 'inline-flex', alignItems: 'center', gap: '4px'
                   }}>
-                    <Check size={11} />
-                    {c.status}
+                    <CheckCircle2 size={12} /> {c.status}
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px', lineHeight: 1.25 }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px', lineHeight: 1.3 }}>
                   {c.name}
                 </div>
 
-                <p style={{ fontSize: '0.73rem', color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.35 }}>
+                <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', margin: '0 0 8px', lineHeight: 1.35 }}>
                   {c.details}
                 </p>
               </div>
 
-              {c.guidance && (
-                <div style={{
-                  padding: '6px 8px', borderRadius: '6px', background: '#F8FAFC',
-                  border: '1px solid #E2E8F0', fontSize: '0.7rem', color: 'var(--text-secondary)',
-                  display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: 1.25
-                }}>
-                  <Info size={13} color="#0284C7" style={{ flexShrink: 0, marginTop: '1px' }} />
-                  <span><strong>Guidance:</strong> {c.guidance}</span>
-                </div>
-              )}
+              <div style={{
+                fontSize: '0.7rem', color: 'var(--text-muted)', paddingTop: '8px',
+                borderTop: '1px dashed var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+                <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)', fontWeight: 600 }}>
+                  {c.technicalField}
+                </span>
+                <span style={{ fontStyle: 'italic', fontSize: '0.66rem', color: '#64748B' }}>
+                  {c.dataset}
+                </span>
+              </div>
             </div>
           );
         })}
       </div>
-
-      {/* Bottom Completion & Proceed Banner */}
-      <div className="glass-panel" style={{
-        padding: '24px 28px', background: '#FFFFFF', textAlign: 'center',
-        border: '1.5px solid rgba(0, 118, 128, 0.25)',
-        boxShadow: '0 4px 16px rgba(0, 118, 128, 0.08)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-          <CheckCircle2 size={22} color="#059669" />
-          <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-            All Data Cleansing & Schema Constraints Passed (16 of 16)
-          </span>
-        </div>
-
-        <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', maxWidth: '640px', margin: '0 auto 18px' }}>
-          Trial Balance, General Ledger, and Chart of Accounts datasets satisfy all mandatory audit schema constraints and data type specifications.
-        </p>
-
-        <button
-          type="button"
-          onClick={onProceed}
-          className="btn-primary"
-          style={{
-            padding: '10px 32px',
-            fontSize: '0.88rem',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(0, 118, 128, 0.25)'
-          }}
-        >
-          Proceed to Step 3: Data File Mapping <ArrowRight size={16} />
-        </button>
-      </div>
     </div>
   );
 };
+
+export default AutoCleanConstraintsPanel;

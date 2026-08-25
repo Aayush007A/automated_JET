@@ -796,7 +796,9 @@ export const OmniaJetWorkflow: React.FC = () => {
                   title: 'Trial Balance (TB)',
                   shortName: 'TB',
                   sourceHeaders: tbHeaders,
-                  mappings: config?.fieldMappings.tb || [],
+                  mappings: (config?.fieldMappings.tb || []).filter(
+                    (m) => m.standardField.toLowerCase() !== 'debit' && m.standardField.toLowerCase() !== 'credit'
+                  ),
                   onChangeMapping: (std, src) => handleMappingChange('tb', std, src),
                   rowCount: dynamicTbCount,
                 },
