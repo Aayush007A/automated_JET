@@ -12,6 +12,7 @@ import { LogService } from '../services/logService';
 import { DatasetClassification } from '../types';
 import { ENV } from '../config/env';
 import { FastPreviewReader } from '../utils/fastPreviewReader';
+import { AutoCleanService } from '../services/autoCleanService';
 
 export class FileController {
   public static async uploadFiles(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -184,6 +185,46 @@ export class FileController {
     }
 
     LogService.log('INFO', 'AUTO_CLEAN', `Starting auto-clean and constraint verification for run ${runId}`, runId);
+
+    // 1. Try High-Performance Polars SIMD Vector Engine
+    try {
+      const polarsReport = await AutoCleanService.runAutoClean(runId);
+      if (polarsReport) {
+        const constraintsPassed = polarsReport.constraintsPassed;
+        const currentStatus = RunManager.getRunStatus(runId);
+        if (currentStatus?.status !== 'COMPLETED') {
+          RunManager.updateRunStatus(runId, {
+            status: constraintsPassed ? 'CONFIGURED' : 'MAPPING',
+            progress: constraintsPassed ? 40 : 25,
+            currentStage: constraintsPassed ? 'DATA_CLEANSED' : 'CLEANSE_FAILED',
+            totalInputRows: {
+              tb: polarsReport.tbRowsCleaned,
+              gl: polarsReport.glRowsCleaned,
+              coa: polarsReport.coaRowsCleaned,
+            },
+          });
+        } else {
+          RunManager.updateRunStatus(runId, {
+            totalInputRows: {
+              tb: polarsReport.tbRowsCleaned,
+              gl: polarsReport.glRowsCleaned,
+              coa: polarsReport.coaRowsCleaned,
+            },
+          });
+        }
+
+        res.json({
+          success: true,
+          message: constraintsPassed
+            ? 'Auto-cleaning & constraint validation completed successfully via Polars SIMD Engine.'
+            : 'Auto-cleaning completed with constraint check failures.',
+          report: polarsReport,
+        });
+        return;
+      }
+    } catch (err: any) {
+      LogService.log('WARN', 'AUTO_CLEAN', `Polars auto clean failed, falling back to in-memory: ${err.message}`, runId);
+    }
 
     let tbCleaned = 0;
     let glCleaned = 0;

@@ -1,0 +1,167 @@
+{
+  "tbRowsCleaned": 26,
+  "glRowsCleaned": 36,
+  "coaRowsCleaned": 26,
+  "datesStandardized": 72,
+  "numbersConverted": 212,
+  "constraintsPassed": true,
+  "constraintResults": [
+    {
+      "id": "TB-01",
+      "dataset": "Trial Balance",
+      "name": "Account Number Not Blank",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All TB rows have valid Account Numbers."
+    },
+    {
+      "id": "TB-02",
+      "dataset": "Trial Balance",
+      "name": "Beginning Balance Clean Numeric Format",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "Beginning balances are clean numeric."
+    },
+    {
+      "id": "TB-03",
+      "dataset": "Trial Balance",
+      "name": "Ending Balance Clean Numeric Format",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "Ending balances are clean numeric."
+    },
+    {
+      "id": "TB-04",
+      "dataset": "Trial Balance",
+      "name": "Sum of Beginning Balance Equals Zero",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "Sum of Beginning Balance is zero (0.00)."
+    },
+    {
+      "id": "TB-05",
+      "dataset": "Trial Balance",
+      "name": "Sum of Ending Balance Equals Zero",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "Sum of Ending Balance is zero (0.00)."
+    },
+    {
+      "id": "GL-01",
+      "dataset": "General Ledger",
+      "name": "Journal Entry Number Not Blank",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "All lines have JE numbers."
+    },
+    {
+      "id": "GL-02",
+      "dataset": "General Ledger",
+      "name": "Account Number Populated",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All lines have account numbers."
+    },
+    {
+      "id": "GL-03",
+      "dataset": "General Ledger",
+      "name": "Net Amount EC Clean Numeric",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All amounts are clean numeric."
+    },
+    {
+      "id": "GL-04",
+      "dataset": "General Ledger",
+      "name": "Posting Date Valid Date",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "All posting dates are valid."
+    },
+    {
+      "id": "GL-05",
+      "dataset": "General Ledger",
+      "name": "Sum of Net Amount Equals Zero",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "Sum of Net Amount is zero (0.00)."
+    },
+    {
+      "id": "GL-06",
+      "dataset": "General Ledger",
+      "name": "User ID Entered Populated",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All journal entries have User IDs."
+    },
+    {
+      "id": "GL-07",
+      "dataset": "General Ledger",
+      "name": "Effective Date Valid",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "All journal lines have Effective Dates."
+    },
+    {
+      "id": "GL-08",
+      "dataset": "General Ledger",
+      "name": "Transaction Type Populated",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All journal lines have Transaction Types."
+    },
+    {
+      "id": "COA-C01",
+      "dataset": "Chart of Accounts",
+      "name": "COA Account Number Populated",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All COA accounts are populated."
+    },
+    {
+      "id": "COA-C02",
+      "dataset": "Chart of Accounts",
+      "name": "COA FS Category Populated",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All COA accounts have FS Categories."
+    },
+    {
+      "id": "COA-C03",
+      "dataset": "Chart of Accounts",
+      "name": "COA Account Number Uniqueness",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All COA accounts are strictly unique."
+    }
+  ],
+  "warnings": [],
+  "status": "READY"
+}

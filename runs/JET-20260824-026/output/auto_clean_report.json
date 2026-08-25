@@ -1,0 +1,141 @@
+{
+  "tbRowsCleaned": 13,
+  "glRowsCleaned": 10,
+  "coaRowsCleaned": 0,
+  "datesStandardized": 20,
+  "numbersConverted": 82,
+  "constraintsPassed": false,
+  "constraintResults": [
+    {
+      "id": "TB-01",
+      "dataset": "Trial Balance",
+      "name": "GL Account Not Blank",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "All TB GL accounts are populated."
+    },
+    {
+      "id": "TB-02",
+      "dataset": "Trial Balance",
+      "name": "Account Description Not Blank",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "All account descriptions are populated."
+    },
+    {
+      "id": "TB-03",
+      "dataset": "Trial Balance",
+      "name": "Opening Balance Clean Numeric Format",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "Opening balances are clean numerics."
+    },
+    {
+      "id": "TB-04",
+      "dataset": "Trial Balance",
+      "name": "Closing Balance Clean Numeric Format",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "Closing balances are clean numerics."
+    },
+    {
+      "id": "TB-05",
+      "dataset": "Trial Balance",
+      "name": "Sum of Opening Balance Equals Zero",
+      "status": "FAILED",
+      "severity": "Required",
+      "failedRowsCount": 13,
+      "fileName": "Failed_Constraint_TB-05.csv",
+      "details": "Opening balance total is -664,019.00 (variance: 664,019.00)."
+    },
+    {
+      "id": "TB-06",
+      "dataset": "Trial Balance",
+      "name": "Account Subtype Categorization",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "Account subtypes are populated."
+    },
+    {
+      "id": "TB-07",
+      "dataset": "Trial Balance",
+      "name": "FS Line Item Classification",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "Financial statement line items are mapped."
+    },
+    {
+      "id": "TB-08",
+      "dataset": "Trial Balance",
+      "name": "Sum of Closing Balance Equals Zero",
+      "status": "FAILED",
+      "severity": "Required",
+      "failedRowsCount": 13,
+      "fileName": "Failed_Constraint_TB-08.csv",
+      "details": "Closing balance total is -1,093,843,523.00 (variance: 1,093,843,523.00)."
+    },
+    {
+      "id": "POP-01",
+      "dataset": "Population",
+      "name": "Document Number Not Blank",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "All journal lines have valid document numbers."
+    },
+    {
+      "id": "POP-02",
+      "dataset": "Population",
+      "name": "GL Account Number Populated",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "details": "All journal lines have valid GL account codes."
+    },
+    {
+      "id": "POP-03",
+      "dataset": "Population",
+      "name": "Amount in Local Currency Numeric",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All journal line amounts are clean numerics."
+    },
+    {
+      "id": "POP-04",
+      "dataset": "Population",
+      "name": "Posting Date Valid Format",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "All posting dates are valid standard ISO dates."
+    },
+    {
+      "id": "POP-05",
+      "dataset": "Population",
+      "name": "Sum of Amount in Local Currency Equals Zero",
+      "status": "PASSED",
+      "severity": "Required",
+      "failedRowsCount": 0,
+      "fileName": null,
+      "details": "Population total net balance is strictly zero (0.00)."
+    }
+  ],
+  "warnings": [
+    "Sum of Opening Balance Equals Zero: Opening balance total is -664,019.00 (variance: 664,019.00).",
+    "Sum of Closing Balance Equals Zero: Closing balance total is -1,093,843,523.00 (variance: 1,093,843,523.00)."
+  ],
+  "status": "FAILED"
+}

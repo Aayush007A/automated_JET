@@ -23,9 +23,10 @@ def run_omnia_jet(config_path):
         config = json.load(f)
 
     run_id = config.get('runId', 'UNKNOWN_RUN')
-    output_dir = os.path.join(os.path.dirname(os.path.dirname(config_path)), 'output')
+    run_dir = os.path.dirname(os.path.dirname(config_path))
+    output_dir = os.path.join(run_dir, 'output')
     os.makedirs(output_dir, exist_ok=True)
-    log_file = os.path.join(os.path.dirname(os.path.dirname(config_path)), 'logs', 'execution.txt')
+    log_file = os.path.join(run_dir, 'logs', 'execution.txt')
     
     log_event(run_id, 'INITIALIZATION', 5, 'Initializing Omnia JET Workflow engine', log_file)
     if POLARS_AVAILABLE:
@@ -38,7 +39,21 @@ def run_omnia_jet(config_path):
 
     log_event(run_id, 'READ_INPUT', 10, f'Reading Omnia input datasets ({len(input_files)} uploaded)', log_file)
 
-    def load_dataset(file_id, sheet_name=None):
+    def load_dataset(file_id, sheet_name=None, dataset_type=None):
+        cache_dir = os.path.join(run_dir, 'cache')
+        if dataset_type and os.path.exists(cache_dir):
+            parquet_path = os.path.join(cache_dir, f"{dataset_type}.parquet")
+            if os.path.exists(parquet_path):
+                if POLARS_AVAILABLE:
+                    try:
+                        return pl.read_parquet(parquet_path).to_pandas().astype(str)
+                    except Exception:
+                        pass
+                try:
+                    return pd.read_parquet(parquet_path).astype(str)
+                except Exception:
+                    pass
+
         for f in input_files:
             if f.get('fileId') == file_id or f.get('fileName') == file_id:
                 path = f.get('filePath')
@@ -72,11 +87,11 @@ def run_omnia_jet(config_path):
     for f in input_files:
         detected = f.get('detectedDataset')
         if detected == 'TRIAL_BALANCE' and tb_df is None:
-            tb_df = load_dataset(f.get('fileId'))
+            tb_df = load_dataset(f.get('fileId'), dataset_type='tb')
         elif detected in ('GENERAL_LEDGER', 'POPULATION') and gl_df is None:
-            gl_df = load_dataset(f.get('fileId'))
+            gl_df = load_dataset(f.get('fileId'), dataset_type='gl')
         elif detected == 'COA' and coa_df is None:
-            coa_df = load_dataset(f.get('fileId'))
+            coa_df = load_dataset(f.get('fileId'), dataset_type='coa')
         elif f.get('sheets'):
             for s in f.get('sheets', []):
                 s_class = s.get('detectedDataset')
@@ -85,21 +100,21 @@ def run_omnia_jet(config_path):
                     if tb_beg_df is None:
                         tb_beg_df = load_dataset(f.get('fileId'), s.get('sheetName'))
                     elif tb_df is None:   # fall-back: first TB sheet if no beg marker found
-                        tb_df = load_dataset(f.get('fileId'), s.get('sheetName'))
+                        tb_df = load_dataset(f.get('fileId'), s.get('sheetName'), dataset_type='tb')
                 elif s_class == 'TRIAL_BALANCE_END' or s_name in END_SHEET_NAMES:
                     if tb_end_df is None:
                         tb_end_df = load_dataset(f.get('fileId'), s.get('sheetName'))
                 elif s_class in ('GENERAL_LEDGER', 'POPULATION') and gl_df is None:
-                    gl_df = load_dataset(f.get('fileId'), s.get('sheetName'))
+                    gl_df = load_dataset(f.get('fileId'), s.get('sheetName'), dataset_type='gl')
                 elif s_class == 'COA' and coa_df is None:
-                    coa_df = load_dataset(f.get('fileId'), s.get('sheetName'))
+                    coa_df = load_dataset(f.get('fileId'), s.get('sheetName'), dataset_type='coa')
 
     if dataset_map.get('tbFileId'):
-        tb_df = load_dataset(dataset_map['tbFileId'], dataset_map.get('tbSheetName'))
+        tb_df = load_dataset(dataset_map['tbFileId'], dataset_map.get('tbSheetName'), dataset_type='tb')
     if dataset_map.get('glFileId'):
-        gl_df = load_dataset(dataset_map['glFileId'], dataset_map.get('glSheetName'))
+        gl_df = load_dataset(dataset_map['glFileId'], dataset_map.get('glSheetName'), dataset_type='gl')
     if dataset_map.get('coaFileId'):
-        coa_df = load_dataset(dataset_map['coaFileId'], dataset_map.get('coaSheetName'))
+        coa_df = load_dataset(dataset_map['coaFileId'], dataset_map.get('coaSheetName'), dataset_type='coa')
 
     # ── Merge Beginning + Ending TB if both are present ──────────────────
     if tb_beg_df is not None and tb_end_df is not None:

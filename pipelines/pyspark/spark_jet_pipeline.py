@@ -67,7 +67,21 @@ def run_spark_jet_pipeline(config_path: str):
     tb_df = None
     gl_df = None
 
-    def load_dataset(file_id, sheet_name=None):
+    def load_dataset(file_id, sheet_name=None, dataset_type=None):
+        cache_dir = os.path.join(run_dir, 'cache')
+        if dataset_type and os.path.exists(cache_dir):
+            parquet_path = os.path.join(cache_dir, f"{dataset_type}.parquet")
+            if os.path.exists(parquet_path):
+                if POLARS_AVAILABLE:
+                    try:
+                        return pl.read_parquet(parquet_path).to_pandas().astype(str)
+                    except Exception:
+                        pass
+                try:
+                    return pd.read_parquet(parquet_path).astype(str)
+                except Exception:
+                    pass
+
         for f in input_files:
             if f.get('fileId') == file_id:
                 path = f.get('filePath') or os.path.join(run_dir, 'input', f.get('fileName', ''))
@@ -89,21 +103,21 @@ def run_spark_jet_pipeline(config_path: str):
     for f in input_files:
         detected = f.get('detectedDataset')
         if detected == 'TRIAL_BALANCE' and tb_df is None:
-            tb_df = load_dataset(f.get('fileId'))
+            tb_df = load_dataset(f.get('fileId'), dataset_type='tb')
         elif detected in ('GENERAL_LEDGER', 'POPULATION') and gl_df is None:
-            gl_df = load_dataset(f.get('fileId'))
+            gl_df = load_dataset(f.get('fileId'), dataset_type='gl')
         elif f.get('sheets'):
             for s in f.get('sheets', []):
                 s_class = s.get('detectedDataset')
                 if s_class == 'TRIAL_BALANCE' and tb_df is None:
-                    tb_df = load_dataset(f.get('fileId'), s.get('sheetName'))
+                    tb_df = load_dataset(f.get('fileId'), s.get('sheetName'), dataset_type='tb')
                 elif s_class in ('GENERAL_LEDGER', 'POPULATION') and gl_df is None:
-                    gl_df = load_dataset(f.get('fileId'), s.get('sheetName'))
+                    gl_df = load_dataset(f.get('fileId'), s.get('sheetName'), dataset_type='gl')
 
     if dataset_map.get('tbFileId'):
-        tb_df = load_dataset(dataset_map['tbFileId'], dataset_map.get('tbSheetName'))
+        tb_df = load_dataset(dataset_map['tbFileId'], dataset_map.get('tbSheetName'), dataset_type='tb')
     if dataset_map.get('glFileId'):
-        gl_df = load_dataset(dataset_map['glFileId'], dataset_map.get('glSheetName'))
+        gl_df = load_dataset(dataset_map['glFileId'], dataset_map.get('glSheetName'), dataset_type='gl')
 
     if tb_df is None:
         raise ValueError("Trial Balance (TB) dataset is required for Spark JET workflow.")
