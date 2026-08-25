@@ -778,6 +778,9 @@ export const OmniaJetWorkflow: React.FC = () => {
           <div>
             <AutoCleanConstraintsPanel
               workflowType="OMNIA_JET"
+              runId={runId || undefined}
+              autoCleanReport={autoCleanReport}
+              onPreviewFailedRows={handlePreviewArtifact}
               tbRowCount={dynamicTbCount || 22}
               glRowCount={dynamicGlCount || 36}
               coaRowCount={26}

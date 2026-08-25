@@ -250,6 +250,8 @@ export interface SchemaConstraintItem {
   details: string;
   guidance?: string;
   technicalField?: string;
+  failedRowsCount?: number;
+  fileName?: string;
 }
 
 export interface AutoCleanConstraintsReport {

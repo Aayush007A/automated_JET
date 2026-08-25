@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2, AlertTriangle, Sparkles, RefreshCw, ShieldCheck, Database,
-  FileCheck, ArrowRight, Check, Info, Layers, Table, AlertCircle, Loader2, ChevronDown, ChevronUp
+  FileCheck, ArrowRight, Check, Info, Layers, Table, AlertCircle, Loader2, ChevronDown, ChevronUp, Eye, Download
 } from 'lucide-react';
 import { SchemaConstraintItem } from '../../types';
+import { RunService } from '../../services/runService';
 
 interface AutoCleanConstraintsPanelProps {
   workflowType: 'OMNIA_JET' | 'SPARK_JET';
   onProceed: () => void;
+  runId?: string;
+  autoCleanReport?: any;
+  onPreviewFailedRows?: (fileName: string, title: string) => void;
   tbRowCount?: number;
   glRowCount?: number;
   coaRowCount?: number;
@@ -17,7 +21,6 @@ interface AutoCleanConstraintsPanelProps {
 // 1. OMNIA JET CONSTRAINTS (16 Rules strictly from omnia_JET_user_input.txt)
 // ─────────────────────────────────────────────────────────────────────────────
 const OMNIA_CONSTRAINTS: SchemaConstraintItem[] = [
-  // Trial Balance Constraints
   {
     id: 'TB-C01',
     dataset: 'Trial Balance',
@@ -78,8 +81,6 @@ const OMNIA_CONSTRAINTS: SchemaConstraintItem[] = [
     details: 'COA mapping identifier resolved (or defaulted to standard master).',
     guidance: 'Enter DEFAULT if specific sub-ledger COA is not provided.'
   },
-
-  // General Ledger / Journal Entry Constraints
   {
     id: 'GL-C01',
     dataset: 'General Ledger',
@@ -150,8 +151,6 @@ const OMNIA_CONSTRAINTS: SchemaConstraintItem[] = [
     details: 'Entries normalized to S (Standard / Recurring) or N (Non-standard / Manual).',
     guidance: 'Required to distinguish routine closing entries from manual risk adjustments.'
   },
-
-  // Chart of Accounts Constraints
   {
     id: 'COA-C01',
     dataset: 'Chart of Accounts',
@@ -188,7 +187,6 @@ const OMNIA_CONSTRAINTS: SchemaConstraintItem[] = [
 // 2. SPARK JET CHECKPOINTS (13 Rules strictly from spark_proper_guide.txt)
 // ─────────────────────────────────────────────────────────────────────────────
 const SPARK_CHECKPOINTS: SchemaConstraintItem[] = [
-  // Trial Balance Checkpoints (TB-01 to TB-08)
   {
     id: 'TB-01',
     dataset: 'Trial Balance',
@@ -269,8 +267,6 @@ const SPARK_CHECKPOINTS: SchemaConstraintItem[] = [
     details: 'Trial balance sanitized, structured, and verified ready for PySpark ingestion and aggregation.',
     guidance: 'Save the prepared TB in CSV format.'
   },
-
-  // Population Checkpoints (POP-01 to POP-05)
   {
     id: 'POP-01',
     dataset: 'General Ledger',
@@ -326,6 +322,9 @@ const SPARK_CHECKPOINTS: SchemaConstraintItem[] = [
 export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps> = ({
   workflowType,
   onProceed,
+  runId,
+  autoCleanReport,
+  onPreviewFailedRows,
   tbRowCount = 22,
   glRowCount = 36,
   coaRowCount = 26,
@@ -334,44 +333,84 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   const defaultList = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
 
   const [isRunningClean, setIsRunningClean] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'TB' | 'GL' | 'COA'>('ALL');
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'TB' | 'GL' | 'COA' | 'FAILED'>('ALL');
   const [constraints, setConstraints] = useState<SchemaConstraintItem[]>(defaultList);
+  const [localReport, setLocalReport] = useState<any>(autoCleanReport);
+
+  const applyReportToConstraints = (rep: any) => {
+    if (!rep || !rep.constraintResults) return;
+    setConstraints((prev) => {
+      return prev.map((c) => {
+        const matched = rep.constraintResults.find((r: any) => r.id === c.id || r.id === c.id.replace('-', '_') || r.name === c.name);
+        if (matched) {
+          return {
+            ...c,
+            status: matched.status || c.status,
+            failedRowsCount: matched.failedRowsCount !== undefined ? matched.failedRowsCount : 0,
+            fileName: matched.fileName,
+            details: matched.details || c.details,
+          };
+        }
+        return c;
+      });
+    });
+  };
 
   useEffect(() => {
-    setConstraints(isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS);
+    const list = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
+    setConstraints(list);
     setActiveFilter('ALL');
-  }, [workflowType]);
+    if (autoCleanReport) {
+      setLocalReport(autoCleanReport);
+      applyReportToConstraints(autoCleanReport);
+    } else if (runId) {
+      handleRunCleansing();
+    }
+  }, [workflowType, runId]);
 
   const totalRows = isSpark ? tbRowCount + glRowCount : tbRowCount + glRowCount + coaRowCount;
 
-  const handleRunCleansing = () => {
-    setIsRunningClean(true);
-    setTimeout(() => {
+  const handleRunCleansing = async () => {
+    if (!runId) {
+      setIsRunningClean(true);
+      setTimeout(() => {
+        setIsRunningClean(false);
+        setConstraints(isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS);
+      }, 700);
+      return;
+    }
+
+    try {
+      setIsRunningClean(true);
+      const res = await RunService.autoCleanData(runId);
+      if (res && res.report) {
+        setLocalReport(res.report);
+        applyReportToConstraints(res.report);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setIsRunningClean(false);
-      setConstraints(isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS);
-    }, 900);
+    }
   };
 
   const filteredConstraints = constraints.filter((c) => {
+    if (activeFilter === 'FAILED') return c.status !== 'PASSED' || (c.failedRowsCount !== undefined && c.failedRowsCount > 0);
     if (activeFilter === 'TB') return c.dataset === 'Trial Balance';
     if (activeFilter === 'GL') return c.dataset === 'General Ledger';
     if (activeFilter === 'COA') return c.dataset === 'Chart of Accounts';
     return true;
   });
 
-  const passedCount = constraints.filter((c) => c.status === 'PASSED').length;
-  const failedCount = constraints.filter((c) => c.status === 'FAILED').length;
+  const passedCount = constraints.filter((c) => c.status === 'PASSED' && (!c.failedRowsCount || c.failedRowsCount === 0)).length;
+  const failedCount = constraints.filter((c) => c.status !== 'PASSED' || (c.failedRowsCount !== undefined && c.failedRowsCount > 0)).length;
   const allPassed = failedCount === 0;
 
   return (
     <div style={{ width: '100%', paddingBottom: '24px' }}>
-      {/* 4 Summary KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '20px' }}>
-        <div style={{
-          padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF',
-          border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)'
-        }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>TOTAL ROWS CLEANED</span>
+        <div style={{ padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>TOTAL ROWS EVALUATED</span>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)', marginTop: '4px' }}>
             {totalRows.toLocaleString()}
           </div>
@@ -380,10 +419,7 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           </span>
         </div>
 
-        <div style={{
-          padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF',
-          border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)'
-        }}>
+        <div style={{ padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
             {isSpark ? 'CHECKPOINTS EVALUATED' : 'RULES EVALUATED'}
           </span>
@@ -395,59 +431,67 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           </span>
         </div>
 
-        <div style={{
-          padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF',
-          border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)'
-        }}>
+        <div style={{ padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
             {isSpark ? 'PASSED CHECKPOINTS' : 'PASSED CONSTRAINTS'}
           </span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#059669', marginTop: '4px' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: failedCount === 0 ? '#059669' : '#D97706', marginTop: '4px' }}>
             {passedCount} / {constraints.length}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            100% Mandatory Checks Met
+            {failedCount === 0 ? '100% Mandatory Checks Met' : `${failedCount} Exceptions Detected`}
           </span>
         </div>
 
-        <div style={{
-          padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF',
-          border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)'
-        }}>
+        <div style={{ padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>DATA READINESS STATUS</span>
-          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: allPassed ? '#059669' : '#DC2626', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {allPassed ? <CheckCircle2 size={20} color="#059669" /> : <AlertTriangle size={20} color="#DC2626" />}
+          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: allPassed ? '#059669' : '#DC2626', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {allPassed ? <CheckCircle2 size={18} color="#059669" /> : <AlertTriangle size={18} color="#DC2626" />}
             {allPassed ? 'READY FOR MAPPING' : 'ACTION REQUIRED'}
           </div>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            Step 3 (Data File Mapping) Unlocked
+            {allPassed ? 'Step 3 (Data File Mapping) Unlocked' : 'Inspect or download failed constraint records'}
           </span>
         </div>
       </div>
 
-      {/* Constraints Breakdown Toolbar & Filter Switchers */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: '12px', marginBottom: '14px'
-      }}>
-        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <ShieldCheck size={16} color="var(--deloitte-teal)" />
-          {isSpark ? `Spark JET Mandatory Data Checkpoints (spark_proper_guide.txt) (${filteredConstraints.length})` : `Omnia JET Schema & Constraints Validation (omnia_JET_user_input.txt) (${filteredConstraints.length})`}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldCheck size={18} color="var(--deloitte-teal)" />
+          {isSpark ? `Spark JET Mandatory Data Checkpoints (${filteredConstraints.length})` : `Omnia JET Schema & Constraints Validation (${filteredConstraints.length})`}
+          {runId && (
+            <button
+              type="button"
+              onClick={handleRunCleansing}
+              disabled={isRunningClean}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700,
+                background: '#F1F5F9', color: 'var(--deloitte-teal)', border: '1px solid #CBD5E1', cursor: 'pointer',
+                marginLeft: '8px'
+              }}
+              title="Re-run auto-cleansing and re-evaluate all constraints"
+            >
+              {isRunningClean ? <Loader2 size={12} className="spin" /> : <RefreshCw size={12} />}
+              {isRunningClean ? 'Re-evaluating...' : 'Re-Evaluate Checks'}
+            </button>
+          )}
         </div>
 
-        {/* Dataset Filter Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
           {(isSpark
             ? [
                 { key: 'ALL', label: `All Checkpoints (${constraints.length})` },
                 { key: 'TB', label: 'Trial Balance (8)' },
                 { key: 'GL', label: 'Population GL (5)' },
+                ...(failedCount > 0 ? [{ key: 'FAILED', label: `Failed (${failedCount})` }] : []),
               ]
             : [
                 { key: 'ALL', label: `All Rules (${constraints.length})` },
                 { key: 'TB', label: 'Trial Balance (6)' },
                 { key: 'GL', label: 'General Ledger (7)' },
                 { key: 'COA', label: 'Chart of Accounts (3)' },
+                ...(failedCount > 0 ? [{ key: 'FAILED', label: `Failed (${failedCount})` }] : []),
               ]
           ).map((tab) => (
             <button
@@ -462,7 +506,7 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                 fontWeight: activeFilter === tab.key ? 800 : 600,
                 cursor: 'pointer',
                 background: activeFilter === tab.key ? '#FFFFFF' : 'transparent',
-                color: activeFilter === tab.key ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
+                color: activeFilter === tab.key ? 'var(--deloitte-teal)' : tab.key === 'FAILED' ? '#DC2626' : 'var(--text-secondary)',
                 boxShadow: activeFilter === tab.key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s ease'
               }}
@@ -473,10 +517,11 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
         </div>
       </div>
 
-      {/* Constraints Grid (Symmetrical 3 Cards per Row) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginBottom: '22px' }}>
         {filteredConstraints.map((c) => {
           const isReq = c.severity === 'Required';
+          const hasFailedRows = (c.failedRowsCount !== undefined && c.failedRowsCount > 0) || c.status !== 'PASSED';
+          const isWarning = c.status === 'WARNING';
 
           return (
             <div
@@ -484,39 +529,39 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
               style={{
                 padding: '16px 18px',
                 borderRadius: '10px',
-                border: '1px solid var(--border-subtle)',
-                background: '#FFFFFF',
+                border: hasFailedRows
+                  ? '1px solid rgba(225, 29, 72, 0.4)'
+                  : isWarning
+                  ? '1px solid rgba(217, 119, 6, 0.35)'
+                  : '1px solid var(--border-subtle)',
+                background: hasFailedRows
+                  ? '#FFF5F5'
+                  : isWarning
+                  ? '#FFFBEB'
+                  : '#FFFFFF',
                 boxShadow: 'var(--shadow-sm)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '140px'
+                minHeight: '165px',
+                transition: 'all 0.2s ease'
               }}
             >
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{
-                      fontSize: '0.68rem', fontWeight: 800, fontFamily: 'var(--font-mono)',
-                      padding: '2px 6px', borderRadius: '4px', background: '#F1F5F9', color: 'var(--text-secondary)'
-                    }}>
-                      {c.id}
-                    </span>
-                    <span style={{
-                      fontSize: '0.66rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px',
-                      background: isReq ? 'rgba(0, 118, 128, 0.08)' : '#F1F5F9',
-                      color: isReq ? 'var(--deloitte-teal)' : 'var(--text-muted)'
-                    }}>
-                      {c.severity}
-                    </span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, fontFamily: 'var(--font-mono)', padding: '2px 6px', borderRadius: '4px', background: '#F1F5F9', color: 'var(--text-secondary)' }}>{c.id}</span>
+                    <span style={{ fontSize: '0.66rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: isReq ? 'rgba(0, 118, 128, 0.08)' : '#F1F5F9', color: isReq ? 'var(--deloitte-teal)' : 'var(--text-muted)' }}>{c.severity}</span>
                   </div>
 
                   <span style={{
                     fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
-                    background: 'rgba(5, 150, 105, 0.1)', color: '#059669',
+                    background: hasFailedRows ? 'rgba(225, 29, 72, 0.12)' : isWarning ? 'rgba(217, 119, 6, 0.12)' : 'rgba(5, 150, 105, 0.1)',
+                    color: hasFailedRows ? '#E11D48' : isWarning ? '#D97706' : '#059669',
                     display: 'inline-flex', alignItems: 'center', gap: '4px'
                   }}>
-                    <CheckCircle2 size={12} /> {c.status}
+                    {hasFailedRows ? <AlertTriangle size={12} /> : isWarning ? <AlertCircle size={12} /> : <CheckCircle2 size={12} />}
+                    {hasFailedRows ? (c.failedRowsCount ? `${c.failedRowsCount} Failed` : 'FAILED') : isWarning ? (c.failedRowsCount ? `${c.failedRowsCount} Warnings` : 'FLAGGED') : 'PASSED'}
                   </span>
                 </div>
 
@@ -524,21 +569,57 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                   {c.name}
                 </div>
 
-                <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', margin: '0 0 8px', lineHeight: 1.35 }}>
+                <p style={{ fontSize: '0.74rem', color: hasFailedRows ? '#991B1B' : 'var(--text-secondary)', margin: '0 0 8px', lineHeight: 1.35 }}>
                   {c.details}
                 </p>
               </div>
 
-              <div style={{
-                fontSize: '0.7rem', color: 'var(--text-muted)', paddingTop: '8px',
-                borderTop: '1px dashed var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-              }}>
-                <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)', fontWeight: 600 }}>
-                  {c.technicalField}
-                </span>
-                <span style={{ fontStyle: 'italic', fontSize: '0.66rem', color: '#64748B' }}>
-                  {c.dataset}
-                </span>
+              <div>
+                {/* Action Buttons for Failed / Flagged Constraint Records */}
+                {c.fileName && runId && hasFailedRows && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px',
+                    padding: '6px 8px', borderRadius: '6px', background: 'rgba(225, 29, 72, 0.06)', border: '1px solid rgba(225, 29, 72, 0.2)'
+                  }}>
+                    {onPreviewFailedRows && (
+                      <button
+                        type="button"
+                        onClick={() => onPreviewFailedRows(c.fileName!, `${c.id}: ${c.name} (Failing Rows)`)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700,
+                          background: '#FFFFFF', color: '#E11D48', border: '1px solid rgba(225, 29, 72, 0.3)', cursor: 'pointer'
+                        }}
+                        title={`Preview ${c.failedRowsCount || ''} failing records for ${c.id}`}
+                      >
+                        <Eye size={11} /> Preview ({c.failedRowsCount || 'Rows'})
+                      </button>
+                    )}
+                    <a
+                      href={RunService.getDownloadOutputUrl(runId, c.fileName)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '3px',
+                        padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700,
+                        background: '#E11D48', color: '#FFFFFF', border: 'none', textDecoration: 'none'
+                      }}
+                      title={`Download CSV of failed records for ${c.id}`}
+                    >
+                      <Download size={11} /> Download Failed CSV
+                    </a>
+                  </div>
+                )}
+
+                <div style={{
+                  fontSize: '0.7rem', color: 'var(--text-muted)', paddingTop: '8px',
+                  borderTop: '1px dashed var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)', fontWeight: 600 }}>
+                    {c.technicalField}
+                  </span>
+                  <span style={{ fontStyle: 'italic', fontSize: '0.66rem', color: '#64748B' }}>
+                    {c.dataset}
+                  </span>
+                </div>
               </div>
             </div>
           );

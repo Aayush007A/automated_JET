@@ -13,6 +13,19 @@ import pandas as pd
 import numpy as np
 from common_utils import parse_num, parse_date_str, date_to_iso, clean_str, log_event
 
+import warnings
+import re
+import pandas as pd
+import numpy as np
+from common_utils import parse_num, parse_date_str, date_to_iso, clean_str, log_event
+
+# Polars high-speed multithreaded local offline acceleration engine
+try:
+    import polars as pl
+    POLARS_AVAILABLE = True
+except ImportError:
+    POLARS_AVAILABLE = False
+
 # Suppress harmless pandas regex and future warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -31,6 +44,8 @@ def run_spark_jet_pipeline(config_path: str):
 
     log_file = os.path.join(log_dir, 'execution.txt')
     log_event(run_id, 'INITIALIZATION', 5, f'Starting SPARK JET Pipeline for {run_id}', log_file)
+    if POLARS_AVAILABLE:
+        log_event(run_id, 'ACCELERATION', 8, 'Polars Multi-Threaded Acceleration Activated (100% Offline Local Compute)', log_file)
 
     input_files = config.get('files', [])
     dataset_map = config.get('datasetMap', {})
@@ -62,6 +77,11 @@ def run_spark_jet_pipeline(config_path: str):
                     if path.endswith(('.xlsx', '.xls')):
                         return pd.read_excel(path, sheet_name=sheet_name or 0, dtype=str)
                     else:
+                        if POLARS_AVAILABLE:
+                            try:
+                                return pl.read_csv(path, infer_schema_length=0, truncate_ragged_lines=True).to_pandas()
+                            except Exception:
+                                pass
                         return pd.read_csv(path, sep=None, engine='python', dtype=str)
         return None
 

@@ -458,15 +458,35 @@ export const SparkJetWorkflow: React.FC = () => {
     }
   };
 
+  const handlePreviewArtifact = async (fileName: string, title?: string) => {
+    if (!runId) return;
+    try {
+      const res = await RunService.previewOutput(runId, fileName, 50);
+      if (res) {
+        setSampleModalData({
+          title: title || fileName,
+          subtitle: `Artifact sample extract preview (showing ${res.rows.length} of ${res.totalRows.toLocaleString()} rows)`,
+          headers: res.headers,
+          rows: res.rows,
+          totalRows: res.totalRows,
+        });
+        setSampleModalOpen(true);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleRunAutoClean = async () => {
     if (!runId) return;
     setAutoCleaning(true);
     try {
       const res = await RunService.autoCleanData(runId);
-      setAutoCleanReport(res.report);
-      await loadRun();
-    } catch (err) {
-      console.error('Auto clean error:', err);
+      if (res.success) {
+        setAutoCleanReport(res.report);
+      }
+    } catch (err: any) {
+      console.error('Failed to run auto-cleaning:', err);
     } finally {
       setAutoCleaning(false);
     }
@@ -1095,6 +1115,9 @@ export const SparkJetWorkflow: React.FC = () => {
           <div>
             <AutoCleanConstraintsPanel
               workflowType="SPARK_JET"
+              runId={runId || undefined}
+              autoCleanReport={autoCleanReport}
+              onPreviewFailedRows={handlePreviewArtifact}
               tbRowCount={status?.totalInputRows?.tb || 22}
               glRowCount={status?.totalInputRows?.gl || (status?.glCheckpointsSummary?.totalLines || 36)}
               coaRowCount={0}
