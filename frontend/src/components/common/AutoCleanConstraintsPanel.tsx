@@ -530,21 +530,19 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                 padding: '16px 18px',
                 borderRadius: '10px',
                 border: hasFailedRows
-                  ? '1px solid rgba(225, 29, 72, 0.4)'
+                  ? '1px solid #FDA4AF'
                   : isWarning
-                  ? '1px solid rgba(217, 119, 6, 0.35)'
+                  ? '1px solid #FDBA74'
                   : '1px solid var(--border-subtle)',
-                background: hasFailedRows
-                  ? '#FFF5F5'
-                  : isWarning
-                  ? '#FFFBEB'
-                  : '#FFFFFF',
-                boxShadow: 'var(--shadow-sm)',
+                background: '#FFFFFF',
+                boxShadow: hasFailedRows
+                  ? '0 2px 8px rgba(225, 29, 72, 0.05)'
+                  : 'var(--shadow-sm)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 minHeight: '165px',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.15s ease'
               }}
             >
               <div>
@@ -555,12 +553,13 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                   </div>
 
                   <span style={{
-                    fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
-                    background: hasFailedRows ? 'rgba(225, 29, 72, 0.12)' : isWarning ? 'rgba(217, 119, 6, 0.12)' : 'rgba(5, 150, 105, 0.1)',
-                    color: hasFailedRows ? '#E11D48' : isWarning ? '#D97706' : '#059669',
+                    fontSize: '0.7rem', fontWeight: 800, padding: '3px 8px', borderRadius: '12px',
+                    background: hasFailedRows ? '#FFE4E6' : isWarning ? '#FEF3C7' : 'rgba(5, 150, 105, 0.1)',
+                    color: hasFailedRows ? '#BE123C' : isWarning ? '#B45309' : '#059669',
+                    border: hasFailedRows ? '1px solid #FDA4AF' : isWarning ? '1px solid #FCD34D' : '1px solid rgba(5, 150, 105, 0.25)',
                     display: 'inline-flex', alignItems: 'center', gap: '4px'
                   }}>
-                    {hasFailedRows ? <AlertTriangle size={12} /> : isWarning ? <AlertCircle size={12} /> : <CheckCircle2 size={12} />}
+                    {hasFailedRows ? <AlertTriangle size={11} /> : isWarning ? <AlertCircle size={11} /> : <CheckCircle2 size={11} />}
                     {hasFailedRows ? (c.failedRowsCount ? `${c.failedRowsCount} Failed` : 'FAILED') : isWarning ? (c.failedRowsCount ? `${c.failedRowsCount} Warnings` : 'FLAGGED') : 'PASSED'}
                   </span>
                 </div>
@@ -578,33 +577,36 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                 {/* Action Buttons for Failed / Flagged Constraint Records */}
                 {c.fileName && runId && hasFailedRows && (
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px',
-                    padding: '6px 8px', borderRadius: '6px', background: 'rgba(225, 29, 72, 0.06)', border: '1px solid rgba(225, 29, 72, 0.2)'
+                    display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', marginBottom: '8px'
                   }}>
                     {onPreviewFailedRows && (
                       <button
                         type="button"
-                        onClick={() => onPreviewFailedRows(c.fileName!, `${c.id}: ${c.name} (Failing Rows)`)}
+                        onClick={() => onPreviewFailedRows(c.fileName!, `${c.id}: ${c.name} (Failed Records)`)}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: '4px',
-                          padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700,
-                          background: '#FFFFFF', color: '#E11D48', border: '1px solid rgba(225, 29, 72, 0.3)', cursor: 'pointer'
+                          padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700,
+                          background: 'var(--deloitte-teal-light)', color: 'var(--deloitte-teal)',
+                          border: '1px solid rgba(0, 118, 128, 0.25)', cursor: 'pointer',
+                          transition: 'all 0.15s ease'
                         }}
-                        title={`Preview ${c.failedRowsCount || ''} failing records for ${c.id}`}
+                        title={`Preview sample failed records for ${c.id}`}
                       >
-                        <Eye size={11} /> Preview ({c.failedRowsCount || 'Rows'})
+                        <Eye size={12} /> Preview ({c.failedRowsCount || 'Rows'})
                       </button>
                     )}
                     <a
                       href={RunService.getDownloadOutputUrl(runId, c.fileName)}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '3px',
-                        padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700,
-                        background: '#E11D48', color: '#FFFFFF', border: 'none', textDecoration: 'none'
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600,
+                        background: '#F1F5F9', color: 'var(--text-secondary)',
+                        border: '1px solid #CBD5E1', textDecoration: 'none',
+                        transition: 'all 0.15s ease'
                       }}
-                      title={`Download CSV of failed records for ${c.id}`}
+                      title={`Download full CSV of failed records for ${c.id}`}
                     >
-                      <Download size={11} /> Download Failed CSV
+                      <Download size={12} /> Download Failed CSV
                     </a>
                   </div>
                 )}
@@ -624,6 +626,44 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
             </div>
           );
         })}
+      </div>
+
+      {/* Bottom Completion & Navigation Action Bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: '14px', padding: '16px 20px',
+        background: '#FFFFFF', borderRadius: '10px',
+        border: allPassed ? '1px solid rgba(5, 150, 105, 0.25)' : '1px solid rgba(225, 29, 72, 0.25)',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {allPassed ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontSize: '0.84rem', fontWeight: 700 }}>
+              <CheckCircle2 size={18} color="#059669" />
+              <span>All mandatory data checkpoints passed cleanly. Data is verified ready for mapping.</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#E11D48', fontSize: '0.84rem', fontWeight: 700 }}>
+              <AlertTriangle size={18} color="#E11D48" />
+              <span>{failedCount} mandatory checkpoint(s) failed. Download failed records to inspect or re-upload cleansed data before proceeding.</span>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onProceed}
+          disabled={!allPassed}
+          className="btn-primary"
+          style={{
+            padding: '8px 20px', fontSize: '0.84rem', display: 'inline-flex', alignItems: 'center', gap: '6px',
+            opacity: !allPassed ? 0.45 : 1,
+            cursor: !allPassed ? 'not-allowed' : 'pointer'
+          }}
+          title={!allPassed ? 'You cannot proceed to next steps while mandatory constraints are failing' : 'Continue to Data File Mapping'}
+        >
+          Continue to Data File Mapping <ArrowRight size={14} />
+        </button>
       </div>
     </div>
   );

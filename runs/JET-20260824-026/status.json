@@ -2,10 +2,10 @@
   "runId": "JET-20260824-026",
   "workflow": "SPARK_JET",
   "engine": "PYTHON",
-  "status": "COMPLETED",
+  "status": "MAPPING",
   "startedAt": "2026-08-24T17:46:24.994Z",
-  "progress": 100,
-  "currentStage": "COMPLETED",
+  "progress": 25,
+  "currentStage": "CLEANSE_FAILED",
   "outputs": [
     {
       "id": "Control_Sample_Dump_csv",
@@ -250,18 +250,19 @@
   ],
   "totalInputRows": {
     "tb": 13,
-    "gl": 10
+    "gl": 10,
+    "coa": 0
   },
   "tbCheckpointsSummary": {
     "passed": 3,
     "failed": 1,
     "totalBalanceZero": false,
     "debitCreditEqual": false,
-    "openingSum": -664019.0,
-    "closingSum": -1093843523.0
+    "openingSum": -664019,
+    "closingSum": -1093843523
   },
   "glCheckpointsSummary": {
-    "totalNetBalance": 0.0,
+    "totalNetBalance": 0,
     "balancedJournalsCount": 4,
     "unbalancedJournalsCount": 0,
     "totalJournals": 4,

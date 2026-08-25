@@ -608,9 +608,15 @@ export const OmniaJetWorkflow: React.FC = () => {
             {autoCleaning ? 'Validating...' : 'Re-Run Clean & Validate'}
           </button>
           <button
-            onClick={() => { setCurrentStep(3); setMaxCompletedStep(prev => Math.max(prev, 2)); }}
+            onClick={() => { setCurrentStep(3); setMaxCompletedStep((prev) => Math.max(prev, 2)); }}
+            disabled={autoCleaning || (autoCleanReport !== null && !autoCleanReport.constraintsPassed)}
             className="btn-primary"
-            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
+            style={{
+              padding: '6px 16px', fontSize: '0.82rem',
+              opacity: autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 0.45 : 1,
+              cursor: autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 'not-allowed' : 'pointer'
+            }}
+            title={autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 'Resolve or download failed constraints to proceed' : 'Continue to Mapping'}
           >
             Continue to Mapping <ArrowRight size={13} />
           </button>
