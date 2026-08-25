@@ -257,11 +257,11 @@
     "failed": 1,
     "totalBalanceZero": false,
     "debitCreditEqual": false,
-    "openingSum": -664019,
-    "closingSum": -1093843523
+    "openingSum": -664019.0,
+    "closingSum": -1093843523.0
   },
   "glCheckpointsSummary": {
-    "totalNetBalance": 0,
+    "totalNetBalance": 0.0,
     "balancedJournalsCount": 4,
     "unbalancedJournalsCount": 0,
     "totalJournals": 4,

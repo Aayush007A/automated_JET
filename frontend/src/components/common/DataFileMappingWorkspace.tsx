@@ -1,0 +1,431 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Table, Database, FileSpreadsheet, ArrowRight, CheckCircle2, AlertCircle,
+  Search, Filter, Sparkles, RefreshCw, HelpCircle, Check, Eye, ChevronRight
+} from 'lucide-react';
+import { FieldMappingItem } from '../../types';
+import { StatusBadge } from './StatusBadge';
+
+export interface DatasetMappingConfig {
+  key: 'tb' | 'gl' | 'coa';
+  title: string;
+  shortName: string;
+  sourceHeaders: string[];
+  mappings: FieldMappingItem[];
+  onChangeMapping: (standardField: string, newSourceField: string) => void;
+  rowCount?: number;
+}
+
+interface DataFileMappingWorkspaceProps {
+  datasets: DatasetMappingConfig[];
+  onProceed?: () => void;
+}
+
+export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> = ({
+  datasets,
+  onProceed,
+}) => {
+  const [activeTab, setActiveTab] = useState<'tb' | 'gl' | 'coa'>(datasets[0]?.key || 'tb');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'ALL' | 'REQUIRED' | 'OPTIONAL' | 'UNMAPPED'>('ALL');
+
+  const currentDataset = datasets.find((d) => d.key === activeTab) || datasets[0];
+
+  const {
+    totalFields,
+    matchedCount,
+    requiredCount,
+    requiredMatchedCount,
+    optionalCount,
+    unmappedCount,
+  } = useMemo(() => {
+    if (!currentDataset) {
+      return {
+        totalFields: 0,
+        matchedCount: 0,
+        requiredCount: 0,
+        requiredMatchedCount: 0,
+        optionalCount: 0,
+        unmappedCount: 0,
+      };
+    }
+    const mappings = currentDataset.mappings;
+    const matched = mappings.filter((m) => !!m.sourceField).length;
+    const req = mappings.filter((m) => m.requirementLevel === 'Required' || m.required).length;
+    const reqMatched = mappings.filter((m) => (m.requirementLevel === 'Required' || m.required) && !!m.sourceField).length;
+    const opt = mappings.length - req;
+    const unmapped = mappings.filter((m) => !m.sourceField).length;
+
+    return {
+      totalFields: mappings.length,
+      matchedCount: matched,
+      requiredCount: req,
+      requiredMatchedCount: reqMatched,
+      optionalCount: opt,
+      unmappedCount: unmapped,
+    };
+  }, [currentDataset]);
+
+  const filteredMappings = useMemo(() => {
+    if (!currentDataset) return [];
+    return currentDataset.mappings.filter((item) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        item.standardField.toLowerCase().includes(q) ||
+        item.sourceField.toLowerCase().includes(q) ||
+        (item.description && item.description.toLowerCase().includes(q)) ||
+        (item.guidance && item.guidance.toLowerCase().includes(q));
+
+      if (!matchesSearch) return false;
+
+      if (filterType === 'REQUIRED') return item.requirementLevel === 'Required' || item.required;
+      if (filterType === 'OPTIONAL') return item.requirementLevel === 'Optional' || (!item.required && item.requirementLevel !== 'Required');
+      if (filterType === 'UNMAPPED') return !item.sourceField;
+
+      return true;
+    });
+  }, [currentDataset, searchQuery, filterType]);
+
+  const percentMapped = totalFields > 0 ? Math.round((matchedCount / totalFields) * 100) : 0;
+
+  return (
+    <div style={{ width: '100%', paddingBottom: '24px' }}>
+      {/* Category Tab Switcher Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        background: '#FFFFFF',
+        padding: '12px 18px',
+        borderRadius: '12px',
+        border: '1px solid var(--border-subtle)',
+        boxShadow: 'var(--shadow-sm)',
+        marginBottom: '16px'
+      }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {datasets.map((ds) => {
+            const isActive = ds.key === activeTab;
+            const dsMatched = ds.mappings.filter((m) => !!m.sourceField).length;
+            const dsTotal = ds.mappings.length;
+            const isAllMatched = dsMatched >= dsTotal && dsTotal > 0;
+
+            return (
+              <button
+                key={ds.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab(ds.key);
+                  setSearchQuery('');
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: isActive ? '1.5px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
+                  background: isActive ? 'var(--deloitte-teal-light)' : '#F8FAFC',
+                  color: isActive ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
+                  fontWeight: isActive ? 800 : 600,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isActive ? '0 2px 6px rgba(0, 118, 128, 0.12)' : 'none'
+                }}
+              >
+                <Table size={15} color={isActive ? 'var(--deloitte-teal)' : 'var(--text-muted)'} />
+                <span>{ds.title}</span>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: '12px',
+                  background: isAllMatched ? 'rgba(5, 150, 105, 0.12)' : '#E2E8F0',
+                  color: isAllMatched ? '#059669' : 'var(--text-secondary)',
+                  fontFamily: 'var(--font-mono)'
+                }}>
+                  {dsMatched}/{dsTotal}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Global Progress pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            Active File Mapping:
+          </span>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '4px 10px', borderRadius: '16px', background: 'rgba(5, 150, 105, 0.1)',
+            color: '#059669', fontSize: '0.78rem', fontWeight: 800, fontFamily: 'var(--font-mono)'
+          }}>
+            <CheckCircle2 size={14} />
+            {percentMapped}% MAPPED
+          </div>
+        </div>
+      </div>
+
+      {/* Main Mapping Table Panel */}
+      <div className="glass-panel" style={{ padding: '24px 28px', background: '#FFFFFF', marginBottom: '20px' }}>
+        {/* Header with Title and Search/Filter Controls */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '18px'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '1.12rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                {currentDataset?.title} Column Mapping
+              </h3>
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
+                background: '#F1F5F9', color: 'var(--text-secondary)'
+              }}>
+                {currentDataset?.sourceHeaders?.length || 0} Source Headers Detected
+              </span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
+              Assign source columns to the standard Deloitte CDM schema. Mandatory fields are highlighted with <span style={{ color: 'var(--deloitte-teal)', fontWeight: 700 }}>Required</span>.
+            </p>
+          </div>
+
+          {/* Search & Filter pills */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Search Input */}
+            <div style={{ position: 'relative', width: '220px' }}>
+              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Search standard/source..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px 10px 6px 30px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-subtle)',
+                  fontSize: '0.78rem',
+                  outline: 'none',
+                  background: '#FFFFFF'
+                }}
+              />
+            </div>
+
+            {/* Filter Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#F8FAFC', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+              {[
+                { key: 'ALL', label: `All (${totalFields})` },
+                { key: 'REQUIRED', label: `Required (${requiredCount})` },
+                { key: 'OPTIONAL', label: `Optional (${optionalCount})` },
+                { key: 'UNMAPPED', label: `Unmapped (${unmappedCount})` },
+              ].map((flt) => (
+                <button
+                  key={flt.key}
+                  type="button"
+                  onClick={() => setFilterType(flt.key as any)}
+                  style={{
+                    border: 'none',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.72rem',
+                    fontWeight: filterType === flt.key ? 800 : 600,
+                    cursor: 'pointer',
+                    background: filterType === flt.key ? '#FFFFFF' : 'transparent',
+                    color: filterType === flt.key ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
+                    boxShadow: filterType === flt.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'
+                  }}
+                >
+                  {flt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Mappings Table */}
+        <div style={{ overflowX: 'auto' }}>
+          <table className="jet-table" style={{ width: '100%', margin: 0 }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC' }}>
+                <th style={{ width: '25%', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                  STANDARD FIELD NAME
+                </th>
+                <th style={{ width: '4%', textAlign: 'center' }}></th>
+                <th style={{ width: '28%', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                  MAPPED SOURCE COLUMN
+                </th>
+                <th style={{ width: '12%', textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                  DATA TYPE
+                </th>
+                <th style={{ width: '21%', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                  DESCRIPTION & GUIDANCE
+                </th>
+                <th style={{ width: '10%', textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                  STATUS
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredMappings.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
+                    No fields match the active filter or search query.
+                  </td>
+                </tr>
+              ) : (
+                filteredMappings.map((item) => {
+                  const isReq = item.requirementLevel === 'Required' || item.required;
+                  const isMatched = !!item.sourceField;
+
+                  return (
+                    <tr
+                      key={item.standardField}
+                      style={{
+                        background: !isMatched && isReq ? 'rgba(254, 242, 242, 0.4)' : '#FFFFFF'
+                      }}
+                    >
+                      {/* Standard Field */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-mono)',
+                            color: 'var(--text-primary)'
+                          }}>
+                            {item.standardField}
+                          </span>
+
+                          <span style={{
+                            fontSize: '0.64rem',
+                            fontWeight: 800,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: isReq ? 'rgba(0, 118, 128, 0.08)' : '#F1F5F9',
+                            color: isReq ? 'var(--deloitte-teal)' : 'var(--text-muted)',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {isReq ? 'Required' : 'Optional'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Arrow */}
+                      <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <ArrowRight size={14} />
+                      </td>
+
+                      {/* Source Column Dropdown */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <select
+                            className="jet-select"
+                            value={item.sourceField || ''}
+                            onChange={(e) => currentDataset.onChangeMapping(item.standardField, e.target.value)}
+                            style={{
+                              fontSize: '0.8rem',
+                              padding: '5px 8px',
+                              height: '32px',
+                              width: '100%',
+                              borderColor: isMatched ? 'var(--border-subtle)' : (isReq ? 'rgba(225, 29, 72, 0.4)' : 'var(--border-subtle)'),
+                              background: isMatched ? '#FFFFFF' : '#FEF2F2'
+                            }}
+                          >
+                            <option value="">-- Select Source Column --</option>
+                            {currentDataset.sourceHeaders.map((hdr) => (
+                              <option key={hdr} value={hdr}>
+                                {hdr}
+                              </option>
+                            ))}
+                          </select>
+
+                          {item.sourceField && (
+                            <button
+                              type="button"
+                              onClick={() => currentDataset.onChangeMapping(item.standardField, '')}
+                              title="Clear mapping"
+                              style={{
+                                border: 'none', background: 'transparent', cursor: 'pointer',
+                                color: 'var(--text-muted)', padding: '2px 4px', fontSize: '0.7rem'
+                              }}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Data Type */}
+                      <td style={{ textAlign: 'center' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          background: '#F1F5F9',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          {item.fieldType || 'Text'}
+                        </span>
+                      </td>
+
+                      {/* Description & Guidance */}
+                      <td>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.3 }}>
+                          <div>{item.description || '--'}</div>
+                          {item.guidance && (
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px', fontStyle: 'italic' }}>
+                              Guidance: {item.guidance}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td style={{ textAlign: 'center' }}>
+                        {isMatched ? (
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
+                            background: 'rgba(5, 150, 105, 0.1)', color: '#059669',
+                            display: 'inline-flex', alignItems: 'center', gap: '3px'
+                          }}>
+                            <Check size={11} /> Mapped
+                          </span>
+                        ) : isReq ? (
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
+                            background: 'rgba(225, 29, 72, 0.08)', color: '#BE123C',
+                            display: 'inline-flex', alignItems: 'center', gap: '3px'
+                          }}>
+                            <AlertCircle size={11} /> Required
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px',
+                            background: '#F1F5F9', color: 'var(--text-muted)'
+                          }}>
+                            Optional
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};

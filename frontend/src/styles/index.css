@@ -1021,6 +1021,13 @@ a:hover {
   box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.16);
 }
 
+.wizard-node-h.completed.active .wizard-bubble-h {
+  background: #16A34A;
+  border-color: #16A34A;
+  color: #FFFFFF;
+  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.28);
+}
+
 .wizard-node-h.active .wizard-bubble-h {
   background: linear-gradient(135deg, #007680 0%, #005A62 100%);
   border-color: #007680;

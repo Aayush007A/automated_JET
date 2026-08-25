@@ -1,0 +1,14 @@
+G_L,Description,Account_Subtype,FS_Line_Item,Count
+1009,ZeroBal Fund Trf,Assets,Control Account,1
+1012,Zero Bal Others,Assets,Control Account,0
+1000001,Eq.Sh.Cap-Rs.10,Liabilities,Share Capital,0
+1081001,Preference Share Cap,Liabilities,Preference Share Capital,0
+1130001,Share Premium - Equi,Liabilities,Securities Premium,0
+1160001,Profit And Loss A/c,Liabilities,Retained Earnings,0
+11401000,Trade Receivables Dom,Assets,Trade Receivables,2
+11202200,Cost of Sales Material,Expenses,COST OF SALES AND SERVICES,2
+21302630,Output GST Clearing,Liabilities,Other Payables,2
+41001400,Sales - Domestic,Revenue,NET SALES REVENUE,1
+51001000,Plant & Machinery,Assets,"Property, plant and equipment",0
+3500001,Trade Payables - Dom,Liabilities,Trade Payables,1
+52002500,Consultancy & Audit Fee,Expenses,General and administrative expenses,1

@@ -5,6 +5,8 @@ import { RunService } from '../../services/runService';
 import { RunConfig, RunSummary, SparkJetParameters, FieldMappingItem } from '../../types';
 import { FileDropzone } from '../../components/common/FileDropzone';
 import { FieldMappingTable } from '../../components/common/FieldMappingTable';
+import { AutoCleanConstraintsPanel } from '../../components/common/AutoCleanConstraintsPanel';
+import { DataFileMappingWorkspace } from '../../components/common/DataFileMappingWorkspace';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { MetricCard } from '../../components/common/MetricCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -16,23 +18,25 @@ import {
   BarChart3, PieChart, CheckSquare, Plus, Trash2, Sliders, FileCheck,
   Upload, Search, Filter, HelpCircle, FileText, Sparkles, X, UserCheck, Calendar, Hash, Tag,
   FolderUp, Edit3, Eye, CheckCircle, ChevronRight, Activity, Clock, Save, Menu,
-  Lock, Loader2, UploadCloud
+  Lock, Loader2, UploadCloud, Table
 } from 'lucide-react';
 
 const STEPS: TimelineStep[] = [
   { id: 1, label: 'Ingest Data', sub: 'Upload files', icon: UploadCloud },
-  { id: 2, label: 'Mapping & Auto-Clean', sub: 'Clean data', icon: Sparkles },
-  { id: 3, label: 'Integrity Tests', sub: 'IR 1-4', icon: Activity },
-  { id: 4, label: 'Parameter Rules', sub: 'Ex 1-12', icon: Settings },
-  { id: 5, label: 'Parameter Results', sub: 'Review', icon: BarChart3 },
+  { id: 2, label: 'Auto-Cleansing', sub: 'Validate rules', icon: Sparkles },
+  { id: 3, label: 'Data File Mapping', sub: 'Map columns', icon: Table },
+  { id: 4, label: 'Integrity Tests', sub: 'IR 1-4', icon: Activity },
+  { id: 5, label: 'Parameter Rules', sub: 'Ex 1-12', icon: Settings },
+  { id: 6, label: 'Executive Results', sub: 'Review', icon: BarChart3 },
 ];
 
 const STEP_COPY: Record<number, { title: string; desc: string }> = {
   1: { title: 'Upload Trial Balance & Population', desc: 'Upload TB and Population files or an all-in-one workbook, then preview any sheet instantly.' },
-  2: { title: 'Standard Field Mapping & Data Cleansing', desc: 'Verify column mappings, auto-standardize dates and numeric values, and validate audit constraints.' },
-  3: { title: 'Integrity & Data Readiness Tests (IR 1-4)', desc: 'Execute and review core integrity checks (Control Totals, Gaps, Seldom Accounts).' },
-  4: { title: 'Exception Testing Parameters (Ex 1-12)', desc: 'Configure risk thresholds, account lists, keywords, and unrelated financial statement pairings.' },
-  5: { title: 'Executive Summary & Audit Deliverables', desc: 'Interactive visual analytics, exception distributions, and one-click ZIP download of all outputs.' },
+  2: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Verify column types, auto-standardize dates and numeric values, and validate audit constraints.' },
+  3: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte canonical schema for Trial Balance and Population.' },
+  4: { title: 'Integrity & Data Readiness Tests (IR 1-4)', desc: 'Execute and review core integrity checks (Control Totals, Gaps, Seldom Accounts).' },
+  5: { title: 'Exception Testing Parameters (Ex 1-12)', desc: 'Configure risk thresholds, account lists, keywords, and unrelated financial statement pairings.' },
+  6: { title: 'Executive Summary & Audit Deliverables', desc: 'Interactive visual analytics, exception distributions, and one-click ZIP download of all outputs.' },
 };
 
 const formatExecutiveDate = (dateStr?: string, includeSeconds: boolean = false): string => {
@@ -377,8 +381,8 @@ export const SparkJetWorkflow: React.FC = () => {
       }
 
       if (data.status.status === 'COMPLETED') {
-        setMaxCompletedStep(5);
-        setCurrentStep(5);
+        setMaxCompletedStep(6);
+        setCurrentStep(6);
       } else if (data.config.files.length > 0) {
         setMaxCompletedStep((prev) => Math.max(prev, 2));
       }
@@ -396,7 +400,7 @@ export const SparkJetWorkflow: React.FC = () => {
   }, [runId]);
 
   useEffect(() => {
-    if (currentStep === 3 && runId && selectedIRFile) {
+    if (currentStep === 4 && runId && selectedIRFile) {
       setLoadingIRPreview(true);
       RunService.previewOutput(runId, selectedIRFile, 50)
         .then((res) => setIrPreviewData(res))
@@ -406,7 +410,7 @@ export const SparkJetWorkflow: React.FC = () => {
   }, [currentStep, selectedIRFile, runId, status?.status]);
 
   useEffect(() => {
-    if (currentStep === 5 && runId && selectedPreviewFile) {
+    if (currentStep === 6 && runId && selectedPreviewFile) {
       setLoadingPreview(true);
       RunService.previewOutput(runId, selectedPreviewFile, 50)
         .then((res) => setPreviewData(res))
@@ -791,9 +795,10 @@ export const SparkJetWorkflow: React.FC = () => {
     if (status?.status === 'COMPLETED') return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
-    if (stepId === 3) return isStep1Valid && isStep2Valid;
-    if (stepId === 4) return isStep1Valid && isStep2Valid;
-    if (stepId === 5) return isStep1Valid && isStep2Valid && ((status?.status as string) === 'COMPLETED');
+    if (stepId === 3) return isStep1Valid;
+    if (stepId === 4) return isStep1Valid;
+    if (stepId === 5) return isStep1Valid;
+    if (stepId === 6) return isStep1Valid && ((status?.status as string) === 'COMPLETED');
     return false;
   };
 
@@ -915,14 +920,25 @@ export const SparkJetWorkflow: React.FC = () => {
     if (currentStep === 2) {
       return (
         <>
-          <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
+          <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+            <ArrowLeft size={13} /> Back
+          </button>
           <button
-            onClick={() => { setCurrentStep(3); handleRunPipeline(3); }}
-            disabled={!isStep2Valid || executing}
+            type="button"
+            onClick={handleRunAutoClean}
+            disabled={autoCleaning}
+            className="btn-soft-slate"
+            style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <RefreshCw size={13} className={autoCleaning ? 'spin-slow' : ''} />
+            {autoCleaning ? 'Validating...' : 'Re-Run Clean & Validate'}
+          </button>
+          <button
+            onClick={() => { setCurrentStep(3); setMaxCompletedStep(prev => Math.max(prev, 2)); }}
             className="btn-primary"
             style={{ padding: '6px 16px', fontSize: '0.82rem' }}
           >
-            Continue to IR Testing <ArrowRight size={13} />
+            Continue to Mapping <ArrowRight size={13} />
           </button>
         </>
       );
@@ -931,8 +947,13 @@ export const SparkJetWorkflow: React.FC = () => {
       return (
         <>
           <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button onClick={() => { setCurrentStep(4); setMaxCompletedStep(prev => Math.max(prev, 3)); }} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
-            Configure Exceptions <ArrowRight size={13} />
+          <button
+            onClick={() => { setCurrentStep(4); handleRunPipeline(4); }}
+            disabled={executing}
+            className="btn-primary"
+            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
+          >
+            Continue to IR Testing <ArrowRight size={13} />
           </button>
         </>
       );
@@ -941,16 +962,26 @@ export const SparkJetWorkflow: React.FC = () => {
       return (
         <>
           <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button onClick={() => { setCurrentStep(5); handleRunPipeline(5); }} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
-            <Play size={13} fill="#FFFFFF" />
-            {executing ? 'Executing...' : 'Execute Exceptions'}
+          <button onClick={() => { setCurrentStep(5); setMaxCompletedStep(prev => Math.max(prev, 4)); }} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+            Configure Exceptions <ArrowRight size={13} />
           </button>
         </>
       );
     }
     if (currentStep === 5) {
       return (
-        <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+        <>
+          <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
+          <button onClick={() => { setCurrentStep(6); handleRunPipeline(6); }} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+            <Play size={13} fill="#FFFFFF" />
+            {executing ? 'Executing...' : 'Execute Exceptions'}
+          </button>
+        </>
+      );
+    }
+    if (currentStep === 6) {
+      return (
+        <button onClick={() => setCurrentStep(5)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
           <Settings size={13} /> Reconfigure Exceptions
         </button>
       );
@@ -990,7 +1021,7 @@ export const SparkJetWorkflow: React.FC = () => {
         </div>
 
         {/* Right side action if on completed step */}
-        {currentStep === 5 && (
+        {currentStep === 6 && (
           <div style={{ display: 'flex', gap: '10px' }}>
             <a
               href={RunService.getDownloadAllZipUrl(runId!)}
@@ -1013,6 +1044,7 @@ export const SparkJetWorkflow: React.FC = () => {
         activeTitle={STEP_COPY[currentStep]?.title}
         activeDescription={STEP_COPY[currentStep]?.desc}
         headerRight={renderTimelineActions()}
+        isRunCompleted={status?.status === 'COMPLETED'}
       />
 
       {/* MAIN WORKSPACE */}
@@ -1036,123 +1068,93 @@ export const SparkJetWorkflow: React.FC = () => {
                 onPreview={handleOpenSamplePreview}
                 uploading={uploading}
               />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(2)}
+                  disabled={!isStep1Valid}
+                  className="btn-primary"
+                  style={{
+                    opacity: isStep1Valid ? 1 : 0.5,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 24px',
+                    fontSize: '0.86rem'
+                  }}
+                >
+                  Proceed to Auto-Cleansing & Constraints <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* STEP 2: FIELD MAPPING & AUTO-CLEANING */}
+        {/* STEP 2: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
         {currentStep === 2 && (
           <div>
-            <div className="glass-panel" style={{
-              padding: '20px 24px', marginBottom: '20px',
-              background: autoCleanReport
-                ? autoCleanReport.constraintsPassed ? 'linear-gradient(180deg, var(--status-success-bg), #FFFFFF)' : 'linear-gradient(180deg, var(--status-error-bg), #FFFFFF)'
-                : 'linear-gradient(180deg, var(--status-warning-bg), #FFFFFF)',
-              border: autoCleanReport
-                ? autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)'
-                : '1px solid var(--status-warning-border)',
-            }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <Sparkles size={20} color={autoCleanReport ? (autoCleanReport.constraintsPassed ? 'var(--status-success)' : 'var(--status-error)') : 'var(--status-warning)'} />
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>Automated Data Cleansing & Constraint Engine</h4>
-                  </div>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Trims whitespace, parses dates to ISO <code>YYYY-MM-DD</code>, converts numbers/parentheses, and checks mandatory audit constraints.
-                  </p>
-                </div>
+            <AutoCleanConstraintsPanel
+              workflowType="SPARK_JET"
+              tbRowCount={status?.totalInputRows?.tb || 22}
+              glRowCount={status?.totalInputRows?.gl || (status?.glCheckpointsSummary?.totalLines || 36)}
+              coaRowCount={0}
+              onProceed={() => setCurrentStep(3)}
+            />
+          </div>
+        )}
 
-                <button onClick={handleRunAutoClean} disabled={autoCleaning || !hasRequiredMappings} className="btn-primary" style={{ opacity: hasRequiredMappings ? 1 : 0.5 }}>
-                  <Play size={14} fill="#FFFFFF" />
-                  {autoCleaning ? 'Cleaning Data...' : 'Run Auto-Cleansing & Validation'}
-                </button>
-              </div>
+        {/* STEP 3: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
+        {currentStep === 3 && (
+          <div>
+            <DataFileMappingWorkspace
+              datasets={[
+                {
+                  key: 'tb',
+                  title: 'Trial Balance (TB)',
+                  shortName: 'TB',
+                  sourceHeaders: tbHeaders,
+                  mappings: config?.fieldMappings.tb || [],
+                  onChangeMapping: (std, src) => handleMappingChange('tb', std, src),
+                  rowCount: status?.totalInputRows?.tb || 22,
+                },
+                {
+                  key: 'gl',
+                  title: 'Population / General Ledger (GL)',
+                  shortName: 'GL',
+                  sourceHeaders: glHeaders,
+                  mappings: config?.fieldMappings.gl || [],
+                  onChangeMapping: (std, src) => handleMappingChange('gl', std, src),
+                  rowCount: status?.totalInputRows?.gl || (status?.glCheckpointsSummary?.totalLines || 36),
+                },
+              ]}
+              onProceed={() => {
+                setCurrentStep(4);
+                handleRunPipeline(4);
+              }}
+            />
 
-              {!autoCleanReport && (
-                <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--status-warning-border)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400E', fontWeight: 600 }}>
-                  <AlertTriangle size={16} color="var(--status-warning)" />
-                  <span>
-                    {hasRequiredMappings
-                      ? 'Cleansing Required: Click "Run Auto-Cleansing & Validation" above to verify constraints and unlock Step 3.'
-                      : 'Please map all required standard fields below before executing data cleansing.'}
-                  </span>
-                </div>
-              )}
-
-              {autoCleanReport && (
-                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>TB Accounts Cleaned</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.tbRowsCleaned.toLocaleString()}</div>
-                    </div>
-                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>GL Journal Lines Cleaned</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.glRowsCleaned.toLocaleString()}</div>
-                    </div>
-                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dates Standardized</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.datesStandardized.toLocaleString()}</div>
-                    </div>
-                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Amounts Converted</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.numbersConverted.toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  {autoCleanReport.constraintsPassed ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#0F766E', fontWeight: 700 }}>
-                      <CheckCircle2 size={16} color="var(--status-success)" />
-                      <span>Data Cleansing Status: READY. All mandatory audit constraints passed — Step 3 is unlocked.</span>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#991B1B', fontWeight: 800 }}>
-                      <AlertTriangle size={16} color="var(--status-error)" />
-                      <span>Constraint Checks Failed: Next steps are locked. Please resolve the issues below.</span>
-                    </div>
-                  )}
-
-                  {autoCleanReport.warnings && autoCleanReport.warnings.length > 0 && (
-                    <div style={{
-                      marginTop: '10px', padding: '10px 14px',
-                      background: autoCleanReport.constraintsPassed ? 'var(--status-warning-bg)' : 'var(--status-error-bg)',
-                      borderRadius: '6px', fontSize: '0.8rem',
-                      color: autoCleanReport.constraintsPassed ? '#92400E' : '#991B1B',
-                      border: autoCleanReport.constraintsPassed ? '1px solid var(--status-warning-border)' : '1px solid var(--status-error-border)',
-                    }}>
-                      <strong>{autoCleanReport.constraintsPassed ? 'Constraint Advisories:' : 'Blocking Constraint Failures:'}</strong>
-                      <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                        {autoCleanReport.warnings.map((w, i) => <li key={i}>{w}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <FieldMappingTable datasetTitle="Trial Balance (TB)" sourceHeaders={tbHeaders} mappings={config?.fieldMappings.tb || []} onChangeMapping={(std, src) => handleMappingChange('tb', std, src)} />
-            <FieldMappingTable datasetTitle="Population / General Ledger (GL)" sourceHeaders={glHeaders} mappings={config?.fieldMappings.gl || []} onChangeMapping={(std, src) => handleMappingChange('gl', std, src)} />
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
+              <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ArrowLeft size={15} /> Back to Auto-Cleansing
+              </button>
               <button
-                type="button"
                 onClick={() => {
-                  if (runId && config) {
-                    RunService.updateFieldMappings(runId, 'tb', config.fieldMappings.tb || []);
-                    RunService.updateFieldMappings(runId, 'gl', config.fieldMappings.gl || []);
-                  }
+                  setCurrentStep(4);
+                  handleRunPipeline(4);
                 }}
-                className="btn-soft-slate"
+                disabled={executing}
+                className="btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <Save size={15} /> Save Mapping
+                Continue to IR Testing <ArrowRight size={15} />
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 3: CHECKPOINTS & INTEGRITY TESTING (IR 1-4) */}
-        {currentStep === 3 && (
+        {/* STEP 4: CHECKPOINTS & INTEGRITY TESTING (IR 1-4) */}
+        {currentStep === 4 && (
           <div>
             {executing && (
               <div style={{ maxWidth: '680px', margin: '0 auto 30px' }}>
@@ -1298,11 +1300,30 @@ export const SparkJetWorkflow: React.FC = () => {
                 </div>
               )}
             </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(3)}
+                className="btn-secondary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <ArrowLeft size={15} /> Back to Data File Mapping
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(5)}
+                className="btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                Configure Exceptions <ArrowRight size={15} />
+              </button>
+            </div>
           </div>
         )}
 
-        {/* STEP 4: PARAMETER EXCEPTION TESTING CONFIGURATION */}
-        {currentStep === 4 && (
+        {/* STEP 5: PARAMETER EXCEPTION TESTING CONFIGURATION */}
+        {currentStep === 5 && (
           <div>
             {fileImportNotice && (
               <div className="notice-banner">
@@ -2126,11 +2147,38 @@ export const SparkJetWorkflow: React.FC = () => {
                 No exception rules selected. Enable one or more exceptions above to configure rules.
               </div>
             )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(4)}
+                className="btn-secondary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <ArrowLeft size={15} /> Back to Integrity Tests
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentStep(6);
+                  handleRunPipeline(6);
+                }}
+                disabled={executing}
+                className="btn-primary"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  padding: '10px 28px', boxShadow: '0 4px 12px rgba(0, 118, 128, 0.25)'
+                }}
+              >
+                <Play size={15} fill="#FFFFFF" />
+                {executing ? 'Executing Pipeline...' : 'Execute Exceptions & Generate Deliverables'}
+              </button>
+            </div>
           </div>
         )}
 
-        {/* STEP 5: RESULTS & EXECUTIVE VISUALS */}
-        {currentStep === 5 && (
+        {/* STEP 6: RESULTS & EXECUTIVE VISUALS */}
+        {currentStep === 6 && (
           <div>
             {executing && (
               <div style={{ maxWidth: '680px', margin: '0 auto 30px' }}>

@@ -17,6 +17,7 @@ interface StepTimelineProps {
   activeTitle?: string;
   activeDescription?: string;
   headerRight?: React.ReactNode;
+  isRunCompleted?: boolean;
 }
 
 /**
@@ -33,11 +34,11 @@ export const StepTimeline: React.FC<StepTimelineProps> = ({
   activeTitle,
   activeDescription,
   headerRight,
+  isRunCompleted,
 }) => {
   // Use maxCompletedStep (if provided) to determine the furthest step reached
   const highWaterMark = maxCompletedStep ?? currentStep;
-  const highWaterIndex = Math.max(0, steps.findIndex((s) => s.id === highWaterMark));
-  const fillPct = steps.length > 1 ? (highWaterIndex / (steps.length - 1)) * 100 : 0;
+  const isAllResultsDone = Boolean(isRunCompleted || (maxCompletedStep !== undefined && maxCompletedStep >= steps.length));
   const active = steps.find((s) => s.id === currentStep);
 
   return (
@@ -47,10 +48,11 @@ export const StepTimeline: React.FC<StepTimelineProps> = ({
           const isLast = idx === steps.length - 1;
           const allowed = canAccessStep(step.id);
           const isActive = step.id === currentStep;
-          // A step is "completed" if it's been reached in the past AND is not currently active
-          const isCompleted = step.id < currentStep || (step.id <= highWaterMark && step.id !== currentStep);
-          // A connecting segment is completed if the destination step is reached
-          const isSegmentCompleted = step.id < highWaterMark;
+          // A step is "completed" if it's been reached in the past AND is not currently active,
+          // OR if all results are populated (completed) and this step has been finished (including the last step)
+          const isCompleted = step.id < currentStep || (step.id <= highWaterMark && step.id !== currentStep) || (isAllResultsDone && (step.id <= highWaterMark || isLast));
+          // A connecting segment is completed if the destination step is reached or all results are done
+          const isSegmentCompleted = step.id < highWaterMark || isAllResultsDone;
           const isSegmentActive = step.id < currentStep;
           const Icon = step.icon;
 

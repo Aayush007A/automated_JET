@@ -20,6 +20,8 @@ pip-delete-this-directory.txt
 runs/TEST*
 runs/JET-20260824-00*
 runs/JET-20260824-01*
+runs/JET-20260825-*
+runs/JET-20260824-TEST*
 
 # Environment and secrets
 .env

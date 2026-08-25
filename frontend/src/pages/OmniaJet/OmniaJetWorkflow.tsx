@@ -4,6 +4,8 @@ import { RunService } from '../../services/runService';
 import { RunConfig, RunSummary, OmniaJetParameters, FieldMappingItem } from '../../types';
 import { FileDropzone } from '../../components/common/FileDropzone';
 import { FieldMappingTable } from '../../components/common/FieldMappingTable';
+import { AutoCleanConstraintsPanel } from '../../components/common/AutoCleanConstraintsPanel';
+import { DataFileMappingWorkspace } from '../../components/common/DataFileMappingWorkspace';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { MetricCard } from '../../components/common/MetricCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -15,23 +17,25 @@ import {
   FileSpreadsheet, Settings, ShieldCheck, Database, RefreshCw, Archive, FileCheck,
   Search, Filter, PieChart, BarChart3, Eye, Sparkles, Check, X, Trash2,
   Table, Layers, HelpCircle, Activity, FileText, Lock, Loader2, UploadCloud, Clock, Calendar,
-  Sliders, UserCheck
+  Sliders, UserCheck, Coins, Scale
 } from 'lucide-react';
 
 const STEPS: TimelineStep[] = [
   { id: 1, label: 'Ingest Datasets', sub: 'Upload files', icon: UploadCloud },
-  { id: 2, label: 'CDM Mapping', sub: 'Auto-clean', icon: Sparkles },
-  { id: 3, label: 'Omnia Parameters', sub: 'Configure', icon: Settings },
-  { id: 4, label: 'Data Quality & Recon', sub: 'Running', icon: Activity },
-  { id: 5, label: 'Executive Results', sub: 'Review', icon: BarChart3 },
+  { id: 2, label: 'Auto-Cleansing', sub: 'Validate rules', icon: Sparkles },
+  { id: 3, label: 'Data File Mapping', sub: 'Map columns', icon: Table },
+  { id: 4, label: 'Omnia Parameters', sub: 'Configure', icon: Settings },
+  { id: 5, label: 'Data Quality & Recon', sub: 'Running', icon: Activity },
+  { id: 6, label: 'Executive Results', sub: 'Review', icon: BarChart3 },
 ];
 
 const STEP_COPY: Record<number, { title: string; desc: string }> = {
   1: { title: 'Upload Omnia Input Datasets', desc: 'Upload your multi-sheet workbook or separate CSV files for TB, Population and COA.' },
-  2: { title: 'CDM Mapping & Auto-Clean', desc: 'Map columns to the standard Omnia model, then run automated cleansing and constraint checks.' },
-  3: { title: 'Omnia Parameters & Golden Checks', desc: 'Define fiscal periods, currency handling, decimal formats and toggleable DQC rules.' },
-  4: { title: 'Data Quality & Reconciliation', desc: 'Running CDM preparation, currency reconciliation and 20 DQC golden checks.' },
-  5: { title: 'Executive Results', desc: 'Review account reconciliation, the DQC matrix, control totals and generated artifacts.' },
+  2: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Cleanse raw data and validate 16 mandatory audit schema rules from omnia_JET_user_input.txt.' },
+  3: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte CDM model across Trial Balance, General Ledger, and Chart of Accounts.' },
+  4: { title: 'Omnia Parameters & Golden Checks', desc: 'Define fiscal periods, currency handling, decimal formats and toggleable DQC rules.' },
+  5: { title: 'Data Quality & Reconciliation Engine', desc: 'Executing PySpark CDM preparation, currency reconciliation and 20 DQC golden checks.' },
+  6: { title: 'Executive Results & Audit Workpapers', desc: 'Review account reconciliation, DQC golden matrix, control totals, and generated artifacts.' },
 };
 
 const formatExecutiveDate = (dateStr?: string, includeSeconds: boolean = false): string => {
@@ -215,8 +219,8 @@ export const OmniaJetWorkflow: React.FC = () => {
       if (event.stage === 'COMPLETED') {
         setExecuting(false);
         loadRun();
-        setCurrentStep(5);
-        setMaxCompletedStep(5);
+        setCurrentStep(6);
+        setMaxCompletedStep(6);
       } else if (event.stage === 'FAILED') {
         setExecuting(false);
         loadRun();
@@ -226,9 +230,9 @@ export const OmniaJetWorkflow: React.FC = () => {
     return unsub;
   }, [runId]);
 
-  // Load In-Place Reconciliation Preview when in Step 5 Tab 1
+  // Load In-Place Reconciliation Preview when in Step 6 Tab 1
   useEffect(() => {
-    if (currentStep === 5 && runId && activeTab === 'reconciliation') {
+    if (currentStep === 6 && runId && activeTab === 'reconciliation') {
       setLoadingReconPreview(true);
       let targetFile = 'Parquet_Reconciliation.csv';
       if (reconSubView === 'tb_start') targetFile = 'TB_Start.csv';
@@ -242,9 +246,9 @@ export const OmniaJetWorkflow: React.FC = () => {
     }
   }, [currentStep, activeTab, reconSubView, runId, status?.status]);
 
-  // Load In-Place Control Total Preview when in Step 5 Tab 3
+  // Load In-Place Control Total Preview when in Step 6 Tab 3
   useEffect(() => {
-    if (currentStep === 5 && runId && activeTab === 'controlTotals' && selectedControlFile) {
+    if (currentStep === 6 && runId && activeTab === 'controlTotals' && selectedControlFile) {
       setLoadingControlPreview(true);
       RunService.previewOutput(runId, selectedControlFile, 50)
         .then((res) => setControlPreviewData(res))
@@ -253,9 +257,9 @@ export const OmniaJetWorkflow: React.FC = () => {
     }
   }, [currentStep, activeTab, selectedControlFile, runId, status?.status]);
 
-  // Load DQC Matrix summary data when in Step 5
+  // Load DQC Matrix summary data when in Step 6
   useEffect(() => {
-    if (currentStep === 5 && runId) {
+    if (currentStep === 6 && runId) {
       setLoadingDqcData(true);
       RunService.previewOutput(runId, 'Parquet_Data_Integrity_Check_00_Summary.csv', 50)
         .then((res) => {
@@ -352,7 +356,7 @@ export const OmniaJetWorkflow: React.FC = () => {
   const handleStartPipeline = async () => {
     if (!runId) return;
     setExecuting(true);
-    setCurrentStep(4);
+    setCurrentStep(5);
     try {
       await RunService.updateConfig(runId, { omniaParameters: omniaParams });
       await RunService.startPipeline(runId);
@@ -389,9 +393,10 @@ export const OmniaJetWorkflow: React.FC = () => {
     if (status?.status === 'COMPLETED') return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
-    if (stepId === 3) return isStep1Valid && isStep2Valid;
-    if (stepId === 4) return isStep1Valid && isStep2Valid;
-    if (stepId === 5) return (status?.status as string) === 'COMPLETED';
+    if (stepId === 3) return isStep1Valid;
+    if (stepId === 4) return isStep1Valid;
+    if (stepId === 5) return isStep1Valid;
+    if (stepId === 6) return (status?.status as string) === 'COMPLETED';
     return false;
   };
 
@@ -582,27 +587,32 @@ export const OmniaJetWorkflow: React.FC = () => {
     if (currentStep === 1) {
       return (
         <button onClick={() => { setCurrentStep(2); setMaxCompletedStep(prev => Math.max(prev, 1)); }} disabled={!isStep1Valid} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
-          Continue to Mapping <ArrowRight size={13} />
+          Continue to Auto-Cleansing <ArrowRight size={13} />
         </button>
       );
     }
     if (currentStep === 2) {
       return (
         <>
-          <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
+          <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+            <ArrowLeft size={13} /> Back
+          </button>
+          <button
+            type="button"
+            onClick={handleRunAutoClean}
+            disabled={autoCleaning}
+            className="btn-soft-slate"
+            style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <RefreshCw size={13} className={autoCleaning ? 'spin-slow' : ''} />
+            {autoCleaning ? 'Validating...' : 'Re-Run Clean & Validate'}
+          </button>
           <button
             onClick={() => { setCurrentStep(3); setMaxCompletedStep(prev => Math.max(prev, 2)); }}
-            disabled={!isStep2Valid}
             className="btn-primary"
             style={{ padding: '6px 16px', fontSize: '0.82rem' }}
-            title={
-              !hasRequiredMappings ? 'Map required fields first'
-              : !autoCleanReport ? 'Run auto-cleansing to unlock'
-              : !autoCleanReport.constraintsPassed ? 'Resolve constraint failures to proceed'
-              : 'Configure Omnia Parameters'
-            }
           >
-            Continue <ArrowRight size={13} />
+            Continue to Mapping <ArrowRight size={13} />
           </button>
         </>
       );
@@ -611,6 +621,20 @@ export const OmniaJetWorkflow: React.FC = () => {
       return (
         <>
           <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
+          <button
+            onClick={() => { setCurrentStep(4); setMaxCompletedStep(prev => Math.max(prev, 3)); }}
+            className="btn-primary"
+            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
+          >
+            Continue to Parameters <ArrowRight size={13} />
+          </button>
+        </>
+      );
+    }
+    if (currentStep === 4) {
+      return (
+        <>
+          <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
           <button onClick={handleStartPipeline} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
             <Play size={13} fill="#FFFFFF" />
             {executing ? 'Executing Pipeline...' : 'Run Omnia JET Workflow'}
@@ -618,9 +642,9 @@ export const OmniaJetWorkflow: React.FC = () => {
         </>
       );
     }
-    if (currentStep === 5) {
+    if (currentStep === 6) {
       return (
-        <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+        <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
           <Settings size={13} /> Reconfigure Parameters
         </button>
       );
@@ -668,6 +692,7 @@ export const OmniaJetWorkflow: React.FC = () => {
         activeTitle={STEP_COPY[currentStep]?.title}
         activeDescription={STEP_COPY[currentStep]?.desc}
         headerRight={renderTimelineActions()}
+        isRunCompleted={status?.status === 'COMPLETED'}
       />
 
       {/* Main Workspace Content */}
@@ -726,233 +751,580 @@ export const OmniaJetWorkflow: React.FC = () => {
                 </div>
               )}
 
-
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: CDM MAPPING & AUTO-CLEANING */}
-        {currentStep === 2 && (
-          <div>
-            <div className="glass-panel" style={{
-              padding: '20px 24px', marginBottom: '20px',
-              background: autoCleanReport
-                ? autoCleanReport.constraintsPassed ? 'linear-gradient(180deg, var(--status-success-bg), #FFFFFF)' : 'linear-gradient(180deg, var(--status-error-bg), #FFFFFF)'
-                : 'linear-gradient(180deg, var(--status-warning-bg), #FFFFFF)',
-              border: autoCleanReport
-                ? autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)'
-                : '1px solid var(--status-warning-border)',
-            }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <Sparkles size={20} color={autoCleanReport ? (autoCleanReport.constraintsPassed ? 'var(--status-success)' : 'var(--status-error)') : 'var(--status-warning)'} />
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-                      Automated CDM Cleansing & Constraint Engine
-                    </h4>
-                  </div>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Trims whitespace, parses dates to standard ISO format, converts numbers/parentheses, and checks mandatory audit constraints.
-                  </p>
-                </div>
-
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button
-                  onClick={handleRunAutoClean}
-                  disabled={autoCleaning || !hasRequiredMappings}
+                  type="button"
+                  onClick={() => setCurrentStep(2)}
+                  disabled={!isStep1Valid}
                   className="btn-primary"
-                  style={{ opacity: hasRequiredMappings ? 1 : 0.5 }}
+                  style={{
+                    opacity: isStep1Valid ? 1 : 0.5,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 24px',
+                    fontSize: '0.86rem'
+                  }}
                 >
-                  <Play size={14} fill="#FFFFFF" />
-                  {autoCleaning ? 'Cleaning Data...' : 'Run Auto-Cleansing & Validation'}
+                  Proceed to Auto-Cleansing & Constraints <ArrowRight size={16} />
                 </button>
               </div>
-
-              {!autoCleanReport && (
-                <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--status-warning-border)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400E', fontWeight: 600 }}>
-                  <AlertTriangle size={16} color="var(--status-warning)" />
-                  <span>
-                    {hasRequiredMappings
-                      ? 'Cleansing Required: Click "Run Auto-Cleansing & Validation" above to verify constraints and unlock Step 3.'
-                      : 'Please map all required CDM standard fields below before executing data cleansing.'}
-                  </span>
-                </div>
-              )}
-
-              {autoCleanReport && (
-                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>TB Accounts Cleaned</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.tbRowsCleaned.toLocaleString()}</div>
-                    </div>
-                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>GL Journal Lines Cleaned</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.glRowsCleaned.toLocaleString()}</div>
-                    </div>
-                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dates Standardized</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.datesStandardized.toLocaleString()}</div>
-                    </div>
-                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Amounts Converted</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.numbersConverted.toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  {autoCleanReport.constraintsPassed ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#0F766E', fontWeight: 700 }}>
-                      <CheckCircle2 size={16} color="var(--status-success)" />
-                      <span>Data Cleansing Status: READY. All mandatory audit constraints passed — Step 3 is unlocked.</span>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#991B1B', fontWeight: 800 }}>
-                      <AlertTriangle size={16} color="var(--status-error)" />
-                      <span>Constraint Checks Failed: Next steps are locked. Please resolve the issues below.</span>
-                    </div>
-                  )}
-
-                  {autoCleanReport.warnings && autoCleanReport.warnings.length > 0 && (
-                    <div style={{
-                      marginTop: '10px', padding: '10px 14px',
-                      background: autoCleanReport.constraintsPassed ? 'var(--status-warning-bg)' : 'var(--status-error-bg)',
-                      borderRadius: '6px', fontSize: '0.8rem',
-                      color: autoCleanReport.constraintsPassed ? '#92400E' : '#991B1B',
-                      border: autoCleanReport.constraintsPassed ? '1px solid var(--status-warning-border)' : '1px solid var(--status-error-border)',
-                    }}>
-                      <strong>{autoCleanReport.constraintsPassed ? 'Constraint Advisories:' : 'Blocking Constraint Failures:'}</strong>
-                      <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                        {autoCleanReport.warnings.map((w, i) => <li key={i}>{w}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
+          </div>
+        )}
 
-            <FieldMappingTable
-              datasetTitle="General Ledger Detail (JE)"
-              sourceHeaders={glHeaders}
-              mappings={config?.fieldMappings.gl || []}
-              onChangeMapping={(std, src) => handleMappingChange('gl', std, src)}
-            />
-
-            <FieldMappingTable
-              datasetTitle="Trial Balance (TB)"
-              sourceHeaders={tbHeaders}
-              mappings={config?.fieldMappings.tb || []}
-              onChangeMapping={(std, src) => handleMappingChange('tb', std, src)}
-            />
-
-            <FieldMappingTable
-              datasetTitle="Chart of Accounts (COA)"
-              sourceHeaders={coaHeaders}
-              mappings={config?.fieldMappings.coa || []}
-              onChangeMapping={(std, src) => handleMappingChange('coa', std, src)}
+        {/* STEP 2: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
+        {currentStep === 2 && (
+          <div>
+            <AutoCleanConstraintsPanel
+              workflowType="OMNIA_JET"
+              tbRowCount={dynamicTbCount || 22}
+              glRowCount={dynamicGlCount || 36}
+              coaRowCount={26}
+              onProceed={() => setCurrentStep(3)}
             />
           </div>
         )}
 
-        {/* STEP 3: OMNIA PARAMETERS */}
+        {/* STEP 3: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
         {currentStep === 3 && (
           <div>
-            <div className="glass-panel" style={{ padding: '28px', background: '#FFFFFF' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                Omnia Parameters & Golden Checks
-              </h3>
-              <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '24px' }}>
-                Define fiscal reporting periods, currency parameters, decimal formats, and toggleable DQC rules.
-              </p>
+            <DataFileMappingWorkspace
+              datasets={[
+                {
+                  key: 'tb',
+                  title: 'Trial Balance (TB)',
+                  shortName: 'TB',
+                  sourceHeaders: tbHeaders,
+                  mappings: config?.fieldMappings.tb || [],
+                  onChangeMapping: (std, src) => handleMappingChange('tb', std, src),
+                  rowCount: dynamicTbCount,
+                },
+                {
+                  key: 'gl',
+                  title: 'General Ledger Detail (JE)',
+                  shortName: 'JE',
+                  sourceHeaders: glHeaders,
+                  mappings: config?.fieldMappings.gl || [],
+                  onChangeMapping: (std, src) => handleMappingChange('gl', std, src),
+                  rowCount: dynamicGlCount,
+                },
+                {
+                  key: 'coa',
+                  title: 'Chart of Accounts (COA)',
+                  shortName: 'COA',
+                  sourceHeaders: coaHeaders,
+                  mappings: config?.fieldMappings.coa || [],
+                  onChangeMapping: (std, src) => handleMappingChange('coa', std, src),
+                  rowCount: 26,
+                },
+              ]}
+              onProceed={() => setCurrentStep(4)}
+            />
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-                <div className="jet-card" style={{ padding: '18px' }}>
-                  <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Testing Period & Cutoff</h4>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label className="jet-label">Financial Year</label>
-                    <input type="number" className="jet-input" value={omniaParams.fiscalYear} onChange={(e) => setOmniaParams({ ...omniaParams, fiscalYear: Number(e.target.value) })} />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-                    <div>
-                      <label className="jet-label">Testing Period Start</label>
-                      <input type="text" className="jet-input" value={omniaParams.testingPeriodStart} onChange={(e) => setOmniaParams({ ...omniaParams, testingPeriodStart: e.target.value })} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
+              <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ArrowLeft size={15} /> Back to Auto-Cleansing
+              </button>
+              <button onClick={() => setCurrentStep(4)} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Next: Omnia Parameters <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: OMNIA PARAMETERS */}
+        {currentStep === 4 && (
+          <div>
+            <div className="glass-panel" style={{ padding: '28px', background: '#FFFFFF', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+                    Omnia Parameters & Golden Checks Configuration
+                  </h3>
+                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Define fiscal audit reporting periods, currency reconciliation modes, decimal formatting rules, and toggleable DQC checks.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '0.76rem', fontWeight: 700, padding: '4px 10px', borderRadius: '16px',
+                    background: 'var(--deloitte-teal-light)', color: 'var(--deloitte-teal)', border: '1px solid rgba(0, 118, 128, 0.2)'
+                  }}>
+                    Fiscal Year {omniaParams.fiscalYear || 2026}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+                {/* Card 1: Testing Period & Cutoff */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'linear-gradient(180deg, rgba(0, 118, 128, 0.02) 0%, #FFFFFF 100%)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--deloitte-teal-light)', color: 'var(--deloitte-teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Calendar size={15} />
                     </div>
                     <div>
-                      <label className="jet-label">Testing Period End</label>
-                      <input type="text" className="jet-input" value={omniaParams.testingPeriodEnd} onChange={(e) => setOmniaParams({ ...omniaParams, testingPeriodEnd: e.target.value })} />
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Testing Period & Cutoff</h4>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Audit date parameters & fiscal boundary</span>
                     </div>
                   </div>
+
+                  <div style={{ marginBottom: '14px' }}>
+                    <label className="jet-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Financial Year (FY)</label>
+                    <input
+                      type="number"
+                      className="jet-input"
+                      value={omniaParams.fiscalYear}
+                      onChange={(e) => setOmniaParams({ ...omniaParams, fiscalYear: Number(e.target.value) })}
+                      placeholder="2026"
+                      style={{ fontSize: '0.84rem' }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Defines the active audit fiscal cycle (e.g., 2026)</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                    <div>
+                      <label className="jet-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Testing Period Start</label>
+                      <input
+                        type="text"
+                        className="jet-input"
+                        value={omniaParams.testingPeriodStart}
+                        onChange={(e) => setOmniaParams({ ...omniaParams, testingPeriodStart: e.target.value })}
+                        placeholder="04/01/2025"
+                        style={{ fontSize: '0.84rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="jet-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Testing Period End</label>
+                      <input
+                        type="text"
+                        className="jet-input"
+                        value={omniaParams.testingPeriodEnd}
+                        onChange={(e) => setOmniaParams({ ...omniaParams, testingPeriodEnd: e.target.value })}
+                        placeholder="03/31/2026"
+                        style={{ fontSize: '0.84rem' }}
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="jet-label">Fiscal Year End Date</label>
-                    <input type="text" className="jet-input" value={omniaParams.fiscalYearEnd} onChange={(e) => setOmniaParams({ ...omniaParams, fiscalYearEnd: e.target.value })} />
+                    <label className="jet-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Fiscal Year End Cutoff Date</label>
+                    <input
+                      type="text"
+                      className="jet-input"
+                      value={omniaParams.fiscalYearEnd}
+                      onChange={(e) => setOmniaParams({ ...omniaParams, fiscalYearEnd: e.target.value })}
+                      placeholder="03/31/2026"
+                      style={{ fontSize: '0.84rem' }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Closing balance sheet benchmark date</span>
                   </div>
                 </div>
 
-                <div className="jet-card" style={{ padding: '18px' }}>
-                  <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Currency & Number Formatting</h4>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label className="jet-label">Primary Reconciliation Currency</label>
-                    <select className="jet-select" value={omniaParams.currency} onChange={(e) => setOmniaParams({ ...omniaParams, currency: e.target.value as any })}>
+                {/* Card 2: Currency & Number Formatting */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.02) 0%, #FFFFFF 100%)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(37, 99, 235, 0.08)', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Coins size={15} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Currency & Formatting</h4>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Reconciliation currency & decimal notation</span>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '14px' }}>
+                    <label className="jet-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Primary Reconciliation Currency</label>
+                    <select
+                      className="jet-select"
+                      value={omniaParams.currency}
+                      onChange={(e) => setOmniaParams({ ...omniaParams, currency: e.target.value as any })}
+                      style={{ fontSize: '0.84rem' }}
+                    >
                       <option value="Entity Currency">Entity Currency (EC)</option>
                       <option value="Group Currency">Group Currency (GC)</option>
                       <option value="Both">Both (EC & GC)</option>
                     </select>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Primary currency for balance & variance calculations</span>
                   </div>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label className="jet-label">Decimal Separator</label>
-                    <select className="jet-select" value={omniaParams.decimalSeparator} onChange={(e) => setOmniaParams({ ...omniaParams, decimalSeparator: e.target.value as any })}>
-                      <option value="Period">Period (.) Standard</option>
-                      <option value="Comma">Comma (,) European</option>
-                      <option value="None">None</option>
+
+                  <div style={{ marginBottom: '14px' }}>
+                    <label className="jet-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Decimal Separator</label>
+                    <select
+                      className="jet-select"
+                      value={omniaParams.decimalSeparator}
+                      onChange={(e) => setOmniaParams({ ...omniaParams, decimalSeparator: e.target.value as any })}
+                      style={{ fontSize: '0.84rem' }}
+                    >
+                      <option value="Period">Period (.) Standard e.g. 1,000.50</option>
+                      <option value="Comma">Comma (,) European e.g. 1.000,50</option>
+                      <option value="None">None (Plain Integer)</option>
                     </select>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Decimal notation used during numeric standardization</span>
                   </div>
                 </div>
 
-                <div className="jet-card" style={{ padding: '18px' }}>
-                  <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>DQC Toggles</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                      <input type="checkbox" checked={omniaParams.dqcToggles?.toggleObservationChecks} onChange={(e) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleObservationChecks: e.target.checked } })} />
-                      Toggle Off Observation Checks (DQCs 17-20)
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                      <input type="checkbox" checked={omniaParams.dqcToggles?.toggleUserChecks} onChange={(e) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleUserChecks: e.target.checked } })} />
-                      Toggle Off User ID Related Checks (DQC 01d)
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                      <input type="checkbox" checked={omniaParams.dqcToggles?.toggleTransactionTypeChecks} onChange={(e) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleTransactionTypeChecks: e.target.checked } })} />
-                      Toggle Off Transaction Type Checks (DQC 01e)
-                    </label>
+                {/* Card 3: DQC Toggles */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'linear-gradient(180deg, rgba(124, 58, 237, 0.02) 0%, #FFFFFF 100%)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(124, 58, 237, 0.08)', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ShieldCheck size={15} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>DQC Golden Rule Toggles</h4>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Enable or suppress specific integrity evaluations</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {[
+                      {
+                        key: 'toggleObservationChecks',
+                        title: 'Suppress Observation Checks (DQC 17-20)',
+                        desc: 'Bypasses informational rounding, post-closing date, and document type observations.',
+                        checked: !!omniaParams.dqcToggles?.toggleObservationChecks,
+                        onChange: (val: boolean) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleObservationChecks: val } })
+                      },
+                      {
+                        key: 'toggleUserChecks',
+                        title: 'Suppress User ID Checks (DQC 01d)',
+                        desc: 'Disables blank / invalid posting user identification checks if user master is not available.',
+                        checked: !!omniaParams.dqcToggles?.toggleUserChecks,
+                        onChange: (val: boolean) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleUserChecks: val } })
+                      },
+                      {
+                        key: 'toggleTransactionTypeChecks',
+                        title: 'Suppress Doc Type Checks (DQC 01e)',
+                        desc: 'Disables transaction type schema validation if transaction codes are omitted.',
+                        checked: !!omniaParams.dqcToggles?.toggleTransactionTypeChecks,
+                        onChange: (val: boolean) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleTransactionTypeChecks: val } })
+                      },
+                    ].map((tog) => (
+                      <div
+                        key={tog.key}
+                        onClick={() => tog.onChange(!tog.checked)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: tog.checked ? '1px solid rgba(124, 58, 237, 0.35)' : '1px solid var(--border-subtle)',
+                          background: tog.checked ? 'rgba(124, 58, 237, 0.04)' : 'var(--bg-secondary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: tog.checked ? '#6D28D9' : 'var(--text-primary)' }}>
+                            {tog.title}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.2 }}>
+                            {tog.desc}
+                          </div>
+                        </div>
+
+                        <div style={{
+                          width: '36px', height: '20px', borderRadius: '12px',
+                          background: tog.checked ? '#7C3AED' : '#CBD5E1',
+                          padding: '2px', transition: 'all 0.2s ease', flexShrink: 0,
+                          display: 'flex', alignItems: 'center'
+                        }}>
+                          <div style={{
+                            width: '16px', height: '16px', borderRadius: '50%', background: '#FFFFFF',
+                            transform: tog.checked ? 'translateX(16px)' : 'translateX(0)',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                          }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Navigation Footer for Step 4 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(3)}
+                  className="btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <ArrowLeft size={15} /> Back to Data File Mapping
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStartPipeline}
+                  disabled={executing}
+                  className="btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 28px',
+                    boxShadow: '0 4px 12px rgba(0, 118, 128, 0.25)'
+                  }}
+                >
+                  <Play size={15} fill="#FFFFFF" />
+                  {executing ? 'Launching Engine...' : 'Run Omnia JET Pipeline'}
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* STEP 4: PROGRESS */}
-        {currentStep === 4 && (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-              <ProgressBar
-                progress={status?.progress || 0}
-                stage={status?.currentStage}
-                message={status?.status === 'COMPLETED' ? 'Omnia JET reconciliation completed successfully' : 'Running CDM data preparation, currency reconciliation & 20 DQC checks...'}
-                isCompleted={status?.status === 'COMPLETED'}
-                isFailed={status?.status === 'FAILED'}
-              />
+        {/* STEP 5: DATA QUALITY & RECONCILIATION EXECUTION ENGINE */}
+        {currentStep === 5 && (() => {
+          const isCompleted = status?.status === 'COMPLETED';
+          const isFailed = status?.status === 'FAILED';
+          const isRunning = !isCompleted && !isFailed;
 
-              {status?.status === 'COMPLETED' && (
-                <div style={{ marginTop: '24px' }}>
-                  <button onClick={() => setCurrentStep(5)} className="btn-primary">
-                    View Account Reconciliation & DQC Matrix <ArrowRight size={15} />
+          const pipelineStages = [
+            {
+              id: 1,
+              title: 'CDM Ingestion & Partitioning',
+              desc: 'Normalizes TB, COA, GL and partitions Beginning (TB_Start) & Ending (TB_End) balances.',
+              icon: Database,
+              theme: { color: '#007680', bg: 'rgba(0, 118, 128, 0.08)' },
+              metrics: `${status?.totalInputRows?.tb || 22} TB Accounts · ${status?.totalInputRows?.gl || 36} GL Lines`,
+              status: isCompleted ? 'Completed' : (isRunning ? 'Processing' : 'Queued'),
+            },
+            {
+              id: 2,
+              title: 'Account Balance Reconciliation',
+              desc: 'Reconciles Beginning TB + Net GL Activity vs Ending TB with ≤ 1.0 variance tolerance.',
+              icon: Scale,
+              theme: { color: '#2563EB', bg: 'rgba(37, 99, 235, 0.08)' },
+              metrics: `${status?.reconciliationSummary?.reconciledAccounts ?? 22} Reconciled · ${status?.reconciliationSummary?.unreconciledAccounts ?? 0} Unreconciled`,
+              status: isCompleted ? 'Completed' : (isRunning ? 'Processing' : 'Queued'),
+            },
+            {
+              id: 3,
+              title: '20 DQC Golden Integrity Matrix',
+              desc: 'Evaluates 28 DQC checks across Critical Errors, Warnings, and Observation categories.',
+              icon: ShieldCheck,
+              theme: { color: '#059669', bg: 'rgba(5, 150, 105, 0.08)' },
+              metrics: `${dqcMetrics.errors} Errors · ${dqcMetrics.warnings} Warnings · ${dqcMetrics.observations} Observations`,
+              status: isCompleted ? 'Completed' : (isRunning ? 'Processing' : 'Queued'),
+            },
+            {
+              id: 4,
+              title: 'Multi-Dimensional Control Totals',
+              desc: 'Computes debit/credit balance distributions by Fiscal Period, Classification, Currency & User.',
+              icon: Layers,
+              theme: { color: '#7C3AED', bg: 'rgba(124, 58, 237, 0.08)' },
+              metrics: `${status?.controlTotalsSummary?.periodCount || 12} Periods · ${status?.controlTotalsSummary?.userCount || 11} Users`,
+              status: isCompleted ? 'Completed' : (isRunning ? 'Processing' : 'Queued'),
+            },
+            {
+              id: 5,
+              title: 'JE Line Item Stratification',
+              desc: 'Stratifies journal entry population into 5 standardized audit volume size buckets.',
+              icon: BarChart3,
+              theme: { color: '#0284C7', bg: 'rgba(2, 132, 199, 0.08)' },
+              metrics: '5 Size Buckets (1 to >1000 lines)',
+              status: isCompleted ? 'Completed' : (isRunning ? 'Processing' : 'Queued'),
+            },
+            {
+              id: 6,
+              title: 'Excel Workpaper Compilation',
+              desc: 'Generates consolidated multi-tab JE-Recon-and-DIC-Template.xlsx and 15 exportable artifacts.',
+              icon: FileSpreadsheet,
+              theme: { color: '#D97706', bg: 'rgba(217, 119, 6, 0.08)' },
+              metrics: `${status?.outputs?.length || 15} Artifacts Ready`,
+              status: isCompleted ? 'Completed' : (isRunning ? 'Processing' : 'Queued'),
+            },
+          ];
+
+          return (
+            <div style={{ width: '100%', padding: '0 0 24px' }}>
+              {/* Main Progress Panel */}
+              <div className="glass-panel" style={{ padding: '24px 28px', background: '#FFFFFF', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '40px', height: '40px', borderRadius: '10px',
+                      background: isCompleted ? 'rgba(5, 150, 105, 0.1)' : 'var(--deloitte-teal-light)',
+                      color: isCompleted ? '#059669' : 'var(--deloitte-teal)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      {isCompleted ? <CheckCircle2 size={22} /> : <Loader2 size={22} className="spin-slow" />}
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        {isCompleted ? 'Data Quality & Financial Reconciliation Complete' : 'Executing Omnia Audit Reconciliation Pipeline'}
+                      </h3>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                        {isCompleted
+                          ? 'All 6 reconciliation and data quality integrity stages finished with 100% data fidelity.'
+                          : (status?.currentStage ? status.currentStage.replace(/_/g, ' ') : 'Running PySpark CDM standardization and 20 DQC checks...')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{
+                      fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)',
+                      color: isCompleted ? '#059669' : 'var(--deloitte-teal)'
+                    }}>
+                      {status?.progress ?? (isCompleted ? 100 : 0)}%
+                    </span>
+                    <span className={`badge ${isCompleted ? 'badge-success' : 'badge-info'}`} style={{ fontSize: '0.74rem' }}>
+                      {status?.status || 'RUNNING'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar Track */}
+                <div style={{
+                  width: '100%', height: '8px', backgroundColor: '#E2E8F0', borderRadius: '999px',
+                  overflow: 'hidden', border: '1px solid #CBD5E1'
+                }}>
+                  <div style={{
+                    width: `${status?.progress ?? (isCompleted ? 100 : 0)}%`,
+                    height: '100%',
+                    background: isCompleted ? 'linear-gradient(90deg, #007680 0%, #059669 100%)' : 'linear-gradient(90deg, #007680 0%, #86BC25 100%)',
+                    borderRadius: '999px',
+                    transition: 'width 0.4s ease'
+                  }} />
+                </div>
+              </div>
+
+              {/* 6 Symmetrical Pipeline Execution Stage Cards (Uniform 3 x 2 Grid) */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Activity size={15} color="var(--deloitte-teal)" />
+                  Pipeline Stage Breakdown & Execution Status (6 of 6)
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px' }}>
+                  {pipelineStages.map((stg) => {
+                    const Icon = stg.icon;
+                    return (
+                      <div
+                        key={stg.id}
+                        style={{
+                          padding: '16px 18px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--border-subtle)',
+                          background: '#FFFFFF',
+                          boxShadow: 'var(--shadow-sm)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          minHeight: '128px'
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                              <div style={{
+                                width: '28px', height: '28px', borderRadius: '6px',
+                                background: stg.theme.bg, color: stg.theme.color,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                              }}>
+                                <Icon size={15} />
+                              </div>
+                              <span style={{
+                                fontWeight: 800, fontSize: '0.84rem', color: 'var(--text-primary)',
+                                whiteSpace: 'normal', lineHeight: 1.25
+                              }}>
+                                Stage {stg.id}: {stg.title}
+                              </span>
+                            </div>
+
+                            <span style={{
+                              fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
+                              background: isCompleted ? 'rgba(5, 150, 105, 0.1)' : 'rgba(0, 118, 128, 0.1)',
+                              color: isCompleted ? '#059669' : 'var(--deloitte-teal)',
+                              display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0
+                            }}>
+                              {isCompleted ? <Check size={11} /> : <Loader2 size={11} className="spin-slow" />}
+                              {stg.status}
+                            </span>
+                          </div>
+
+                          <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.35 }}>
+                            {stg.desc}
+                          </p>
+                        </div>
+
+                        <div style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', fontSize: '0.74rem', gap: '8px'
+                        }}>
+                          <span style={{ color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>Active Outputs:</span>
+                          <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: stg.theme.color, whiteSpace: 'nowrap' }}>
+                            {stg.metrics}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Execution Summary & Proceed CTA Button */}
+              {isCompleted && (
+                <div className="glass-panel" style={{
+                  padding: '24px 28px', background: '#FFFFFF', textAlign: 'center',
+                  border: '1.5px solid rgba(0, 118, 128, 0.25)',
+                  boxShadow: '0 4px 16px rgba(0, 118, 128, 0.08)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
+                    <CheckCircle2 size={22} color="#059669" />
+                    <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                      Reconciliation Results & DQC Golden Matrix Ready for Review
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', maxWidth: '640px', margin: '0 auto 18px' }}>
+                    All financial datasets have been reconciled against the General Ledger. 28 DQC checks and 4 control total dimensions are compiled and ready.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(6)}
+                    className="btn-primary"
+                    style={{
+                      padding: '10px 32px',
+                      fontSize: '0.88rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.25)'
+                    }}
+                  >
+                    View Account Reconciliation & DQC Matrix <ArrowRight size={16} />
                   </button>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
-        {/* STEP 5: RECONCILIATION & DQC TABLE MATRIX */}
-        {currentStep === 5 && (
+        {/* STEP 6: RECONCILIATION & DQC TABLE MATRIX (EXECUTIVE RESULTS) */}
+        {currentStep === 6 && (
           <div>
             <div style={{
               display: 'grid',

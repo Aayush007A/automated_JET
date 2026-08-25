@@ -20,7 +20,10 @@ export interface FieldMappingItem {
   confidence: number;
   status: 'MATCHED' | 'UNMATCHED' | 'OPTIONAL' | 'OVERRIDDEN';
   required: boolean;
+  requirementLevel?: 'Required' | 'Optional';
+  fieldType?: 'Text' | 'Numeric' | 'Date/Time';
   description?: string;
+  guidance?: string;
 }
 
 export interface DetectedFileSheet {
@@ -237,3 +240,26 @@ export interface LogEntry {
   message: string;
   raw?: string;
 }
+
+export interface SchemaConstraintItem {
+  id: string;
+  dataset: 'Trial Balance' | 'General Ledger' | 'Chart of Accounts';
+  name: string;
+  severity: 'Required' | 'Optional';
+  status: 'PASSED' | 'WARNING' | 'FAILED';
+  details: string;
+  guidance?: string;
+  technicalField?: string;
+}
+
+export interface AutoCleanConstraintsReport {
+  cleanedRowsCount: { tb?: number; gl?: number; coa?: number };
+  constraintsPassed: boolean;
+  totalConstraints: number;
+  passedCount: number;
+  warningCount: number;
+  failedCount: number;
+  constraints: SchemaConstraintItem[];
+  warnings: string[];
+}
+
