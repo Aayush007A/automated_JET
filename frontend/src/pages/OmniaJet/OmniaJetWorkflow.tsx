@@ -491,41 +491,41 @@ export const OmniaJetWorkflow: React.FC = () => {
   };
 
   return (
-    <div className="container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '16px 20px' }}>
+    <div className="container" style={{ maxWidth: '1480px', margin: '0 auto', padding: '28px 32px 48px' }}>
 
-      {/* Page Header: Left aligned, clean, executive */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Page Header: Left aligned, generous breathing room */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '18px', marginBottom: '26px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '38px', height: '38px', borderRadius: '10px',
+            width: '46px', height: '46px', borderRadius: '12px',
             background: 'linear-gradient(135deg, #007680 0%, #005A62 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 3px 10px rgba(0, 118, 128, 0.25)', color: '#FFFFFF',
+            boxShadow: '0 4px 14px rgba(0, 118, 128, 0.22)', color: '#FFFFFF',
             flexShrink: 0
           }}>
-            <FileSpreadsheet size={19} />
+            <FileSpreadsheet size={22} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
                 OMNIA JET Workflow
               </h1>
               {runId && <span className="run-id-pill">{runId}</span>}
               {currentExecutionStatus && <StatusBadge status={currentExecutionStatus} size="sm" />}
             </div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+            <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '3px' }}>
               Omnia Audit Data Cleansing & Reconciliation Pipeline
-            </span>
+            </div>
           </div>
         </div>
 
         {/* Right side action if on completed step */}
         {currentStep === 5 && (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
             <a
               href={RunService.getDownloadOutputUrl(runId!, 'JE-Recon-and-DIC-Template.xlsx')}
               className="btn-primary"
-              style={{ textDecoration: 'none', padding: '7px 14px', fontSize: '0.82rem' }}
+              style={{ textDecoration: 'none', padding: '9px 18px', fontSize: '0.84rem' }}
             >
               <FileCheck size={14} /> Download Excel Workbook
             </a>
