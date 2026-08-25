@@ -1061,6 +1061,19 @@ def run_omnia_jet(config_path):
     }
 
     status_path = os.path.join(os.path.dirname(os.path.dirname(config_path)), 'status.json')
+    existing_status = {}
+    if os.path.exists(status_path):
+        try:
+            with open(status_path, 'r', encoding='utf-8') as f:
+                existing_status = json.load(f)
+        except:
+            pass
+
+    started_at = existing_status.get('startedAt') or summary_data.get('completedAt') or datetime.datetime.now().isoformat()
+    summary_data['startedAt'] = started_at
+    existing_status.update(summary_data)
+    summary_data = existing_status
+
     with open(status_path, 'w', encoding='utf-8') as f:
         json.dump(summary_data, f, indent=2)
 

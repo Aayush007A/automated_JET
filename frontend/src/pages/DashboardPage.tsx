@@ -503,10 +503,14 @@ export const DashboardPage: React.FC = () => {
                   <td style={{ fontSize: '0.79rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{run.engine || 'PYTHON'}</td>
                   <td><StatusBadge status={run.status} /></td>
                   <td style={{ fontSize: '0.79rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                    {run.startedAt ? (
+                    {run.startedAt || run.completedAt || run.createdAt ? (
                       <div>
-                        <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{new Date(run.startedAt).toLocaleDateString()}</div>
-                        <div style={{ fontSize: '0.72rem' }}>{new Date(run.startedAt).toLocaleTimeString()}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          {new Date(run.startedAt || run.completedAt || run.createdAt!).toLocaleDateString()}
+                        </div>
+                        <div style={{ fontSize: '0.72rem' }}>
+                          {new Date(run.startedAt || run.completedAt || run.createdAt!).toLocaleTimeString()}
+                        </div>
                       </div>
                     ) : '—'}
                   </td>

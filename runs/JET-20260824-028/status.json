@@ -3,6 +3,7 @@
   "workflow": "OMNIA_JET",
   "status": "COMPLETED",
   "progress": 100,
+  "startedAt": "2026-08-24T18:12:45.000Z",
   "completedAt": "2026-08-24T18:13:18.400Z",
   "totalInputRows": {
     "tb": 52,

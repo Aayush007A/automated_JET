@@ -158,6 +158,7 @@ export interface RunSummary {
   status: RunStatus;
   startedAt?: string;
   completedAt?: string;
+  createdAt?: string;
   durationMs?: number;
   progress: number;
   currentStage?: string;

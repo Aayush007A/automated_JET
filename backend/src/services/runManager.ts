@@ -109,6 +109,13 @@ export class RunManager {
 
   public static saveRunStatus(runId: string, status: RunSummary): void {
     const statusPath = path.join(ENV.RUN_DIR, runId, 'status.json');
+    if (!status.startedAt) {
+      if (status.completedAt) {
+        status.startedAt = status.completedAt;
+      } else {
+        status.startedAt = new Date().toISOString();
+      }
+    }
     fs.writeFileSync(statusPath, JSON.stringify(status, null, 2), 'utf-8');
   }
 
@@ -116,7 +123,11 @@ export class RunManager {
     const statusPath = path.join(ENV.RUN_DIR, runId, 'status.json');
     if (!fs.existsSync(statusPath)) return null;
     try {
-      return JSON.parse(fs.readFileSync(statusPath, 'utf-8'));
+      const summary: RunSummary = JSON.parse(fs.readFileSync(statusPath, 'utf-8'));
+      if (!summary.startedAt) {
+        summary.startedAt = summary.completedAt || summary.createdAt;
+      }
+      return summary;
     } catch (err) {
       LogService.log('ERROR', 'RUN_MANAGER', `Error reading status for ${runId}: ${err}`, runId);
       return null;
@@ -134,6 +145,10 @@ export class RunManager {
       ...current,
       ...updates,
     };
+
+    if (!updated.startedAt && current.startedAt) {
+      updated.startedAt = current.startedAt;
+    }
 
     this.saveRunStatus(runId, updated);
     return updated;
@@ -165,6 +180,20 @@ export class RunManager {
       if (fs.existsSync(statusPath)) {
         try {
           const summary = JSON.parse(fs.readFileSync(statusPath, 'utf-8'));
+          if (!summary.startedAt) {
+            if (summary.completedAt) {
+              summary.startedAt = summary.completedAt;
+            } else if (summary.createdAt) {
+              summary.startedAt = summary.createdAt;
+            } else {
+              try {
+                const stat = fs.statSync(statusPath);
+                summary.startedAt = stat.birthtime ? stat.birthtime.toISOString() : stat.mtime.toISOString();
+              } catch {
+                summary.startedAt = new Date().toISOString();
+              }
+            }
+          }
           summaries.push(summary);
         } catch (err) {
           // Skip malformed
