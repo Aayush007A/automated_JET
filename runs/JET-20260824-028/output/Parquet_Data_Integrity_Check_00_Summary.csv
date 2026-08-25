@@ -1,0 +1,29 @@
+Data_Integrity_Check_Name,Description,Error_Warning,Capability_Impacted,Related_Fields,Number_of_Affected_Journal_Entries,Number_of_Affected_Lines,Debit_Amount_EC,Credit_Amount_EC,Data_Integrity_Check_Toggled_Off
+01a_Error_COA_Blank_Values,Chart of accounts has blank values in critical fields,Error,Core Mapping,"account_number, account_description, financial_statement_category",0,0,0.0,0.0,No
+01b_Error_TB_Blank_Values,Trial balance has blank values in critical fields,Error,Core Mapping,"entity_id, account_number, period_end_date",0,0,0.0,0.0,No
+01c_Error_JE_Blank_Values,Journal entry data has blank values in critical fields,Error,Core Mapping,"entity_id, journal_number, account_number, date_effective",0,0,0.0,0.0,No
+01d_Warning_JE_Blank_UserID,Journal entry data has blank values in User ID,Warning,User Analytics,userid_entered,0,0,0.0,0.0,No
+01e_Warning_JE_Blank_Transaction_Type,Journal entry data has blank values in Transaction Type,Warning,Standard/Non-Standard,transaction_type,0,0,0.0,0.0,No
+02a_Error_TB_Accounts_Not_In_COA,Trial balance has accounts not in chart of accounts,Error,Core Reconciliation,account_number,0,0,0.0,0.0,No
+02b_Error_JE_Accounts_Not_In_COA,Journal entry data has accounts not in chart of accounts,Error,Core Reconciliation,account_number,0,0,0.0,0.0,No
+03a_Error_TB_Amount_Digits_TooLong,Trial balance amounts have excess digits,Error,Data Integrity,ending_balance_ec,0,0,0.0,0.0,No
+03b_Error_JE_Amount_Digits_TooLong,Journal entry amounts have excess digits,Error,Data Integrity,net_amount_ec,0,0,0.0,0.0,No
+04a_Error_COA_Duplicate_Account_Numbers,Chart of accounts has duplicate account numbers,Error,COA Integrity,account_number,0,0,0.0,0.0,No
+04b_Error_TB_Duplicate_Account_Numbers,Trial balance has duplicate account numbers,Error,TB Integrity,account_number,0,52,0.0,0.0,No
+05_Error_JE_Unknown_Classification,Journal entry has lines with unknown classifications (standard/nonstandard),Error,Classification,is_standard,0,0,0.0,0.0,No
+06_Error_JE_Multiple_Classification,Journal entry has lines with multiple classifications in single entry,Error,Classification,"journal_number, is_standard",0,0,0.0,0.0,No
+07_Error_COA_Unknown_Financial_Statement_Category,Chart of accounts has accounts with an unknown financial statement category,Error,FS Presentation,financial_statement_category,0,0,0.0,0.0,No
+08_Warning_JE_Sum_of_Amount_by_Entry_Not_Net_Zero,Journal entry data has multi-line entries that do not net to zero,Warning,Double Entry Control,"journal_number, net_amount_ec",0,0,0.0,0.0,No
+09_Warning_JE_One_Line_Entries,Journal entry has only one line,Warning,Double Entry Control,journal_number,0,0,0.0,0.0,No
+10_Warning_JE_Entry_Amount_Consistency,Journal entry has lines with net amount inconsistent with debit/credit,Warning,Math Verification,"net_amount_ec, debit_amount_ec, credit_amount_ec",0,0,0.0,0.0,No
+11_Warning_JE_Debit_Credit_Same_Line,Journal entry has lines with both non-zero debit and credit amounts,Warning,Math Verification,"debit_amount_ec, credit_amount_ec",0,0,0.0,0.0,No
+12_Warning_JE_Amount_Currency_Inconsistency,Journal entry has lines with zero in one currency and non-zero in another,Warning,Multi-Currency,"net_amount_ec, net_amount_gc",0,0,0.0,0.0,No
+13a_Warning_JE_Entity_Multiple_Currency,Journal entry data has individual entities with multiple entity currencies,Warning,Multi-Currency,"entity_id, entity_currency_ec",0,0,0.0,0.0,No
+13b_Warning_JE_Group_Multiple_Currency,Journal entry data has multiple group currencies,Warning,Multi-Currency,group_currency_gc,0,0,0.0,0.0,No
+14_Warning_JE_Multiple_Date_Values,Journal entry has lines with multiple effective or posted dates,Warning,Temporal Consistency,"journal_number, date_effective",0,0,0.0,0.0,No
+15_Warning_JE_Multiple_Transaction_Type,Journal entry has lines with multiple transaction types,Warning,Transaction Analytics,"journal_number, transaction_type",0,0,0.0,0.0,No
+16_Warning_JE_Prior_Post_Effective_Date,Journal entry has lines with effective dates prior or after testing period,Warning,Period Cutoff,date_effective,1,2,600000.0,600000.0,No
+17_Observation_JE_Multiple_User_ID,Journal entry has lines with multiple User IDs in single document,Observation,User Analytics,"journal_number, userid_entered",0,0,0.0,0.0,No
+18_Observation_JE_Multiple_Entry_Description,Journal entry has multiple entry header descriptions,Observation,Narration Analysis,"journal_number, journal_header_description",0,0,0.0,0.0,No
+19_Observation_JE_Sum_of_Amount_by_Transaction_Type_Not_Net_Zero,Journal entry data has transaction types that do not net to zero,Observation,Transaction Analytics,"transaction_type, net_amount_ec",0,0,0.0,0.0,No
+20_Observation_UserID_Entered_Multiple_User_Name_Entered,User ID is mapped to more than one user name value,Observation,User Analytics,"userid_entered, user_name_entered",0,0,0.0,0.0,No

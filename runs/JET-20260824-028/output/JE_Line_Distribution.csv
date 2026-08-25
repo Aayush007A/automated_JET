@@ -1,0 +1,3 @@
+entity_id,is_standard,Number_of_Lines_per_JE,Number_of_JE,Number_of_Lines,Percentage_of_Lines,Percentage_of_Entries
+ENT01,N,2 - 20,4,8,22.22,22.22
+ENT01,S,2 - 20,14,28,77.78,77.78

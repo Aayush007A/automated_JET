@@ -1,0 +1,218 @@
+{
+  "runId": "JET-20260824-028",
+  "workflow": "OMNIA_JET",
+  "status": "COMPLETED",
+  "progress": 100,
+  "completedAt": "2026-08-24T18:13:18.400Z",
+  "totalInputRows": {
+    "tb": 52,
+    "gl": 36,
+    "coa": 26
+  },
+  "reconciliationSummary": {
+    "totalAccounts": 26,
+    "reconciledAccounts": 4,
+    "unreconciledAccounts": 22,
+    "totalBeginningBalance": 102300000,
+    "totalEndingBalance": -64450000,
+    "totalJEActivity": 0,
+    "totalTrialActivity": -166750000,
+    "totalVariance": -166750000
+  },
+  "dqcSummary": {
+    "totalErrors": 12,
+    "totalWarnings": 12,
+    "totalObservations": 4,
+    "checksPassed": 26,
+    "checksFailed": 2
+  },
+  "controlTotalsSummary": {
+    "totalDebit": 159250000,
+    "totalCredit": 159250000,
+    "netAmount": 0,
+    "periodCount": 12,
+    "userCount": 11
+  },
+  "outputs": [
+    {
+      "id": "Chart_of_Accounts_csv",
+      "name": "Chart_of_Accounts.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 2790,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Chart_of_Accounts.csv",
+      "relativePath": "runs/JET-20260824-028/output/Chart_of_Accounts.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Chart_of_Accounts.csv",
+      "description": "Chart_of_Accounts.csv",
+      "rowCount": 26
+    },
+    {
+      "id": "Control_Total_By_Currency_csv",
+      "name": "Control_Total_By_Currency.csv",
+      "type": "csv",
+      "category": "CONTROL_TOTAL",
+      "sizeBytes": 140,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Control_Total_By_Currency.csv",
+      "relativePath": "runs/JET-20260824-028/output/Control_Total_By_Currency.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Control_Total_By_Currency.csv",
+      "description": "Control_Total_By_Currency.csv",
+      "rowCount": 1
+    },
+    {
+      "id": "Control_Total_By_Period_csv",
+      "name": "Control_Total_By_Period.csv",
+      "type": "csv",
+      "category": "CONTROL_TOTAL",
+      "sizeBytes": 680,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Control_Total_By_Period.csv",
+      "relativePath": "runs/JET-20260824-028/output/Control_Total_By_Period.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Control_Total_By_Period.csv",
+      "description": "Control_Total_By_Period.csv",
+      "rowCount": 12
+    },
+    {
+      "id": "Control_Total_By_Standard_Non_Standard_csv",
+      "name": "Control_Total_By_Standard_Non_Standard.csv",
+      "type": "csv",
+      "category": "CONTROL_TOTAL",
+      "sizeBytes": 180,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Control_Total_By_Standard_Non_Standard.csv",
+      "relativePath": "runs/JET-20260824-028/output/Control_Total_By_Standard_Non_Standard.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Control_Total_By_Standard_Non_Standard.csv",
+      "description": "Control_Total_By_Standard_Non_Standard.csv",
+      "rowCount": 2
+    },
+    {
+      "id": "Control_Total_By_Transaction_Type_csv",
+      "name": "Control_Total_By_Transaction_Type.csv",
+      "type": "csv",
+      "category": "CONTROL_TOTAL",
+      "sizeBytes": 590,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Control_Total_By_Transaction_Type.csv",
+      "relativePath": "runs/JET-20260824-028/output/Control_Total_By_Transaction_Type.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Control_Total_By_Transaction_Type.csv",
+      "description": "Control_Total_By_Transaction_Type.csv",
+      "rowCount": 10
+    },
+    {
+      "id": "Control_Total_By_User_csv",
+      "name": "Control_Total_By_User.csv",
+      "type": "csv",
+      "category": "CONTROL_TOTAL",
+      "sizeBytes": 673,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Control_Total_By_User.csv",
+      "relativePath": "runs/JET-20260824-028/output/Control_Total_By_User.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Control_Total_By_User.csv",
+      "description": "Control_Total_By_User.csv",
+      "rowCount": 11
+    },
+    {
+      "id": "General_Ledger_Detail_csv",
+      "name": "General_Ledger_Detail.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 10827,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\General_Ledger_Detail.csv",
+      "relativePath": "runs/JET-20260824-028/output/General_Ledger_Detail.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/General_Ledger_Detail.csv",
+      "description": "General_Ledger_Detail.csv",
+      "rowCount": 36
+    },
+    {
+      "id": "JE_Recon_and_DIC_Template_xlsx",
+      "name": "JE-Recon-and-DIC-Template.xlsx",
+      "type": "xlsx",
+      "category": "MASTER",
+      "sizeBytes": 14986,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\JE-Recon-and-DIC-Template.xlsx",
+      "relativePath": "runs/JET-20260824-028/output/JE-Recon-and-DIC-Template.xlsx",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/JE-Recon-and-DIC-Template.xlsx",
+      "description": "JE-Recon-and-DIC-Template.xlsx"
+    },
+    {
+      "id": "JE_Line_Distribution_csv",
+      "name": "JE_Line_Distribution.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 183,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\JE_Line_Distribution.csv",
+      "relativePath": "runs/JET-20260824-028/output/JE_Line_Distribution.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/JE_Line_Distribution.csv",
+      "description": "JE_Line_Distribution.csv",
+      "rowCount": 2
+    },
+    {
+      "id": "Parquet_Data_Integrity_Check_00_Summary_csv",
+      "name": "Parquet_Data_Integrity_Check_00_Summary.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 4883,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Parquet_Data_Integrity_Check_00_Summary.csv",
+      "relativePath": "runs/JET-20260824-028/output/Parquet_Data_Integrity_Check_00_Summary.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Parquet_Data_Integrity_Check_00_Summary.csv",
+      "description": "Parquet_Data_Integrity_Check_00_Summary.csv",
+      "rowCount": 28
+    },
+    {
+      "id": "Parquet_Reconciliation_csv",
+      "name": "Parquet_Reconciliation.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 5697,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Parquet_Reconciliation.csv",
+      "relativePath": "runs/JET-20260824-028/output/Parquet_Reconciliation.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Parquet_Reconciliation.csv",
+      "description": "Parquet_Reconciliation.csv",
+      "rowCount": 26
+    },
+    {
+      "id": "TB_End_csv",
+      "name": "TB_End.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 4661,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\TB_End.csv",
+      "relativePath": "runs/JET-20260824-028/output/TB_End.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/TB_End.csv",
+      "description": "TB_End.csv",
+      "rowCount": 26
+    },
+    {
+      "id": "TB_Start_csv",
+      "name": "TB_Start.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 4375,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\TB_Start.csv",
+      "relativePath": "runs/JET-20260824-028/output/TB_Start.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/TB_Start.csv",
+      "description": "TB_Start.csv",
+      "rowCount": 26
+    },
+    {
+      "id": "Trial_Balance_csv",
+      "name": "Trial_Balance.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 8768,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Trial_Balance.csv",
+      "relativePath": "runs/JET-20260824-028/output/Trial_Balance.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Trial_Balance.csv",
+      "description": "Trial_Balance.csv",
+      "rowCount": 52
+    },
+    {
+      "id": "Unreconciled_Accounts_Detail_csv",
+      "name": "Unreconciled_Accounts_Detail.csv",
+      "type": "csv",
+      "category": "MASTER",
+      "sizeBytes": 4971,
+      "path": "C:\\Users\\Aayush upadhyay\\OneDrive\\Desktop\\Deloitte\\Automated JET\\runs\\JET-20260824-028\\output\\Unreconciled_Accounts_Detail.csv",
+      "relativePath": "runs/JET-20260824-028/output/Unreconciled_Accounts_Detail.csv",
+      "downloadUrl": "/api/runs/JET-20260824-028/output/Unreconciled_Accounts_Detail.csv",
+      "description": "Unreconciled_Accounts_Detail.csv",
+      "rowCount": 22
+    }
+  ],
+  "currentStage": "COMPLETED"
+}

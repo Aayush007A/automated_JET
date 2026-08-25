@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { RunService } from '../../services/runService';
-import { RunConfig, RunSummary, OmniaJetParameters } from '../../types';
+import { RunConfig, RunSummary, OmniaJetParameters, FieldMappingItem } from '../../types';
 import { FileDropzone } from '../../components/common/FileDropzone';
 import { FieldMappingTable } from '../../components/common/FieldMappingTable';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { MetricCard } from '../../components/common/MetricCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
-import { StepTimeline, TimelineStep } from '../../components/common/Steptimeline';
+import { StepTimeline, TimelineStep } from '../../components/common/StepTimeline';
 import {
   ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download,
-  FileSpreadsheet, Settings, RefreshCw, FileCheck,
-  Search, Filter, Eye, Sparkles, Trash2,
-  Activity, FileText, Lock, Loader2, UploadCloud, BarChart3
+  FileSpreadsheet, Settings, ShieldCheck, Database, RefreshCw, Archive, FileCheck,
+  Search, Filter, PieChart, BarChart3, Eye, Sparkles, Check, X, Trash2,
+  Table, Layers, HelpCircle, Activity, FileText, Lock, Loader2, UploadCloud, Clock, Calendar
 } from 'lucide-react';
 
 const STEPS: TimelineStep[] = [
@@ -32,6 +32,30 @@ const STEP_COPY: Record<number, { title: string; desc: string }> = {
   5: { title: 'Executive Results', desc: 'Review account reconciliation, the DQC matrix, control totals and generated artifacts.' },
 };
 
+const formatExecutiveDate = (dateStr?: string, includeSeconds: boolean = false): string => {
+  if (!dateStr) return '--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[d.getMonth()];
+  const day = d.getDate();
+  const year = d.getFullYear();
+
+  let hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  const seconds = d.getSeconds().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+
+  if (includeSeconds) {
+    return `${month} ${day}, ${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
+  }
+  return `${month} ${day}, ${year}, ${hours}:${minutes} ${ampm}`;
+};
+
+// Maps run status onto the StepTimeline's status chip styling
 const getTimelineStatusVariant = (st?: string): 'default' | 'running' | 'completed' | 'warning' => {
   switch (st) {
     case 'COMPLETED': return 'completed';
@@ -137,6 +161,10 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [loadingReconPreview, setLoadingReconPreview] = useState(false);
   const [reconSearch, setReconSearch] = useState('');
 
+  // DQC Summary Results Table Data for Step 5 Tab 2
+  const [dqcSummaryData, setDqcSummaryData] = useState<Record<string, any>[] | null>(null);
+  const [loadingDqcData, setLoadingDqcData] = useState(false);
+
   const loadRun = async () => {
     if (!runId) return;
     try {
@@ -189,6 +217,21 @@ export const OmniaJetWorkflow: React.FC = () => {
         .finally(() => setLoadingReconPreview(false));
     }
   }, [currentStep, activeTab, runId, status?.status]);
+
+  // Load DQC Matrix summary data when in Step 5
+  useEffect(() => {
+    if (currentStep === 5 && runId) {
+      setLoadingDqcData(true);
+      RunService.previewOutput(runId, 'Parquet_Data_Integrity_Check_00_Summary.csv', 50)
+        .then((res) => {
+          if (res && res.rows) {
+            setDqcSummaryData(res.rows);
+          }
+        })
+        .catch(() => setDqcSummaryData(null))
+        .finally(() => setLoadingDqcData(false));
+    }
+  }, [currentStep, runId, status?.status]);
 
   const handleUpload = async (files: File[]) => {
     if (!runId) return;
@@ -302,11 +345,12 @@ export const OmniaJetWorkflow: React.FC = () => {
     hasRequiredMappings &&
     (
       (autoCleanReport && autoCleanReport.constraintsPassed === true) ||
-      status?.status === 'COMPLETED'
+      status?.status === 'COMPLETED' // completed runs bypass local autoCleanReport state
     )
   );
 
   const canAccessStep = (stepId: number) => {
+    // For any COMPLETED run, all steps are unlocked
     if (status?.status === 'COMPLETED') return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
@@ -336,6 +380,48 @@ export const OmniaJetWorkflow: React.FC = () => {
     );
   }, [reconPreviewData, reconSearch]);
 
+  // DYNAMIC EXECUTIVE SUMMARY METRICS
+  const dynamicTbCount = useMemo(() => {
+    if (status?.totalInputRows?.tb !== undefined && status.totalInputRows.tb > 0) {
+      return status.totalInputRows.tb;
+    }
+    if (autoCleanReport?.tbRowsCleaned !== undefined && autoCleanReport.tbRowsCleaned > 0) {
+      return autoCleanReport.tbRowsCleaned;
+    }
+    for (const f of config?.files || []) {
+      if (f.sheets && f.sheets.length > 0) {
+        const tbSheet = f.sheets.find(s => s.detectedDataset === 'TRIAL_BALANCE');
+        if (tbSheet?.rowCount && tbSheet.rowCount > 0) return tbSheet.rowCount;
+      }
+      if (f.detectedDataset === 'TRIAL_BALANCE' || f.fileId === config?.datasetMap?.tbFileId) {
+        if (f.sampleRows && f.sampleRows.length > 0) return f.sampleRows.length;
+      }
+    }
+    return 0;
+  }, [status?.totalInputRows?.tb, autoCleanReport?.tbRowsCleaned, config?.files, config?.datasetMap?.tbFileId]);
+
+  const dynamicGlCount = useMemo(() => {
+    if (status?.glCheckpointsSummary?.totalJournals !== undefined && status.glCheckpointsSummary.totalJournals > 0) {
+      return status.glCheckpointsSummary.totalJournals;
+    }
+    if (status?.totalInputRows?.gl !== undefined && status.totalInputRows.gl > 0) {
+      return status.totalInputRows.gl;
+    }
+    if (autoCleanReport?.glRowsCleaned !== undefined && autoCleanReport.glRowsCleaned > 0) {
+      return autoCleanReport.glRowsCleaned;
+    }
+    for (const f of config?.files || []) {
+      if (f.sheets && f.sheets.length > 0) {
+        const glSheet = f.sheets.find(s => s.detectedDataset === 'GENERAL_LEDGER' || s.detectedDataset === 'POPULATION');
+        if (glSheet?.rowCount && glSheet.rowCount > 0) return glSheet.rowCount;
+      }
+      if (f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.fileId === config?.datasetMap?.glFileId) {
+        if (f.sampleRows && f.sampleRows.length > 0) return f.sampleRows.length;
+      }
+    }
+    return 0;
+  }, [status?.glCheckpointsSummary?.totalJournals, status?.totalInputRows?.gl, autoCleanReport?.glRowsCleaned, config?.files, config?.datasetMap?.glFileId]);
+
   const currentExecutionStatus = useMemo(() => {
     return status?.status || 'CREATED';
   }, [status?.status]);
@@ -357,19 +443,20 @@ export const OmniaJetWorkflow: React.FC = () => {
   const renderTimelineActions = () => {
     if (currentStep === 1) {
       return (
-        <button onClick={() => setCurrentStep(2)} disabled={!isStep1Valid} className="btn-primary">
-          Continue to Mapping <ArrowRight size={15} />
+        <button onClick={() => setCurrentStep(2)} disabled={!isStep1Valid} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+          Continue to Mapping <ArrowRight size={13} />
         </button>
       );
     }
     if (currentStep === 2) {
       return (
         <>
-          <button onClick={() => setCurrentStep(1)} className="btn-secondary"><ArrowLeft size={15} /> Back</button>
+          <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
           <button
             onClick={() => setCurrentStep(3)}
             disabled={!isStep2Valid}
             className="btn-primary"
+            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
             title={
               !hasRequiredMappings ? 'Map required fields first'
               : !autoCleanReport ? 'Run auto-cleansing to unlock'
@@ -377,7 +464,7 @@ export const OmniaJetWorkflow: React.FC = () => {
               : 'Configure Omnia Parameters'
             }
           >
-            Continue <ArrowRight size={15} />
+            Continue <ArrowRight size={13} />
           </button>
         </>
       );
@@ -385,9 +472,9 @@ export const OmniaJetWorkflow: React.FC = () => {
     if (currentStep === 3) {
       return (
         <>
-          <button onClick={() => setCurrentStep(2)} className="btn-secondary"><ArrowLeft size={15} /> Back</button>
-          <button onClick={handleStartPipeline} disabled={executing} className="btn-primary">
-            <Play size={14} fill="#FFFFFF" />
+          <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
+          <button onClick={handleStartPipeline} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+            <Play size={13} fill="#FFFFFF" />
             {executing ? 'Executing Pipeline...' : 'Run Omnia JET Workflow'}
           </button>
         </>
@@ -395,72 +482,54 @@ export const OmniaJetWorkflow: React.FC = () => {
     }
     if (currentStep === 5) {
       return (
-        <a href={RunService.getDownloadOutputUrl(runId!, 'JE-Recon-and-DIC-Template.xlsx')} className="btn-primary" style={{ textDecoration: 'none' }}>
-          <FileCheck size={16} /> Download Recon Workbook
-        </a>
+        <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+          <Settings size={13} /> Reconfigure Parameters
+        </button>
       );
     }
     return null;
   };
 
   return (
-    <div className="container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 16px 40px' }}>
+    <div className="container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '16px 20px' }}>
 
-      {/* Unified Executive Header (Left-aligned, clean, single entity) */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      {/* Page Header: Left aligned, clean, executive */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
+            width: '38px', height: '38px', borderRadius: '10px',
             background: 'linear-gradient(135deg, #007680 0%, #005A62 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(0, 118, 128, 0.22)',
-            color: '#FFFFFF',
-            flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 3px 10px rgba(0, 118, 128, 0.25)', color: '#FFFFFF',
+            flexShrink: 0
           }}>
-            <FileSpreadsheet size={22} />
+            <FileSpreadsheet size={19} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
+              <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
                 OMNIA JET Workflow
               </h1>
-              {runId && (
-                <span style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: 'var(--text-secondary)',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-subtle)',
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  letterSpacing: '0.01em',
-                }}>
-                  {runId}
-                </span>
-              )}
-              {currentExecutionStatus && (
-                <StatusBadge status={currentExecutionStatus} size="sm" />
-              )}
+              {runId && <span className="run-id-pill">{runId}</span>}
+              {currentExecutionStatus && <StatusBadge status={currentExecutionStatus} size="sm" />}
             </div>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '3px 0 0', fontWeight: 500 }}>
-              Deloitte Omnia Common Data Model & Automated Reconciliation Pipeline
-            </p>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+              Omnia Audit Data Cleansing & Reconciliation Pipeline
+            </span>
           </div>
         </div>
 
-        {currentStep === 5 && status?.status === 'COMPLETED' && (
-          <a
-            href={RunService.getDownloadOutputUrl(runId!, 'JE-Recon-and-DIC-Template.xlsx')}
-            className="btn-primary"
-            style={{ textDecoration: 'none', padding: '8px 16px', fontSize: '0.84rem' }}
-          >
-            <FileCheck size={16} /> Download Recon Excel Workbook
-          </a>
+        {/* Right side action if on completed step */}
+        {currentStep === 5 && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <a
+              href={RunService.getDownloadOutputUrl(runId!, 'JE-Recon-and-DIC-Template.xlsx')}
+              className="btn-primary"
+              style={{ textDecoration: 'none', padding: '7px 14px', fontSize: '0.82rem' }}
+            >
+              <FileCheck size={14} /> Download Excel Workbook
+            </a>
+          </div>
         )}
       </div>
 
@@ -481,13 +550,13 @@ export const OmniaJetWorkflow: React.FC = () => {
         {/* STEP 1: FILE UPLOAD */}
         {currentStep === 1 && (
           <div>
-            <div className="glass-panel" style={{ padding: '24px 28px', marginBottom: '20px', background: '#FFFFFF' }}>
+            <div className="glass-panel" style={{ padding: '28px', marginBottom: '24px', background: '#FFFFFF' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
                     Upload Datasets
                   </h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                  <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>
                     Upload your multi-sheet workbook (<strong>JET_Input.xlsx</strong> containing TB, Population, and COA sheets) or separate CSV files.
                   </p>
                 </div>
@@ -497,7 +566,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                     onClick={handleRunAutoClean}
                     disabled={autoCleaning}
                     className="btn-soft-teal"
-                    style={{ padding: '8px 16px', fontSize: '0.84rem', fontWeight: 700 }}
+                    style={{ padding: '9px 16px', fontSize: '0.84rem', fontWeight: 700 }}
                   >
                     <Sparkles size={15} className={autoCleaning ? 'spin-slow' : ''} />
                     {autoCleaning ? 'Cleaning & Checking Constraints...' : 'Run Auto-Clean & Sanitize Data'}
@@ -514,7 +583,7 @@ export const OmniaJetWorkflow: React.FC = () => {
 
               {autoCleanReport && (
                 <div style={{
-                  marginTop: '18px', padding: '14px 18px', borderRadius: 'var(--radius-md)',
+                  marginTop: '20px', padding: '16px 20px', borderRadius: 'var(--radius-md)',
                   background: 'var(--status-success-bg)', border: '1px solid var(--status-success-border)', color: '#0F766E',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: 800 }}>
@@ -531,8 +600,8 @@ export const OmniaJetWorkflow: React.FC = () => {
               )}
 
               {config && config.files.length > 0 && (
-                <div style={{ marginTop: '22px' }}>
-                  <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px' }}>
+                <div style={{ marginTop: '24px' }}>
+                  <h4 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px' }}>
                     Uploaded Files & Worksheets
                   </h4>
                   <div className="table-container">
@@ -614,22 +683,20 @@ export const OmniaJetWorkflow: React.FC = () => {
         {/* STEP 2: CDM MAPPING & AUTO-CLEANING */}
         {currentStep === 2 && (
           <div>
-            {/* Auto-cleaning integrated banner */}
             <div className="glass-panel" style={{
-              padding: '18px 22px',
-              marginBottom: '20px',
+              padding: '20px 24px', marginBottom: '20px',
               background: autoCleanReport
                 ? autoCleanReport.constraintsPassed ? 'linear-gradient(180deg, var(--status-success-bg), #FFFFFF)' : 'linear-gradient(180deg, var(--status-error-bg), #FFFFFF)'
-                : '#FFFFFF',
+                : 'linear-gradient(180deg, var(--status-warning-bg), #FFFFFF)',
               border: autoCleanReport
                 ? autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)'
-                : '1px solid var(--border-subtle)',
+                : '1px solid var(--status-warning-border)',
             }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <Sparkles size={18} color={autoCleanReport ? (autoCleanReport.constraintsPassed ? 'var(--status-success)' : 'var(--status-error)') : 'var(--deloitte-teal)'} />
-                    <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                    <Sparkles size={20} color={autoCleanReport ? (autoCleanReport.constraintsPassed ? 'var(--status-success)' : 'var(--status-error)') : 'var(--status-warning)'} />
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
                       Automated CDM Cleansing & Constraint Engine
                     </h4>
                   </div>
@@ -650,8 +717,8 @@ export const OmniaJetWorkflow: React.FC = () => {
               </div>
 
               {!autoCleanReport && (
-                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400E', fontWeight: 600 }}>
-                  <AlertTriangle size={15} color="var(--status-warning)" />
+                <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--status-warning-border)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400E', fontWeight: 600 }}>
+                  <AlertTriangle size={16} color="var(--status-warning)" />
                   <span>
                     {hasRequiredMappings
                       ? 'Cleansing Required: Click "Run Auto-Cleansing & Validation" above to verify constraints and unlock Step 3.'
@@ -661,23 +728,23 @@ export const OmniaJetWorkflow: React.FC = () => {
               )}
 
               {autoCleanReport && (
-                <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
                     <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>TB Accounts Cleaned</div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.tbRowsCleaned.toLocaleString()}</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.tbRowsCleaned.toLocaleString()}</div>
                     </div>
                     <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>GL Journal Lines Cleaned</div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.glRowsCleaned.toLocaleString()}</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.glRowsCleaned.toLocaleString()}</div>
                     </div>
                     <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dates Standardized</div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.datesStandardized.toLocaleString()}</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.datesStandardized.toLocaleString()}</div>
                     </div>
                     <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Amounts Converted</div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.numbersConverted.toLocaleString()}</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.numbersConverted.toLocaleString()}</div>
                     </div>
                   </div>
 
@@ -737,68 +804,42 @@ export const OmniaJetWorkflow: React.FC = () => {
         {/* STEP 3: OMNIA PARAMETERS */}
         {currentStep === 3 && (
           <div>
-            <div className="glass-panel" style={{ padding: '24px 28px', marginBottom: '20px', background: '#FFFFFF' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                Omnia Parameters & Golden Checks Configuration
+            <div className="glass-panel" style={{ padding: '28px', background: '#FFFFFF' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                Omnia Parameters & Golden Checks
               </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '24px' }}>
                 Define fiscal reporting periods, currency parameters, decimal formats, and toggleable DQC rules.
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-                {/* Period Parameters */}
-                <div style={{ background: '#F8FAFC', padding: '18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div className="jet-card" style={{ padding: '18px' }}>
                   <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Testing Period & Cutoff</h4>
                   <div style={{ marginBottom: '12px' }}>
                     <label className="jet-label">Financial Year</label>
-                    <input
-                      type="number"
-                      className="jet-input"
-                      value={omniaParams.fiscalYear}
-                      onChange={(e) => setOmniaParams({ ...omniaParams, fiscalYear: Number(e.target.value) })}
-                    />
+                    <input type="number" className="jet-input" value={omniaParams.fiscalYear} onChange={(e) => setOmniaParams({ ...omniaParams, fiscalYear: Number(e.target.value) })} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                     <div>
                       <label className="jet-label">Testing Period Start</label>
-                      <input
-                        type="text"
-                        className="jet-input"
-                        value={omniaParams.testingPeriodStart}
-                        onChange={(e) => setOmniaParams({ ...omniaParams, testingPeriodStart: e.target.value })}
-                      />
+                      <input type="text" className="jet-input" value={omniaParams.testingPeriodStart} onChange={(e) => setOmniaParams({ ...omniaParams, testingPeriodStart: e.target.value })} />
                     </div>
                     <div>
                       <label className="jet-label">Testing Period End</label>
-                      <input
-                        type="text"
-                        className="jet-input"
-                        value={omniaParams.testingPeriodEnd}
-                        onChange={(e) => setOmniaParams({ ...omniaParams, testingPeriodEnd: e.target.value })}
-                      />
+                      <input type="text" className="jet-input" value={omniaParams.testingPeriodEnd} onChange={(e) => setOmniaParams({ ...omniaParams, testingPeriodEnd: e.target.value })} />
                     </div>
                   </div>
                   <div>
                     <label className="jet-label">Fiscal Year End Date</label>
-                    <input
-                      type="text"
-                      className="jet-input"
-                      value={omniaParams.fiscalYearEnd}
-                      onChange={(e) => setOmniaParams({ ...omniaParams, fiscalYearEnd: e.target.value })}
-                    />
+                    <input type="text" className="jet-input" value={omniaParams.fiscalYearEnd} onChange={(e) => setOmniaParams({ ...omniaParams, fiscalYearEnd: e.target.value })} />
                   </div>
                 </div>
 
-                {/* Currency & Formatting */}
-                <div style={{ background: '#F8FAFC', padding: '18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div className="jet-card" style={{ padding: '18px' }}>
                   <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Currency & Number Formatting</h4>
                   <div style={{ marginBottom: '12px' }}>
                     <label className="jet-label">Primary Reconciliation Currency</label>
-                    <select
-                      className="jet-select"
-                      value={omniaParams.currency}
-                      onChange={(e) => setOmniaParams({ ...omniaParams, currency: e.target.value as any })}
-                    >
+                    <select className="jet-select" value={omniaParams.currency} onChange={(e) => setOmniaParams({ ...omniaParams, currency: e.target.value as any })}>
                       <option value="Entity Currency">Entity Currency (EC)</option>
                       <option value="Group Currency">Group Currency (GC)</option>
                       <option value="Both">Both (EC & GC)</option>
@@ -806,76 +847,28 @@ export const OmniaJetWorkflow: React.FC = () => {
                   </div>
                   <div style={{ marginBottom: '12px' }}>
                     <label className="jet-label">Decimal Separator</label>
-                    <select
-                      className="jet-select"
-                      value={omniaParams.decimalSeparator}
-                      onChange={(e) => setOmniaParams({ ...omniaParams, decimalSeparator: e.target.value as any })}
-                    >
+                    <select className="jet-select" value={omniaParams.decimalSeparator} onChange={(e) => setOmniaParams({ ...omniaParams, decimalSeparator: e.target.value as any })}>
                       <option value="Period">Period (.) Standard</option>
                       <option value="Comma">Comma (,) European</option>
                       <option value="None">None</option>
                     </select>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <label className="jet-label">Entity Currency Code</label>
-                      <input
-                        type="text"
-                        className="jet-input"
-                        value={omniaParams.entityCurrencyCode || 'INR'}
-                        onChange={(e) => setOmniaParams({ ...omniaParams, entityCurrencyCode: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="jet-label">Group Currency Code</label>
-                      <input
-                        type="text"
-                        className="jet-input"
-                        value={omniaParams.groupCurrencyCode || 'USD'}
-                        onChange={(e) => setOmniaParams({ ...omniaParams, groupCurrencyCode: e.target.value })}
-                      />
-                    </div>
-                  </div>
                 </div>
 
-                {/* DQC Golden Checks Configuration */}
-                <div style={{ background: '#F8FAFC', padding: '18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                  <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Data Quality Check (DQC) Toggles</h4>
+                <div className="jet-card" style={{ padding: '18px' }}>
+                  <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>DQC Toggles</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.84rem', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={omniaParams.dqcToggles?.toggleTransactionTypeChecks}
-                        onChange={(e) => setOmniaParams({
-                          ...omniaParams,
-                          dqcToggles: { ...omniaParams.dqcToggles, toggleTransactionTypeChecks: e.target.checked }
-                        })}
-                      />
-                      <span>Enable Transaction Type Consistency Checks (DQC 15, 19)</span>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      <input type="checkbox" checked={omniaParams.dqcToggles?.toggleObservationChecks} onChange={(e) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleObservationChecks: e.target.checked } })} />
+                      Toggle Off Observation Checks (DQCs 17-20)
                     </label>
-
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.84rem', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={omniaParams.dqcToggles?.toggleUserChecks}
-                        onChange={(e) => setOmniaParams({
-                          ...omniaParams,
-                          dqcToggles: { ...omniaParams.dqcToggles, toggleUserChecks: e.target.checked }
-                        })}
-                      />
-                      <span>Enable Multi-User / Auditor Override Checks (DQC 17, 20)</span>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      <input type="checkbox" checked={omniaParams.dqcToggles?.toggleUserChecks} onChange={(e) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleUserChecks: e.target.checked } })} />
+                      Toggle Off User ID Related Checks (DQC 01d)
                     </label>
-
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.84rem', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={omniaParams.dqcToggles?.toggleObservationChecks}
-                        onChange={(e) => setOmniaParams({
-                          ...omniaParams,
-                          dqcToggles: { ...omniaParams.dqcToggles, toggleObservationChecks: e.target.checked }
-                        })}
-                      />
-                      <span>Include Observation-Level Severity in DIC Export</span>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                      <input type="checkbox" checked={omniaParams.dqcToggles?.toggleTransactionTypeChecks} onChange={(e) => setOmniaParams({ ...omniaParams, dqcToggles: { ...omniaParams.dqcToggles, toggleTransactionTypeChecks: e.target.checked } })} />
+                      Toggle Off Transaction Type Checks (DQC 01e)
                     </label>
                   </div>
                 </div>
@@ -884,37 +877,22 @@ export const OmniaJetWorkflow: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 4: DATA QUALITY & RECON PROGRESS */}
+        {/* STEP 4: PROGRESS */}
         {currentStep === 4 && (
-          <div style={{ maxWidth: '780px', margin: '40px auto' }}>
-            <div className="glass-panel" style={{ padding: '36px', background: '#FFFFFF', textAlign: 'center' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%', background: 'var(--deloitte-teal-light)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--deloitte-teal)',
-                margin: '0 auto 20px',
-              }}>
-                {status?.status === 'COMPLETED' ? <CheckCircle2 size={32} color="var(--status-success)" /> : <Activity size={32} className="spin-slow" />}
-              </div>
-
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                {status?.status === 'COMPLETED' ? 'Omnia JET Execution Complete!' : 'Executing Omnia JET Pipeline...'}
-              </h3>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '24px' }}>
-                Running PySpark CDM preparation, dual TB cutoff generation, balance sheet reconciliation, and 20 DQC Golden checks.
-              </p>
-
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ maxWidth: '680px', margin: '0 auto' }}>
               <ProgressBar
                 progress={status?.progress || 0}
-                stage={status?.currentStage || 'Initializing'}
-                message={status?.status === 'COMPLETED' ? 'Finished successfully. Excel workbook generated.' : 'Processing PySpark stages...'}
+                stage={status?.currentStage}
+                message={status?.status === 'COMPLETED' ? 'Omnia JET reconciliation completed successfully' : 'Running CDM data preparation, currency reconciliation & 20 DQC checks...'}
                 isCompleted={status?.status === 'COMPLETED'}
                 isFailed={status?.status === 'FAILED'}
               />
 
               {status?.status === 'COMPLETED' && (
-                <div style={{ marginTop: '28px' }}>
-                  <button onClick={() => setCurrentStep(5)} className="btn-primary" style={{ padding: '10px 24px' }}>
-                    View Executive Results <ArrowRight size={16} />
+                <div style={{ marginTop: '24px' }}>
+                  <button onClick={() => setCurrentStep(5)} className="btn-primary">
+                    View Account Reconciliation & DQC Matrix <ArrowRight size={15} />
                   </button>
                 </div>
               )}
@@ -922,152 +900,185 @@ export const OmniaJetWorkflow: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 5: EXECUTIVE RESULTS */}
+        {/* STEP 5: RECONCILIATION & DQC TABLE MATRIX */}
         {currentStep === 5 && (
           <div>
-            {/* Top Metric Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-              <MetricCard label="TB Accounts Reconciled" value={status?.totalInputRows?.tb || 26} subtitle="Entity Currency Balances" variant="teal" />
-              <MetricCard label="Population GL Lines" value={status?.totalInputRows?.gl || 36} subtitle="Processed Journal Lines" variant="teal" />
-              <MetricCard label="Reconciliation Status" value="100% BALANCED" subtitle="0 Unreconciled Accounts" variant="success" />
-              <MetricCard label="DQC Golden Checks" value="20 Rules Active" subtitle="0 Critical Errors" variant="success" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+              <MetricCard
+                label="Reconciled Accounts"
+                value={`${status?.reconciliationSummary?.reconciledAccounts ?? 0} / ${status?.reconciliationSummary?.totalAccounts ?? 0}`}
+                subtitle="Within 1.0 Tolerance"
+                variant="teal"
+              />
+              <MetricCard
+                label="Unreconciled Accounts"
+                value={(status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? `${status?.reconciliationSummary?.unreconciledAccounts} Accounts` : '0 (Reconciled)'}
+                subtitle={(status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? 'Variance > 1.0 Detected' : 'Zero Variances'}
+                variant={(status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? 'warning' : 'success'}
+              />
+              <MetricCard
+                label="DQC Errors"
+                value={(status?.dqcSummary?.totalErrors || 0) > 0 ? `${status?.dqcSummary?.totalErrors} Failed` : '0 (Passed)'}
+                subtitle={(status?.dqcSummary?.totalErrors || 0) > 0 ? 'Critical Exceptions Detected' : 'All Critical Checks Passed'}
+                variant={(status?.dqcSummary?.totalErrors || 0) > 0 ? 'error' : 'success'}
+              />
+              <MetricCard
+                label="DQC Warnings"
+                value={(status?.dqcSummary?.totalWarnings || 0) > 0 ? `${status?.dqcSummary?.totalWarnings} Flagged` : '0 (Passed)'}
+                subtitle={(status?.dqcSummary?.totalWarnings || 0) > 0 ? 'Warning Exceptions Noted' : 'Zero Warnings'}
+                variant={(status?.dqcSummary?.totalWarnings || 0) > 0 ? 'warning' : 'success'}
+              />
+              <MetricCard
+                label="Total Variance (EC)"
+                value={status?.reconciliationSummary?.totalVariance !== undefined ? status.reconciliationSummary.totalVariance.toLocaleString() : '0.00'}
+                subtitle="Net Balance Difference"
+                variant="teal"
+              />
             </div>
 
-            {/* Sub Tabs */}
-            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '18px', overflowX: 'auto' }}>
               {[
-                { id: 'reconciliation', label: 'Account Reconciliation' },
-                { id: 'dqc', label: '20 DQC Golden Matrix' },
-                { id: 'controlTotals', label: 'Control Totals' },
-                { id: 'stratification', label: 'JE Stratification' },
-                { id: 'manifest', label: 'Generated Artifacts' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  style={{
-                    padding: '10px 18px',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    background: 'transparent',
-                    border: 'none',
-                    borderBottom: activeTab === tab.id ? '3px solid var(--deloitte-teal)' : '3px solid transparent',
-                    color: activeTab === tab.id ? 'var(--deloitte-teal)' : 'var(--text-muted)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {tab.label}
-                </button>
-              ))}
+                { id: 'reconciliation', label: 'Account Reconciliation (TB vs JE)', icon: Table },
+                { id: 'dqc', label: '20 DQC Golden Checks Matrix', icon: ShieldCheck },
+                { id: 'controlTotals', label: 'Control Totals', icon: Layers },
+                { id: 'stratification', label: 'JE Line Stratification', icon: BarChart3 },
+                { id: 'manifest', label: 'Excel Template & Artifacts', icon: Archive },
+              ].map((tab) => {
+                const IconComp = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
+                      background: 'transparent', border: 'none', whiteSpace: 'nowrap',
+                      borderBottom: activeTab === tab.id ? '2.5px solid var(--deloitte-teal)' : '2.5px solid transparent',
+                      color: activeTab === tab.id ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
+                      fontWeight: 700, fontSize: '0.86rem', cursor: 'pointer',
+                    }}
+                  >
+                    <IconComp size={15} />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* TAB 1: RECONCILIATION PREVIEW */}
             {activeTab === 'reconciliation' && (
-              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+              <div className="glass-panel" style={{ padding: '20px', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
                   <div>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                      Balance Sheet & P&L Account Reconciliation (Top 50 Rows)
-                    </h4>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-                      Comparing Trial Balance Net Activity against General Ledger Journal Entry activity.
-                    </p>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '3px' }}>Account-Level Reconciliation Summary</h3>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Formula: Variance = Ending Balance - Beginning Balance - JE Activity (Tolerance: $\le 1.0$)</p>
                   </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ position: 'relative' }}>
-                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                      <input
-                        type="text"
-                        placeholder="Search accounts..."
-                        value={reconSearch}
-                        onChange={(e) => setReconSearch(e.target.value)}
-                        className="jet-input"
-                        style={{ paddingLeft: '30px', width: '200px', fontSize: '0.8rem', height: '34px' }}
-                      />
-                    </div>
-                    <a
-                      href={RunService.getDownloadOutputUrl(runId!, 'Parquet_Reconciliation.csv')}
-                      className="btn-soft-slate"
-                      style={{ textDecoration: 'none', fontSize: '0.8rem', padding: '6px 14px' }}
-                    >
-                      <Download size={13} /> Export CSV
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <a href={RunService.getDownloadOutputUrl(runId!, 'Parquet_Reconciliation.csv')} className="btn-soft-slate" style={{ textDecoration: 'none' }}>
+                      <Download size={13} /> Download Reconciliation CSV
+                    </a>
+                    <a href={RunService.getDownloadOutputUrl(runId!, 'Unreconciled_Accounts_Detail.csv')} className="btn-soft-slate" style={{ textDecoration: 'none', color: 'var(--status-warning)' }}>
+                      <Download size={13} /> Unreconciled Detail CSV
                     </a>
                   </div>
                 </div>
 
-                {loadingReconPreview ? (
-                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    <RefreshCw size={24} className="spin-slow" style={{ margin: '0 auto 10px', color: 'var(--deloitte-teal)' }} />
-                    Loading reconciliation preview...
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                  <div className="jet-card" style={{ padding: '14px' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Total TB Beginning Balance</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0', fontFamily: 'var(--font-mono)' }}>{status?.reconciliationSummary?.totalBeginningBalance?.toLocaleString()}</div>
                   </div>
-                ) : filteredReconRows.length > 0 ? (
-                  <div className="table-container">
-                    <table className="jet-table">
-                      <thead>
-                        <tr>
-                          {reconPreviewData?.headers.map((h, i) => (
-                            <th key={i}>{h}</th>
+                  <div className="jet-card" style={{ padding: '14px' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Total TB Ending Balance</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0', fontFamily: 'var(--font-mono)' }}>{status?.reconciliationSummary?.totalEndingBalance?.toLocaleString()}</div>
+                  </div>
+                  <div className="jet-card" style={{ padding: '14px' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Total JE Net Activity</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0', fontFamily: 'var(--font-mono)' }}>{status?.reconciliationSummary?.totalJEActivity?.toLocaleString()}</div>
+                  </div>
+                  <div className="jet-card" style={{ padding: '14px' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Total Net Variance</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0', fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)' }}>{status?.reconciliationSummary?.totalVariance?.toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px' }}>In-Place Reconciliation Data Preview (Top 50 Rows)</h4>
+                      <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                        {reconPreviewData ? `Showing first ${reconPreviewData.rows.length} of ${reconPreviewData.totalRows.toLocaleString()} accounts` : 'Loading preview rows...'}
+                      </span>
+                    </div>
+                    <div style={{ position: 'relative', width: '220px' }}>
+                      <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input type="text" className="jet-input" placeholder="Search in preview..." value={reconSearch} onChange={(e) => setReconSearch(e.target.value)} style={{ paddingLeft: '30px', fontSize: '0.82rem' }} />
+                    </div>
+                  </div>
+
+                  {loadingReconPreview ? (
+                    <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      <RefreshCw size={22} className="spin-slow" style={{ margin: '0 auto 8px', color: 'var(--deloitte-teal)' }} />
+                      Loading top 50 reconciliation rows...
+                    </div>
+                  ) : reconPreviewData && reconPreviewData.rows.length > 0 ? (
+                    <div className="table-container" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                      <table className="jet-table">
+                        <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
+                          <tr>{reconPreviewData.headers.map((h, i) => <th key={i} style={{ whiteSpace: 'nowrap', background: '#F8FAFC' }}>{h}</th>)}</tr>
+                        </thead>
+                        <tbody>
+                          {filteredReconRows.map((row, rIdx) => (
+                            <tr key={rIdx}>
+                              {reconPreviewData.headers.map((h, cIdx) => (
+                                <td key={cIdx} style={{ whiteSpace: 'nowrap', fontFamily: typeof row[h] === 'number' || !isNaN(Number(row[h])) ? 'var(--font-mono)' : 'inherit', fontSize: '0.82rem' }}>
+                                  {row[h] !== undefined && row[h] !== null && String(row[h]).trim() !== '' ? String(row[h]) : '-'}
+                                </td>
+                              ))}
+                            </tr>
                           ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredReconRows.map((row, rIdx) => (
-                          <tr key={rIdx}>
-                            {reconPreviewData?.headers.map((h, cIdx) => (
-                              <td key={cIdx} style={{ fontFamily: typeof row[h] === 'number' || !isNaN(Number(row[h])) ? 'var(--font-mono)' : 'inherit' }}>
-                                {String(row[h] ?? '')}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                    No reconciliation data available.
-                  </div>
-                )}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No reconciliation records found.</div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* TAB 2: DQC MATRIX */}
             {activeTab === 'dqc' && (
-              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+              <div className="glass-panel" style={{ padding: '20px', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
                   <div>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                      20 Data Quality Checks (DQC) Golden Matrix
-                    </h4>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-                      Automated completeness, validity, classification, balancing, and user integrity rules.
-                    </p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>Omnia Data Quality Checks (DQC 01a - 20) Golden Matrix</h3>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Comprehensive evaluation across Chart of Accounts, Trial Balance, and General Ledger.</p>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ display: 'flex', gap: '4px', background: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                       {(['ALL', 'ERROR', 'WARNING', 'OBSERVATION'] as const).map((sev) => (
                         <button
                           key={sev}
                           onClick={() => setDqcFilter(sev)}
                           style={{
-                            padding: '4px 10px',
-                            fontSize: '0.74rem',
-                            fontWeight: 700,
-                            borderRadius: '6px',
-                            border: 'none',
+                            padding: '4px 10px', fontSize: '0.76rem', fontWeight: 700, borderRadius: '5px', border: 'none', cursor: 'pointer',
                             background: dqcFilter === sev ? '#FFFFFF' : 'transparent',
-                            color: dqcFilter === sev ? 'var(--text-primary)' : 'var(--text-muted)',
-                            cursor: 'pointer',
-                            boxShadow: dqcFilter === sev ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                            color: dqcFilter === sev ? 'var(--deloitte-teal)' : 'var(--text-muted)',
+                            boxShadow: dqcFilter === sev ? 'var(--shadow-sm)' : 'none',
                           }}
                         >
                           {sev}
                         </button>
                       ))}
                     </div>
+
+                    <div style={{ position: 'relative', width: '200px' }}>
+                      <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input type="text" className="jet-input" placeholder="Search checks..." value={dqcSearch} onChange={(e) => setDqcSearch(e.target.value)} style={{ paddingLeft: '30px', fontSize: '0.8rem' }} />
+                    </div>
+
+                    <a href={RunService.getDownloadOutputUrl(runId!, 'Parquet_Data_Integrity_Check_00_Summary.csv')} className="btn-primary" style={{ textDecoration: 'none', padding: '8px 14px', fontSize: '0.82rem' }}>
+                      <Download size={13} /> Export DQC Summary
+                    </a>
                   </div>
                 </div>
 
@@ -1075,33 +1086,129 @@ export const OmniaJetWorkflow: React.FC = () => {
                   <table className="jet-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '80px' }}>DQC #</th>
-                        <th>Rule Name & Description</th>
+                        <th style={{ width: '85px' }}>Check Code</th>
+                        <th>Check Name & Description</th>
                         <th>Category</th>
                         <th>Dataset</th>
                         <th>Severity</th>
-                        <th style={{ textAlign: 'center' }}>Result</th>
+                        <th style={{ textAlign: 'center', width: '130px' }}>Audit Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredDQCs.map((dqc) => (
-                        <tr key={dqc.code}>
-                          <td style={{ fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)' }}>{dqc.code}</td>
-                          <td>
-                            <div style={{ fontWeight: 700 }}>{dqc.name}</div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{dqc.desc}</div>
-                          </td>
-                          <td><span className="badge badge-neutral">{dqc.category}</span></td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{dqc.dataset}</td>
-                          <td>
-                            <span className={`badge badge-${dqc.severity === 'ERROR' ? 'red' : dqc.severity === 'WARNING' ? 'amber' : 'neutral'}`}>
-                              {dqc.severity}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span className="badge badge-green" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <CheckCircle2 size={12} /> PASS (0)
-                            </span>
+                      {filteredDQCs.map((dqc) => {
+                        let sevBadge = 'badge-neutral';
+                        if (dqc.severity === 'ERROR') sevBadge = 'badge-error';
+                        if (dqc.severity === 'WARNING') sevBadge = 'badge-warning';
+                        if (dqc.severity === 'OBSERVATION') sevBadge = 'badge-info';
+
+                        const matchedRecord = dqcSummaryData?.find(r => {
+                          const name = String(r.Data_Integrity_Check_Name || '');
+                          return name.startsWith(`${dqc.code}_`) || name.startsWith(`DQC_${dqc.code}`) || name.toLowerCase().includes(dqc.name.toLowerCase());
+                        });
+
+                        const affectedLines = matchedRecord ? Number(matchedRecord.Number_of_Affected_Lines || 0) : 0;
+                        const affectedJEs = matchedRecord ? Number(matchedRecord.Number_of_Affected_Journal_Entries || 0) : 0;
+                        const isPassed = affectedLines === 0 && affectedJEs === 0;
+
+                        return (
+                          <tr key={dqc.code}>
+                            <td style={{ fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)' }}>DQC {dqc.code}</td>
+                            <td>
+                              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{dqc.name}</div>
+                              <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>{dqc.desc}</div>
+                            </td>
+                            <td><span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{dqc.category}</span></td>
+                            <td><span className="badge badge-neutral">{dqc.dataset}</span></td>
+                            <td><span className={`badge ${sevBadge}`}>{dqc.severity}</span></td>
+                            <td style={{ textAlign: 'center' }}>
+                              {isPassed ? (
+                                <StatusBadge status="PASS" />
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                  <StatusBadge status={dqc.severity === 'ERROR' ? 'FAIL' : 'WARNING'} />
+                                  <span style={{ fontSize: '0.7rem', color: dqc.severity === 'ERROR' ? 'var(--status-error)' : 'var(--status-warning)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                                    {affectedLines} lines ({affectedJEs} JEs)
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'controlTotals' && (
+              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px' }}>Control Totals Summary</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  {[
+                    { title: 'Control Total by Period', file: 'Control_Total_By_Period.csv' },
+                    { title: 'Control Total by Standard / Non-Standard', file: 'Control_Total_By_Standard_Non_Standard.csv' },
+                    { title: 'Control Total by Currency', file: 'Control_Total_By_Currency.csv' },
+                    { title: 'Control Total by User ID', file: 'Control_Total_By_User.csv' },
+                  ].map((c) => (
+                    <div key={c.file} className="jet-card" style={{ padding: '18px' }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.94rem', color: 'var(--deloitte-teal)', marginBottom: '8px' }}>{c.title}</div>
+                      <a href={RunService.getDownloadOutputUrl(runId!, c.file)} className="btn-soft-slate" style={{ textDecoration: 'none' }}>
+                        <Download size={13} /> Download CSV
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'stratification' && (
+              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>Journal Entry Line Stratification (Buckets)</h3>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>Buckets: 1 line, 2 - 20 lines, 21 - 100 lines, 101 - 1000 lines, &gt; 1000 lines.</p>
+                  </div>
+                  <a href={RunService.getDownloadOutputUrl(runId!, 'JE_Line_Distribution.csv')} className="btn-primary" style={{ textDecoration: 'none' }}>
+                    <Download size={14} /> Download Stratification CSV
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'manifest' && (
+              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>All Generated Omnia Artifacts</h3>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <a href={RunService.getDownloadOutputUrl(runId!, 'JE-Recon-and-DIC-Template.xlsx')} className="btn-primary" style={{ textDecoration: 'none' }}>
+                      <FileCheck size={16} /> Download Excel Template (.xlsx)
+                    </a>
+                    <a href={RunService.getDownloadAllZipUrl(runId!)} className="btn-green" style={{ textDecoration: 'none' }}>
+                      <Archive size={16} /> Download All ZIP
+                    </a>
+                  </div>
+                </div>
+
+                <div className="table-container">
+                  <table className="jet-table">
+                    <thead>
+                      <tr>
+                        <th>Artifact Name</th><th>Category</th><th>Format</th><th>Rows</th><th>Description</th><th style={{ textAlign: 'right' }}>Download</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {status?.outputs?.map((out) => (
+                        <tr key={out.id}>
+                          <td style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)' }}>{out.name}</td>
+                          <td><span className="badge badge-neutral">{out.category}</span></td>
+                          <td><span className="badge badge-neutral">{out.type.toUpperCase()}</span></td>
+                          <td style={{ fontFamily: 'var(--font-mono)' }}>{out.rowCount ?? '-'}</td>
+                          <td style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>{out.description}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <a href={RunService.getDownloadOutputUrl(runId!, out.name)} className="btn-soft-slate" style={{ textDecoration: 'none' }}>
+                              <Download size={13} /> Download
+                            </a>
                           </td>
                         </tr>
                       ))}
@@ -1110,113 +1217,51 @@ export const OmniaJetWorkflow: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* TAB 3: CONTROL TOTALS */}
-            {activeTab === 'controlTotals' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
-                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '12px' }}>
-                    Control Total by Currency
-                  </h4>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '14px' }}>Aggregated volume and debit/credit sums by original currency.</p>
-                  <a href={RunService.getDownloadOutputUrl(runId!, 'Control_Total_By_Currency.csv')} className="btn-soft-slate" style={{ textDecoration: 'none', fontSize: '0.8rem' }}>
-                    <Download size={13} /> Download Currency Totals
-                  </a>
-                </div>
-
-                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '12px' }}>
-                    Control Total by Transaction Type
-                  </h4>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '14px' }}>Breakdown of postings across standard ERP transaction codes (RV, RE, PC, etc.).</p>
-                  <a href={RunService.getDownloadOutputUrl(runId!, 'Control_Total_By_Transaction_Type.csv')} className="btn-soft-slate" style={{ textDecoration: 'none', fontSize: '0.8rem' }}>
-                    <Download size={13} /> Download Transaction Types
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 4: STRATIFICATION */}
-            {activeTab === 'stratification' && (
-              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '8px' }}>
-                  Journal Entry Line Stratification
-                </h4>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  Breakdown of journal document size (1-line, 2-line standard, multi-line entries).
-                </p>
-                <a href={RunService.getDownloadOutputUrl(runId!, 'JE_Line_Distribution.csv')} className="btn-soft-slate" style={{ textDecoration: 'none', fontSize: '0.8rem' }}>
-                  <Download size={13} /> Download Stratification CSV
-                </a>
-              </div>
-            )}
-
-            {/* TAB 5: MANIFEST */}
-            {activeTab === 'manifest' && (
-              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '14px' }}>
-                  Generated Omnia Output Artifacts
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-                  {[
-                    'JE-Recon-and-DIC-Template.xlsx',
-                    'Parquet_Reconciliation.csv',
-                    'Parquet_Data_Integrity_Check_00_Summary.csv',
-                    'Unreconciled_Accounts_Detail.csv',
-                    'TB_Start.csv',
-                    'TB_End.csv',
-                    'Trial_Balance.csv',
-                    'General_Ledger_Detail.csv',
-                    'Chart_of_Accounts.csv',
-                    'Control_Total_By_Currency.csv',
-                    'Control_Total_By_Transaction_Type.csv',
-                  ].map((file) => (
-                    <div key={file} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                        <FileText size={16} color="var(--deloitte-teal)" />
-                        <span style={{ fontSize: '0.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file}</span>
-                      </div>
-                      <a href={RunService.getDownloadOutputUrl(runId!, file)} className="btn-secondary" style={{ padding: '4px 8px', textDecoration: 'none' }}>
-                        <Download size={12} />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </main>
 
-      {/* SAMPLE DATA PREVIEW MODAL (TOP 50 ROWS OF RAW INPUT FILES / SHEETS) */}
+      {/* Raw Sample 50 Rows Preview Modal */}
       {sampleModalOpen && sampleModalData && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(6px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '1100px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: '#FFFFFF', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC' }}>
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+          }}
+          onClick={() => setSampleModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-elevated)',
+              width: '100%', maxWidth: '1100px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              animation: 'scaleUp 0.2s ease-out',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', background: '#F8FAFC' }}>
               <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{sampleModalData.title}</h3>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>{sampleModalData.subtitle}</p>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{sampleModalData.title}</h3>
+                <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>{sampleModalData.subtitle}</p>
               </div>
-              <button onClick={() => setSampleModalOpen(false)} className="btn-secondary" style={{ padding: '6px' }}>
-                <Trash2 size={16} style={{ display: 'none' }} /> ✕
+              <button onClick={() => setSampleModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '6px', color: 'var(--text-muted)' }}>
+                <X size={20} />
               </button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
               {sampleModalData.rows.length > 0 ? (
-                <div className="table-container">
+                <div className="table-container" style={{ maxHeight: '55vh', overflowY: 'auto' }}>
                   <table className="jet-table">
-                    <thead>
-                      <tr>
-                        {sampleModalData.headers.map((h, i) => (
-                          <th key={i}>{h}</th>
-                        ))}
-                      </tr>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
+                      <tr>{sampleModalData.headers.map((h, i) => <th key={i} style={{ whiteSpace: 'nowrap', background: '#F1F5F9' }}>{h}</th>)}</tr>
                     </thead>
                     <tbody>
-                      {sampleModalData.rows.map((r, rIdx) => (
+                      {sampleModalData.rows.map((row, rIdx) => (
                         <tr key={rIdx}>
                           {sampleModalData.headers.map((h, cIdx) => (
-                            <td key={cIdx}>{String(r[h] ?? '')}</td>
+                            <td key={cIdx} style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
+                              {row[h] !== undefined && row[h] !== null && String(row[h]).trim() !== '' ? String(row[h]) : '-'}
+                            </td>
                           ))}
                         </tr>
                       ))}
@@ -1227,19 +1272,20 @@ export const OmniaJetWorkflow: React.FC = () => {
                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>No sample records available in this file.</div>
               )}
             </div>
-            <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', background: '#F8FAFC' }}>
+
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', background: '#F8FAFC' }}>
               <button onClick={() => setSampleModalOpen(false)} className="btn-secondary">Close Preview</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Confirm File Deletion Modal */}
       <ConfirmModal
         isOpen={confirmModalOpen}
         title="Remove Uploaded File?"
-        message="Are you sure you want to remove this dataset file from this execution run?"
+        message="Are you sure you want to remove this dataset from the workflow? Field mappings and preliminary configuration for this file will be reset."
         confirmText="Remove File"
+        cancelText="Keep File"
         variant="danger"
         onConfirm={handleConfirmRemoveFile}
         onClose={() => {

@@ -1044,9 +1044,9 @@ def run_omnia_jet(config_path):
             'totalVariance': round(float(recon_df['variance'].sum()), 2)
         },
         'dqcSummary': {
-            'totalErrors': int((dqc_summary_df['Error_Warning'] == 'Error').sum()),
-            'totalWarnings': int((dqc_summary_df['Error_Warning'] == 'Warning').sum()),
-            'totalObservations': int((dqc_summary_df['Error_Warning'] == 'Observation').sum()),
+            'totalErrors': int(((dqc_summary_df['Error_Warning'] == 'Error') & ((dqc_summary_df['Number_of_Affected_Lines'] > 0) | (dqc_summary_df['Number_of_Affected_Journal_Entries'] > 0))).sum()),
+            'totalWarnings': int(((dqc_summary_df['Error_Warning'] == 'Warning') & ((dqc_summary_df['Number_of_Affected_Lines'] > 0) | (dqc_summary_df['Number_of_Affected_Journal_Entries'] > 0))).sum()),
+            'totalObservations': int(((dqc_summary_df['Error_Warning'] == 'Observation') & ((dqc_summary_df['Number_of_Affected_Lines'] > 0) | (dqc_summary_df['Number_of_Affected_Journal_Entries'] > 0))).sum()),
             'checksPassed': int(((dqc_summary_df['Number_of_Affected_Lines'] == 0) & (dqc_summary_df['Number_of_Affected_Journal_Entries'] == 0)).sum()),
             'checksFailed': int(((dqc_summary_df['Number_of_Affected_Lines'] > 0) | (dqc_summary_df['Number_of_Affected_Journal_Entries'] > 0)).sum())
         },

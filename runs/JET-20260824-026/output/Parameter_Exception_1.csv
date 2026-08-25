@@ -1,0 +1,3 @@
+G_L,FS_Line_Item,DocumentNo,Type,Entry_Date,Pstng_Date,Doc_Date,Amount_in_local_cur,Lcurr,Amount_in_doc_curr,Curr,Amount_in_loc_curr_2,LCur2,Document_Header_Text,Text,User_name,Exception
+1009,,2000001002,SA,05-Nov-25,05-Nov-25,05-Nov-25,0.0,INR,0.0,INR,1000000.0,,Fund Transfer,unusual zero balance clearing,OCPL-PRASHAN,NO Exception
+52002500,,2000001002,SA,05-Nov-25,05-Nov-25,05-Nov-25,0.0,INR,0.0,INR,-1000000.0,,Fund Transfer,consultancy charge,OCPL-PRASHAN,NO Exception

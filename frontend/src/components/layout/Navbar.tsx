@@ -37,77 +37,41 @@ export const Navbar: React.FC = () => {
         justifyContent: 'space-between',
         gap: '16px',
       }}>
-        {/* Left: Brand + Back Button */}
+        {/* Left: Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* Back to Dashboard — shown only on workflow pages */}
-          {isWorkflowPage && (
-            <button
-              onClick={() => navigate('/dashboard')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 14px',
-                background: 'var(--deloitte-teal-light)',
-                border: '1px solid rgba(0, 118, 128, 0.25)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--deloitte-teal)',
-                fontWeight: 700,
-                fontSize: '0.84rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = '#007680';
-                e.currentTarget.style.color = '#FFFFFF';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 118, 128, 0.2)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = 'var(--deloitte-teal-light)';
-                e.currentTarget.style.color = 'var(--deloitte-teal)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <ChevronLeft size={15} />
-              Home
-            </button>
-          )}
-
-          {/* Brand */}
           <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
             <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
+              width: '36px',
+              height: '36px',
+              borderRadius: '9px',
               background: 'linear-gradient(135deg, #007680 0%, #005A62 60%, #86BC25 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(0, 118, 128, 0.3)',
+              boxShadow: '0 3px 10px rgba(0, 118, 128, 0.25)',
               flexShrink: 0,
             }}>
-              <ShieldCheck size={22} color="#FFFFFF" strokeWidth={2.5} />
+              <ShieldCheck size={20} color="#FFFFFF" strokeWidth={2.5} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.22rem', fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
+                <span style={{ fontSize: '1.18rem', fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
                   Deloitte<span style={{ color: 'var(--deloitte-green)' }}>.</span>
                 </span>
                 <span style={{
                   background: 'var(--deloitte-teal)',
                   color: '#FFFFFF',
-                  fontSize: '0.65rem',
+                  fontSize: '0.62rem',
                   fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '5px',
+                  padding: '2px 7px',
+                  borderRadius: '4px',
                   letterSpacing: '0.06em',
-                  boxShadow: '0 2px 6px rgba(0, 118, 128, 0.25)',
+                  boxShadow: '0 2px 6px rgba(0, 118, 128, 0.2)',
                 }}>
                   JET PLATFORM
                 </span>
               </div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.01em' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.01em' }}>
                 Journal Entry Testing & Analytics
               </div>
             </div>
@@ -120,15 +84,28 @@ export const Navbar: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '6px 16px',
-            background: 'var(--bg-secondary)',
+            padding: '5px 14px',
+            background: '#F8FAFC',
             borderRadius: '999px',
             border: '1px solid var(--border-subtle)',
           }}>
             <LayoutDashboard size={13} color="var(--text-muted)" />
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>Dashboard</span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>/</span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--deloitte-teal)', fontWeight: 700 }}>
+            <Link
+              to="/dashboard"
+              style={{
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+                fontWeight: 600,
+                textDecoration: 'none',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.color = 'var(--deloitte-teal)')}
+              onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              Dashboard
+            </Link>
+            <span style={{ fontSize: '0.78rem', color: 'var(--border-medium)' }}>/</span>
+            <span style={{ fontSize: '0.78rem', color: 'var(--deloitte-teal)', fontWeight: 800 }}>
               {location.pathname.includes('/spark-jet') ? 'Spark JET' : 'Omnia JET'}
             </span>
           </div>
