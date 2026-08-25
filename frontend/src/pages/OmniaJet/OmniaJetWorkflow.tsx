@@ -380,12 +380,9 @@ export const OmniaJetWorkflow: React.FC = () => {
     return glOk && tbOk && glHasAny && tbHasAny;
   }, [config]);
 
-  const isStep2Valid = Boolean(
-    hasRequiredMappings &&
-    (
-      (autoCleanReport && autoCleanReport.constraintsPassed === true) ||
-      status?.status === 'COMPLETED' // completed runs bypass local autoCleanReport state
-    )
+  const isConstraintsPassed = Boolean(
+    autoCleanReport?.constraintsPassed === true ||
+    status?.status === 'COMPLETED'
   );
 
   const canAccessStep = (stepId: number) => {
@@ -393,9 +390,7 @@ export const OmniaJetWorkflow: React.FC = () => {
     if (status?.status === 'COMPLETED') return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
-    if (stepId === 3) return isStep1Valid;
-    if (stepId === 4) return isStep1Valid;
-    if (stepId === 5) return isStep1Valid;
+    if (stepId >= 3 && stepId <= 5) return isStep1Valid && isConstraintsPassed;
     if (stepId === 6) return (status?.status as string) === 'COMPLETED';
     return false;
   };
@@ -609,14 +604,14 @@ export const OmniaJetWorkflow: React.FC = () => {
           </button>
           <button
             onClick={() => { setCurrentStep(3); setMaxCompletedStep((prev) => Math.max(prev, 2)); }}
-            disabled={autoCleaning || (autoCleanReport !== null && !autoCleanReport.constraintsPassed)}
+            disabled={autoCleaning || !isConstraintsPassed}
             className="btn-primary"
             style={{
               padding: '6px 16px', fontSize: '0.82rem',
-              opacity: autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 0.45 : 1,
-              cursor: autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 'not-allowed' : 'pointer'
+              opacity: !isConstraintsPassed ? 0.45 : 1,
+              cursor: !isConstraintsPassed ? 'not-allowed' : 'pointer'
             }}
-            title={autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 'Resolve or download failed constraints to proceed' : 'Continue to Mapping'}
+            title={!isConstraintsPassed ? 'Resolve or download failed constraints to proceed' : 'Continue to Mapping'}
           >
             Continue to Mapping <ArrowRight size={13} />
           </button>
@@ -767,6 +762,7 @@ export const OmniaJetWorkflow: React.FC = () => {
               workflowType="OMNIA_JET"
               runId={runId || undefined}
               autoCleanReport={autoCleanReport}
+              onReportUpdate={(rep) => setAutoCleanReport(rep)}
               onPreviewFailedRows={handlePreviewArtifact}
               tbRowCount={dynamicTbCount || 22}
               glRowCount={dynamicGlCount || 36}

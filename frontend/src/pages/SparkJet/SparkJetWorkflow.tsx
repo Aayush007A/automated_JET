@@ -806,19 +806,17 @@ export const SparkJetWorkflow: React.FC = () => {
     return tbOk && glOk && tbHasAny && glHasAny;
   }, [config]);
 
-  const isStep2Valid = Boolean(
-    hasRequiredMappings &&
-    ((autoCleanReport && autoCleanReport.constraintsPassed === true) || status?.status === 'COMPLETED')
+  const isConstraintsPassed = Boolean(
+    autoCleanReport?.constraintsPassed === true ||
+    status?.status === 'COMPLETED'
   );
 
   const canAccessStep = (stepId: number) => {
     if (status?.status === 'COMPLETED') return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
-    if (stepId === 3) return isStep1Valid;
-    if (stepId === 4) return isStep1Valid;
-    if (stepId === 5) return isStep1Valid;
-    if (stepId === 6) return isStep1Valid && ((status?.status as string) === 'COMPLETED');
+    if (stepId >= 3 && stepId <= 5) return isStep1Valid && isConstraintsPassed;
+    if (stepId === 6) return (status?.status as string) === 'COMPLETED';
     return false;
   };
 
@@ -1078,13 +1076,15 @@ export const SparkJetWorkflow: React.FC = () => {
         {/* STEP 1: FILE UPLOAD & PREVIEW */}
         {currentStep === 1 && (
           <div>
-            <div className="glass-panel" style={{ padding: '28px', background: '#FFFFFF' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                Upload Trial Balance, Population & Input Extract
-              </h3>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                Upload separate files (<strong>TB.csv</strong>, <strong>Population.csv</strong>) or an all-in-one workbook. Click the <strong>Preview</strong> button next to any file or sheet to inspect sample rows immediately.
-              </p>
+            <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF', marginTop: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 4px' }}>Data File Upload</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Upload your raw Trial Balance and General Ledger / Population dataset files.
+                  </p>
+                </div>
+              </div>
 
               <FileDropzone
                 files={config?.files || []}
@@ -1104,6 +1104,7 @@ export const SparkJetWorkflow: React.FC = () => {
               workflowType="SPARK_JET"
               runId={runId || undefined}
               autoCleanReport={autoCleanReport}
+              onReportUpdate={(rep) => setAutoCleanReport(rep)}
               onPreviewFailedRows={handlePreviewArtifact}
               tbRowCount={status?.totalInputRows?.tb || 22}
               glRowCount={status?.totalInputRows?.gl || (status?.glCheckpointsSummary?.totalLines || 36)}

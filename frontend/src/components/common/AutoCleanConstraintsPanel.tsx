@@ -11,6 +11,7 @@ interface AutoCleanConstraintsPanelProps {
   onProceed: () => void;
   runId?: string;
   autoCleanReport?: any;
+  onReportUpdate?: (report: any) => void;
   onPreviewFailedRows?: (fileName: string, title: string) => void;
   tbRowCount?: number;
   glRowCount?: number;
@@ -324,6 +325,7 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   onProceed,
   runId,
   autoCleanReport,
+  onReportUpdate,
   onPreviewFailedRows,
   tbRowCount = 22,
   glRowCount = 36,
@@ -366,7 +368,7 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
     } else if (runId) {
       handleRunCleansing();
     }
-  }, [workflowType, runId]);
+  }, [workflowType, runId, autoCleanReport]);
 
   const totalRows = isSpark ? tbRowCount + glRowCount : tbRowCount + glRowCount + coaRowCount;
 
@@ -386,6 +388,9 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
       if (res && res.report) {
         setLocalReport(res.report);
         applyReportToConstraints(res.report);
+        if (onReportUpdate) {
+          onReportUpdate(res.report);
+        }
       }
     } catch (err) {
       console.error(err);
