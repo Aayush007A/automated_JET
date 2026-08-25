@@ -7,6 +7,8 @@ import { OutputItem } from '../types';
 import { RunManager } from './runManager';
 import { LogService } from './logService';
 
+import { FastPreviewReader } from '../utils/fastPreviewReader';
+
 export class OutputService {
   public static getOutputsForRun(runId: string): OutputItem[] {
     const outputDir = path.join(ENV.RUN_DIR, runId, 'output');
@@ -22,12 +24,18 @@ export class OutputService {
 
       let rowCount: number | undefined = undefined;
       if (ext === 'csv' || ext === 'txt') {
-        try {
-          const content = fs.readFileSync(filePath, 'utf-8');
-          const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
-          rowCount = Math.max(0, lines.length - 1);
-        } catch {
-          // ignore
+        // Fast byte estimate for list endpoints to avoid loading megabytes into memory
+        if (stats.size < 500 * 1024) {
+          try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
+            rowCount = Math.max(0, lines.length - 1);
+          } catch {
+            rowCount = undefined;
+          }
+        } else {
+          // Large file estimate based on 100 bytes/row
+          rowCount = Math.max(1, Math.round(stats.size / 100));
         }
       }
 
@@ -48,11 +56,11 @@ export class OutputService {
     return outputs;
   }
 
-  public static previewOutputFile(
+  public static async previewOutputFile(
     runId: string,
     fileName: string,
     maxRows: number = 50
-  ): { headers: string[]; rows: Record<string, any>[]; totalRows: number } | null {
+  ): Promise<{ headers: string[]; rows: Record<string, any>[]; totalRows: number } | null> {
     const safeFileName = path.basename(fileName);
     const filePath = path.join(ENV.RUN_DIR, runId, 'output', safeFileName);
 
@@ -61,50 +69,11 @@ export class OutputService {
     }
 
     try {
-      let content = fs.readFileSync(filePath, 'utf-8');
-      if (content.charCodeAt(0) === 0xFEFF) {
-        content = content.slice(1);
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.xlsx' || ext === '.xls') {
+        return FastPreviewReader.previewExcel(filePath, null, maxRows);
       }
-      const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
-      if (lines.length === 0) return { headers: [], rows: [], totalRows: 0 };
-
-      const parseCsvLine = (line: string): string[] => {
-        const values: string[] = [];
-        let inQuotes = false;
-        let currentValue = '';
-
-        for (let j = 0; j < line.length; j++) {
-          const char = line[j];
-          if (char === '"' || char === "'") {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            values.push(currentValue.trim().replace(/^["']|["']$/g, ''));
-            currentValue = '';
-          } else {
-            currentValue += char;
-          }
-        }
-        values.push(currentValue.trim().replace(/^["']|["']$/g, ''));
-        return values;
-      };
-
-      const headers = parseCsvLine(lines[0]);
-      const rows: Record<string, any>[] = [];
-
-      for (let i = 1; i < Math.min(lines.length, maxRows + 1); i++) {
-        const values = parseCsvLine(lines[i]);
-        const rowObj: Record<string, any> = {};
-        headers.forEach((h, idx) => {
-          rowObj[h] = values[idx] !== undefined ? values[idx] : '';
-        });
-        rows.push(rowObj);
-      }
-
-      return {
-        headers,
-        rows,
-        totalRows: lines.length - 1,
-      };
+      return await FastPreviewReader.previewCsv(filePath, maxRows);
     } catch (err) {
       LogService.log('ERROR', 'OUTPUT_PREVIEW', `Error parsing preview for ${safeFileName}: ${err}`, runId);
       return null;

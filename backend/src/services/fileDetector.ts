@@ -231,7 +231,20 @@ export class FileDetector {
           info.sampleRows = sheets[0].sampleRows;
         }
       } else if (ext === '.csv' || ext === '.txt') {
-        const content = fs.readFileSync(filePath, 'utf-8');
+        const stat = fs.statSync(filePath);
+        // Bounded 64KB chunk read to prevent memory overload on 100MB+ files
+        const bufferSize = Math.min(stat.size, 64 * 1024);
+        const fd = fs.openSync(filePath, 'r');
+        const buffer = Buffer.alloc(bufferSize);
+        fs.readSync(fd, buffer, 0, bufferSize, 0);
+        fs.closeSync(fd);
+
+        let content = buffer.toString('utf-8');
+        if (stat.size > bufferSize) {
+          const lastNl = Math.max(content.lastIndexOf('\n'), content.lastIndexOf('\r'));
+          if (lastNl > 0) content = content.substring(0, lastNl);
+        }
+
         // Detect delimiter: comma, tab, pipe, semicolon
         let delimiter = ',';
         const firstLine = content.split(/\r?\n/)[0] || '';

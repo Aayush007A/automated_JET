@@ -182,7 +182,7 @@ export class RunController {
   public static async previewOutput(req: Request, res: Response): Promise<void> {
     const { runId, fileName } = req.params;
     const maxRows = parseInt(req.query.maxRows as string, 10) || 50;
-    const preview = OutputService.previewOutputFile(runId, fileName, maxRows);
+    const preview = await OutputService.previewOutputFile(runId, fileName, maxRows);
 
     if (!preview) {
       res.status(404).json({ success: false, message: `Output file "${fileName}" could not be previewed.` });

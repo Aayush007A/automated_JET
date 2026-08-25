@@ -11,6 +11,7 @@ import { DataNormalizer } from '../services/dataNormalizer';
 import { LogService } from '../services/logService';
 import { DatasetClassification } from '../types';
 import { ENV } from '../config/env';
+import { FastPreviewReader } from '../utils/fastPreviewReader';
 
 export class FileController {
   public static async uploadFiles(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -149,60 +150,23 @@ export class FileController {
 
     try {
       const ext = path.extname(file.filePath).toLowerCase();
-      let headers: string[] = [];
-      let rows: Record<string, any>[] = [];
-      let totalRows = 0;
+      const rowLimit = Number(maxRows) || 50;
+      let previewResult;
 
       if (ext === '.xlsx' || ext === '.xls') {
-        const wb = xlsx.readFile(file.filePath, { cellDates: true, dense: true });
-        const targetSheet = (sheetName as string) || wb.SheetNames[0];
-        const sheet = wb.Sheets[targetSheet];
-
-        if (sheet) {
-          const rawData = xlsx.utils.sheet_to_json<Record<string, any>>(sheet, { header: 1, defval: '' });
-          let headerIdx = 0;
-          let maxCols = 0;
-          for (let r = 0; r < Math.min(10, rawData.length); r++) {
-            const row = rawData[r] as any[];
-            if (Array.isArray(row)) {
-              const nonEmp = row.filter((c) => c !== null && c !== undefined && c.toString().trim() !== '').length;
-              if (nonEmp > maxCols) {
-                maxCols = nonEmp;
-                headerIdx = r;
-              }
-            }
-          }
-
-          const rawHeaders = (rawData[headerIdx] as any[] || []).map((h) => (h ? h.toString().trim() : ''));
-          headers = rawHeaders.filter((h) => h.length > 0);
-
-          const allRows = xlsx.utils.sheet_to_json<Record<string, any>>(sheet, { range: headerIdx, defval: '' });
-          totalRows = allRows.length;
-          rows = allRows.slice(0, Number(maxRows) || 50);
-        }
+        previewResult = FastPreviewReader.previewExcel(file.filePath, sheetName as string, rowLimit);
       } else {
-        const content = fs.readFileSync(file.filePath, 'utf-8');
-        const parsed = parse(content, { skip_empty_lines: true, trim: true, relax_column_count: true });
-        if (parsed.length > 0) {
-          headers = (parsed[0] as string[]).map((h) => (h ? h.trim() : ''));
-          totalRows = parsed.length - 1;
-          for (let i = 1; i < Math.min(parsed.length, (Number(maxRows) || 50) + 1); i++) {
-            const rowObj: Record<string, any> = {};
-            headers.forEach((h, colIdx) => {
-              rowObj[h] = parsed[i][colIdx] || '';
-            });
-            rows.push(rowObj);
-          }
-        }
+        // Fast streaming reader reading first chunk + fast line count / estimate
+        previewResult = await FastPreviewReader.previewCsv(file.filePath, rowLimit, (file as any).rowCount);
       }
 
       res.json({
         success: true,
         fileName: file.originalName,
         sheetName: sheetName || null,
-        headers,
-        rows,
-        totalRows,
+        headers: previewResult.headers,
+        rows: previewResult.rows,
+        totalRows: previewResult.totalRows,
       });
     } catch (err: any) {
       LogService.log('ERROR', 'INPUT_PREVIEW', `Error previewing file ${file.originalName}: ${err.message}`, runId);
