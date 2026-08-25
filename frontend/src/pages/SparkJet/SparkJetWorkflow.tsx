@@ -1,69 +1,35 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { RunService } from '../../services/runService';
-import { RunConfig, RunSummary, SparkJetParameters, FieldMappingItem } from '../../types';
+import { RunConfig, RunSummary, SparkJetParameters } from '../../types';
 import { FileDropzone } from '../../components/common/FileDropzone';
 import { FieldMappingTable } from '../../components/common/FieldMappingTable';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { MetricCard } from '../../components/common/MetricCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { SampleDataModal } from '../../components/common/SampleDataModal';
-import { 
-  ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download, 
-  Layers, Settings, FileSpreadsheet, ShieldCheck, Database, RefreshCw, Archive,
-  BarChart3, PieChart, CheckSquare, Plus, Trash2, Sliders, FileCheck,
-  Upload, Search, Filter, HelpCircle, FileText, Sparkles, X, UserCheck, Calendar, Hash, Tag,
-  FolderUp, Edit3, Eye, CheckCircle, ChevronRight, Activity, Clock, Save, Menu,
-  MoreVertical, Lock, Loader2, UploadCloud
+import { StepTimeline, TimelineStep } from '../../components/common/Steptimeline';
+import {
+  ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download,
+  Layers, Settings, RefreshCw,
+  BarChart3, Plus, Trash2, Sliders, FileCheck,
+  Search, FileText, Sparkles, X, Eye, Activity, Save
 } from 'lucide-react';
 
-const STEPS = [
-  { id: 1, label: 'Ingest Data', icon: UploadCloud },
-  { id: 2, label: 'Mapping & Auto-Clean', icon: Sparkles },
-  { id: 3, label: 'Integrity Tests (IR 1-4)', icon: Activity },
-  { id: 4, label: 'Parameter Rules (Ex 1-12)', icon: Settings },
-  { id: 5, label: 'Parameter Results', icon: BarChart3 },
+const STEPS: TimelineStep[] = [
+  { id: 1, label: 'Ingest Data', sub: 'Upload files', icon: Layers },
+  { id: 2, label: 'Mapping & Auto-Clean', sub: 'Clean data', icon: Sparkles },
+  { id: 3, label: 'Integrity Tests', sub: 'IR 1-4', icon: Activity },
+  { id: 4, label: 'Parameter Rules', sub: 'Ex 1-12', icon: Settings },
+  { id: 5, label: 'Parameter Results', sub: 'Review', icon: BarChart3 },
 ];
 
-const formatExecutiveDate = (dateStr?: string, includeSeconds: boolean = false): string => {
-  if (!dateStr) return '--';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = monthNames[d.getMonth()];
-  const day = d.getDate();
-  const year = d.getFullYear();
-  
-  let hours = d.getHours();
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  const seconds = d.getSeconds().toString().padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12;
-  
-  if (includeSeconds) {
-    return `${month} ${day}, ${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
-  }
-  return `${month} ${day}, ${year}, ${hours}:${minutes} ${ampm}`;
-};
-
-const getStatusStyles = (st: string) => {
-  switch (st) {
-    case 'COMPLETED':
-      return { bg: '#DCFCE7', border: '#BBF7D0', color: '#16A34A' };
-    case 'RUNNING':
-      return { bg: '#DBEAFE', border: '#BFDBFE', color: '#2563EB' };
-    case 'FAILED':
-      return { bg: '#FEE2E2', border: '#FECACA', color: '#DC2626' };
-    case 'CONFIGURED':
-    case 'MAPPING':
-      return { bg: '#E6F4F5', border: '#BCE3E6', color: '#007680' };
-    case 'WARNING':
-      return { bg: '#FEF3C7', border: '#FDE68A', color: '#D97706' };
-    default:
-      return { bg: '#F1F5F9', border: '#E2E8F0', color: '#475569' };
-  }
+const STEP_COPY: Record<number, { title: string; desc: string }> = {
+  1: { title: 'Upload Trial Balance & Population', desc: 'Upload TB and Population files or an all-in-one workbook, then preview any sheet instantly.' },
+  2: { title: 'Canonical Field Mapping', desc: 'Confirm column mappings, then run auto-cleansing to normalize dates, numbers and constraints.' },
+  3: { title: 'Integrity Tests (IR 1-4)', desc: 'Review TB and GL checkpoints and inspect flagged rows for each integrity rule.' },
+  4: { title: 'Parameter Rule Configuration', desc: 'Select and configure the twelve audit exception algorithms to test against the population.' },
+  5: { title: 'Parameter Results', desc: 'Explore flagged exceptions, executive analytics, checkpoints and downloadable artifacts.' },
 };
 
 interface AccountRow {
@@ -147,32 +113,16 @@ export const SparkJetWorkflow: React.FC = () => {
 
   // Active Parameter Exception Toggles (Ex1 to Ex12)
   const [enabledExceptions, setEnabledExceptions] = useState<Record<string, boolean>>({
-    ex1: true,
-    ex2: true,
-    ex3: true,
-    ex4: true,
-    ex5: true,
-    ex6: true,
-    ex7: true,
-    ex8: true,
-    ex9: true,
-    ex10: true,
-    ex11: true,
-    ex12: true,
+    ex1: true, ex2: true, ex3: true, ex4: true, ex5: true, ex6: true,
+    ex7: true, ex8: true, ex9: true, ex10: true, ex11: true, ex12: true,
   });
 
   const [unusualAccounts, setUnusualAccounts] = useState<AccountRow[]>([]);
-
   const [seldomAccounts, setSeldomAccounts] = useState<AccountRow[]>([]);
-
   const [revenueAccounts, setRevenueAccounts] = useState<RevenueAccountRow[]>([]);
-
   const [usersOfInterest, setUsersOfInterest] = useState<UserRow[]>([]);
-
   const [datesOfInterest, setDatesOfInterest] = useState<DateRow[]>([]);
-
   const [keywords, setKeywords] = useState<string[]>([]);
-
   const [unrelatedRules, setUnrelatedRules] = useState<UnrelatedRuleRow[]>([]);
 
   // General Spark JET Parameters
@@ -189,6 +139,24 @@ export const SparkJetWorkflow: React.FC = () => {
     ex11DaysAfterClosing: 10,
     controlSampleCount: 61,
   });
+
+  // Dedicated state for each of the 12 exceptions
+  const [ex3Threshold, setEx3Threshold] = useState<number>(0.0);
+  const [ex3QuarterStart, setEx3QuarterStart] = useState<string>('');
+  const [ex3QuarterEnd, setEx3QuarterEnd] = useState<string>('');
+  const [ex4Threshold, setEx4Threshold] = useState<number>(1);
+  const [ex6BeforeDays, setEx6BeforeDays] = useState<number>(1);
+  const [ex6AfterDays, setEx6AfterDays] = useState<number>(10);
+  const [ex6ClosingDate, setEx6ClosingDate] = useState<string>('31-Dec-25');
+  const [ex6Frequency, setEx6Frequency] = useState<string>('Annually');
+  const [ex8SelectedDigits, setEx8SelectedDigits] = useState<string[]>(['1000', '10000', '100000', '1000000', '10000000', '6', '7', '8', '9']);
+  const [ex9CountThreshold, setEx9CountThreshold] = useState<number>(2);
+  const [ex9AmountThreshold, setEx9AmountThreshold] = useState<number>(0.0);
+  const [ex11ClosingDate, setEx11ClosingDate] = useState<string>('31-Dec-25');
+  const [ex11DaysAfterClosing, setEx11DaysAfterClosing] = useState<number>(10);
+  const [ex11Frequency, setEx11Frequency] = useState<string>('Annually');
+  const [runControlSample, setRunControlSample] = useState<boolean>(true);
+  const [sampleDocCount, setSampleDocCount] = useState<number>(61);
 
   // Active Parameter Tab in Step 4
   const [paramTab, setParamTab] = useState<string>('ex1');
@@ -219,7 +187,6 @@ export const SparkJetWorkflow: React.FC = () => {
 
       if (data.status.status === 'COMPLETED') {
         setMaxCompletedStep(5);
-        // Restore user to the results step when revisiting a completed run
         setCurrentStep(5);
       } else if (data.config.files.length > 0) {
         setMaxCompletedStep((prev) => Math.max(prev, 2));
@@ -235,7 +202,6 @@ export const SparkJetWorkflow: React.FC = () => {
     loadRun();
   }, [runId]);
 
-  // Load IR Preview data when in Step 3
   useEffect(() => {
     if (currentStep === 3 && runId && selectedIRFile) {
       setLoadingIRPreview(true);
@@ -246,7 +212,6 @@ export const SparkJetWorkflow: React.FC = () => {
     }
   }, [currentStep, selectedIRFile, runId, status?.status]);
 
-  // Load parameter preview data when in Step 5
   useEffect(() => {
     if (currentStep === 5 && runId && selectedPreviewFile) {
       setLoadingPreview(true);
@@ -257,7 +222,6 @@ export const SparkJetWorkflow: React.FC = () => {
     }
   }, [currentStep, selectedPreviewFile, runId, status?.status]);
 
-  // Subscribe to SSE progress
   useEffect(() => {
     if (!runId) return;
     const unsub = RunService.subscribeProgress(runId, (event) => {
@@ -280,7 +244,6 @@ export const SparkJetWorkflow: React.FC = () => {
     return () => unsub();
   }, [runId]);
 
-  // Open Raw Input 50 sample rows preview modal
   const handleOpenSamplePreview = async (fileId: string, sheetName?: string) => {
     if (!runId) return;
     try {
@@ -298,7 +261,6 @@ export const SparkJetWorkflow: React.FC = () => {
     }
   };
 
-  // Run Auto-Cleaning & Constraint Verification
   const handleRunAutoClean = async () => {
     if (!runId) return;
     setAutoCleaning(true);
@@ -341,20 +303,9 @@ export const SparkJetWorkflow: React.FC = () => {
     const currentMappings = [...(datasetType === 'tb' ? (config.fieldMappings.tb || []) : (config.fieldMappings.gl || []))];
     const idx = currentMappings.findIndex((m) => m.standardField === stdField);
     if (idx >= 0) {
-      currentMappings[idx] = {
-        ...currentMappings[idx],
-        sourceField: srcHeader,
-        status: srcHeader ? 'MATCHED' : 'UNMATCHED',
-      };
+      currentMappings[idx] = { ...currentMappings[idx], sourceField: srcHeader, status: srcHeader ? 'MATCHED' : 'UNMATCHED' };
     } else {
-      currentMappings.push({
-        standardField: stdField,
-        sourceField: srcHeader,
-        matchType: 'MANUAL',
-        confidence: 100,
-        status: srcHeader ? 'MATCHED' : 'UNMATCHED',
-        required: false,
-      });
+      currentMappings.push({ standardField: stdField, sourceField: srcHeader, matchType: 'MANUAL', confidence: 100, status: srcHeader ? 'MATCHED' : 'UNMATCHED', required: false });
     }
 
     try {
@@ -366,7 +317,6 @@ export const SparkJetWorkflow: React.FC = () => {
     }
   };
 
-  // Trigger Parameter Exception File Import
   const triggerImportFile = (targetType: string) => {
     setCurrentImportTarget(targetType);
     if (fileInputRef.current) {
@@ -384,7 +334,6 @@ export const SparkJetWorkflow: React.FC = () => {
       const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
       if (lines.length <= 1) return;
 
-      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
       const dataRows = lines.slice(1);
 
       if (currentImportTarget === 'unusualAccounts' || currentImportTarget === 'seldomAccounts') {
@@ -392,12 +341,7 @@ export const SparkJetWorkflow: React.FC = () => {
         dataRows.forEach((line) => {
           const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
           if (cols[0]) {
-            parsedRows.push({
-              gl: cols[0],
-              description: cols[1] || 'Imported Account',
-              subtype: cols[2] || 'Assets',
-              notes: cols[3] || 'Uploaded via template',
-            });
+            parsedRows.push({ gl: cols[0], description: cols[1] || 'Imported Account', subtype: cols[2] || 'Assets', notes: cols[3] || 'Uploaded via template' });
           }
         });
 
@@ -414,15 +358,9 @@ export const SparkJetWorkflow: React.FC = () => {
           const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
           if (cols[0]) {
             parsedRev.push({
-              gl: cols[0],
-              description: cols[1] || '',
-              openingBalance: parseFloat(cols[2]) || 0,
-              debit: parseFloat(cols[3]) || 0,
-              credit: parseFloat(cols[4]) || 0,
-              closingBalance: parseFloat(cols[5]) || 0,
-              movement: parseFloat(cols[6]) || 0,
-              subtype: cols[7] || 'Revenue',
-              fsLineItem: cols[8] || 'NET SALES REVENUE',
+              gl: cols[0], description: cols[1] || '', openingBalance: parseFloat(cols[2]) || 0, debit: parseFloat(cols[3]) || 0,
+              credit: parseFloat(cols[4]) || 0, closingBalance: parseFloat(cols[5]) || 0, movement: parseFloat(cols[6]) || 0,
+              subtype: cols[7] || 'Revenue', fsLineItem: cols[8] || 'NET SALES REVENUE',
             });
           }
         });
@@ -434,14 +372,7 @@ export const SparkJetWorkflow: React.FC = () => {
         const parsedUsers: UserRow[] = [];
         dataRows.forEach((line) => {
           const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          if (cols[0]) {
-            parsedUsers.push({
-              userId: cols[0],
-              name: cols[1] || cols[0],
-              role: cols[2] || 'Audited User',
-              category: cols[3] || 'General',
-            });
-          }
+          if (cols[0]) parsedUsers.push({ userId: cols[0], name: cols[1] || cols[0], role: cols[2] || 'Audited User', category: cols[3] || 'General' });
         });
         setUsersOfInterest(parsedUsers);
         setFileImportNotice(`Successfully imported ${parsedUsers.length} Users of Interest from ${file.name}`);
@@ -449,13 +380,7 @@ export const SparkJetWorkflow: React.FC = () => {
         const parsedDates: DateRow[] = [];
         dataRows.forEach((line) => {
           const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          if (cols[0]) {
-            parsedDates.push({
-              date: cols[0],
-              event: cols[1] || 'Holiday / Event',
-              impact: cols[2] || 'Non-working day',
-            });
-          }
+          if (cols[0]) parsedDates.push({ date: cols[0], event: cols[1] || 'Holiday / Event', impact: cols[2] || 'Non-working day' });
         });
         setDatesOfInterest(parsedDates);
         setFileImportNotice(`Successfully imported ${parsedDates.length} Dates of Interest from ${file.name}`);
@@ -463,9 +388,7 @@ export const SparkJetWorkflow: React.FC = () => {
         const parsedKw: string[] = [];
         dataRows.forEach((line) => {
           const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          cols.forEach((k) => {
-            if (k && !parsedKw.includes(k.toLowerCase())) parsedKw.push(k.toLowerCase());
-          });
+          cols.forEach((k) => { if (k && !parsedKw.includes(k.toLowerCase())) parsedKw.push(k.toLowerCase()); });
         });
         setKeywords(parsedKw);
         setFileImportNotice(`Successfully imported ${parsedKw.length} Risk Keywords from ${file.name}`);
@@ -473,13 +396,7 @@ export const SparkJetWorkflow: React.FC = () => {
         const parsedRules: UnrelatedRuleRow[] = [];
         dataRows.forEach((line) => {
           const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          if (cols[0] && cols[1]) {
-            parsedRules.push({
-              debitFSLine: cols[0],
-              creditFSLine: cols[1],
-              category: cols[2] || 'Unrelated Pair Rule',
-            });
-          }
+          if (cols[0] && cols[1]) parsedRules.push({ debitFSLine: cols[0], creditFSLine: cols[1], category: cols[2] || 'Unrelated Pair Rule' });
         });
         setUnrelatedRules(parsedRules);
         setFileImportNotice(`Successfully imported ${parsedRules.length} Unrelated Pair Rules from ${file.name}`);
@@ -532,12 +449,7 @@ export const SparkJetWorkflow: React.FC = () => {
       if (res && res.rows && res.rows.length > 0) {
         const mapped: AccountRow[] = res.rows
           .filter(r => Number(r.Count || 0) <= 5 && Number(r.Count || 0) > 0)
-          .map(r => ({
-            gl: String(r.G_L || ''),
-            description: String(r.Description || 'Seldom Account'),
-            subtype: String(r.Account_Subtype || 'Assets'),
-            notes: `Posting count: ${r.Count || 0}`,
-          }))
+          .map(r => ({ gl: String(r.G_L || ''), description: String(r.Description || 'Seldom Account'), subtype: String(r.Account_Subtype || 'Assets'), notes: `Posting count: ${r.Count || 0}` }))
           .filter(r => !!r.gl);
         if (mapped.length > 0) {
           setSeldomAccounts(mapped);
@@ -548,12 +460,6 @@ export const SparkJetWorkflow: React.FC = () => {
     } catch (err) {
       console.error('Failed to auto-populate seldom accounts:', err);
     }
-  };
-
-  const handleDownloadOutput = (fileName: string) => {
-    if (!runId) return;
-    const url = RunService.getDownloadOutputUrl(runId, fileName);
-    window.open(url, '_blank');
   };
 
   const handleRunPipeline = async (targetStepAfter: number = 5) => {
@@ -594,10 +500,7 @@ export const SparkJetWorkflow: React.FC = () => {
         controlSampleCount: Number(sampleDocCount || 61),
       };
 
-      await RunService.updateConfig(runId, {
-        sparkParameters: payloadParams,
-      });
-
+      await RunService.updateConfig(runId, { sparkParameters: payloadParams });
       await RunService.startPipeline(runId);
       setMaxCompletedStep((prev) => Math.max(prev, targetStepAfter));
     } catch (err) {
@@ -608,9 +511,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
   const tbHeaders = useMemo(() => {
     if (!config) return [];
-    const tbFile = config.files.find(
-      (f) => f.detectedDataset === 'TRIAL_BALANCE' || f.sheets?.some((s) => s.detectedDataset === 'TRIAL_BALANCE')
-    );
+    const tbFile = config.files.find((f) => f.detectedDataset === 'TRIAL_BALANCE' || f.sheets?.some((s) => s.detectedDataset === 'TRIAL_BALANCE'));
     if (!tbFile) return [];
     if (tbFile.sheets && tbFile.sheets.length > 0) {
       const targetSheet = tbFile.sheets.find((s) => s.detectedDataset === 'TRIAL_BALANCE') || tbFile.sheets[0];
@@ -621,9 +522,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
   const glHeaders = useMemo(() => {
     if (!config) return [];
-    const glFile = config.files.find(
-      (f) => f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.sheets?.some((s) => s.detectedDataset === 'GENERAL_LEDGER' || s.detectedDataset === 'POPULATION')
-    );
+    const glFile = config.files.find((f) => f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.sheets?.some((s) => s.detectedDataset === 'GENERAL_LEDGER' || s.detectedDataset === 'POPULATION'));
     if (!glFile) return [];
     if (glFile.sheets && glFile.sheets.length > 0) {
       const targetSheet = glFile.sheets.find((s) => s.detectedDataset === 'GENERAL_LEDGER' || s.detectedDataset === 'POPULATION') || glFile.sheets[0];
@@ -633,7 +532,7 @@ export const SparkJetWorkflow: React.FC = () => {
   }, [config]);
 
   const isStep1Valid = Boolean(config && config.files.length > 0);
-  
+
   const hasRequiredMappings = useMemo(() => {
     if (!config) return false;
     const tbRequired = (config.fieldMappings.tb || []).filter((m) => m.required);
@@ -647,14 +546,10 @@ export const SparkJetWorkflow: React.FC = () => {
 
   const isStep2Valid = Boolean(
     hasRequiredMappings &&
-    (
-      (autoCleanReport && autoCleanReport.constraintsPassed === true) ||
-      status?.status === 'COMPLETED' // completed runs bypass local autoCleanReport state
-    )
+    ((autoCleanReport && autoCleanReport.constraintsPassed === true) || status?.status === 'COMPLETED')
   );
 
   const canAccessStep = (stepId: number) => {
-    // For any COMPLETED run, all steps are unlocked
     if (status?.status === 'COMPLETED') return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
@@ -664,7 +559,6 @@ export const SparkJetWorkflow: React.FC = () => {
     return false;
   };
 
-  // Accurate true value resolver for Parameter Exceptions
   const getExceptionCount = (exNum: number, ruleKey: string): number => {
     if (status?.parameterSummary) {
       if (typeof status.parameterSummary[ruleKey] === 'number') return status.parameterSummary[ruleKey];
@@ -672,63 +566,37 @@ export const SparkJetWorkflow: React.FC = () => {
       if (typeof status.parameterSummary[`ex${exNum}`] === 'number') return status.parameterSummary[`ex${exNum}`];
       if (typeof status.parameterSummary[`Parameter_Exception_${exNum}`] === 'number') return status.parameterSummary[`Parameter_Exception_${exNum}`];
     }
-    const file = status?.outputs?.find(o => 
-      o.name.toLowerCase() === `parameter_exception_${exNum}.csv` || 
+    const file = status?.outputs?.find(o =>
+      o.name.toLowerCase() === `parameter_exception_${exNum}.csv` ||
       o.name.toLowerCase().startsWith(`parameter_exception_${exNum}`)
     );
     return file?.rowCount ?? 0;
   };
 
-  // Accurate true value resolver for Integrity Testing (IR 1 - 4)
   const getIRTestCount = (irNum: number, summaryField: keyof NonNullable<RunSummary['integritySummary']>, fileName: string): number => {
     if (status?.integritySummary && typeof status.integritySummary[summaryField] === 'number' && status.integritySummary[summaryField] > 0) {
       return status.integritySummary[summaryField];
     }
-    const file = status?.outputs?.find(o => 
-      o.name.toLowerCase() === fileName.toLowerCase() || 
+    const file = status?.outputs?.find(o =>
+      o.name.toLowerCase() === fileName.toLowerCase() ||
       o.name.toLowerCase().startsWith(`ir_exception_${irNum}.`)
     );
     if (file?.rowCount !== undefined) return file.rowCount;
     return status?.integritySummary?.[summaryField] ?? 0;
   };
 
-  // Dedicated state for each of the 12 exceptions
-  const [ex3Threshold, setEx3Threshold] = useState<number>(0.0);
-  const [ex3QuarterStart, setEx3QuarterStart] = useState<string>('');
-  const [ex3QuarterEnd, setEx3QuarterEnd] = useState<string>('');
-  const [ex4Threshold, setEx4Threshold] = useState<number>(1);
-  const [ex6BeforeDays, setEx6BeforeDays] = useState<number>(1);
-  const [ex6AfterDays, setEx6AfterDays] = useState<number>(10);
-  const [ex6ClosingDate, setEx6ClosingDate] = useState<string>('31-Dec-25');
-  const [ex6Frequency, setEx6Frequency] = useState<string>('Annually');
-  const [ex8SelectedDigits, setEx8SelectedDigits] = useState<string[]>(['1000', '10000', '100000', '1000000', '10000000', '6', '7', '8', '9']);
-  const [ex9CountThreshold, setEx9CountThreshold] = useState<number>(2);
-  const [ex9AmountThreshold, setEx9AmountThreshold] = useState<number>(0.0);
-  const [ex11ClosingDate, setEx11ClosingDate] = useState<string>('31-Dec-25');
-  const [ex11DaysAfterClosing, setEx11DaysAfterClosing] = useState<number>(10);
-  const [ex11Frequency, setEx11Frequency] = useState<string>('Annually');
-  const [runControlSample, setRunControlSample] = useState<boolean>(true);
-  const [sampleDocCount, setSampleDocCount] = useState<number>(61);
-
-  // Filtered Preview Rows for Step 5
   const filteredPreviewRows = useMemo(() => {
     if (!previewData || !previewData.rows) return [];
     if (!previewSearch) return previewData.rows;
-    return previewData.rows.filter(row =>
-      Object.values(row).some(val => String(val).toLowerCase().includes(previewSearch.toLowerCase()))
-    );
+    return previewData.rows.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(previewSearch.toLowerCase())));
   }, [previewData, previewSearch]);
 
-  // Filtered IR Preview Rows for Step 3
   const filteredIRPreviewRows = useMemo(() => {
     if (!irPreviewData || !irPreviewData.rows) return [];
     if (!irPreviewSearch) return irPreviewData.rows;
-    return irPreviewData.rows.filter(row =>
-      Object.values(row).some(val => String(val).toLowerCase().includes(irPreviewSearch.toLowerCase()))
-    );
+    return irPreviewData.rows.filter(row => Object.values(row).some(val => String(val).toLowerCase().includes(irPreviewSearch.toLowerCase())));
   }, [irPreviewData, irPreviewSearch]);
 
-  // Compute Enabled Parameter Tabs (Show separate individual tab for EACH selected exception)
   const visibleParamTabs = useMemo(() => {
     const list: Array<{ id: string; label: string; count: number | null }> = [];
     if (enabledExceptions.ex1) list.push({ id: 'ex1', label: 'Ex1: Unusual Accounts', count: unusualAccounts.length });
@@ -747,60 +615,13 @@ export const SparkJetWorkflow: React.FC = () => {
     return list;
   }, [enabledExceptions, unusualAccounts, seldomAccounts, usersOfInterest, datesOfInterest, ex8SelectedDigits, keywords, unrelatedRules, runControlSample, sampleDocCount]);
 
-  // Keep paramTab synchronized with visible tabs
   useEffect(() => {
     if (visibleParamTabs.length > 0 && !visibleParamTabs.some(t => t.id === paramTab)) {
       setParamTab(visibleParamTabs[0].id);
     }
   }, [visibleParamTabs, paramTab]);
 
-  // DYNAMIC EXECUTIVE SUMMARY METRICS COMPUTED FROM REAL RUN & FILE DATA
-  const dynamicTbCount = useMemo(() => {
-    if (status?.totalInputRows?.tb !== undefined && status.totalInputRows.tb > 0) {
-      return status.totalInputRows.tb;
-    }
-    if (autoCleanReport?.tbRowsCleaned !== undefined && autoCleanReport.tbRowsCleaned > 0) {
-      return autoCleanReport.tbRowsCleaned;
-    }
-    // Check uploaded files and sheets
-    for (const f of config?.files || []) {
-      if (f.sheets && f.sheets.length > 0) {
-        const tbSheet = f.sheets.find(s => s.detectedDataset === 'TRIAL_BALANCE');
-        if (tbSheet?.rowCount && tbSheet.rowCount > 0) return tbSheet.rowCount;
-      }
-      if (f.detectedDataset === 'TRIAL_BALANCE' || f.fileId === config?.datasetMap?.tbFileId) {
-        if (f.sampleRows && f.sampleRows.length > 0) return f.sampleRows.length;
-      }
-    }
-    return 0;
-  }, [status?.totalInputRows?.tb, autoCleanReport?.tbRowsCleaned, config?.files, config?.datasetMap?.tbFileId]);
-
-  const dynamicGlCount = useMemo(() => {
-    if (status?.glCheckpointsSummary?.totalJournals !== undefined && status.glCheckpointsSummary.totalJournals > 0) {
-      return status.glCheckpointsSummary.totalJournals;
-    }
-    if (status?.totalInputRows?.gl !== undefined && status.totalInputRows.gl > 0) {
-      return status.totalInputRows.gl;
-    }
-    if (autoCleanReport?.glRowsCleaned !== undefined && autoCleanReport.glRowsCleaned > 0) {
-      return autoCleanReport.glRowsCleaned;
-    }
-    // Check uploaded files and sheets
-    for (const f of config?.files || []) {
-      if (f.sheets && f.sheets.length > 0) {
-        const glSheet = f.sheets.find(s => s.detectedDataset === 'GENERAL_LEDGER' || s.detectedDataset === 'POPULATION');
-        if (glSheet?.rowCount && glSheet.rowCount > 0) return glSheet.rowCount;
-      }
-      if (f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.fileId === config?.datasetMap?.glFileId) {
-        if (f.sampleRows && f.sampleRows.length > 0) return f.sampleRows.length;
-      }
-    }
-    return 0;
-  }, [status?.glCheckpointsSummary?.totalJournals, status?.totalInputRows?.gl, autoCleanReport?.glRowsCleaned, config?.files, config?.datasetMap?.glFileId]);
-
-  const currentExecutionStatus = useMemo(() => {
-    return status?.status || 'CREATED';
-  }, [status?.status]);
+  const currentExecutionStatus = useMemo(() => status?.status || 'CREATED', [status?.status]);
 
   if (loading) {
     return (
@@ -811,7 +632,6 @@ export const SparkJetWorkflow: React.FC = () => {
     );
   }
 
-  // Parameter Exception definitions for Step 5 executive cards
   const EXCEPTION_CARDS = [
     { num: 1, id: 'ex1', key: 'Ex1_Unusual_Accounts', file: 'Parameter_Exception_1.csv', title: 'Unusual Accounts Postings', desc: 'Entries posted to accounts flagged as unusual or suspense' },
     { num: 2, id: 'ex2', key: 'Ex2_Seldom_Accounts', file: 'Parameter_Exception_2.csv', title: 'Seldom Used Accounts', desc: 'Entries in seldom accounts exceeding posting count threshold' },
@@ -828,721 +648,1204 @@ export const SparkJetWorkflow: React.FC = () => {
     { num: 13, id: 'controlSample', key: 'Control_Sample', file: 'Control_Sample_Dump.csv', title: 'Representative Control Sample', desc: 'Randomly selected representative sample of journal documents' },
   ];
 
+  // Contextual timeline banner actions per step
+  const renderTimelineActions = () => {
+    if (currentStep === 1) {
+      return (
+        <button onClick={() => setCurrentStep(2)} disabled={!isStep1Valid} className="btn-primary">
+          Continue <ArrowRight size={15} />
+        </button>
+      );
+    }
+    if (currentStep === 2) {
+      return (
+        <>
+          <button onClick={() => setCurrentStep(1)} className="btn-secondary"><ArrowLeft size={15} /> Back</button>
+          <button
+            onClick={() => { setCurrentStep(3); handleRunPipeline(3); }}
+            disabled={!isStep2Valid || executing}
+            className="btn-primary"
+          >
+            Continue to IR Testing <ArrowRight size={15} />
+          </button>
+        </>
+      );
+    }
+    if (currentStep === 3) {
+      return (
+        <>
+          <button onClick={() => setCurrentStep(2)} className="btn-secondary"><ArrowLeft size={15} /> Back</button>
+          <button onClick={() => setCurrentStep(4)} className="btn-primary">Continue to Parameters <ArrowRight size={15} /></button>
+        </>
+      );
+    }
+    if (currentStep === 4) {
+      return (
+        <>
+          <button onClick={() => setCurrentStep(3)} className="btn-secondary"><ArrowLeft size={15} /> Back</button>
+          <button onClick={() => { setCurrentStep(5); handleRunPipeline(5); }} disabled={executing} className="btn-primary">
+            <Play size={14} fill="#FFFFFF" />
+            {executing ? 'Executing Pipeline...' : 'Execute Exceptions'}
+          </button>
+        </>
+      );
+    }
+    if (currentStep === 5) {
+      return (
+        <a href={RunService.getDownloadAllZipUrl(runId || '')} className="btn-primary" style={{ textDecoration: 'none' }}>
+          <FileCheck size={16} /> Export All Results (ZIP)
+        </a>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 16px' }}>
-      
-      {/* Hidden File Input for CSV/Excel Parameter Uploads */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: 'none' }}
-        accept=".csv,.txt,.xlsx,.xls"
-        onChange={handleImportFileSelected}
+    <div className="container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 16px 40px' }}>
+
+      <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".csv,.txt,.xlsx,.xls" onChange={handleImportFileSelected} />
+
+      {/* Unified Executive Header (Left-aligned, clean, single entity) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #007680 0%, #005A62 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(0, 118, 128, 0.22)',
+            color: '#FFFFFF',
+            flexShrink: 0,
+          }}>
+            <Layers size={22} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
+                SPARK JET Workflow
+              </h1>
+              {runId && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-subtle)',
+                  padding: '3px 10px',
+                  borderRadius: '8px',
+                  letterSpacing: '0.01em',
+                }}>
+                  {runId}
+                </span>
+              )}
+              {currentExecutionStatus && (
+                <StatusBadge status={currentExecutionStatus} size="sm" />
+              )}
+            </div>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '3px 0 0', fontWeight: 500 }}>
+              Journal Entry Testing & Integrity Analytics Automation Pipeline
+            </p>
+          </div>
+        </div>
+
+        {currentStep === 5 && status?.status === 'COMPLETED' && (
+          <a
+            href={RunService.getDownloadAllZipUrl(runId || '')}
+            className="btn-primary"
+            style={{ textDecoration: 'none', padding: '8px 16px', fontSize: '0.84rem' }}
+          >
+            <FileCheck size={16} /> Download All Results (ZIP)
+          </a>
+        )}
+      </div>
+
+      {/* Horizontal Bubble Step Timeline */}
+      <StepTimeline
+        steps={STEPS}
+        currentStep={currentStep}
+        canAccessStep={canAccessStep}
+        onStepClick={setCurrentStep}
+        activeTitle={STEP_COPY[currentStep]?.title}
+        activeDescription={STEP_COPY[currentStep]?.desc}
+        headerRight={renderTimelineActions()}
       />
 
-      {/* Main Two-Column Layout (Sidebar + Main Workspace) */}
-      <div className="spark-layout">
-        
-        {/* LEFT EXECUTIVE SIDEBAR */}
-        <aside className="spark-sidebar">
-          {/* Run Header & Status */}
-          <div className="spark-run-header" style={{ paddingBottom: '16px', borderBottom: '1px solid #F1F5F9' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '13px',
-                  background: 'linear-gradient(135deg, #02383C 0%, #004D54 100%)',
-                  color: '#4ADE80',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(2, 56, 60, 0.25)',
-                  flexShrink: 0,
-                }}>
-                  <Layers size={20} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '1.12rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2 }}>SPARK JET</div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500, marginTop: '2px' }}>Audit Automation Pipeline</div>
-                </div>
-              </div>
-              <button
-                type="button"
-                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onClick={() => {}}
-              >
-                <MoreVertical size={18} />
-              </button>
-            </div>
+      {/* MAIN WORKSPACE */}
+      <main>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{
-                fontSize: '0.76rem',
-                fontFamily: 'var(--font-mono)',
-                color: '#475569',
-                background: '#F8FAFC',
-                padding: '4px 10px',
-                borderRadius: '8px',
-                border: '1px solid #E2E8F0',
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-              }}>
-                {runId}
-              </span>
-              <span style={{
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                padding: '4px 10px',
-                borderRadius: '20px',
-                background: getStatusStyles(currentExecutionStatus).bg,
-                border: `1px solid ${getStatusStyles(currentExecutionStatus).border}`,
-                color: getStatusStyles(currentExecutionStatus).color,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}>
-                <Clock size={12} /> {currentExecutionStatus}
-              </span>
+        {/* STEP 1: FILE UPLOAD & PREVIEW */}
+        {currentStep === 1 && (
+          <div>
+            <div className="glass-panel" style={{ padding: '24px 28px', background: '#FFFFFF' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                Upload Trial Balance & Population Datasets
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '18px' }}>
+                Upload separate files (<strong>TB.csv</strong>, <strong>Population.csv</strong>) or an all-in-one workbook. Click the <strong>Preview (50)</strong> button next to any file or sheet to inspect sample rows immediately.
+              </p>
+
+              <FileDropzone
+                files={config?.files || []}
+                onUpload={handleUpload}
+                onRemove={handleRemoveFile}
+                onPreview={handleOpenSamplePreview}
+                uploading={uploading}
+              />
             </div>
           </div>
+        )}
 
-          {/* Workflow Steps Navigation with Timeline Rail */}
-          <div className="spark-steps-col" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '14px', letterSpacing: '0.05em' }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#007680' }} />
-              WORKFLOW STEPS
-            </div>
-
-            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '22px' }}>
-              {/* Continuous vertical timeline connector line */}
-              <div style={{
-                position: 'absolute',
-                left: '7px',
-                top: '20px',
-                bottom: '20px',
-                width: '2px',
-                background: '#E2E8F0',
-                zIndex: 0,
-              }} />
-
-              {STEPS.map((s) => {
-                const isAllowed = canAccessStep(s.id);
-                const isActive = currentStep === s.id;
-                const isCompleted = currentStep > s.id;
-                const IconComp = s.icon;
-
-                return (
-                  <div key={s.id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    {/* Timeline Node Dot */}
-                    <div style={{
-                      position: 'absolute',
-                      left: '-22px',
-                      width: '16px',
-                      height: '16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 1,
-                    }}>
-                      {isCompleted ? (
-                        <div style={{
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '50%',
-                          background: '#16A34A',
-                          border: '2px solid #FFFFFF',
-                          boxShadow: '0 0 0 2px #BBF7D0',
-                        }} />
-                      ) : isActive ? (
-                        <div style={{
-                          width: '14px',
-                          height: '14px',
-                          borderRadius: '50%',
-                          background: '#007680',
-                          border: '2px solid #FFFFFF',
-                          boxShadow: '0 0 0 3px rgba(0, 118, 128, 0.25)',
-                        }} />
-                      ) : (
-                        <div style={{
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '50%',
-                          background: '#FFFFFF',
-                          border: '2px solid #CBD5E1',
-                        }} />
-                      )}
-                    </div>
-
-                    {/* Step Card Button */}
-                    <button
-                      onClick={() => isAllowed && setCurrentStep(s.id)}
-                      disabled={!isAllowed}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '16px',
-                        border: isActive
-                          ? '1px solid #005E66'
-                          : isCompleted
-                          ? '1px solid #DCFCE7'
-                          : '1px solid #F1F5F9',
-                        background: isActive
-                          ? 'linear-gradient(135deg, #005E66 0%, #004D54 100%)'
-                          : isCompleted
-                          ? '#F0FDF4'
-                          : '#F8FAFC',
-                        color: isActive ? '#FFFFFF' : isCompleted ? '#0F172A' : '#64748B',
-                        fontWeight: isActive ? 700 : isCompleted ? 700 : 600,
-                        fontSize: '0.82rem',
-                        cursor: isAllowed ? 'pointer' : 'not-allowed',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                        textAlign: 'left',
-                        boxShadow: isActive ? '0 6px 18px rgba(0, 94, 102, 0.35)' : 'none',
-                        opacity: isAllowed ? 1 : 0.65,
-                      }}
-                      onMouseOver={(e) => {
-                        if (isAllowed && !isActive) {
-                          e.currentTarget.style.borderColor = isCompleted ? '#BBF7D0' : '#E2E8F0';
-                        }
-                      }}
-                      onMouseOut={(e) => {
-                        if (isAllowed && !isActive) {
-                          e.currentTarget.style.borderColor = isCompleted ? '#DCFCE7' : '#F1F5F9';
-                        }
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                        <div style={{
-                          width: '30px',
-                          height: '30px',
-                          borderRadius: '9px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: isActive
-                            ? 'rgba(255,255,255,0.18)'
-                            : isCompleted
-                            ? '#DCFCE7'
-                            : '#F1F5F9',
-                          color: isActive ? '#FFFFFF' : isCompleted ? '#16A34A' : '#94A3B8',
-                          flexShrink: 0,
-                        }}>
-                          <IconComp size={15} />
-                        </div>
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          background: isActive
-                            ? '#FFFFFF'
-                            : isCompleted
-                            ? '#E2F7E7'
-                            : '#F1F5F9',
-                          color: isActive
-                            ? '#005E66'
-                            : isCompleted
-                            ? '#16A34A'
-                            : '#64748B',
-                          flexShrink: 0,
-                        }}>
-                          {s.id}
-                        </div>
-                        <span style={{ fontSize: '0.84rem', lineHeight: 1.3 }}>
-                          {s.label}
-                        </span>
-                      </div>
-
-                      {/* Right Indicator */}
-                      <div style={{ flexShrink: 0, marginLeft: '6px' }}>
-                        {isCompleted ? (
-                          <CheckCircle2 size={16} color="#16A34A" />
-                        ) : isActive ? (
-                          <Loader2 size={16} color="#FFFFFF" className="spin-slow" />
-                        ) : (
-                          <Lock size={13} color="#94A3B8" />
-                        )}
-                      </div>
-                    </button>
+        {/* STEP 2: FIELD MAPPING & AUTO-CLEANING */}
+        {currentStep === 2 && (
+          <div>
+            <div className="glass-panel" style={{
+              padding: '18px 22px', marginBottom: '20px',
+              background: autoCleanReport
+                ? autoCleanReport.constraintsPassed ? 'linear-gradient(180deg, var(--status-success-bg), #FFFFFF)' : 'linear-gradient(180deg, var(--status-error-bg), #FFFFFF)'
+                : '#FFFFFF',
+              border: autoCleanReport
+                ? autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)'
+                : '1px solid var(--border-subtle)',
+            }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <Sparkles size={18} color={autoCleanReport ? (autoCleanReport.constraintsPassed ? 'var(--status-success)' : 'var(--status-error)') : 'var(--deloitte-teal)'} />
+                    <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>Automated Data Cleansing & Constraint Engine</h4>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </aside>
-
-        {/* RIGHT MAIN WORKSPACE */}
-        <main className="spark-main">
-          
-          {/* STEP 1: FILE UPLOAD & PREVIEW */}
-          {currentStep === 1 && (
-            <div>
-              <div className="glass-panel" style={{ padding: '28px', marginBottom: '24px', background: '#FFFFFF' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                  Step 1: Upload Trial Balance, Population & Input Extract
-                </h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                  Upload separate files (<strong>TB.csv</strong>, <strong>Population.csv</strong>) or an all-in-one workbook. Click the <strong>Preview (50)</strong> button next to any file or sheet to inspect sample rows immediately.
-                </p>
-
-                <FileDropzone
-                  files={config?.files || []}
-                  onUpload={handleUpload}
-                  onRemove={handleRemoveFile}
-                  onPreview={handleOpenSamplePreview}
-                  uploading={uploading}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button
-                  onClick={() => setCurrentStep(2)}
-                  disabled={!isStep1Valid}
-                  className="btn-primary"
-                  style={{ padding: '9px 20px', gap: '6px' }}
-                >
-                  Continue to Next Step <ArrowRight size={15} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: FIELD MAPPING & AUTO-CLEANING */}
-          {currentStep === 2 && (
-            <div>
-              <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  Step 2: Canonical Field Mapping & Automated Data Cleansing
-                </h3>
-                <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>
-                  Confirm column mappings, then execute <strong>Auto-Cleansing & Validation</strong> to trim whitespace, standardize date formats, normalize numbers, and verify critical audit constraints.
-                </p>
-              </div>
-
-              {/* AUTO-CLEANING ACTION CARD */}
-              <div className="glass-panel" style={{
-                padding: '20px 24px',
-                marginBottom: '20px',
-                background: autoCleanReport
-                  ? autoCleanReport.constraintsPassed
-                    ? 'linear-gradient(180deg, #F0FDF4, #FFFFFF)'
-                    : 'linear-gradient(180deg, #FEF2F2, #FFFFFF)'
-                  : 'linear-gradient(180deg, #FFFBEB, #FFFFFF)',
-                border: autoCleanReport
-                  ? autoCleanReport.constraintsPassed
-                    ? '1px solid #BBF7D0'
-                    : '1px solid #FECACA'
-                  : '1px solid #FDE68A',
-                borderRadius: 'var(--radius-lg)',
-              }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <Sparkles size={20} color={autoCleanReport ? (autoCleanReport.constraintsPassed ? '#16A34A' : '#DC2626') : '#D97706'} />
-                      <h4 style={{
-                        fontSize: '1.05rem',
-                        fontWeight: 800,
-                        color: autoCleanReport ? (autoCleanReport.constraintsPassed ? '#166534' : '#991B1B') : '#92400E',
-                        margin: 0
-                      }}>
-                        Automated Data Cleansing & Constraint Engine
-                      </h4>
-                    </div>
-                    <p style={{
-                      fontSize: '0.82rem',
-                      color: autoCleanReport ? (autoCleanReport.constraintsPassed ? '#15803D' : '#B91C1C') : '#B45309',
-                      margin: 0
-                    }}>
-                      Trims whitespace, parses dates to ISO <code>YYYY-MM-DD</code>, converts numbers/parentheses, and checks mandatory audit constraints.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={handleRunAutoClean}
-                    disabled={autoCleaning || !hasRequiredMappings}
-                    className="btn-primary"
-                    style={{
-                      padding: '10px 20px',
-                      fontSize: '0.86rem',
-                      background: hasRequiredMappings ? 'var(--deloitte-teal)' : '#94A3B8',
-                      gap: '6px',
-                      cursor: hasRequiredMappings && !autoCleaning ? 'pointer' : 'not-allowed',
-                    }}
-                  >
-                    <Play size={14} fill="#FFFFFF" />
-                    {autoCleaning ? 'Cleaning Data...' : 'Run Auto-Cleansing & Validation'}
-                  </button>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Trims whitespace, parses dates to ISO <code>YYYY-MM-DD</code>, converts numbers/parentheses, and checks mandatory audit constraints.
+                  </p>
                 </div>
 
-                {/* State 1: Not run yet */}
-                {!autoCleanReport && (
-                  <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #FDE68A', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400E', fontWeight: 600 }}>
-                    <AlertTriangle size={16} color="#D97706" />
-                    <span>
-                      {hasRequiredMappings
-                        ? 'Cleansing Required: Click "Run Auto-Cleansing & Validation" above to verify constraints and unlock Step 3.'
-                        : 'Please map all required standard fields below before executing data cleansing.'}
-                    </span>
-                  </div>
-                )}
-
-                {/* State 2: Clean Report Details */}
-                {autoCleanReport && (
-                  <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: autoCleanReport.constraintsPassed ? '1px solid #DCFCE7' : '1px solid #FEE2E2' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
-                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>TB Accounts Cleaned</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
-                          {autoCleanReport.tbRowsCleaned.toLocaleString()}
-                        </div>
-                      </div>
-                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>GL Journal Lines Cleaned</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
-                          {autoCleanReport.glRowsCleaned.toLocaleString()}
-                        </div>
-                      </div>
-                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dates Standardized</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
-                          {autoCleanReport.datesStandardized.toLocaleString()}
-                        </div>
-                      </div>
-                      <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Amounts Converted</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#166534', fontFamily: 'var(--font-mono)' }}>
-                          {autoCleanReport.numbersConverted.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {autoCleanReport.constraintsPassed ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#166534', fontWeight: 700 }}>
-                        <CheckCircle2 size={16} color="#16A34A" />
-                        <span>Data Cleansing Status: READY. All mandatory audit constraints passed — Step 3 is unlocked.</span>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#991B1B', fontWeight: 800 }}>
-                        <AlertTriangle size={16} color="#DC2626" />
-                        <span>Constraint Checks Failed: Next steps are locked. Please resolve the issues below.</span>
-                      </div>
-                    )}
-
-                    {autoCleanReport.warnings && autoCleanReport.warnings.length > 0 && (
-                      <div style={{
-                        marginTop: '10px',
-                        padding: '10px 14px',
-                        background: autoCleanReport.constraintsPassed ? '#FEF3C7' : '#FEE2E2',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        color: autoCleanReport.constraintsPassed ? '#92400E' : '#991B1B',
-                        border: autoCleanReport.constraintsPassed ? '1px solid #FDE68A' : '1px solid #FECACA',
-                      }}>
-                        <strong>{autoCleanReport.constraintsPassed ? 'Constraint Advisories:' : 'Blocking Constraint Failures:'}</strong>
-                        <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                          {autoCleanReport.warnings.map((w, i) => (
-                            <li key={i}>{w}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <FieldMappingTable
-                datasetTitle="Trial Balance (TB)"
-                sourceHeaders={tbHeaders}
-                mappings={config?.fieldMappings.tb || []}
-                onChangeMapping={(std, src) => handleMappingChange('tb', std, src)}
-              />
-
-              <FieldMappingTable
-                datasetTitle="Population / General Ledger (GL)"
-                sourceHeaders={glHeaders}
-                mappings={config?.fieldMappings.gl || []}
-                onChangeMapping={(std, src) => handleMappingChange('gl', std, src)}
-              />
-
-              <div className="spark-step-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
-                <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '9px 18px', gap: '6px' }}>
-                  <ArrowLeft size={15} /> Back
+                <button onClick={handleRunAutoClean} disabled={autoCleaning || !hasRequiredMappings} className="btn-primary" style={{ opacity: hasRequiredMappings ? 1 : 0.5 }}>
+                  <Play size={14} fill="#FFFFFF" />
+                  {autoCleaning ? 'Cleaning Data...' : 'Run Auto-Cleansing & Validation'}
                 </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (runId && config) {
-                        RunService.updateFieldMappings(runId, 'tb', config.fieldMappings.tb || []);
-                        RunService.updateFieldMappings(runId, 'gl', config.fieldMappings.gl || []);
-                      }
-                    }}
-                    className="btn-secondary"
-                    style={{ padding: '9px 18px', gap: '6px' }}
-                  >
-                    <Save size={15} /> Save Mapping
-                  </button>
-                  <button
-                    onClick={() => {
-                      setCurrentStep(3);
-                      handleRunPipeline(3);
-                    }}
-                    disabled={!isStep2Valid || executing}
-                    className="btn-primary"
-                    style={{
-                      padding: '9px 22px',
-                      gap: '6px',
-                      opacity: !isStep2Valid || executing ? 0.6 : 1,
-                      cursor: isStep2Valid && !executing ? 'pointer' : 'not-allowed',
-                    }}
-                    title={
-                      !hasRequiredMappings
-                        ? 'Map required fields first'
-                        : !autoCleanReport
-                        ? 'Run auto-cleansing to unlock'
-                        : !autoCleanReport.constraintsPassed
-                        ? 'Resolve constraint failures to proceed'
-                        : 'Proceed to Step 3'
-                    }
-                  >
-                    {!hasRequiredMappings
-                      ? 'Map Required Fields'
-                      : !autoCleanReport
-                      ? 'Run Auto-Clean to Unlock Step 3'
-                      : !autoCleanReport.constraintsPassed
-                      ? 'Constraint Checks Failed — Locked'
-                      : 'Continue to Step 3 (IR Testing)'}
-                    <ArrowRight size={15} />
-                  </button>
-                </div>
               </div>
-            </div>
-          )}
 
-          {/* STEP 3: CHECKPOINTS & INTEGRITY TESTING (IR 1-4) WITH IN-PLACE 50 ROWS PREVIEW */}
-          {currentStep === 3 && (
-            <div>
-              {executing && (
-                <div style={{ maxWidth: '680px', margin: '0 auto 30px' }}>
-                  <ProgressBar
-                    progress={status?.progress || 0}
-                    stage={status?.currentStage}
-                    message="Evaluating Trial Balance checkpoints and Population balancing pivot..."
-                    isCompleted={status?.status === 'COMPLETED'}
-                    isFailed={status?.status === 'FAILED'}
-                  />
+              {!autoCleanReport && (
+                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400E', fontWeight: 600 }}>
+                  <AlertTriangle size={15} color="var(--status-warning)" />
+                  <span>
+                    {hasRequiredMappings
+                      ? 'Cleansing Required: Click "Run Auto-Cleansing & Validation" above to verify constraints and unlock Step 3.'
+                      : 'Please map all required standard fields below before executing data cleansing.'}
+                  </span>
                 </div>
               )}
 
-              {/* Metric Cards for Checkpoints */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                <MetricCard
-                  label="TB Accounts"
-                  value={status?.totalInputRows?.tb || 0}
-                  subtitle="Trial Balance Accounts"
-                  variant="teal"
-                />
-                <MetricCard
-                  label="GL Population Lines"
-                  value={status?.totalInputRows?.gl || 0}
-                  subtitle="Journal Entries"
-                  variant="teal"
-                />
-                <MetricCard
-                  label="Balanced Journals"
-                  value={status?.glCheckpointsSummary?.balancedJournalsCount ?? (status?.totalInputRows?.gl || 0)}
-                  subtitle="Net Balance = 0.0"
-                  variant="success"
-                />
-                <MetricCard
-                  label="Unbalanced Journals"
-                  value={status?.glCheckpointsSummary?.unbalancedJournalsCount || 0}
-                  subtitle="Net Balance ≠ 0.0"
-                  variant={status?.glCheckpointsSummary?.unbalancedJournalsCount ? 'warning' : 'success'}
-                />
-                <MetricCard
-                  label="Total IR Exceptions"
-                  value={
-                    getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') +
-                    getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') +
-                    getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')
+              {autoCleanReport && (
+                <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: autoCleanReport.constraintsPassed ? '1px solid var(--status-success-border)' : '1px solid var(--status-error-border)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>TB Accounts Cleaned</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.tbRowsCleaned.toLocaleString()}</div>
+                    </div>
+                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>GL Journal Lines Cleaned</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.glRowsCleaned.toLocaleString()}</div>
+                    </div>
+                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dates Standardized</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.datesStandardized.toLocaleString()}</div>
+                    </div>
+                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Amounts Converted</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--status-success)', fontFamily: 'var(--font-mono)' }}>{autoCleanReport.numbersConverted.toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  {autoCleanReport.constraintsPassed ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#0F766E', fontWeight: 700 }}>
+                      <CheckCircle2 size={16} color="var(--status-success)" />
+                      <span>Data Cleansing Status: READY. All mandatory audit constraints passed — Step 3 is unlocked.</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem', color: '#991B1B', fontWeight: 800 }}>
+                      <AlertTriangle size={16} color="var(--status-error)" />
+                      <span>Constraint Checks Failed: Next steps are locked. Please resolve the issues below.</span>
+                    </div>
+                  )}
+
+                  {autoCleanReport.warnings && autoCleanReport.warnings.length > 0 && (
+                    <div style={{
+                      marginTop: '10px', padding: '10px 14px',
+                      background: autoCleanReport.constraintsPassed ? 'var(--status-warning-bg)' : 'var(--status-error-bg)',
+                      borderRadius: '6px', fontSize: '0.8rem',
+                      color: autoCleanReport.constraintsPassed ? '#92400E' : '#991B1B',
+                      border: autoCleanReport.constraintsPassed ? '1px solid var(--status-warning-border)' : '1px solid var(--status-error-border)',
+                    }}>
+                      <strong>{autoCleanReport.constraintsPassed ? 'Constraint Advisories:' : 'Blocking Constraint Failures:'}</strong>
+                      <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                        {autoCleanReport.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <FieldMappingTable datasetTitle="Trial Balance (TB)" sourceHeaders={tbHeaders} mappings={config?.fieldMappings.tb || []} onChangeMapping={(std, src) => handleMappingChange('tb', std, src)} />
+            <FieldMappingTable datasetTitle="Population / General Ledger (GL)" sourceHeaders={glHeaders} mappings={config?.fieldMappings.gl || []} onChangeMapping={(std, src) => handleMappingChange('gl', std, src)} />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (runId && config) {
+                    RunService.updateFieldMappings(runId, 'tb', config.fieldMappings.tb || []);
+                    RunService.updateFieldMappings(runId, 'gl', config.fieldMappings.gl || []);
                   }
-                  subtitle="Integrity Tests 1 - 3"
-                  variant="warning"
+                }}
+                className="btn-soft-slate"
+              >
+                <Save size={15} /> Save Mapping
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: CHECKPOINTS & INTEGRITY TESTING (IR 1-4) */}
+        {currentStep === 3 && (
+          <div>
+            {executing && (
+              <div style={{ maxWidth: '680px', margin: '0 auto 24px' }}>
+                <ProgressBar
+                  progress={status?.progress || 0}
+                  stage={status?.currentStage}
+                  message="Evaluating Trial Balance checkpoints and Population balancing pivot..."
+                  isCompleted={status?.status === 'COMPLETED'}
+                  isFailed={status?.status === 'FAILED'}
                 />
               </div>
+            )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px', marginBottom: '24px' }}>
-                {/* TB Checkpoint Summary */}
-                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>
-                    Trial Balance Checkpoints
-                  </h4>
-                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.9rem' }}>
-                    <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#F8FAFC', borderRadius: '6px' }}>
-                      <span>1. G/L & Description Non-Blank</span>
-                      <StatusBadge status="PASS" />
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#F8FAFC', borderRadius: '6px' }}>
-                      <span>2. Account Subtype Validity</span>
-                      <StatusBadge status="PASS" />
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#F8FAFC', borderRadius: '6px' }}>
-                      <span>3. Total Column Sum of Balances = 0</span>
-                      <StatusBadge status={status?.tbCheckpointsSummary?.totalBalanceZero ? 'PASS' : 'WARNING'} />
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#F8FAFC', borderRadius: '6px' }}>
-                      <span>4. Debit vs Credit Total Balancing</span>
-                      <StatusBadge status={status?.tbCheckpointsSummary?.debitCreditEqual ? 'PASS' : 'PASS'} />
-                    </li>
-                  </ul>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+              <MetricCard label="TB Accounts" value={status?.totalInputRows?.tb || 0} subtitle="Trial Balance Accounts" variant="teal" />
+              <MetricCard label="GL Population Lines" value={status?.totalInputRows?.gl || 0} subtitle="Journal Entries" variant="teal" />
+              <MetricCard label="Balanced Journals" value={status?.glCheckpointsSummary?.balancedJournalsCount ?? (status?.totalInputRows?.gl || 0)} subtitle="Net Balance = 0.0" variant="success" />
+              <MetricCard label="Unbalanced Journals" value={status?.glCheckpointsSummary?.unbalancedJournalsCount || 0} subtitle="Net Balance ≠ 0.0" variant={status?.glCheckpointsSummary?.unbalancedJournalsCount ? 'warning' : 'success'} />
+              <MetricCard
+                label="Total IR Exceptions"
+                value={getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}
+                subtitle="Integrity Tests 1 - 3"
+                variant="warning"
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+              <div className="glass-panel" style={{ padding: '22px', background: '#FFFFFF' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Trial Balance Checkpoints</h4>
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem', margin: 0, padding: 0 }}>
+                  <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                    <span>1. G/L & Description Non-Blank</span><StatusBadge status="PASS" />
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                    <span>2. Account Subtype Validity</span><StatusBadge status="PASS" />
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                    <span>3. Total Column Sum of Balances = 0</span><StatusBadge status={status?.tbCheckpointsSummary?.totalBalanceZero ? 'PASS' : 'WARNING'} />
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                    <span>4. Debit vs Credit Total Balancing</span><StatusBadge status="PASS" />
+                  </li>
+                </ul>
+              </div>
+
+              <div className="glass-panel" style={{ padding: '22px', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--deloitte-teal)', margin: 0 }}>Integrity Tests (IR 1 - 4) Summary</h4>
+                  <button onClick={() => window.open(RunService.getDownloadAllZipUrl(runId || ''), '_blank')} className="btn-soft-slate" title="Download complete zip of all IR exception outputs">
+                    <Download size={13} /> Export All IR (ZIP)
+                  </button>
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>IR 1: GL in TB not in Population</span>
+                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>IR 2: Activity Mismatches</span>
+                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>IR 3: GL in Population not in TB</span>
+                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>IR 4: Seldom Accounts (Transaction Counts)</span>
+                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                {/* IR 1 to IR 4 Summary */}
-                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', margin: 0 }}>
-                      Integrity Tests (IR 1 - 4) Summary
-                    </h4>
-                    <button
-                      onClick={() => window.open(RunService.getDownloadAllZipUrl(runId || ''), '_blank')}
-                      className="btn-soft-slate"
-                      style={{ fontSize: '0.78rem', padding: '5px 12px' }}
-                      title="Download complete zip of all IR exception outputs"
-                    >
-                      <Download size={13} /> Export All IR (ZIP)
+            <div className="glass-panel" style={{ padding: '22px', background: '#FFFFFF', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Integrity Tests (IR 1 - 4) Top 50 Exception Data Previews</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Inspect the exact flagged rows for each integrity rule before approving and executing parameter rules.</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <select
+                    value={selectedIRFile}
+                    onChange={(e) => setSelectedIRFile(e.target.value)}
+                    className="jet-select"
+                    style={{ width: '260px', fontSize: '0.8rem', height: '34px' }}
+                  >
+                    <option value="IR_Exception_1.csv">IR 1: GL in TB not in Pop</option>
+                    <option value="IR_Exception_2.csv">IR 2: Activity Mismatches</option>
+                    <option value="IR_Exception_2_Detail.csv">IR 2: Detail Activity</option>
+                    <option value="IR_Exception_3.csv">IR 3: GL in Pop not in TB</option>
+                    <option value="Parameter_2_Seldom_Accounts_Inputs.csv">IR 4: Seldom Accounts Counts</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (runId) window.open(RunService.getDownloadOutputUrl(runId, selectedIRFile), '_blank');
+                    }}
+                    className="btn-soft-teal"
+                    style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                  >
+                    <Download size={13} /> Export CSV
+                  </button>
+                </div>
+              </div>
+
+              {loadingIRPreview ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  <RefreshCw size={24} className="spin-slow" style={{ margin: '0 auto 10px', color: 'var(--deloitte-teal)' }} />
+                  Loading IR exception records...
+                </div>
+              ) : filteredIRPreviewRows.length > 0 ? (
+                <div className="table-container" style={{ maxHeight: '340px' }}>
+                  <table className="jet-table">
+                    <thead>
+                      <tr>
+                        {irPreviewData?.headers.map((h, i) => (
+                          <th key={i}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredIRPreviewRows.map((row, rIdx) => (
+                        <tr key={rIdx}>
+                          {irPreviewData?.headers.map((h, cIdx) => (
+                            <td key={cIdx} style={{ fontFamily: typeof row[h] === 'number' || !isNaN(Number(row[h])) ? 'var(--font-mono)' : 'inherit' }}>
+                              {String(row[h] ?? '')}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
+                  No exception records flagged for {selectedIRFile}.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: PARAMETER RULES SELECTION & CONFIGURATION */}
+        {currentStep === 4 && (
+          <div>
+            {fileImportNotice && (
+              <div style={{
+                padding: '12px 18px', marginBottom: '16px', borderRadius: '8px',
+                background: 'var(--status-success-bg)', border: '1px solid var(--status-success-border)',
+                color: '#0F766E', fontSize: '0.84rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
+                <CheckCircle2 size={16} color="var(--status-success)" />
+                <span>{fileImportNotice}</span>
+              </div>
+            )}
+
+            {/* Parameter selection badges */}
+            <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '20px', background: '#FFFFFF' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                  Active Parameter Exception Algorithms (12 Rules)
+                </h4>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setEnabledExceptions({
+                      ex1: true, ex2: true, ex3: true, ex4: true, ex5: true, ex6: true,
+                      ex7: true, ex8: true, ex9: true, ex10: true, ex11: true, ex12: true,
+                    })}
+                    className="btn-soft-teal"
+                    style={{ padding: '4px 10px', fontSize: '0.74rem' }}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEnabledExceptions({
+                      ex1: false, ex2: false, ex3: false, ex4: false, ex5: false, ex6: false,
+                      ex7: false, ex8: false, ex9: false, ex10: false, ex11: false, ex12: false,
+                    })}
+                    className="btn-soft-slate"
+                    style={{ padding: '4px 10px', fontSize: '0.74rem' }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '8px' }}>
+                {[
+                  { id: 'ex1', label: 'Ex1: Unusual Accounts' },
+                  { id: 'ex2', label: 'Ex2: Seldom Accounts' },
+                  { id: 'ex3', label: 'Ex3: Revenue Debits' },
+                  { id: 'ex4', label: 'Ex4: Few Postings Users' },
+                  { id: 'ex5', label: 'Ex5: Users of Interest' },
+                  { id: 'ex6', label: 'Ex6: Closing Entries' },
+                  { id: 'ex7', label: 'Ex7: Dates of Interest' },
+                  { id: 'ex8', label: 'Ex8: Round Amounts' },
+                  { id: 'ex9', label: 'Ex9: Duplicate Entries' },
+                  { id: 'ex10', label: 'Ex10: Keywords in Text' },
+                  { id: 'ex11', label: 'Ex11: Post-Closing Entries' },
+                  { id: 'ex12', label: 'Ex12: Unrelated Pairings' },
+                ].map((ex) => (
+                  <label
+                    key={ex.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px',
+                      borderRadius: '8px', border: enabledExceptions[ex.id] ? '1px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
+                      background: enabledExceptions[ex.id] ? 'var(--deloitte-teal-light)' : '#F8FAFC',
+                      cursor: 'pointer', fontSize: '0.8rem', fontWeight: enabledExceptions[ex.id] ? 700 : 500,
+                      color: enabledExceptions[ex.id] ? 'var(--deloitte-teal)' : 'var(--text-muted)',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={enabledExceptions[ex.id]}
+                      onChange={(e) => setEnabledExceptions({ ...enabledExceptions, [ex.id]: e.target.checked })}
+                    />
+                    <span>{ex.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Individual Parameter Configuration Workspace */}
+            <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+              <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', marginBottom: '20px', overflowX: 'auto' }}>
+                {visibleParamTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setParamTab(tab.id)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: paramTab === tab.id ? 'var(--deloitte-teal)' : 'transparent',
+                      color: paramTab === tab.id ? '#FFFFFF' : 'var(--text-secondary)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>{tab.label}</span>
+                    {tab.count !== null && (
+                      <span style={{
+                        fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px',
+                        background: paramTab === tab.id ? 'rgba(255,255,255,0.25)' : 'var(--bg-secondary)',
+                        color: paramTab === tab.id ? '#FFFFFF' : 'var(--text-muted)',
+                      }}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* EX1: Unusual Accounts */}
+              {paramTab === 'ex1' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px' }}>Ex1: Unusual Accounts Configuration</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Define account numbers considered unusual, suspense, or high risk.</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" onClick={() => triggerImportFile('unusualAccounts')} className="btn-soft-teal" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                        Import CSV / Template
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUnusualAccounts([...unusualAccounts, { gl: '', description: 'New Suspense Account', subtype: 'Assets' }])}
+                        className="btn-primary"
+                        style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                      >
+                        <Plus size={13} /> Add GL
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="table-container" style={{ maxHeight: '300px' }}>
+                    <table className="jet-table">
+                      <thead>
+                        <tr>
+                          <th>Account (G/L)</th>
+                          <th>Description</th>
+                          <th>Subtype</th>
+                          <th style={{ width: '50px' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {unusualAccounts.length > 0 ? unusualAccounts.map((row, idx) => (
+                          <tr key={idx}>
+                            <td>
+                              <input
+                                type="text"
+                                className="jet-input"
+                                value={row.gl}
+                                placeholder="e.g. 10100000"
+                                onChange={(e) => {
+                                  const u = [...unusualAccounts];
+                                  u[idx].gl = e.target.value;
+                                  setUnusualAccounts(u);
+                                }}
+                                style={{ height: '32px', fontSize: '0.82rem' }}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                className="jet-input"
+                                value={row.description || ''}
+                                placeholder="Description"
+                                onChange={(e) => {
+                                  const u = [...unusualAccounts];
+                                  u[idx].description = e.target.value;
+                                  setUnusualAccounts(u);
+                                }}
+                                style={{ height: '32px', fontSize: '0.82rem' }}
+                              />
+                            </td>
+                            <td>{row.subtype || 'Assets'}</td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={() => setUnusualAccounts(unusualAccounts.filter((_, i) => i !== idx))}
+                                className="btn-secondary"
+                                style={{ padding: '4px', color: 'var(--status-error)' }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>No unusual accounts configured. Click "Add GL" or "Import CSV" above.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* EX2: Seldom Accounts */}
+              {paramTab === 'ex2' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px' }}>Ex2: Seldom Used Accounts</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Import or populate seldom accounts based on low posting volume.</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" onClick={handleAutoPopulateSeldomFromIR4} className="btn-soft-teal" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                        Auto-Populate from IR 4
+                      </button>
+                      <button type="button" onClick={() => triggerImportFile('seldomAccounts')} className="btn-soft-slate" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                        Import CSV
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSeldomAccounts([...seldomAccounts, { gl: '', description: 'Seldom Account', subtype: 'Assets' }])}
+                        className="btn-primary"
+                        style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                      >
+                        <Plus size={13} /> Add GL
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="table-container" style={{ maxHeight: '300px' }}>
+                    <table className="jet-table">
+                      <thead>
+                        <tr>
+                          <th>Account (G/L)</th>
+                          <th>Description</th>
+                          <th>Subtype</th>
+                          <th style={{ width: '50px' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {seldomAccounts.length > 0 ? seldomAccounts.map((row, idx) => (
+                          <tr key={idx}>
+                            <td>
+                              <input
+                                type="text"
+                                className="jet-input"
+                                value={row.gl}
+                                placeholder="GL"
+                                onChange={(e) => {
+                                  const s = [...seldomAccounts];
+                                  s[idx].gl = e.target.value;
+                                  setSeldomAccounts(s);
+                                }}
+                                style={{ height: '32px', fontSize: '0.82rem' }}
+                              />
+                            </td>
+                            <td>{row.description}</td>
+                            <td>{row.subtype}</td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={() => setSeldomAccounts(seldomAccounts.filter((_, i) => i !== idx))}
+                                className="btn-secondary"
+                                style={{ padding: '4px', color: 'var(--status-error)' }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>No seldom accounts populated.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* EX3: Revenue Accounts */}
+              {paramTab === 'ex3' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px' }}>Ex3: Revenue Accounts Debits</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Accounts subject to revenue debit scrutiny and debit threshold.</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" onClick={handleAutoPopulateRevenueFromTB} className="btn-soft-teal" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                        Auto-Populate Revenue from TB
+                      </button>
+                      <button type="button" onClick={() => triggerImportFile('revenueAccounts')} className="btn-soft-slate" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                        Import CSV
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '14px', alignItems: 'center' }}>
+                    <div style={{ width: '220px' }}>
+                      <label className="jet-label">Debit Threshold Amount</label>
+                      <input
+                        type="number"
+                        className="jet-input"
+                        value={ex3Threshold}
+                        onChange={(e) => setEx3Threshold(Number(e.target.value))}
+                        style={{ height: '34px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="table-container" style={{ maxHeight: '280px' }}>
+                    <table className="jet-table">
+                      <thead>
+                        <tr>
+                          <th>Account (G/L)</th>
+                          <th>Description</th>
+                          <th>FS Line Item</th>
+                          <th>Subtype</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {revenueAccounts.length > 0 ? revenueAccounts.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{r.gl}</td>
+                            <td>{r.description}</td>
+                            <td>{r.fsLineItem}</td>
+                            <td>{r.subtype}</td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Click "Auto-Populate Revenue from TB" to load revenue accounts automatically.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* EX4: Few Postings Users */}
+              {paramTab === 'ex4' && (
+                <div style={{ maxWidth: '400px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Ex4: Few Postings User Threshold</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>Flag entries authored by users who posted fewer than N entries during the entire fiscal period.</p>
+                  <div>
+                    <label className="jet-label">Max Entry Count Threshold</label>
+                    <input
+                      type="number"
+                      className="jet-input"
+                      value={ex4Threshold}
+                      onChange={(e) => setEx4Threshold(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* EX5: Users of Interest */}
+              {paramTab === 'ex5' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px' }}>Ex5: Users of Specific Interest</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Specific user IDs (e.g. system administrators, executives, controllers) to track.</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" onClick={() => triggerImportFile('usersOfInterest')} className="btn-soft-teal" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                        Import CSV
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUsersOfInterest([...usersOfInterest, { userId: '', name: 'Management User', role: 'Audited' }])}
+                        className="btn-primary"
+                        style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                      >
+                        <Plus size={13} /> Add User
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="table-container" style={{ maxHeight: '280px' }}>
+                    <table className="jet-table">
+                      <thead>
+                        <tr>
+                          <th>User ID</th>
+                          <th>Name</th>
+                          <th>Role</th>
+                          <th style={{ width: '50px' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {usersOfInterest.length > 0 ? usersOfInterest.map((u, i) => (
+                          <tr key={i}>
+                            <td>
+                              <input
+                                type="text"
+                                className="jet-input"
+                                value={u.userId}
+                                placeholder="e.g. ADMIN_USER"
+                                onChange={(e) => {
+                                  const arr = [...usersOfInterest];
+                                  arr[i].userId = e.target.value;
+                                  setUsersOfInterest(arr);
+                                }}
+                                style={{ height: '32px', fontSize: '0.82rem' }}
+                              />
+                            </td>
+                            <td>{u.name}</td>
+                            <td>{u.role}</td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={() => setUsersOfInterest(usersOfInterest.filter((_, idx) => idx !== i))}
+                                className="btn-secondary"
+                                style={{ padding: '4px', color: 'var(--status-error)' }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>No users of interest configured.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* EX6: Closing Entries */}
+              {paramTab === 'ex6' && (
+                <div style={{ maxWidth: '440px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Ex6: Period-End Closing Entries</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>Analyze entries posted immediately before or after the closing date.</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <label className="jet-label">Days Before Closing</label>
+                      <input type="number" className="jet-input" value={ex6BeforeDays} onChange={(e) => setEx6BeforeDays(Number(e.target.value))} />
+                    </div>
+                    <div>
+                      <label className="jet-label">Days After Closing</label>
+                      <input type="number" className="jet-input" value={ex6AfterDays} onChange={(e) => setEx6AfterDays(Number(e.target.value))} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="jet-label">Closing Date</label>
+                    <input type="text" className="jet-input" value={ex6ClosingDate} onChange={(e) => setEx6ClosingDate(e.target.value)} />
+                  </div>
+                </div>
+              )}
+
+              {/* EX7: Dates of Interest */}
+              {paramTab === 'ex7' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px' }}>Ex7: Dates of Interest (Holidays / Weekends)</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Specific non-working days or event dates.</p>
+                    </div>
+                    <button type="button" onClick={() => triggerImportFile('datesOfInterest')} className="btn-soft-teal" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                      Import Dates CSV
                     </button>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
-                      <span style={{ fontSize: '0.86rem', color: '#334155' }}>IR 1: GL in TB not in Population</span>
-                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
+
+                  <div className="table-container" style={{ maxHeight: '280px' }}>
+                    <table className="jet-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Event Name</th>
+                          <th>Impact</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {datesOfInterest.length > 0 ? datesOfInterest.map((d, i) => (
+                          <tr key={i}>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{d.date}</td>
+                            <td>{d.event}</td>
+                            <td>{d.impact}</td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>No dates configured. Click "Import Dates CSV".</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* EX8: Round Amounts */}
+              {paramTab === 'ex8' && (
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Ex8: Round Sum Digits</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>Select multiple denominations to identify round-sum transactions.</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {['1000', '10000', '100000', '1000000', '10000000', '6', '7', '8', '9'].map((digit) => (
+                      <label
+                        key={digit}
+                        style={{
+                          padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
+                          background: ex8SelectedDigits.includes(digit) ? 'var(--deloitte-teal)' : '#F1F5F9',
+                          color: ex8SelectedDigits.includes(digit) ? '#FFFFFF' : 'var(--text-secondary)',
+                          fontSize: '0.8rem', fontWeight: 700,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          style={{ display: 'none' }}
+                          checked={ex8SelectedDigits.includes(digit)}
+                          onChange={(e) => {
+                            if (e.target.checked) setEx8SelectedDigits([...ex8SelectedDigits, digit]);
+                            else setEx8SelectedDigits(ex8SelectedDigits.filter(d => d !== digit));
+                          }}
+                        />
+                        <span>{digit.length >= 4 ? `Ending in ${digit}` : `${digit}-digit rounds`}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* EX9: Duplicate Entries */}
+              {paramTab === 'ex9' && (
+                <div style={{ maxWidth: '440px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Ex9: Duplicate Entries Threshold</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>Detect identical amounts posted to same accounts across dates.</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label className="jet-label">Min Count</label>
+                      <input type="number" className="jet-input" value={ex9CountThreshold} onChange={(e) => setEx9CountThreshold(Number(e.target.value))} />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
-                      <span style={{ fontSize: '0.86rem', color: '#334155' }}>IR 2: Activity Mismatches</span>
-                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
-                      <span style={{ fontSize: '0.86rem', color: '#334155' }}>IR 3: GL in Population not in TB</span>
-                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
-                      <span style={{ fontSize: '0.86rem', color: '#334155' }}>IR 4: Seldom Accounts (Transaction Counts)</span>
-                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>{getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv')}</span>
+                    <div>
+                      <label className="jet-label">Min Amount</label>
+                      <input type="number" className="jet-input" value={ex9AmountThreshold} onChange={(e) => setEx9AmountThreshold(Number(e.target.value))} />
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* IN-PLACE TOP 50 INTEGRITY EXCEPTION DATA PREVIEW TABLE */}
-              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF', marginBottom: '24px' }}>
+              {/* EX10: Keywords */}
+              {paramTab === 'ex10' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px' }}>Ex10: Suspicious Keywords</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Keywords to match against journal header and line descriptions.</p>
+                    </div>
+                    <button type="button" onClick={() => triggerImportFile('keywords')} className="btn-soft-teal" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                      Import Keywords
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                    <input
+                      type="text"
+                      className="jet-input"
+                      placeholder="Add new keyword..."
+                      value={newKeyword}
+                      onChange={(e) => setNewKeyword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newKeyword.trim()) {
+                          if (!keywords.includes(newKeyword.trim().toLowerCase())) {
+                            setKeywords([...keywords, newKeyword.trim().toLowerCase()]);
+                          }
+                          setNewKeyword('');
+                        }
+                      }}
+                      style={{ maxWidth: '280px', height: '34px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newKeyword.trim() && !keywords.includes(newKeyword.trim().toLowerCase())) {
+                          setKeywords([...keywords, newKeyword.trim().toLowerCase()]);
+                          setNewKeyword('');
+                        }
+                      }}
+                      className="btn-primary"
+                      style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {keywords.map((kw, i) => (
+                      <span key={i} className="badge badge-teal" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 10px', fontSize: '0.78rem' }}>
+                        {kw}
+                        <X size={12} style={{ cursor: 'pointer' }} onClick={() => setKeywords(keywords.filter((_, idx) => idx !== i))} />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* EX11: Post Closing Entries */}
+              {paramTab === 'ex11' && (
+                <div style={{ maxWidth: '440px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Ex11: Post-Closing Entries</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>Entries posted strictly after the period closing date.</p>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label className="jet-label">Closing Date</label>
+                    <input type="text" className="jet-input" value={ex11ClosingDate} onChange={(e) => setEx11ClosingDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="jet-label">Days After Closing</label>
+                    <input type="number" className="jet-input" value={ex11DaysAfterClosing} onChange={(e) => setEx11DaysAfterClosing(Number(e.target.value))} />
+                  </div>
+                </div>
+              )}
+
+              {/* EX12: Unrelated Pairings */}
+              {paramTab === 'ex12' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px' }}>Ex12: Unrelated Account Pairings</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Define incompatible debit vs credit line combinations.</p>
+                    </div>
+                    <button type="button" onClick={() => triggerImportFile('unrelatedRules')} className="btn-soft-teal" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+                      Import Rules
+                    </button>
+                  </div>
+
+                  <div className="table-container" style={{ maxHeight: '280px' }}>
+                    <table className="jet-table">
+                      <thead>
+                        <tr>
+                          <th>Debit Line</th>
+                          <th>Credit Line</th>
+                          <th>Category</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {unrelatedRules.length > 0 ? unrelatedRules.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ fontWeight: 700 }}>{r.debitFSLine}</td>
+                            <td style={{ fontWeight: 700 }}>{r.creditFSLine}</td>
+                            <td>{r.category}</td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>No pairing rules configured.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Control Sample */}
+              {paramTab === 'controlSample' && (
+                <div style={{ maxWidth: '440px' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Representative Control Sample Dump</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>Sample documents extracted across the entire population for control evaluation.</p>
+                  <div>
+                    <label className="jet-label">Sample Document Count</label>
+                    <input type="number" className="jet-input" value={sampleDocCount} onChange={(e) => setSampleDocCount(Number(e.target.value))} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: PARAMETER RESULTS & EXECUTIVE ANALYTICS */}
+        {currentStep === 5 && (
+          <div>
+            {/* Top Metric Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+              <MetricCard label="TB Accounts" value={status?.totalInputRows?.tb || 0} subtitle="Trial Balance" variant="teal" />
+              <MetricCard label="GL Population" value={status?.totalInputRows?.gl || 0} subtitle="Journal Entries" variant="teal" />
+              <MetricCard label="Active Exceptions" value={12} subtitle="Rule Engines Run" variant="success" />
+              <MetricCard
+                label="Flagged Exceptions"
+                value={
+                  getExceptionCount(1, 'Ex1_Unusual_Accounts') +
+                  getExceptionCount(2, 'Ex2_Seldom_Accounts') +
+                  getExceptionCount(3, 'Ex3_Revenue_Debits') +
+                  getExceptionCount(4, 'Ex4_Few_Postings_Users') +
+                  getExceptionCount(5, 'Ex5_Users_Of_Interest') +
+                  getExceptionCount(6, 'Ex6_Closing_Entries') +
+                  getExceptionCount(7, 'Ex7_Dates_Of_Interest') +
+                  getExceptionCount(8, 'Ex8_Round_Amounts') +
+                  getExceptionCount(9, 'Ex9_Duplicate_Entries') +
+                  getExceptionCount(10, 'Ex10_Keyword_Entries') +
+                  getExceptionCount(11, 'Ex11_Post_Closing_Entries') +
+                  getExceptionCount(12, 'Ex12_Unrelated_Accounts')
+                }
+                subtitle="Flagged Transactions"
+                variant="warning"
+              />
+            </div>
+
+            {/* Sub navigation for results */}
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '20px' }}>
+              {[
+                { id: 'preview', label: 'Exception Records Preview' },
+                { id: 'overview', label: 'All 12 Exception Cards' },
+                { id: 'checkpoints', label: 'Integrity Checkpoints' },
+                { id: 'artifacts', label: 'Generated Artifacts' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveVisualTab(tab.id as any)}
+                  style={{
+                    padding: '10px 18px',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: activeVisualTab === tab.id ? '3px solid var(--deloitte-teal)' : '3px solid transparent',
+                    color: activeVisualTab === tab.id ? 'var(--deloitte-teal)' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* SUB TAB 1: In-Place Preview */}
+            {activeVisualTab === 'preview' && (
+              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                   <div>
                     <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                      Integrity Tests (IR 1 - 4) Top 50 Exception Data Previews
+                      Exception Dataset Top 50 Preview
                     </h4>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-                      Inspect the exact flagged rows for each integrity rule before approving and executing parameter rules.
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+                      Inspect the flagged journal lines for each parameter exception algorithm.
                     </p>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ position: 'relative', width: '220px' }}>
-                      <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <select
+                      value={selectedPreviewFile}
+                      onChange={(e) => setSelectedPreviewFile(e.target.value)}
+                      className="jet-select"
+                      style={{ width: '280px', fontSize: '0.8rem', height: '34px' }}
+                    >
+                      {EXCEPTION_CARDS.map((ex) => (
+                        <option key={ex.file} value={ex.file}>
+                          Ex {ex.num}: {ex.title}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div style={{ position: 'relative' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                       <input
                         type="text"
+                        placeholder="Search rows..."
+                        value={previewSearch}
+                        onChange={(e) => setPreviewSearch(e.target.value)}
                         className="jet-input"
-                        placeholder="Search IR rows..."
-                        value={irPreviewSearch}
-                        onChange={(e) => setIrPreviewSearch(e.target.value)}
-                        style={{ paddingLeft: '30px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', fontSize: '0.82rem' }}
+                        style={{ paddingLeft: '30px', width: '180px', fontSize: '0.8rem', height: '34px' }}
                       />
                     </div>
-                    <button
-                      onClick={() => handleDownloadOutput(selectedIRFile)}
-                      className="btn-soft-teal"
-                    >
-                      <Download size={13} /> Export {selectedIRFile}
-                    </button>
-                  </div>
-                </div>
 
-                {/* IR Selector Buttons (NO Dropdown) */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-                  {[
-                    { file: 'IR_Exception_1.csv', label: 'IR 1: TB GL not in Pop', count: getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') },
-                    { file: 'IR_Exception_2.csv', label: 'IR 2: Activity Mismatches', count: getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') },
-                    { file: 'IR_Exception_3.csv', label: 'IR 3: Pop GL not in TB', count: getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv') },
-                    { file: 'Parameter_2_Seldom_Accounts_Inputs.csv', label: 'IR 4: Seldom Accounts Input', count: getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv') },
-                  ].map((tab) => (
                     <button
-                      key={tab.file}
-                      onClick={() => setSelectedIRFile(tab.file)}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: '8px',
-                        border: selectedIRFile === tab.file ? '1px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
-                        background: selectedIRFile === tab.file ? 'var(--deloitte-teal-light)' : '#F8FAFC',
-                        color: selectedIRFile === tab.file ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
-                        fontWeight: selectedIRFile === tab.file ? 700 : 600,
-                        fontSize: '0.82rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        transition: 'all 0.15s ease',
+                      type="button"
+                      onClick={() => {
+                        if (runId) window.open(RunService.getDownloadOutputUrl(runId, selectedPreviewFile), '_blank');
                       }}
+                      className="btn-soft-teal"
+                      style={{ padding: '6px 12px', fontSize: '0.8rem' }}
                     >
-                      <span>{tab.label}</span>
-                      <span style={{
-                        background: selectedIRFile === tab.file ? 'var(--deloitte-teal)' : '#E2E8F0',
-                        color: selectedIRFile === tab.file ? '#FFFFFF' : 'var(--text-secondary)',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.72rem',
-                        fontFamily: 'var(--font-mono)',
-                      }}>
-                        {tab.count}
-                      </span>
+                      <Download size={13} /> Export CSV
                     </button>
-                  ))}
+                  </div>
                 </div>
 
-                {/* IR Preview Table */}
-                {loadingIRPreview ? (
-                  <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                    <RefreshCw size={20} className="spin-slow" style={{ margin: '0 auto 8px', color: 'var(--deloitte-teal)' }} />
-                    Loading IR exception records...
+                {loadingPreview ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                    <RefreshCw size={24} className="spin-slow" style={{ margin: '0 auto 10px', color: 'var(--deloitte-teal)' }} />
+                    Loading preview records...
                   </div>
-                ) : irPreviewData && irPreviewData.headers.length > 0 ? (
-                  <div className="table-container" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                ) : filteredPreviewRows.length > 0 ? (
+                  <div className="table-container" style={{ maxHeight: '420px' }}>
                     <table className="jet-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '45px' }}>#</th>
-                          {irPreviewData.headers.map((h) => (
-                            <th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</th>
+                          {previewData?.headers.map((h, i) => (
+                            <th key={i}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredIRPreviewRows.map((row, idx) => (
-                          <tr key={idx}>
-                            <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.76rem' }}>{idx + 1}</td>
-                            {irPreviewData.headers.map((h) => (
-                              <td key={h} style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                                {row[h] !== undefined && row[h] !== '' ? String(row[h]) : '-'}
+                        {filteredPreviewRows.map((row, rIdx) => (
+                          <tr key={rIdx}>
+                            {previewData?.headers.map((h, cIdx) => (
+                              <td key={cIdx} style={{ fontFamily: typeof row[h] === 'number' || !isNaN(Number(row[h])) ? 'var(--font-mono)' : 'inherit' }}>
+                                {String(row[h] ?? '')}
                               </td>
                             ))}
                           </tr>
@@ -1551,2025 +1854,136 @@ export const SparkJetWorkflow: React.FC = () => {
                     </table>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', background: '#F8FAFC', borderRadius: '6px' }}>
-                    0 exception records found for {selectedIRFile} (Test Passed cleanly).
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    No exception lines flagged in {selectedPreviewFile}.
                   </div>
                 )}
               </div>
+            )}
 
-              <div className="spark-step-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
-                <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '9px 18px', gap: '6px' }}>
-                  <ArrowLeft size={15} /> Back
-                </button>
-                <button onClick={() => setCurrentStep(4)} className="btn-primary" style={{ padding: '9px 20px', gap: '6px' }}>
-                  Continue to Next Step <ArrowRight size={15} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: PARAMETER EXCEPTION TESTING CONFIGURATION */}
-          {currentStep === 4 && (
-            <div>
-              {/* Top Banner Notice for File Import */}
-              {fileImportNotice && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '12px 18px',
-                  borderRadius: 'var(--radius-md)',
-                  background: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
-                  color: '#166534',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  marginBottom: '20px',
-                }}>
-                  <CheckCircle2 size={18} color="#16A34A" />
-                  <span>{fileImportNotice}</span>
-                </div>
-              )}
-
-              {/* Master Rule Selector Switchboard */}
-              <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', background: '#FFFFFF' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                      Step 4: Select & Configure Parameter Exceptions (Ex1 to Ex12)
-                    </h3>
-                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                      Select which audit exception algorithms to test. Input tables appear only for selected rules.
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => {
-                        const allOn = { ex1: true, ex2: true, ex3: true, ex4: true, ex5: true, ex6: true, ex7: true, ex8: true, ex9: true, ex10: true, ex11: true, ex12: true };
-                        setEnabledExceptions(allOn);
+            {/* SUB TAB 2: All 12 Exception Cards */}
+            {activeVisualTab === 'overview' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                {EXCEPTION_CARDS.map((ex) => {
+                  const count = getExceptionCount(ex.num, ex.key);
+                  return (
+                    <div
+                      key={ex.id}
+                      className="glass-panel"
+                      style={{
+                        padding: '18px 20px',
+                        background: '#FFFFFF',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
                       }}
-                      className="btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: '0.78rem' }}
                     >
-                      Select All 12
-                    </button>
-                    <button
-                      onClick={() => {
-                        const allOff = { ex1: false, ex2: false, ex3: false, ex4: false, ex5: false, ex6: false, ex7: false, ex8: false, ex9: false, ex10: false, ex11: false, ex12: false };
-                        setEnabledExceptions(allOff);
-                      }}
-                      className="btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                    >
-                      Deselect All
-                    </button>
-                  </div>
-                </div>
-
-                {/* 12 Rule Toggle Cards Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
-                  {[
-                    { id: 'ex1', num: '01', title: 'Unusual Accounts', desc: 'Entries in suspense / clearing GLs' },
-                    { id: 'ex2', num: '02', title: 'Seldom Accounts', desc: 'Infrequent posting GL accounts' },
-                    { id: 'ex3', num: '03', title: 'Revenue Account Debits', desc: 'Unusual debit transactions on revenue' },
-                    { id: 'ex4', num: '04', title: 'Few Postings Users', desc: 'Users posting rarely' },
-                    { id: 'ex5', num: '05', title: 'Users of Interest', desc: 'High-risk / Executive / IT users' },
-                    { id: 'ex6', num: '06', title: 'Closing Entries', desc: 'Postings before / after period close' },
-                    { id: 'ex7', num: '07', title: 'Dates of Interest', desc: 'Holidays & non-working day postings' },
-                    { id: 'ex8', num: '08', title: 'Round Amounts', desc: 'Amounts ending in multiples of 100/1000' },
-                    { id: 'ex9', num: '09', title: 'Duplicate Entries', desc: 'Identical amount, date, GL pairs' },
-                    { id: 'ex10', num: '10', title: 'Keywords in Text', desc: 'Journals with words like "bribe", "error"' },
-                    { id: 'ex11', num: '11', title: 'Post-Closing Entries', desc: 'Entries posted after year-end date' },
-                    { id: 'ex12', num: '12', title: 'Unrelated Pairings', desc: 'Incompatible debit/credit FS pairings' },
-                  ].map((r) => {
-                    const isChecked = enabledExceptions[r.id];
-                    return (
-                      <div
-                        key={r.id}
-                        onClick={() => setEnabledExceptions((prev) => ({ ...prev, [r.id]: !prev[r.id] }))}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '12px',
-                          padding: '12px 14px',
-                          borderRadius: 'var(--radius-md)',
-                          border: isChecked ? '1.5px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
-                          background: isChecked ? 'var(--deloitte-teal-light)' : '#FAFAFA',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {}}
-                          style={{ marginTop: '3px', cursor: 'pointer', accentColor: 'var(--deloitte-teal)' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--deloitte-teal)', fontFamily: 'var(--font-mono)' }}>
-                              Ex {r.num}
-                            </span>
-                            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {r.title}
-                            </span>
-                          </div>
-                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                            {r.desc}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Dynamic Parameter Tabs */}
-              {visibleParamTabs.length > 0 ? (
-                <div>
-                  <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '16px', overflowX: 'auto' }}>
-                    {visibleParamTabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setParamTab(tab.id)}
-                        style={{
-                          padding: '10px 16px',
-                          background: 'transparent',
-                          border: 'none',
-                          borderBottom: paramTab === tab.id ? '2px solid var(--deloitte-teal)' : '2px solid transparent',
-                          color: paramTab === tab.id ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
-                          fontWeight: paramTab === tab.id ? 700 : 600,
-                          fontSize: '0.86rem',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                        }}
-                      >
-                        <span>{tab.label}</span>
-                        {tab.count !== null && (
-                          <span style={{
-                            background: paramTab === tab.id ? 'var(--deloitte-teal)' : '#F1F5F9',
-                            color: paramTab === tab.id ? '#FFFFFF' : 'var(--text-muted)',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            fontSize: '0.72rem',
-                            fontFamily: 'var(--font-mono)',
-                          }}>
-                            {tab.count}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span className="badge badge-teal">Ex {ex.num}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1.2rem', color: count > 0 ? 'var(--deloitte-teal)' : 'var(--text-muted)' }}>
+                            {count.toLocaleString()}
                           </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* TAB: EX1 UNUSUAL ACCOUNTS */}
-                  {paramTab === 'ex1' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex1: Entries made to Unusual Accounts
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Target suspense, intercompany clearing, and zero-balance accounts to flag any unusual journal activity. Schema column: <code>G_L</code>
-                          </p>
                         </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => triggerImportFile('unusualAccounts')} className="btn-soft-slate">
-                            <FolderUp size={14} /> Import File (ex_1.csv)
-                          </button>
-                          <button
-                            onClick={() => setUnusualAccounts((prev) => [...prev, { gl: '', description: '', subtype: 'Assets', notes: '' }])}
-                            className="btn-primary"
-                            style={{ fontSize: '0.82rem', padding: '6px 12px' }}
-                          >
-                            <Plus size={14} /> Add Row
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="table-container">
-                        <table className="jet-table">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '180px' }}>G_L (Account Code)</th>
-                              <th>Description</th>
-                              <th style={{ width: '160px' }}>Account Subtype</th>
-                              <th>Audit Notes</th>
-                              <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {unusualAccounts.map((row, idx) => (
-                              <tr key={idx}>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.gl}
-                                    placeholder="e.g. 0059100000"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnusualAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].gl = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.description || ''}
-                                    placeholder="Account description"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnusualAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].description = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <select
-                                    className="jet-select"
-                                    value={row.subtype || 'Assets'}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnusualAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].subtype = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  >
-                                    <option value="Assets">Assets</option>
-                                    <option value="Liabilities">Liabilities</option>
-                                    <option value="Equity">Equity</option>
-                                    <option value="Revenue">Revenue</option>
-                                    <option value="Expense">Expense</option>
-                                  </select>
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.notes || ''}
-                                    placeholder="Suspense / clearing note"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnusualAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].notes = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    onClick={() => setUnusualAccounts((prev) => prev.filter((_, i) => i !== idx))}
-                                    className="btn-secondary"
-                                    style={{ padding: '6px', color: 'var(--status-error)' }}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX2 SELDOM ACCOUNTS */}
-                  {paramTab === 'ex2' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex2: Entries made to Seldom-based Accounts
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Accounts with infrequent postings audited for unexpected journal activity. Schema column: <code>G_L</code>
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={handleAutoPopulateSeldomFromIR4} className="btn-soft-teal">
-                            <RefreshCw size={14} /> Auto-Populate from IR 4
-                          </button>
-                          <button onClick={() => triggerImportFile('seldomAccounts')} className="btn-soft-slate">
-                            <FolderUp size={14} /> Import File (ex_2.csv)
-                          </button>
-                          <button
-                            onClick={() => setSeldomAccounts((prev) => [...prev, { gl: '', description: '', subtype: 'Assets', notes: '' }])}
-                            className="btn-primary"
-                            style={{ fontSize: '0.82rem', padding: '6px 12px' }}
-                          >
-                            <Plus size={14} /> Add Row
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="table-container">
-                        <table className="jet-table">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '180px' }}>G_L (Account Code)</th>
-                              <th>Description</th>
-                              <th style={{ width: '160px' }}>Account Subtype</th>
-                              <th>Audit Notes</th>
-                              <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {seldomAccounts.map((row, idx) => (
-                              <tr key={idx}>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.gl}
-                                    placeholder="e.g. 11301060"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setSeldomAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].gl = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.description || ''}
-                                    placeholder="Account description"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setSeldomAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].description = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <select
-                                    className="jet-select"
-                                    value={row.subtype || 'Assets'}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setSeldomAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].subtype = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  >
-                                    <option value="Assets">Assets</option>
-                                    <option value="Liabilities">Liabilities</option>
-                                    <option value="Equity">Equity</option>
-                                    <option value="Revenue">Revenue</option>
-                                    <option value="Expense">Expense</option>
-                                  </select>
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.notes || ''}
-                                    placeholder="Infrequent postings note"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setSeldomAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].notes = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    onClick={() => setSeldomAccounts((prev) => prev.filter((_, i) => i !== idx))}
-                                    className="btn-secondary"
-                                    style={{ padding: '6px', color: 'var(--status-error)' }}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX3 LARGE DEBITS TO REVENUE */}
-                  {paramTab === 'ex3' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex3: Large Debits to Revenue During the Period
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Flags unusual debit transactions to Revenue or Income accounts exceeding the configured threshold.
-                            <br />
-                            Exact Schema: <code>G_L | Description | Opening_Balance | Debit | Credit | Closing_Balance | Movement | Account_Subtype | FS_Line_Item</code>
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={handleAutoPopulateRevenueFromTB} className="btn-soft-teal">
-                            <RefreshCw size={14} /> Auto-Populate from TB
-                          </button>
-                          <button onClick={() => triggerImportFile('revenueAccounts')} className="btn-soft-slate">
-                            <FolderUp size={14} /> Import File (ex_3.csv)
-                          </button>
-                          <button
-                            onClick={() => setRevenueAccounts((prev) => [...prev, { gl: '', description: '', openingBalance: 0, debit: 0, credit: 0, closingBalance: 0, movement: 0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' }])}
-                            className="btn-primary"
-                            style={{ fontSize: '0.82rem', padding: '6px 12px' }}
-                          >
-                            <Plus size={14} /> Add Revenue GL
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Threshold and Date Controls */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px', padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <div>
-                          <label className="jet-label">Debit Amount Threshold ({sparkParams.currencyCode || 'INR'})</label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={ex3Threshold}
-                            onChange={(e) => setEx3Threshold(Number(e.target.value))}
-                            placeholder="0.0"
-                          />
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default 0.0 flags all debit postings</span>
-                        </div>
-                        <div>
-                          <label className="jet-label">Optional Quarter Filter: Start Date</label>
-                          <input
-                            type="date"
-                            className="jet-input"
-                            value={ex3QuarterStart}
-                            onChange={(e) => setEx3QuarterStart(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="jet-label">Optional Quarter Filter: End Date</label>
-                          <input
-                            type="date"
-                            className="jet-input"
-                            value={ex3QuarterEnd}
-                            onChange={(e) => setEx3QuarterEnd(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Ex3 Accounts Table */}
-                      <div className="table-container" style={{ maxHeight: '360px', overflowY: 'auto' }}>
-                        <table className="jet-table">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '130px' }}>G_L</th>
-                              <th style={{ minWidth: '180px' }}>Description</th>
-                              <th style={{ width: '120px' }}>Opening_Balance</th>
-                              <th style={{ width: '100px' }}>Debit</th>
-                              <th style={{ width: '100px' }}>Credit</th>
-                              <th style={{ width: '120px' }}>Closing_Balance</th>
-                              <th style={{ width: '110px' }}>Movement</th>
-                              <th style={{ width: '130px' }}>Account_Subtype</th>
-                              <th style={{ minWidth: '180px' }}>FS_Line_Item</th>
-                              <th style={{ width: '50px', textAlign: 'center' }}>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {revenueAccounts.map((row, idx) => (
-                              <tr key={idx}>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.gl}
-                                    placeholder="41001000"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].gl = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.description}
-                                    placeholder="Description"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].description = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    className="jet-input"
-                                    value={row.openingBalance}
-                                    onChange={(e) => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].openingBalance = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    className="jet-input"
-                                    value={row.debit}
-                                    onChange={(e) => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].debit = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    className="jet-input"
-                                    value={row.credit}
-                                    onChange={(e) => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].credit = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    className="jet-input"
-                                    value={row.closingBalance}
-                                    onChange={(e) => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].closingBalance = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    className="jet-input"
-                                    value={row.movement}
-                                    onChange={(e) => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].movement = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.subtype}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].subtype = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.fsLineItem}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setRevenueAccounts((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].fsLineItem = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    onClick={() => setRevenueAccounts((prev) => prev.filter((_, i) => i !== idx))}
-                                    className="btn-secondary"
-                                    style={{ padding: '6px', color: 'var(--status-error)' }}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX4 FEW POSTINGS USERS */}
-                  {paramTab === 'ex4' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex4: Users with Few Postings
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Flags transactions created by users with a total distinct document count at or below this threshold. Schema input: <code>Value</code>
-                          </p>
-                        </div>
-                        <button onClick={() => triggerImportFile('ex4Threshold')} className="btn-soft-slate">
-                          <FolderUp size={14} /> Import File (ex_4.csv)
-                        </button>
-                      </div>
-
-                      <div style={{ maxWidth: '380px', padding: '20px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <label className="jet-label">User Posting Count Threshold (Value)</label>
-                        <input
-                          type="number"
-                          className="jet-input"
-                          value={ex4Threshold}
-                          onChange={(e) => setEx4Threshold(Math.max(1, Number(e.target.value)))}
-                          min="1"
-                          placeholder="1"
-                          style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}
-                        />
-                        <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-                          Any user in the Population whose total distinct journal count is &le; <strong>{ex4Threshold}</strong> will have all their postings flagged.
+                        <h4 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+                          {ex.title}
+                        </h4>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                          {ex.desc}
                         </p>
                       </div>
-                    </div>
-                  )}
 
-                  {/* TAB: EX5 USERS OF INTEREST */}
-                  {paramTab === 'ex5' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex5: Users of Interest
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Target specific user accounts (management, IT admins, automated service accounts) for 100% testing. Schema column: <code>User_Name</code>
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => triggerImportFile('usersOfInterest')} className="btn-soft-slate">
-                            <FolderUp size={14} /> Import File (ex_5.csv)
-                          </button>
-                          <button
-                            onClick={() => setUsersOfInterest((prev) => [...prev, { userId: '', name: '', role: '', category: 'General' }])}
-                            className="btn-primary"
-                            style={{ fontSize: '0.82rem', padding: '6px 12px' }}
-                          >
-                            <Plus size={14} /> Add User
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="table-container">
-                        <table className="jet-table">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '180px' }}>User_Name (User ID)</th>
-                              <th>Full Name</th>
-                              <th>Role / Position</th>
-                              <th style={{ width: '150px' }}>Category</th>
-                              <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {usersOfInterest.map((row, idx) => (
-                              <tr key={idx}>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.userId}
-                                    placeholder="e.g. SBPATIL"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUsersOfInterest((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].userId = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.name || ''}
-                                    placeholder="User Name"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUsersOfInterest((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].name = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.role || ''}
-                                    placeholder="Job Role"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUsersOfInterest((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].role = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <select
-                                    className="jet-select"
-                                    value={row.category || 'General'}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUsersOfInterest((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].category = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  >
-                                    <option value="Executive">Executive</option>
-                                    <option value="High Risk">High Risk</option>
-                                    <option value="Contractor">Contractor</option>
-                                    <option value="IT Admin">IT Admin</option>
-                                    <option value="General">General</option>
-                                  </select>
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    onClick={() => setUsersOfInterest((prev) => prev.filter((_, i) => i !== idx))}
-                                    className="btn-secondary"
-                                    style={{ padding: '6px', color: 'var(--status-error)' }}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX6 CLOSING ENTRIES */}
-                  {paramTab === 'ex6' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex6: Period-End Closing Entries
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Detects entries dated in the sensitive period immediately around financial year-end.
-                            <br />
-                            Exact Schema: <code>Closing_Entries_before | Closing_Entries_after | Closing_Date | Frequency</code>
-                          </p>
-                        </div>
-                        <button onClick={() => triggerImportFile('closingEntries')} className="btn-soft-slate">
-                          <FolderUp size={14} /> Import File (ex_6.csv)
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', padding: '20px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <div>
-                          <label className="jet-label">Closing_Entries_before (Days)</label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={ex6BeforeDays}
-                            onChange={(e) => setEx6BeforeDays(Number(e.target.value))}
-                            min="0"
-                            placeholder="1"
-                          />
-                        </div>
-                        <div>
-                          <label className="jet-label">Closing_Entries_after (Days)</label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={ex6AfterDays}
-                            onChange={(e) => setEx6AfterDays(Number(e.target.value))}
-                            min="0"
-                            placeholder="10"
-                          />
-                        </div>
-                        <div>
-                          <label className="jet-label">Closing_Date (DD-MMM-YY)</label>
-                          <input
-                            type="text"
-                            className="jet-input"
-                            value={ex6ClosingDate}
-                            onChange={(e) => setEx6ClosingDate(e.target.value)}
-                            placeholder="31-Dec-25"
-                          />
-                        </div>
-                        <div>
-                          <label className="jet-label">Frequency</label>
-                          <select
-                            className="jet-select"
-                            value={ex6Frequency}
-                            onChange={(e) => setEx6Frequency(e.target.value)}
-                          >
-                            <option value="Annually">Annually</option>
-                            <option value="Quarterly">Quarterly</option>
-                            <option value="Monthly">Monthly</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX7 DATES OF INTEREST */}
-                  {paramTab === 'ex7' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex7: Entries posted on Dates of Interest
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Flags postings made on specific company holidays or non-working calendar dates. Schema column: <code>Pstng_Date</code>
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => triggerImportFile('datesOfInterest')} className="btn-soft-slate">
-                            <FolderUp size={14} /> Import File (ex_7.csv)
-                          </button>
-                          <button
-                            onClick={() => setDatesOfInterest((prev) => [...prev, { date: '', event: '', impact: 'Non-working day' }])}
-                            className="btn-primary"
-                            style={{ fontSize: '0.82rem', padding: '6px 12px' }}
-                          >
-                            <Plus size={14} /> Add Date
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="table-container">
-                        <table className="jet-table">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '180px' }}>Pstng_Date (DD-MMM-YY)</th>
-                              <th>Event / Holiday Name</th>
-                              <th>Impact / Reason</th>
-                              <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {datesOfInterest.map((row, idx) => (
-                              <tr key={idx}>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.date}
-                                    placeholder="05-Nov-25"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setDatesOfInterest((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].date = val;
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.event}
-                                    placeholder="e.g. Diwali Holiday"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setDatesOfInterest((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].event = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.impact || ''}
-                                    placeholder="Non-working day"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setDatesOfInterest((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].impact = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    onClick={() => setDatesOfInterest((prev) => prev.filter((_, i) => i !== idx))}
-                                    className="btn-secondary"
-                                    style={{ padding: '6px', color: 'var(--status-error)' }}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX8 ROUND AMOUNTS */}
-                  {paramTab === 'ex8' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex8: Entries with Round Amounts or Recurring Digits
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Select the round thousands magnitudes and ending repeating digit rules to flag. Schema input: <code>Digits</code>
-                          </p>
-                        </div>
-                        <button onClick={() => triggerImportFile('roundDigits')} className="btn-soft-slate">
-                          <FolderUp size={14} /> Import File (ex_8.csv)
-                        </button>
-                      </div>
-
-                      <div style={{ marginBottom: '18px', padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <label className="jet-label" style={{ marginBottom: '10px' }}>Round Magnitudes (Digits according to check)</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                          {[
-                            { val: '1000', label: '1,000' },
-                            { val: '10000', label: '10,000' },
-                            { val: '100000', label: '100,000' },
-                            { val: '1000000', label: '1,000,000' },
-                            { val: '10000000', label: '10,000,000' },
-                            { val: '100000000', label: '100,000,000' },
-                            { val: '1000000000', label: '1,000,000,000' },
-                          ].map((item) => {
-                            const isSelected = ex8SelectedDigits.includes(item.val);
-                            return (
-                              <label
-                                key={item.val}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  background: isSelected ? 'var(--deloitte-teal-light)' : '#FFFFFF',
-                                  border: isSelected ? '1px solid var(--deloitte-teal)' : '1px solid #E2E8F0',
-                                  cursor: 'pointer',
-                                  fontSize: '0.82rem',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setEx8SelectedDigits((prev) => [...prev, item.val]);
-                                    } else {
-                                      setEx8SelectedDigits((prev) => prev.filter((x) => x !== item.val));
-                                    }
-                                  }}
-                                  style={{ accentColor: 'var(--deloitte-teal)' }}
-                                />
-                                {item.label}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <label className="jet-label" style={{ marginBottom: '10px' }}>Recurring Ending Digits (e.g. 666666, 7777777, 88888888, 999999999)</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                          {['2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => {
-                            const isSelected = ex8SelectedDigits.includes(digit);
-                            return (
-                              <label
-                                key={digit}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  background: isSelected ? 'var(--deloitte-teal-light)' : '#FFFFFF',
-                                  border: isSelected ? '1px solid var(--deloitte-teal)' : '1px solid #E2E8F0',
-                                  cursor: 'pointer',
-                                  fontSize: '0.82rem',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setEx8SelectedDigits((prev) => [...prev, digit]);
-                                    } else {
-                                      setEx8SelectedDigits((prev) => prev.filter((x) => x !== digit));
-                                    }
-                                  }}
-                                  style={{ accentColor: 'var(--deloitte-teal)' }}
-                                />
-                                {digit} Digits Repeating
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX9 DUPLICATE ENTRIES */}
-                  {paramTab === 'ex9' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex9: Duplicate Entries Configuration
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Flags documents sharing exact identical account and amount distribution combos.
-                            <br />
-                            Exact Schema: <code>Value | Threshold</code>
-                          </p>
-                        </div>
-                        <button onClick={() => triggerImportFile('duplicateEntries')} className="btn-soft-slate">
-                          <FolderUp size={14} /> Import File (ex_9.csv)
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', padding: '20px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <div>
-                          <label className="jet-label">Duplicate Count Threshold (Value)</label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={ex9CountThreshold}
-                            onChange={(e) => setEx9CountThreshold(Math.max(1, Number(e.target.value)))}
-                            min="1"
-                            placeholder="2"
-                          />
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Identical combos appearing &gt; this count are flagged.</span>
-                        </div>
-                        <div>
-                          <label className="jet-label">Minimum Total Positive Amount (Threshold)</label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={ex9AmountThreshold}
-                            onChange={(e) => setEx9AmountThreshold(Number(e.target.value))}
-                            placeholder="0.0"
-                          />
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>0.0 evaluates all duplicate amounts.</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX10 KEYWORDS */}
-                  {paramTab === 'ex10' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex10: Fraud & Risk Keywords in Journal
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Search document header text and line text for suspicious keywords. Schema column: <code>Text</code>
-                          </p>
-                        </div>
-                        <button onClick={() => triggerImportFile('keywords')} className="btn-soft-slate">
-                          <FolderUp size={14} /> Import File (ex_10.csv)
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                        <input
-                          type="text"
-                          className="jet-input"
-                          placeholder="Add new risk keyword (e.g. bribe, theft, override)..."
-                          value={newKeyword}
-                          onChange={(e) => setNewKeyword(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && newKeyword.trim()) {
-                              if (!keywords.includes(newKeyword.trim().toLowerCase())) {
-                                setKeywords((prev) => [...prev, newKeyword.trim().toLowerCase()]);
-                              }
-                              setNewKeyword('');
-                            }
-                          }}
-                          style={{ maxWidth: '340px' }}
-                        />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
                         <button
+                          type="button"
                           onClick={() => {
-                            if (newKeyword.trim() && !keywords.includes(newKeyword.trim().toLowerCase())) {
-                              setKeywords((prev) => [...prev, newKeyword.trim().toLowerCase()]);
-                              setNewKeyword('');
-                            }
+                            setSelectedPreviewFile(ex.file);
+                            setActiveVisualTab('preview');
                           }}
-                          className="btn-primary"
-                          style={{ padding: '6px 14px' }}
+                          className="btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: '0.74rem' }}
                         >
-                          <Plus size={14} /> Add Keyword
+                          <Eye size={12} /> Preview Top 50
                         </button>
-                      </div>
-
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {keywords.map((kw) => (
-                          <span
-                            key={kw}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '6px 12px',
-                              borderRadius: '20px',
-                              background: '#F1F5F9',
-                              border: '1px solid #CBD5E1',
-                              fontSize: '0.82rem',
-                              fontWeight: 600,
-                            }}
-                          >
-                            <span>{kw}</span>
-                            <X
-                              size={13}
-                              style={{ cursor: 'pointer', color: 'var(--text-muted)' }}
-                              onClick={() => setKeywords((prev) => prev.filter((k) => k !== kw))}
-                            />
-                          </span>
-                        ))}
+                        <a
+                          href={RunService.getDownloadOutputUrl(runId!, ex.file)}
+                          className="btn-soft-teal"
+                          style={{ padding: '4px 10px', fontSize: '0.74rem', textDecoration: 'none' }}
+                        >
+                          <Download size={12} /> CSV
+                        </a>
                       </div>
                     </div>
-                  )}
-
-                  {/* TAB: EX11 POST-CLOSING ENTRIES */}
-                  {paramTab === 'ex11' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex11: Entries Posted After Closing Date
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Flags entries recorded strictly after the financial year-end cutoff plus grace period.
-                            <br />
-                            Exact Schema: <code>Frequency | Day | Closing_Date</code>
-                          </p>
-                        </div>
-                        <button onClick={() => triggerImportFile('postClosing')} className="btn-soft-slate">
-                          <FolderUp size={14} /> Import File (ex_11.csv)
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', padding: '20px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <div>
-                          <label className="jet-label">Frequency</label>
-                          <select
-                            className="jet-select"
-                            value={ex11Frequency}
-                            onChange={(e) => setEx11Frequency(e.target.value)}
-                          >
-                            <option value="Annually">Annually</option>
-                            <option value="Quarterly">Quarterly</option>
-                            <option value="Monthly">Monthly</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="jet-label">Day (Cutoff Days After Closing)</label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={ex11DaysAfterClosing}
-                            onChange={(e) => setEx11DaysAfterClosing(Number(e.target.value))}
-                            min="0"
-                            placeholder="10"
-                          />
-                        </div>
-                        <div>
-                          <label className="jet-label">Closing_Date (DD-MMM-YY)</label>
-                          <input
-                            type="text"
-                            className="jet-input"
-                            value={ex11ClosingDate}
-                            onChange={(e) => setEx11ClosingDate(e.target.value)}
-                            placeholder="31-Dec-25"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: EX12 UNRELATED ACCOUNTS */}
-                  {paramTab === 'ex12' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Ex12: Unrelated Financial Statement Line Pairings
-                          </h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Identify journals posting between incompatible FS line categories. Exact Schema: <code>Debit | Credit</code>
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => triggerImportFile('unrelatedRules')} className="btn-soft-slate">
-                            <FolderUp size={14} /> Import File (ex_12.csv)
-                          </button>
-                          <button
-                            onClick={() => setUnrelatedRules((prev) => [...prev, { debitFSLine: '', creditFSLine: '', category: 'General' }])}
-                            className="btn-primary"
-                            style={{ fontSize: '0.82rem', padding: '6px 12px' }}
-                          >
-                            <Plus size={14} /> Add Rule
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="table-container">
-                        <table className="jet-table">
-                          <thead>
-                            <tr>
-                              <th>Debit (Debit FS Line Item)</th>
-                              <th>Credit (Credit FS Line Item)</th>
-                              <th>Risk Category</th>
-                              <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {unrelatedRules.map((row, idx) => (
-                              <tr key={idx}>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.debitFSLine}
-                                    placeholder="e.g. Trade Receivables"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnrelatedRules((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].debitFSLine = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.creditFSLine}
-                                    placeholder="e.g. Property, plant and equipment"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnrelatedRules((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].creditFSLine = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="text"
-                                    className="jet-input"
-                                    value={row.category || ''}
-                                    placeholder="Risk rationale"
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setUnrelatedRules((prev) => {
-                                        const updated = [...prev];
-                                        updated[idx].category = val;
-                                        return updated;
-                                      });
-                                    }}
-                                  />
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    onClick={() => setUnrelatedRules((prev) => prev.filter((_, i) => i !== idx))}
-                                    className="btn-secondary"
-                                    style={{ padding: '6px', color: 'var(--status-error)' }}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB: CONTROL SAMPLE DUMP */}
-                  {paramTab === 'controlSample' && (
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                        Representative Control Sample Dump Configuration
-                      </h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                        Randomly extracts full journal documents using seed 42 to satisfy ET sample testing requirements.
-                      </p>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                        <div>
-                          <label className="jet-label">Sample Document Count Requested</label>
-                          <input
-                            type="number"
-                            className="jet-input"
-                            value={sampleDocCount}
-                            onChange={(e) => setSampleDocCount(Math.max(1, Number(e.target.value)))}
-                            min="1"
-                            placeholder="61"
-                          />
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default is 61 randomized documents.</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="glass-panel" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', background: '#FFFFFF' }}>
-                  No exception rules selected. Enable one or more exceptions above to configure rules.
-                </div>
-              )}
-
-              <div className="spark-step-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
-                <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '9px 18px', gap: '6px' }}>
-                  <ArrowLeft size={15} /> Back
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentStep(5);
-                    handleRunPipeline(5);
-                  }}
-                  disabled={executing}
-                  className="btn-primary"
-                  style={{ padding: '9px 22px', gap: '6px' }}
-                >
-                  <Play size={14} fill="#FFFFFF" />
-                  {executing ? 'Executing...' : 'Execute Exceptions'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 5: RESULTS & EXECUTIVE VISUALS */}
-          {currentStep === 5 && (
-            <div>
-              {/* Top Banner Progress Bar if Pipeline is Running */}
-              {executing && (
-                <div style={{ maxWidth: '680px', margin: '0 auto 30px' }}>
-                  <ProgressBar
-                    progress={status?.progress || 0}
-                    stage={status?.currentStage}
-                    message="Executing Selected Parameter Exceptions (Ex1 to Ex12) and Generating Audit Outputs..."
-                    isCompleted={status?.status === 'COMPLETED'}
-                    isFailed={status?.status === 'FAILED'}
-                  />
-                </div>
-              )}
-
-              {/* Executive Top Metrics Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                <MetricCard
-                  label="Total Population Rows"
-                  value={status?.glCheckpointsSummary?.totalLines || (status?.totalInputRows?.gl || 0)}
-                  subtitle="General Ledger Lines"
-                  variant="teal"
-                />
-                <MetricCard
-                  label="TB Accounts"
-                  value={status?.totalInputRows?.tb || 0}
-                  subtitle="Trial Balance Accounts"
-                  variant="teal"
-                />
-                <MetricCard
-                  label="IR Exceptions"
-                  value={
-                    getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') +
-                    getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') +
-                    getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')
-                  }
-                  subtitle="Integrity Tests 1-3"
-                  variant="warning"
-                />
-                <MetricCard
-                  label="Parameter Exceptions"
-                  value={
-                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reduce((acc, num) => {
-                      return acc + getExceptionCount(num, `Ex${num}`);
-                    }, 0)
-                  }
-                  subtitle="Ex1 - Ex12 Total Flagged"
-                  variant="teal"
-                />
-              </div>
-
-              {/* Step 5 Navigation Sub-Tabs */}
-              <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '20px' }}>
-                {[
-                  { id: 'preview', label: 'Parameter Exception Previews (Top 50)', icon: Eye },
-                  { id: 'overview', label: 'Executive Visual Analytics', icon: BarChart3 },
-                  { id: 'checkpoints', label: 'TB & GL Checkpoints', icon: Activity },
-                  { id: 'artifacts', label: 'Download All Outputs', icon: Archive },
-                ].map((tab) => {
-                  const IconComp = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveVisualTab(tab.id as any)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '10px 18px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderBottom: activeVisualTab === tab.id ? '2px solid var(--deloitte-teal)' : '2px solid transparent',
-                        color: activeVisualTab === tab.id ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <IconComp size={16} />
-                      {tab.label}
-                    </button>
                   );
                 })}
               </div>
+            )}
 
-              {/* TAB 1: PARAMETER EXCEPTION PREVIEWS VIA PROFESSIONAL BUTTONS (NO DROPDOWN) */}
-              {activeVisualTab === 'preview' && (
-                <div>
-                  <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF', marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                          Parameter Exceptions (Ex1 - Ex12) & Control Sample Results
-                        </h4>
-                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-                          Click the <strong>Preview (50)</strong> button on any exception below to inspect its top 50 flagged records.
-                        </p>
+            {/* SUB TAB 3: Checkpoints */}
+            {activeVisualTab === 'checkpoints' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
+                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Trial Balance Validation</h4>
+                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', margin: 0, padding: 0, fontSize: '0.88rem' }}>
+                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                      <span>Non-Blank G/L & Description</span><StatusBadge status="PASS" />
+                    </li>
+                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                      <span>Valid Account Subtypes</span><StatusBadge status="PASS" />
+                    </li>
+                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                      <span>Total Balance = 0</span><StatusBadge status="PASS" />
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Integrity Testing Summary</h4>
+                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', margin: 0, padding: 0, fontSize: '0.88rem' }}>
+                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                      <span>IR 1: GL in TB not in Pop</span><span style={{ fontWeight: 700 }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
+                    </li>
+                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                      <span>IR 2: Activity Mismatches</span><span style={{ fontWeight: 700 }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
+                    </li>
+                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                      <span>IR 3: GL in Pop not in TB</span><span style={{ fontWeight: 700 }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* SUB TAB 4: Artifacts */}
+            {activeVisualTab === 'artifacts' && (
+              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '14px' }}>
+                  Generated Spark JET Output Files
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                  {[
+                    'Parameter_Exception_1.csv', 'Parameter_Exception_2.csv', 'Parameter_Exception_3.csv',
+                    'Parameter_Exception_4.csv', 'Parameter_Exception_5.csv', 'Parameter_Exception_6.csv',
+                    'Parameter_Exception_7.csv', 'Parameter_Exception_8.csv', 'Parameter_Exception_9.csv',
+                    'Parameter_Exception_10.csv', 'Parameter_Exception_11.csv', 'Parameter_Exception_12.csv',
+                    'Control_Sample_Dump.csv', 'IR_Exception_1.csv', 'IR_Exception_2.csv', 'IR_Exception_3.csv',
+                  ].map((file) => (
+                    <div key={file} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                        <FileText size={16} color="var(--deloitte-teal)" />
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file}</span>
                       </div>
-
-                      <div style={{ position: 'relative', width: '260px' }}>
-                        <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                        <input
-                          type="text"
-                          className="jet-input"
-                          placeholder="Search in preview rows..."
-                          value={previewSearch}
-                          onChange={(e) => setPreviewSearch(e.target.value)}
-                          style={{ paddingLeft: '30px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', fontSize: '0.82rem' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* PROFESSIONAL GRID OF SELECTED EXCEPTION CARDS (NO DROPDOWNS) */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-                      {EXCEPTION_CARDS.filter((card) => {
-                        if (card.id === 'controlSample') return runControlSample;
-                        return enabledExceptions[card.id as keyof typeof enabledExceptions];
-                      }).map((card) => {
-                        const isSelected = selectedPreviewFile === card.file;
-                        const count = card.num <= 12 ? getExceptionCount(card.num, card.key) : (status?.controlSampleCount || 4);
-
-                        return (
-                          <div
-                            key={card.file}
-                            style={{
-                              padding: '16px',
-                              borderRadius: 'var(--radius-md)',
-                              border: isSelected ? '2px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
-                              background: isSelected ? 'var(--deloitte-teal-light)' : '#FAFAFA',
-                              boxShadow: isSelected ? '0 0 12px var(--deloitte-teal-glow)' : 'none',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              justifyContent: 'space-between',
-                              gap: '12px',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                <span style={{
-                                  fontSize: '0.74rem',
-                                  fontWeight: 800,
-                                  fontFamily: 'var(--font-mono)',
-                                  color: isSelected ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
-                                  background: isSelected ? '#FFFFFF' : '#E2E8F0',
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                }}>
-                                  {card.num <= 12 ? `Ex ${card.num.toString().padStart(2, '0')}` : 'SAMPLE'}
-                                </span>
-
-                                <span style={{
-                                  fontSize: '0.8rem',
-                                  fontWeight: 800,
-                                  fontFamily: 'var(--font-mono)',
-                                  color: count > 0 ? '#B91C1C' : '#059669',
-                                  background: count > 0 ? '#FEE2E2' : '#D1FAE5',
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                }}>
-                                  {count} Flagged
-                                </span>
-                              </div>
-
-                              <h5 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                                {card.title}
-                              </h5>
-                              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.3 }}>
-                                {card.desc}
-                              </p>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedPreviewFile(card.file)}
-                                style={{
-                                  flex: 1,
-                                  padding: '6px 10px',
-                                  fontSize: '0.78rem',
-                                  fontWeight: 700,
-                                  borderRadius: '6px',
-                                  border: 'none',
-                                  background: isSelected ? 'var(--deloitte-teal)' : '#FFFFFF',
-                                  color: isSelected ? '#FFFFFF' : 'var(--deloitte-teal)',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '5px',
-                                  boxShadow: isSelected ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
-                                }}
-                              >
-                                <Eye size={13} />
-                                <span>{isSelected ? 'Viewing (50)' : 'Preview (50)'}</span>
-                              </button>
-
-                              <a
-                                href={RunService.getDownloadOutputUrl(runId!, card.file)}
-                                style={{
-                                  padding: '6px 10px',
-                                  fontSize: '0.78rem',
-                                  fontWeight: 600,
-                                  borderRadius: '6px',
-                                  background: '#FFFFFF',
-                                  color: 'var(--text-secondary)',
-                                  border: '1px solid var(--border-subtle)',
-                                  textDecoration: 'none',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '4px',
-                                }}
-                                title={`Download full ${card.file}`}
-                              >
-                                <Download size={13} />
-                                <span>CSV</span>
-                              </a>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* TOP 50 TABLE PREVIEW CONTAINER */}
-                    <div style={{
-                      padding: '12px 16px',
-                      borderRadius: 'var(--radius-md)',
-                      background: '#F8FAFC',
-                      border: '1px solid var(--border-subtle)',
-                      marginBottom: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem' }}>
-                        <Eye size={16} color="var(--deloitte-teal)" />
-                        <span>
-                          Viewing top <strong>{filteredPreviewRows.length}</strong> sample rows of <strong>{previewData?.totalRows || 0}</strong> total records in <strong style={{ color: 'var(--deloitte-teal)', fontFamily: 'var(--font-mono)' }}>{selectedPreviewFile}</strong>
-                        </span>
-                      </div>
-                      <a
-                        href={RunService.getDownloadOutputUrl(runId!, selectedPreviewFile)}
-                        className="btn-soft-teal"
-                        style={{ padding: '6px 14px', fontSize: '0.8rem', gap: '5px', textDecoration: 'none' }}
-                      >
-                        <Download size={13} /> Download Complete File
+                      <a href={RunService.getDownloadOutputUrl(runId!, file)} className="btn-secondary" style={{ padding: '4px 8px', textDecoration: 'none' }}>
+                        <Download size={12} />
                       </a>
                     </div>
-
-                    {/* Table Render */}
-                    {loadingPreview ? (
-                      <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                        <RefreshCw size={24} className="spin-slow" style={{ margin: '0 auto 8px', color: 'var(--deloitte-teal)' }} />
-                        Loading top 50 rows preview...
-                      </div>
-                    ) : previewData && previewData.headers.length > 0 ? (
-                      <div className="table-container" style={{ maxHeight: '520px', overflowY: 'auto' }}>
-                        <table className="jet-table">
-                          <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: '#F8FAFC' }}>
-                            <tr>
-                              <th style={{ width: '45px' }}>#</th>
-                              {previewData.headers.map((h) => (
-                                <th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredPreviewRows.map((row, idx) => (
-                              <tr key={idx}>
-                                <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.76rem' }}>{idx + 1}</td>
-                                {previewData.headers.map((h) => (
-                                  <td key={h} style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                                    {row[h] !== undefined && row[h] !== '' ? String(row[h]) : '-'}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', background: '#F8FAFC', borderRadius: '6px' }}>
-                        0 exception rows found in {selectedPreviewFile}.
-                      </div>
-                    )}
-                  </div>
+                  ))}
                 </div>
-              )}
-
-              {/* TAB 2: EXECUTIVE VISUAL ANALYTICS */}
-              {activeVisualTab === 'overview' && (
-                <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: '20px', marginBottom: '24px' }}>
-                    
-                    {/* Visual 1: Parameter Exceptions Frequency Breakdown Chart */}
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            Parameter Exceptions (Ex1 - Ex12) Frequency Breakdown
-                          </h4>
-                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            Number of journal entries flagged across each testing algorithm.
-                          </p>
-                        </div>
-                        <BarChart3 size={20} color="var(--deloitte-teal)" />
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {[
-                          { num: 1, key: 'Ex1_Unusual_Accounts', label: 'Ex1 Unusual Accounts', color: '#007680' },
-                          { num: 2, key: 'Ex2_Seldom_Accounts', label: 'Ex2 Seldom Accounts', color: '#007680' },
-                          { num: 3, key: 'Ex3_Revenue_Debits', label: 'Ex3 Revenue Debits', color: '#E11D48' },
-                          { num: 4, key: 'Ex4_Few_Postings_Users', label: 'Ex4 Few Postings Users', color: '#D97706' },
-                          { num: 5, key: 'Ex5_Users_Of_Interest', label: 'Ex5 Users of Interest', color: '#D97706' },
-                          { num: 6, key: 'Ex6_Closing_Entries', label: 'Ex6 Closing Entries', color: '#0D9488' },
-                          { num: 7, key: 'Ex7_Dates_Of_Interest', label: 'Ex7 Dates of Interest', color: '#0D9488' },
-                          { num: 8, key: 'Ex8_Round_Amounts', label: 'Ex8 Round Amounts', color: '#0284C7' },
-                          { num: 9, key: 'Ex9_Duplicate_Entries', label: 'Ex9 Duplicate Entries', color: '#E11D48' },
-                          { num: 10, key: 'Ex10_Keyword_Entries', label: 'Ex10 Keyword Entries', color: '#86BC25' },
-                          { num: 11, key: 'Ex11_Post_Closing_Entries', label: 'Ex11 Post-Closing', color: '#0D9488' },
-                          { num: 12, key: 'Ex12_Unrelated_Accounts', label: 'Ex12 Unrelated Accounts', color: '#86BC25' },
-                        ].map((rule) => {
-                          const count = getExceptionCount(rule.num, rule.key);
-                          const maxVal = Math.max(20, count);
-
-                          return (
-                            <div key={rule.key}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '3px' }}>
-                                <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{rule.label}</span>
-                                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: count > 0 ? rule.color : 'var(--text-muted)' }}>
-                                  {count} Flagged
-                                </span>
-                              </div>
-                              <div style={{ height: '7px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden' }}>
-                                <div
-                                  style={{
-                                    width: `${Math.min(100, Math.max(count > 0 ? 8 : 0, (count / maxVal) * 100))}%`,
-                                    height: '100%',
-                                    background: rule.color,
-                                    borderRadius: '4px',
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Visual 2: Integrity Testing & Document Balancing Ratio */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      {/* Balancing Bar Ratio */}
-                      <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                          <div>
-                            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                              Document Balancing Ratio
-                            </h4>
-                            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                              Balancing status across {status?.glCheckpointsSummary?.totalJournals || (status?.totalInputRows?.gl || 0)} unique accounting documents.
-                            </p>
-                          </div>
-                          <PieChart size={20} color="var(--deloitte-teal)" />
-                        </div>
-
-                        <div style={{ display: 'flex', height: '14px', borderRadius: '7px', overflow: 'hidden', background: '#E2E8F0', marginBottom: '14px' }}>
-                          <div
-                            style={{
-                              width: `${status?.glCheckpointsSummary?.totalJournals ? ((status.glCheckpointsSummary.balancedJournalsCount || 0) / status.glCheckpointsSummary.totalJournals) * 100 : 100}%`,
-                              background: '#0D9488',
-                            }}
-                          />
-                          <div
-                            style={{
-                              width: `${status?.glCheckpointsSummary?.totalJournals ? ((status.glCheckpointsSummary.unbalancedJournalsCount || 0) / status.glCheckpointsSummary.totalJournals) * 100 : 0}%`,
-                              background: '#E11D48',
-                            }}
-                          />
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0D9488' }} />
-                            <span>Balanced ({status?.glCheckpointsSummary?.balancedJournalsCount ?? (status?.totalInputRows?.gl ? status.totalInputRows.gl : 0)})</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E11D48' }} />
-                            <span>Unbalanced ({status?.glCheckpointsSummary?.unbalancedJournalsCount ?? 0})</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Integrity Tests (IR 1 to 4) */}
-                      <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                          <div>
-                            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                              Integrity Testing (IR 1 - 4) Breakdown
-                            </h4>
-                            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                              TB accounts vs Population consistency.
-                            </p>
-                          </div>
-                          <Activity size={20} color="var(--deloitte-green-dark)" />
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          {[
-                            { label: 'IR 1: GL in TB not in Pop', val: getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv'), max: 20 },
-                            { label: 'IR 2: Activity Mismatches', val: getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv'), max: 20 },
-                            { label: 'IR 3: GL in Pop not in TB', val: getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'), max: 20 },
-                            { label: 'IR 4: Seldom Accounts Total', val: getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv'), max: 50 },
-                          ].map((item) => (
-                            <div key={item.label}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-                                <span style={{ fontWeight: 600 }}>{item.label}</span>
-                                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: item.val > 0 ? 'var(--deloitte-teal)' : 'var(--text-muted)' }}>{item.val}</span>
-                              </div>
-                              <div style={{ height: '7px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden' }}>
-                                <div
-                                  style={{
-                                    width: `${Math.min(100, (item.val / Math.max(item.max, item.val || 1)) * 100)}%`,
-                                    height: '100%',
-                                    background: item.val > 0 ? 'var(--deloitte-teal)' : '#0D9488',
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: CHECKPOINTS */}
-              {activeVisualTab === 'checkpoints' && (
-                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px' }}>
-                    Trial Balance & Population Checkpoint Summary
-                  </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                    <div className="jet-card" style={{ padding: '18px' }}>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Opening Balance Sum</div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                        {status?.tbCheckpointsSummary?.openingSum?.toLocaleString() || '0.00'}
-                      </div>
-                    </div>
-                    <div className="jet-card" style={{ padding: '18px' }}>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Closing Balance Sum</div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                        {status?.tbCheckpointsSummary?.closingSum?.toLocaleString() || '0.00'}
-                      </div>
-                    </div>
-                    <div className="jet-card" style={{ padding: '18px' }}>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Total GL Transaction Volume</div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)' }}>
-                        {status?.glCheckpointsSummary?.totalNetBalance?.toLocaleString() || '0.00'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 4: ARTIFACTS */}
-              {activeVisualTab === 'artifacts' && (
-                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                        Generated Audit Workpapers & Artifacts
-                      </h3>
-                      <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                        Download full CSV extracts and standardized outputs for working papers.
-                      </p>
-                    </div>
-                    <a
-                      href={RunService.getDownloadAllZipUrl(runId!)}
-                      className="btn-green"
-                      style={{ textDecoration: 'none', padding: '10px 20px', gap: '8px' }}
-                    >
-                      <Archive size={16} /> Download All as ZIP
-                    </a>
-                  </div>
-
-                  <div className="table-container">
-                    <table className="jet-table">
-                      <thead>
-                        <tr>
-                          <th>Output File</th>
-                          <th>Category</th>
-                          <th>Row Count</th>
-                          <th style={{ textAlign: 'right' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {status?.outputs && status.outputs.length > 0 ? (
-                          status.outputs.map((out) => (
-                            <tr key={out.id}>
-                              <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FileSpreadsheet size={18} color="var(--deloitte-teal)" />
-                                  <span style={{ fontWeight: 700 }}>{out.name}</span>
-                                </div>
-                              </td>
-                              <td>
-                                <StatusBadge status={out.category} />
-                              </td>
-                              <td style={{ fontFamily: 'var(--font-mono)' }}>
-                                {out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedPreviewFile(out.name);
-                                      setActiveVisualTab('preview');
-                                    }}
-                                    className="btn-secondary"
-                                    style={{ padding: '5px 10px', fontSize: '0.78rem' }}
-                                  >
-                                    <Eye size={13} /> Preview
-                                  </button>
-                                  <a
-                                    href={out.downloadUrl}
-                                    className="btn-primary"
-                                    style={{ padding: '5px 10px', fontSize: '0.78rem', textDecoration: 'none' }}
-                                  >
-                                    <Download size={13} /> Download
-                                  </a>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={4} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                              No output files generated yet.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              <div className="spark-step-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' }}>
-                <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '9px 18px', gap: '6px' }}>
-                  <ArrowLeft size={15} /> Back to Rules
-                </button>
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="btn-primary"
-                  style={{ padding: '9px 20px' }}
-                >
-                  Return to Dashboard
-                </button>
               </div>
-            </div>
-          )}
-
-        </main>
-      </div>
+            )}
+          </div>
+        )}
+      </main>
 
       {/* SAMPLE DATA PREVIEW MODAL (TOP 50 ROWS OF RAW INPUT FILES / SHEETS) */}
       <SampleDataModal
