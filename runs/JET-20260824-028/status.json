@@ -1,8 +1,8 @@
 {
   "runId": "JET-20260824-028",
   "workflow": "OMNIA_JET",
-  "status": "CONFIGURED",
-  "progress": 40,
+  "status": "COMPLETED",
+  "progress": 100,
   "startedAt": "2026-08-24T18:12:45.000Z",
   "completedAt": "2026-08-25T23:56:30.705787",
   "totalInputRows": {
@@ -153,5 +153,5 @@
       "path": "runs/JET-20260824-028\\output\\JE-Recon-and-DIC-Template.xlsx"
     }
   ],
-  "currentStage": "DATA_CLEANSED"
+  "currentStage": "COMPLETED"
 }

@@ -37,16 +37,8 @@ export const DashboardPage: React.FC = () => {
 
   useEffect(() => { fetchRuns(); }, []);
 
-  const handleStartWorkflow = async (workflow: 'SPARK_JET' | 'OMNIA_JET') => {
-    setCreating(workflow);
-    try {
-      const res = await RunService.createRun(workflow, 'PYTHON');
-      navigate(workflow === 'SPARK_JET' ? `/spark-jet?runId=${res.runId}` : `/omnia-jet?runId=${res.runId}`);
-    } catch (err: any) {
-      console.error('Failed to create run:', err);
-    } finally {
-      setCreating(null);
-    }
+  const handleStartWorkflow = (workflow: 'SPARK_JET' | 'OMNIA_JET') => {
+    navigate(workflow === 'SPARK_JET' ? '/spark-jet' : '/omnia-jet');
   };
 
   const handleResumeRun = (run: RunSummary) => {

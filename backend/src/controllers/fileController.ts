@@ -73,11 +73,14 @@ export class FileController {
     config.files = [...config.files, ...uploadedInfos];
     RunManager.saveRunConfig(runId, config);
 
-    RunManager.updateRunStatus(runId, {
-      status: 'DETECTED',
-      progress: 20,
-      currentStage: 'FILES_DETECTED',
-    });
+    const currentStatus = RunManager.getRunStatus(runId);
+    if (currentStatus?.status !== 'COMPLETED') {
+      RunManager.updateRunStatus(runId, {
+        status: 'DETECTED',
+        progress: 20,
+        currentStage: 'FILES_DETECTED',
+      });
+    }
 
     res.json({
       success: true,
@@ -886,16 +889,27 @@ export class FileController {
     const hasFailedErrors = constraintResults.some((c) => c.status === 'FAILED');
     const constraintsPassed = !hasFailedErrors;
 
-    RunManager.updateRunStatus(runId, {
-      status: constraintsPassed ? 'CONFIGURED' : 'MAPPING',
-      progress: constraintsPassed ? 40 : 25,
-      currentStage: constraintsPassed ? 'DATA_CLEANSED' : 'CLEANSE_FAILED',
-      totalInputRows: {
-        tb: tbCleaned,
-        gl: glCleaned,
-        coa: coaCleaned,
-      },
-    });
+    const currentStatus = RunManager.getRunStatus(runId);
+    if (currentStatus?.status !== 'COMPLETED') {
+      RunManager.updateRunStatus(runId, {
+        status: constraintsPassed ? 'CONFIGURED' : 'MAPPING',
+        progress: constraintsPassed ? 40 : 25,
+        currentStage: constraintsPassed ? 'DATA_CLEANSED' : 'CLEANSE_FAILED',
+        totalInputRows: {
+          tb: tbCleaned,
+          gl: glCleaned,
+          coa: coaCleaned,
+        },
+      });
+    } else {
+      RunManager.updateRunStatus(runId, {
+        totalInputRows: {
+          tb: tbCleaned,
+          gl: glCleaned,
+          coa: coaCleaned,
+        },
+      });
+    }
 
     res.json({
       success: true,

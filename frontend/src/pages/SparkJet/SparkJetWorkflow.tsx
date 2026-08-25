@@ -338,10 +338,39 @@ export const SparkJetWorkflow: React.FC = () => {
     }
   };
 
-  const loadRun = async () => {
-    if (!runId) return;
+  const loadRun = async (overrideRunId?: string) => {
+    const targetRunId = overrideRunId || runId;
+    if (!targetRunId) {
+      setLoading(false);
+      setConfig({
+        runId: '',
+        workflow: 'SPARK_JET',
+        engine: 'PYTHON',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 'admin',
+        userName: 'Auditor',
+        files: [],
+        datasetMap: {},
+        fieldMappings: { tb: [], gl: [], coa: [] },
+        sparkParameters: {
+          selectedExceptions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+          ex10Keywords: [],
+          ex12UnrelatedRules: [],
+        },
+        omniaParameters: {
+          fiscalYear: 2026,
+          fiscalYearEnd: '2026-03-31',
+          testingPeriodStart: '2025-04-01',
+          testingPeriodEnd: '2026-03-31',
+          currency: 'Entity Currency'
+        }
+      });
+      setStatus(null);
+      return;
+    }
     try {
-      const data = await RunService.getRun(runId);
+      const data = await RunService.getRun(targetRunId);
       setConfig(data.config);
       setStatus(data.status);
 
@@ -493,11 +522,17 @@ export const SparkJetWorkflow: React.FC = () => {
   };
 
   const handleUpload = async (files: File[]) => {
-    if (!runId) return;
     setUploading(true);
     try {
-      await RunService.uploadFiles(runId, files);
-      await loadRun();
+      let activeRunId = runId;
+      if (!activeRunId) {
+        // Create Run only when the user uploads data
+        const res = await RunService.createRun('SPARK_JET', 'PYTHON');
+        activeRunId = res.runId;
+        navigate(`/spark-jet?runId=${activeRunId}`, { replace: true });
+      }
+      await RunService.uploadFiles(activeRunId, files);
+      await loadRun(activeRunId);
     } catch (err) {
       console.error(err);
     } finally {

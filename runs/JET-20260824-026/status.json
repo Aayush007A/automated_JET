@@ -298,7 +298,8 @@
   ],
   "totalInputRows": {
     "tb": 13,
-    "gl": 10
+    "gl": 10,
+    "coa": 0
   },
   "tbCheckpointsSummary": {
     "passed": 3,

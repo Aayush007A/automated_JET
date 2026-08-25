@@ -183,13 +183,37 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [artifactCategory, setArtifactCategory] = useState<'ALL' | 'RECONCILIATION' | 'MASTER' | 'DQC' | 'CONTROL_TOTAL'>('ALL');
   const [artifactSearch, setArtifactSearch] = useState('');
 
-  const loadRun = async () => {
-    if (!runId) {
+  const loadRun = async (overrideRunId?: string) => {
+    const targetRunId = overrideRunId || runId;
+    if (!targetRunId) {
       setLoading(false);
+      setConfig({
+        runId: '',
+        workflow: 'OMNIA_JET',
+        engine: 'PYTHON',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 'admin',
+        userName: 'Auditor',
+        files: [],
+        datasetMap: {},
+        fieldMappings: { tb: [], gl: [], coa: [] },
+        sparkParameters: {},
+        omniaParameters: {
+          fiscalYear: 2026,
+          fiscalYearEnd: '2026-03-31',
+          testingPeriodStart: '2025-04-01',
+          testingPeriodEnd: '2026-03-31',
+          currency: 'Entity Currency',
+          excludeZeroLines: false,
+          decimalSeparator: 'Period',
+        }
+      });
+      setStatus(null);
       return;
     }
     try {
-      const data = await RunService.getRun(runId);
+      const data = await RunService.getRun(targetRunId);
       setConfig(data.config);
       setStatus(data.status);
 
@@ -198,6 +222,9 @@ export const OmniaJetWorkflow: React.FC = () => {
       }
 
       if (data.status.status === 'COMPLETED') {
+        setCurrentStep(6);
+        setMaxCompletedStep(6);
+      } else if (data.status.status === 'RUNNING') {
         setCurrentStep(5);
         setMaxCompletedStep(5);
       }
@@ -244,24 +271,24 @@ export const OmniaJetWorkflow: React.FC = () => {
         .catch(() => setReconPreviewData(null))
         .finally(() => setLoadingReconPreview(false));
     }
-  }, [currentStep, activeTab, reconSubView, runId, status?.status]);
+  }, [currentStep, reconSubView, activeTab, runId, status?.status]);
 
   // Load In-Place Control Total Preview when in Step 6 Tab 3
   useEffect(() => {
-    if (currentStep === 6 && runId && activeTab === 'controlTotals' && selectedControlFile) {
+    if (currentStep === 6 && runId && activeTab === 'controlTotals') {
       setLoadingControlPreview(true);
       RunService.previewOutput(runId, selectedControlFile, 50)
         .then((res) => setControlPreviewData(res))
         .catch(() => setControlPreviewData(null))
         .finally(() => setLoadingControlPreview(false));
     }
-  }, [currentStep, activeTab, selectedControlFile, runId, status?.status]);
+  }, [currentStep, selectedControlFile, activeTab, runId, status?.status]);
 
   // Load DQC Matrix summary data when in Step 6
   useEffect(() => {
-    if (currentStep === 6 && runId) {
+    if (currentStep === 6 && runId && activeTab === 'dqc') {
       setLoadingDqcData(true);
-      RunService.previewOutput(runId, 'Parquet_Data_Integrity_Check_00_Summary.csv', 50)
+      RunService.previewOutput(runId, 'Parquet_Data_Integrity_Check_00_Summary.csv', 100)
         .then((res) => {
           if (res && res.rows) {
             setDqcSummaryData(res.rows);
@@ -273,12 +300,18 @@ export const OmniaJetWorkflow: React.FC = () => {
   }, [currentStep, runId, status?.status]);
 
   const handleUpload = async (files: File[]) => {
-    if (!runId) return;
     setUploading(true);
     try {
-      const res = await RunService.uploadFiles(runId, files);
+      let activeRunId = runId;
+      if (!activeRunId) {
+        // Create Run only when the user uploads data
+        const res = await RunService.createRun('OMNIA_JET', 'PYTHON');
+        activeRunId = res.runId;
+        navigate(`/omnia-jet?runId=${activeRunId}`, { replace: true });
+      }
+      const res = await RunService.uploadFiles(activeRunId, files);
       setConfig((prev) => prev ? { ...prev, files: res.files, datasetMap: res.datasetMap, fieldMappings: res.fieldMappings } : null);
-      await loadRun();
+      await loadRun(activeRunId);
     } catch (err: any) {
       console.error(`Upload failed:`, err);
     } finally {

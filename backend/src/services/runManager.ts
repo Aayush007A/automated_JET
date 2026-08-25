@@ -141,6 +141,19 @@ export class RunManager {
     const current = this.getRunStatus(runId);
     if (!current) return null;
 
+    // IMMUTABILITY PROTECTION: Once a run is marked COMPLETED, preserve its completed status,
+    // 100% progress, timestamps, and outputs from regression unless explicitly restarted.
+    if (current.status === 'COMPLETED' && updates.status !== 'RUNNING') {
+      updates.status = 'COMPLETED';
+      updates.progress = 100;
+      if (current.completedAt) {
+        updates.completedAt = current.completedAt;
+      }
+      if (current.outputs && current.outputs.length > 0 && (!updates.outputs || updates.outputs.length === 0)) {
+        updates.outputs = current.outputs;
+      }
+    }
+
     const updated: RunSummary = {
       ...current,
       ...updates,
