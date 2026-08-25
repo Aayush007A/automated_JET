@@ -11,6 +11,7 @@ export interface TimelineStep {
 interface StepTimelineProps {
   steps: TimelineStep[];
   currentStep: number;
+  maxCompletedStep?: number;
   canAccessStep: (stepId: number) => boolean;
   onStepClick: (stepId: number) => void;
   activeTitle?: string;
@@ -26,27 +27,31 @@ interface StepTimelineProps {
 export const StepTimeline: React.FC<StepTimelineProps> = ({
   steps,
   currentStep,
+  maxCompletedStep,
   canAccessStep,
   onStepClick,
   activeTitle,
   activeDescription,
   headerRight,
 }) => {
-  const activeIndex = Math.max(0, steps.findIndex((s) => s.id === currentStep));
-  const fillPct = steps.length > 1 ? (activeIndex / (steps.length - 1)) * 100 : 0;
+  // Use maxCompletedStep (if provided) to determine the furthest step reached
+  const highWaterMark = maxCompletedStep ?? currentStep;
+  const highWaterIndex = Math.max(0, steps.findIndex((s) => s.id === highWaterMark));
+  const fillPct = steps.length > 1 ? (highWaterIndex / (steps.length - 1)) * 100 : 0;
   const active = steps.find((s) => s.id === currentStep);
 
   return (
     <div className="timeline-card">
       <div className="wizard-steps-h">
-        <div className="wizard-line-h">
-          <div className="wizard-line-h-progress" style={{ width: `${fillPct}%` }} />
-        </div>
-
-        {steps.map((step) => {
+        {steps.map((step, idx) => {
+          const isLast = idx === steps.length - 1;
           const allowed = canAccessStep(step.id);
           const isActive = step.id === currentStep;
-          const isCompleted = step.id < currentStep;
+          // A step is "completed" if it's been reached in the past AND is not currently active
+          const isCompleted = step.id < currentStep || (step.id <= highWaterMark && step.id !== currentStep);
+          // A connecting segment is completed if the destination step is reached
+          const isSegmentCompleted = step.id < highWaterMark;
+          const isSegmentActive = step.id < currentStep;
           const Icon = step.icon;
 
           let nodeClass = 'wizard-node-h';
@@ -55,26 +60,38 @@ export const StepTimeline: React.FC<StepTimelineProps> = ({
           if (isCompleted) nodeClass += ' completed';
 
           return (
-            <button
-              key={step.id}
-              type="button"
-              className={nodeClass}
-              disabled={!allowed}
-              onClick={() => allowed && onStepClick(step.id)}
-              title={step.label}
-            >
-              <span className="wizard-bubble-h">
-                {isCompleted ? (
-                  <CheckCircle2 size={16} />
-                ) : !allowed ? (
-                  <Lock size={13} />
-                ) : (
-                  <Icon size={15} />
-                )}
-              </span>
-              <span className="wizard-label-h">{step.label}</span>
-              {step.sub && <span className="wizard-sub-h">{step.sub}</span>}
-            </button>
+            <div key={step.id} className="wizard-step-item">
+              {/* Connector line to the next step (omitted on the last step) */}
+              {!isLast && (
+                <div className="wizard-connector-line">
+                  <div
+                    className={`wizard-connector-progress ${
+                      isSegmentCompleted ? 'completed' : isSegmentActive ? 'active' : ''
+                    }`}
+                  />
+                </div>
+              )}
+
+              <button
+                type="button"
+                className={nodeClass}
+                disabled={!allowed}
+                onClick={() => allowed && onStepClick(step.id)}
+                title={step.label}
+              >
+                <span className="wizard-bubble-h">
+                  {isCompleted ? (
+                    <CheckCircle2 size={16} />
+                  ) : !allowed ? (
+                    <Lock size={13} />
+                  ) : (
+                    <Icon size={15} />
+                  )}
+                </span>
+                <span className="wizard-label-h">{step.label}</span>
+                {step.sub && <span className="wizard-sub-h">{step.sub}</span>}
+              </button>
+            </div>
           );
         })}
       </div>

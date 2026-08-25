@@ -21,11 +21,11 @@
     "totalVariance": -166750000
   },
   "dqcSummary": {
-    "totalErrors": 12,
-    "totalWarnings": 12,
-    "totalObservations": 4,
-    "checksPassed": 26,
-    "checksFailed": 2
+    "totalErrors": 0,
+    "totalWarnings": 1,
+    "totalObservations": 0,
+    "checksPassed": 27,
+    "checksFailed": 1
   },
   "controlTotalsSummary": {
     "totalDebit": 159250000,

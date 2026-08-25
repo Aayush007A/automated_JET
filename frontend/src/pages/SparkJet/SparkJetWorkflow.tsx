@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { RunService } from '../../services/runService';
 import { RunConfig, RunSummary, SparkJetParameters, FieldMappingItem } from '../../types';
 import { FileDropzone } from '../../components/common/FileDropzone';
@@ -28,10 +29,10 @@ const STEPS: TimelineStep[] = [
 
 const STEP_COPY: Record<number, { title: string; desc: string }> = {
   1: { title: 'Upload Trial Balance & Population', desc: 'Upload TB and Population files or an all-in-one workbook, then preview any sheet instantly.' },
-  2: { title: 'Canonical Field Mapping', desc: 'Confirm column mappings, then run auto-cleansing to normalize dates, numbers and constraints.' },
-  3: { title: 'Integrity Tests (IR 1-4)', desc: 'Review TB and GL checkpoints and inspect flagged rows for each integrity rule.' },
-  4: { title: 'Parameter Rule Configuration', desc: 'Select and configure the twelve audit exception algorithms to test against the population.' },
-  5: { title: 'Parameter Results', desc: 'Explore flagged exceptions, executive analytics, checkpoints and downloadable artifacts.' },
+  2: { title: 'Standard Field Mapping & Data Cleansing', desc: 'Verify column mappings, auto-standardize dates and numeric values, and validate audit constraints.' },
+  3: { title: 'Integrity & Data Readiness Tests (IR 1-4)', desc: 'Execute and review core integrity checks (Control Totals, Gaps, Seldom Accounts).' },
+  4: { title: 'Exception Testing Parameters (Ex 1-12)', desc: 'Configure risk thresholds, account lists, keywords, and unrelated financial statement pairings.' },
+  5: { title: 'Executive Summary & Audit Deliverables', desc: 'Interactive visual analytics, exception distributions, and one-click ZIP download of all outputs.' },
 };
 
 const formatExecutiveDate = (dateStr?: string, includeSeconds: boolean = false): string => {
@@ -68,40 +69,34 @@ const getTimelineStatusVariant = (st?: string): 'default' | 'running' | 'complet
 
 interface AccountRow {
   gl: string;
-  description?: string;
-  subtype?: string;
-  notes?: string;
-}
-
-interface RevenueAccountRow {
-  gl: string;
-  description: string;
-  openingBalance: number | string;
-  debit: number | string;
-  credit: number | string;
-  closingBalance: number | string;
-  movement: number | string;
-  subtype: string;
-  fsLineItem: string;
 }
 
 interface UserRow {
-  userId: string;
-  name?: string;
-  role?: string;
-  category?: string;
+  username: string;
 }
 
 interface DateRow {
   date: string;
-  event: string;
-  impact?: string;
 }
 
 interface UnrelatedRuleRow {
-  debitFSLine: string;
-  creditFSLine: string;
-  category?: string;
+  debit: string;
+  credit: string;
+}
+
+interface TBAccountItem {
+  gl: string;
+  description: string;
+  subtype: string;
+  fsLineItem: string;
+}
+
+interface IR4AccountItem {
+  gl: string;
+  description: string;
+  subtype: string;
+  fsLineItem: string;
+  count: number;
 }
 
 export const SparkJetWorkflow: React.FC = () => {
@@ -151,19 +146,31 @@ export const SparkJetWorkflow: React.FC = () => {
     ex7: true, ex8: true, ex9: true, ex10: true, ex11: true, ex12: true,
   });
 
+  // Parameter Exception Inputs (Clean: Empty by default, no dummy data)
   const [unusualAccounts, setUnusualAccounts] = useState<AccountRow[]>([]);
   const [seldomAccounts, setSeldomAccounts] = useState<AccountRow[]>([]);
-  const [revenueAccounts, setRevenueAccounts] = useState<RevenueAccountRow[]>([]);
   const [usersOfInterest, setUsersOfInterest] = useState<UserRow[]>([]);
   const [datesOfInterest, setDatesOfInterest] = useState<DateRow[]>([]);
-  const [keywords, setKeywords] = useState<string[]>([]);
+  const [keywords, setKeywords] = useState<string[]>([
+    'fault', 'bribe', "auditor's adjustment", 'mistake', 'risk', 'misstatement',
+    'officer', 'prize', 'abuse', 'alter', 'seizure', 'bury', 'conceal', 'conting',
+    'corrupt', 'demand', 'embezzle', 'theft', 'fictitious', 'fraud', 'manual', 'adjustment', 'reverse'
+  ]);
   const [unrelatedRules, setUnrelatedRules] = useState<UnrelatedRuleRow[]>([]);
 
-  // General Spark JET Parameters
+  // Contextual TB and IR4 data
+  const [tbAccounts, setTbAccounts] = useState<TBAccountItem[]>([]);
+  const [tbFSLineItems, setTbFSLineItems] = useState<string[]>([]);
+  const [ir4Data, setIr4Data] = useState<IR4AccountItem[]>([]);
+  const [loadingContextData, setLoadingContextData] = useState(false);
+  const [ex2MinCount, setEx2MinCount] = useState<number>(1);
+  const [ex2MaxCount, setEx2MaxCount] = useState<number>(5);
+
+  // General Spark JET Parameters (Clean: No dummy engagement name)
   const [sparkParams, setSparkParams] = useState<SparkJetParameters>({
     fiscalYear: 2026,
     financialYearEnd: '31-Dec-25',
-    engagementName: 'Jio Satellite Communications Limited',
+    engagementName: '',
     currencyCode: 'INR',
     ex3RevenueDebitsThreshold: 0.0,
     ex4FewPostingsUserThreshold: 2,
@@ -181,6 +188,9 @@ export const SparkJetWorkflow: React.FC = () => {
 
   // Results View Tabs in Step 5
   const [activeVisualTab, setActiveVisualTab] = useState<'preview' | 'overview' | 'checkpoints' | 'artifacts'>('preview');
+  const [exceptionCategoryFilter, setExceptionCategoryFilter] = useState<'flagged' | 'clean'>('flagged');
+  const [artifactCategoryFilter, setArtifactCategoryFilter] = useState<string>('PARAMETER');
+  const [artifactSearch, setArtifactSearch] = useState('');
   const [selectedPreviewFile, setSelectedPreviewFile] = useState<string>('Parameter_Exception_1.csv');
   const [previewData, setPreviewData] = useState<{ headers: string[]; rows: Record<string, any>[]; totalRows: number } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -189,6 +199,140 @@ export const SparkJetWorkflow: React.FC = () => {
   // Hidden file input refs for uploading exception parameters
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentImportTarget, setCurrentImportTarget] = useState<string | null>(null);
+
+  const loadContextData = async (cfg?: RunConfig | null) => {
+    if (!runId) return;
+    setLoadingContextData(true);
+    try {
+      // 1. Fetch Trial Balance rows to extract unique FS Line Items and Revenue/Income subtypes
+      let tbRows: any[] = [];
+      try {
+        const tbOut = await RunService.previewOutput(runId, 'TB.csv', 2000);
+        if (tbOut && tbOut.rows && tbOut.rows.length > 0) {
+          tbRows = tbOut.rows;
+        }
+      } catch (e) { }
+
+      if (tbRows.length === 0) {
+        const activeCfg = cfg || config;
+        const tbFile = activeCfg?.files.find(f => f.detectedDataset === 'TRIAL_BALANCE' || f.sheets?.some(s => s.detectedDataset === 'TRIAL_BALANCE'));
+        if (tbFile) {
+          try {
+            const res = await RunService.previewInputFile(runId, tbFile.fileId, tbFile.sheets?.[0]?.sheetName, 2000);
+            if (res && res.rows) tbRows = res.rows;
+          } catch (e) { }
+        }
+      }
+
+      if (tbRows.length > 0) {
+        const parsedTB: TBAccountItem[] = tbRows.map(r => ({
+          gl: String(r.G_L || r['G/L'] || r.gl || r['GL Account'] || r['Account Number'] || '').trim(),
+          description: String(r.Description || r['Account Description'] || r.description || '').trim(),
+          subtype: String(r.Account_Subtype || r['Account Subtype'] || r.subtype || '').trim(),
+          fsLineItem: String(r.FS_Line_Item || r['FS Line Item'] || r.fs_line_item || '').trim(),
+        })).filter(a => !!a.gl && a.gl !== '0');
+        setTbAccounts(parsedTB);
+
+        const uniqueFS = Array.from(new Set(parsedTB.map(a => a.fsLineItem).filter(Boolean))).sort();
+        setTbFSLineItems(uniqueFS);
+      }
+
+      // 2. Fetch IR-4 (Seldom Accounts with Posting counts)
+      try {
+        let ir4Out: any = null;
+        try {
+          ir4Out = await RunService.previewOutput(runId, 'Parameter_2_Seldom_Accounts_Inputs.csv', 1000);
+        } catch (e) {
+          ir4Out = await RunService.previewOutput(runId, 'IR_Exception_4.csv', 1000).catch(() => null);
+        }
+        if (ir4Out && ir4Out.rows) {
+          const parsedIR4: IR4AccountItem[] = ir4Out.rows.map((r: any) => ({
+            gl: String(r.G_L || r.gl || '').trim(),
+            description: String(r.Description || r.description || '').trim(),
+            subtype: String(r.Account_Subtype || r.subtype || '').trim(),
+            fsLineItem: String(r.FS_Line_Item || r.fsLineItem || '').trim(),
+            count: Number(r.Count || r.count || 0),
+          })).filter((r: any) => !!r.gl);
+          setIr4Data(parsedIR4);
+        }
+      } catch (e) { }
+
+      // 3. Check for workbook sheets containing exception inputs (e.g. ex_1, ex_2, ex_5, ex_7, ex_12)
+      const activeCfg = cfg || config;
+      if (activeCfg?.files) {
+        for (const file of activeCfg.files) {
+          if (file.sheets && file.sheets.length > 0) {
+            for (const sheet of file.sheets) {
+              const sName = sheet.sheetName.toLowerCase();
+              if (/ex.*1|unusual/i.test(sName)) {
+                try {
+                  const res = await RunService.previewInputFile(runId, file.fileId, sheet.sheetName, 500);
+                  if (res && res.rows && res.rows.length > 0) {
+                    const parsed = res.rows.map((r: any) => ({
+                      gl: String(r.G_L || r['G/L'] || r.gl || Object.values(r)[0] || '').trim()
+                    })).filter((r: any) => !!r.gl);
+                    if (parsed.length > 0) setUnusualAccounts((prev) => prev.length === 0 ? parsed : prev);
+                  }
+                } catch (e) { }
+              }
+              if (/ex.*2|seldom/i.test(sName)) {
+                try {
+                  const res = await RunService.previewInputFile(runId, file.fileId, sheet.sheetName, 500);
+                  if (res && res.rows && res.rows.length > 0) {
+                    const parsed = res.rows.map((r: any) => ({
+                      gl: String(r.G_L || r['G/L'] || r.gl || Object.values(r)[0] || '').trim()
+                    })).filter((r: any) => !!r.gl);
+                    if (parsed.length > 0) setSeldomAccounts((prev) => prev.length === 0 ? parsed : prev);
+                  }
+                } catch (e) { }
+              }
+              if (/ex.*5|user/i.test(sName)) {
+                try {
+                  const res = await RunService.previewInputFile(runId, file.fileId, sheet.sheetName, 500);
+                  if (res && res.rows && res.rows.length > 0) {
+                    const parsed = res.rows.map((r: any) => ({
+                      username: String(r.User_name || r.user_name || r.username || Object.values(r)[0] || '').trim()
+                    })).filter((r: any) => !!r.username);
+                    if (parsed.length > 0) setUsersOfInterest((prev) => prev.length === 0 ? parsed : prev);
+                  }
+                } catch (e) { }
+              }
+              if (/ex.*7|date|holiday/i.test(sName)) {
+                try {
+                  const res = await RunService.previewInputFile(runId, file.fileId, sheet.sheetName, 500);
+                  if (res && res.rows && res.rows.length > 0) {
+                    const parsed = res.rows.map((r: any) => ({
+                      date: String(r.Pstng_Date || r.posting_date || r.date || Object.values(r)[0] || '').trim()
+                    })).filter((r: any) => !!r.date);
+                    if (parsed.length > 0) setDatesOfInterest((prev) => prev.length === 0 ? parsed : prev);
+                  }
+                } catch (e) { }
+              }
+              if (/ex.*12|unrelated/i.test(sName)) {
+                try {
+                  const res = await RunService.previewInputFile(runId, file.fileId, sheet.sheetName, 500);
+                  if (res && res.rows && res.rows.length > 0) {
+                    const parsed = res.rows.map((r: any) => {
+                      const vals = Object.values(r);
+                      return {
+                        debit: String(r.Debit || r.debit || vals[0] || '').trim(),
+                        credit: String(r.Credit || r.credit || vals[1] || '').trim(),
+                      };
+                    }).filter((r: any) => !!r.debit && !!r.credit);
+                    if (parsed.length > 0) setUnrelatedRules((prev) => prev.length === 0 ? parsed : prev);
+                  }
+                } catch (e) { }
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading context data:', err);
+    } finally {
+      setLoadingContextData(false);
+    }
+  };
 
   const loadRun = async () => {
     if (!runId) return;
@@ -199,6 +343,37 @@ export const SparkJetWorkflow: React.FC = () => {
 
       if (data.config.sparkParameters) {
         setSparkParams((prev) => ({ ...prev, ...data.config.sparkParameters }));
+        const p = data.config.sparkParameters;
+        if (p.ex1UnusualAccounts && p.ex1UnusualAccounts.length > 0) {
+          setUnusualAccounts(p.ex1UnusualAccounts.map(gl => ({ gl })));
+        }
+        if (p.ex2SeldomAccounts && p.ex2SeldomAccounts.length > 0) {
+          setSeldomAccounts(p.ex2SeldomAccounts.map(gl => ({ gl })));
+        }
+        if (p.ex4FewPostingsUserThreshold !== undefined) {
+          setEx4Threshold(Number(p.ex4FewPostingsUserThreshold));
+        }
+        if (p.ex5UsersOfInterest && p.ex5UsersOfInterest.length > 0) {
+          setUsersOfInterest(p.ex5UsersOfInterest.map(u => ({ username: u })));
+        }
+        if (p.ex6ClosingEntriesBeforeDays !== undefined) setEx6BeforeDays(p.ex6ClosingEntriesBeforeDays);
+        if (p.ex6ClosingEntriesAfterDays !== undefined) setEx6AfterDays(p.ex6ClosingEntriesAfterDays);
+        if (p.ex6ClosingDate) setEx6ClosingDate(p.ex6ClosingDate);
+        if (p.ex6Frequency) setEx6Frequency(p.ex6Frequency);
+        if (p.ex7DatesOfInterest && p.ex7DatesOfInterest.length > 0) {
+          setDatesOfInterest(p.ex7DatesOfInterest.map(d => ({ date: d })));
+        }
+        if (p.ex8RoundDigits && p.ex8RoundDigits.length > 0) setEx8SelectedDigits(p.ex8RoundDigits);
+        if (p.ex9DuplicateCountThreshold !== undefined) setEx9CountThreshold(p.ex9DuplicateCountThreshold);
+        if (p.ex9DuplicateAmountThreshold !== undefined) setEx9AmountThreshold(p.ex9DuplicateAmountThreshold);
+        if (p.ex10Keywords && p.ex10Keywords.length > 0) setKeywords(p.ex10Keywords);
+        if (p.ex11ClosingDate) setEx11ClosingDate(p.ex11ClosingDate);
+        if (p.ex11DaysAfterClosing !== undefined) setEx11DaysAfterClosing(p.ex11DaysAfterClosing);
+        if (p.ex11Frequency) setEx11Frequency(p.ex11Frequency);
+        if (p.ex12UnrelatedRules && p.ex12UnrelatedRules.length > 0) {
+          setUnrelatedRules(p.ex12UnrelatedRules.map(r => ({ debit: r.debit || r.debitFSLine || '', credit: r.credit || r.creditFSLine || '' })));
+        }
+        if (p.controlSampleCount !== undefined) setSampleDocCount(p.controlSampleCount);
       }
 
       if (data.status.status === 'COMPLETED') {
@@ -207,6 +382,8 @@ export const SparkJetWorkflow: React.FC = () => {
       } else if (data.config.files.length > 0) {
         setMaxCompletedStep((prev) => Math.max(prev, 2));
       }
+
+      await loadContextData(data.config);
     } catch (err) {
       console.error(err);
     } finally {
@@ -346,137 +523,168 @@ export const SparkJetWorkflow: React.FC = () => {
     if (!file || !currentImportTarget) return;
 
     try {
-      const text = await file.text();
-      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-      if (lines.length <= 1) return;
+      let rows: string[][] = [];
+      const ext = file.name.split('.').pop()?.toLowerCase();
 
-      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-      const dataRows = lines.slice(1);
-
-      if (currentImportTarget === 'unusualAccounts' || currentImportTarget === 'seldomAccounts') {
-        const parsedRows: AccountRow[] = [];
-        dataRows.forEach((line) => {
-          const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          if (cols[0]) {
-            parsedRows.push({ gl: cols[0], description: cols[1] || 'Imported Account', subtype: cols[2] || 'Assets', notes: cols[3] || 'Uploaded via template' });
-          }
-        });
-
+      if (ext === 'xlsx' || ext === 'xls') {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array' });
+        let targetSheetName = wb.SheetNames[0];
         if (currentImportTarget === 'unusualAccounts') {
-          setUnusualAccounts(parsedRows);
-          setFileImportNotice(`Successfully imported ${parsedRows.length} Unusual Accounts from ${file.name}`);
-        } else {
-          setSeldomAccounts(parsedRows);
-          setFileImportNotice(`Successfully imported ${parsedRows.length} Seldom Accounts from ${file.name}`);
+          const found = wb.SheetNames.find((s) => /ex.*1|unusual/i.test(s));
+          if (found) targetSheetName = found;
+        } else if (currentImportTarget === 'seldomAccounts') {
+          const found = wb.SheetNames.find((s) => /ex.*2|seldom/i.test(s));
+          if (found) targetSheetName = found;
+        } else if (currentImportTarget === 'usersOfInterest') {
+          const found = wb.SheetNames.find((s) => /ex.*5|user/i.test(s));
+          if (found) targetSheetName = found;
+        } else if (currentImportTarget === 'closingEntries') {
+          const found = wb.SheetNames.find((s) => /ex.*6|closing/i.test(s));
+          if (found) targetSheetName = found;
+        } else if (currentImportTarget === 'datesOfInterest') {
+          const found = wb.SheetNames.find((s) => /ex.*7|date|holiday/i.test(s));
+          if (found) targetSheetName = found;
+        } else if (currentImportTarget === 'keywords') {
+          const found = wb.SheetNames.find((s) => /ex.*10|keyword/i.test(s));
+          if (found) targetSheetName = found;
+        } else if (currentImportTarget === 'unrelatedRules') {
+          const found = wb.SheetNames.find((s) => /ex.*12|unrelated/i.test(s));
+          if (found) targetSheetName = found;
         }
-      } else if (currentImportTarget === 'revenueAccounts') {
-        const parsedRev: RevenueAccountRow[] = [];
-        dataRows.forEach((line) => {
-          const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          if (cols[0]) {
-            parsedRev.push({
-              gl: cols[0], description: cols[1] || '', openingBalance: parseFloat(cols[2]) || 0, debit: parseFloat(cols[3]) || 0,
-              credit: parseFloat(cols[4]) || 0, closingBalance: parseFloat(cols[5]) || 0, movement: parseFloat(cols[6]) || 0,
-              subtype: cols[7] || 'Revenue', fsLineItem: cols[8] || 'NET SALES REVENUE',
-            });
-          }
+
+        const sheet = wb.Sheets[targetSheetName];
+        if (sheet) {
+          const raw = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '' });
+          rows = raw.map((r) => Array.isArray(r) ? r.map((c) => String(c ?? '').trim()) : []);
+        }
+      } else {
+        const text = await file.text();
+        const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        rows = lines.map((l) => l.split(',').map((c) => c.trim().replace(/^["']|["']$/g, '')));
+      }
+
+      if (rows.length <= 1) return;
+      const dataRows = rows.slice(1);
+
+      if (currentImportTarget === 'unusualAccounts') {
+        const parsedRows: AccountRow[] = [];
+        dataRows.forEach((cols) => {
+          if (cols[0]) parsedRows.push({ gl: cols[0] });
         });
-        if (parsedRev.length > 0) {
-          setRevenueAccounts(parsedRev);
-          setFileImportNotice(`Successfully imported ${parsedRev.length} Revenue Accounts from ${file.name}`);
-        }
+        setUnusualAccounts(parsedRows);
+        setFileImportNotice(`Successfully imported ${parsedRows.length} Unusual Accounts (G_L) from ${file.name}`);
+      } else if (currentImportTarget === 'seldomAccounts') {
+        const parsedRows: AccountRow[] = [];
+        dataRows.forEach((cols) => {
+          if (cols[0]) parsedRows.push({ gl: cols[0] });
+        });
+        setSeldomAccounts(parsedRows);
+        setFileImportNotice(`Successfully imported ${parsedRows.length} Seldom Accounts (G_L) from ${file.name}`);
       } else if (currentImportTarget === 'usersOfInterest') {
         const parsedUsers: UserRow[] = [];
-        dataRows.forEach((line) => {
-          const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          if (cols[0]) parsedUsers.push({ userId: cols[0], name: cols[1] || cols[0], role: cols[2] || 'Audited User', category: cols[3] || 'General' });
+        dataRows.forEach((cols) => {
+          if (cols[0]) parsedUsers.push({ username: cols[0] });
         });
         setUsersOfInterest(parsedUsers);
-        setFileImportNotice(`Successfully imported ${parsedUsers.length} Users of Interest from ${file.name}`);
+        setFileImportNotice(`Successfully imported ${parsedUsers.length} Users of Interest (User_name) from ${file.name}`);
       } else if (currentImportTarget === 'datesOfInterest') {
         const parsedDates: DateRow[] = [];
-        dataRows.forEach((line) => {
-          const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          if (cols[0]) parsedDates.push({ date: cols[0], event: cols[1] || 'Holiday / Event', impact: cols[2] || 'Non-working day' });
+        dataRows.forEach((cols) => {
+          if (cols[0]) parsedDates.push({ date: cols[0] });
         });
         setDatesOfInterest(parsedDates);
-        setFileImportNotice(`Successfully imported ${parsedDates.length} Dates of Interest from ${file.name}`);
+        setFileImportNotice(`Successfully imported ${parsedDates.length} Dates of Interest (Pstng_Date) from ${file.name}`);
+      } else if (currentImportTarget === 'closingEntries') {
+        if (dataRows.length > 0) {
+          const cols = dataRows[0];
+          if (cols[0]) setEx6BeforeDays(Number(cols[0]) || 1);
+          if (cols[1]) setEx6AfterDays(Number(cols[1]) || 10);
+          if (cols[2]) setEx6ClosingDate(cols[2]);
+          if (cols[3]) setEx6Frequency(cols[3]);
+          setFileImportNotice(`Successfully imported Closing Entries parameters from ${file.name}`);
+        }
       } else if (currentImportTarget === 'keywords') {
         const parsedKw: string[] = [];
-        dataRows.forEach((line) => {
-          const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
+        dataRows.forEach((cols) => {
           cols.forEach((k) => { if (k && !parsedKw.includes(k.toLowerCase())) parsedKw.push(k.toLowerCase()); });
         });
         setKeywords(parsedKw);
         setFileImportNotice(`Successfully imported ${parsedKw.length} Risk Keywords from ${file.name}`);
       } else if (currentImportTarget === 'unrelatedRules') {
         const parsedRules: UnrelatedRuleRow[] = [];
-        dataRows.forEach((line) => {
-          const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-          if (cols[0] && cols[1]) parsedRules.push({ debitFSLine: cols[0], creditFSLine: cols[1], category: cols[2] || 'Unrelated Pair Rule' });
+        const invalidInFile: string[] = [];
+        dataRows.forEach((cols) => {
+          if (cols[0] && cols[1]) {
+            const d = cols[0];
+            const c = cols[1];
+            parsedRules.push({ debit: d, credit: c });
+            if (tbFSLineItems.length > 0) {
+              if (!tbFSLineItems.some((f) => f.trim().toLowerCase() === d.toLowerCase()) && !invalidInFile.includes(d)) {
+                invalidInFile.push(d);
+              }
+              if (!tbFSLineItems.some((f) => f.trim().toLowerCase() === c.toLowerCase()) && !invalidInFile.includes(c)) {
+                invalidInFile.push(c);
+              }
+            }
+          }
         });
         setUnrelatedRules(parsedRules);
-        setFileImportNotice(`Successfully imported ${parsedRules.length} Unrelated Pair Rules from ${file.name}`);
+        if (invalidInFile.length > 0) {
+          setFileImportNotice(`Imported ${parsedRules.length} rules. WARNING: [${invalidInFile.join(', ')}] not found in Trial Balance FS Line Items.`);
+        } else {
+          setFileImportNotice(`Successfully imported ${parsedRules.length} Unrelated Pair Rules (Debit, Credit) from ${file.name}`);
+        }
       }
 
-      setTimeout(() => setFileImportNotice(null), 6000);
+      setTimeout(() => setFileImportNotice(null), 7000);
     } catch (err) {
       console.error('Failed to parse uploaded file:', err);
     }
   };
 
-  const handleAutoPopulateRevenueFromTB = async () => {
-    if (!runId) return;
-    try {
-      const tbFile = config?.files.find(f => f.detectedDataset === 'TRIAL_BALANCE' || f.sheets?.some(s => s.detectedDataset === 'TRIAL_BALANCE'));
-      if (!tbFile) return;
-      const res = await RunService.previewInputFile(runId, tbFile.fileId, tbFile.sheets?.[0]?.sheetName, 2000);
-      if (res && res.rows) {
-        const revRows = res.rows.filter(r => {
-          const sub = String(r.Account_Subtype || r['Account Subtype'] || r.subtype || '').toLowerCase();
-          const fs = String(r.FS_Line_Item || r['FS Line Item'] || r.fs_line_item || '').toLowerCase();
-          return sub.includes('revenue') || sub.includes('income') || fs.includes('revenue') || fs.includes('sales');
-        });
-        if (revRows.length > 0) {
-          const mapped: RevenueAccountRow[] = revRows.map(r => ({
-            gl: String(r.G_L || r['G/L'] || r.gl || r['GL Account'] || ''),
-            description: String(r.Description || r.description || r['Account Description'] || ''),
-            openingBalance: Number(r.Opening_Balance || r['Opening Balance'] || 0),
-            debit: Number(r.Debit || r.debit || 0),
-            credit: Number(r.Credit || r.credit || 0),
-            closingBalance: Number(r.Closing_Balance || r['Closing Balance'] || 0),
-            movement: Number(r.Movement || r.movement || 0),
-            subtype: String(r.Account_Subtype || r['Account Subtype'] || 'Revenue'),
-            fsLineItem: String(r.FS_Line_Item || r['FS Line Item'] || 'NET SALES REVENUE'),
-          })).filter(r => !!r.gl);
-          setRevenueAccounts(mapped);
-          setFileImportNotice(`Auto-populated ${mapped.length} Revenue & Income accounts directly from uploaded Trial Balance`);
-          setTimeout(() => setFileImportNotice(null), 6000);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to auto-populate revenue accounts from TB:', err);
+  const detectedRevenueInfo = useMemo(() => {
+    if (tbAccounts.length === 0) {
+      return { accounts: [] as TBAccountItem[], status: 'No Trial Balance accounts loaded', subtypeName: '' };
     }
-  };
+    const rev = tbAccounts.filter(a => a.subtype.trim().toLowerCase() === 'revenue');
+    if (rev.length > 0) {
+      return { accounts: rev, status: 'Filtered on Account_Subtype: Revenue', subtypeName: 'Revenue' };
+    }
+    const inc = tbAccounts.filter(a => a.subtype.trim().toLowerCase() === 'income');
+    if (inc.length > 0) {
+      return { accounts: inc, status: 'Filtered on Account_Subtype: Income (Fallback)', subtypeName: 'Income' };
+    }
+    return { accounts: [] as TBAccountItem[], status: 'No Revenue or Income accounts found in Trial Balance (Blank)', subtypeName: '' };
+  }, [tbAccounts]);
 
-  const handleAutoPopulateSeldomFromIR4 = async () => {
-    if (!runId) return;
-    try {
-      const res = await RunService.previewOutput(runId, 'Parameter_2_Seldom_Accounts_Inputs.csv', 100);
-      if (res && res.rows && res.rows.length > 0) {
-        const mapped: AccountRow[] = res.rows
-          .filter(r => Number(r.Count || 0) <= 5 && Number(r.Count || 0) > 0)
-          .map(r => ({ gl: String(r.G_L || ''), description: String(r.Description || 'Seldom Account'), subtype: String(r.Account_Subtype || 'Assets'), notes: `Posting count: ${r.Count || 0}` }))
-          .filter(r => !!r.gl);
-        if (mapped.length > 0) {
-          setSeldomAccounts(mapped);
-          setFileImportNotice(`Auto-populated ${mapped.length} Seldom Accounts from IR 4 (counts <= 5)`);
-          setTimeout(() => setFileImportNotice(null), 6000);
-        }
+  const invalidEx12Items = useMemo(() => {
+    if (tbFSLineItems.length === 0) return [];
+    const invalid: string[] = [];
+    unrelatedRules.forEach(r => {
+      if (r.debit && !tbFSLineItems.some(f => f.trim().toLowerCase() === r.debit.trim().toLowerCase())) {
+        if (!invalid.includes(r.debit.trim())) invalid.push(r.debit.trim());
       }
-    } catch (err) {
-      console.error('Failed to auto-populate seldom accounts:', err);
+      if (r.credit && !tbFSLineItems.some(f => f.trim().toLowerCase() === r.credit.trim().toLowerCase())) {
+        if (!invalid.includes(r.credit.trim())) invalid.push(r.credit.trim());
+      }
+    });
+    return invalid;
+  }, [unrelatedRules, tbFSLineItems]);
+
+  const matchingIR4Accounts = useMemo(() => {
+    return ir4Data.filter(r => r.count >= ex2MinCount && r.count <= ex2MaxCount);
+  }, [ir4Data, ex2MinCount, ex2MaxCount]);
+
+  const handleAddAllIR4InRange = () => {
+    const newGLs = matchingIR4Accounts.map(r => r.gl).filter(gl => gl && !seldomAccounts.some(s => s.gl === gl));
+    if (newGLs.length === 0) {
+      setFileImportNotice(`All ${matchingIR4Accounts.length} accounts in range ${ex2MinCount}-${ex2MaxCount} are already added.`);
+    } else {
+      setSeldomAccounts(prev => [...prev, ...newGLs.map(gl => ({ gl }))]);
+      setFileImportNotice(`Added ${newGLs.length} Seldom Accounts from IR-4 with count between ${ex2MinCount} and ${ex2MaxCount}`);
     }
+    setTimeout(() => setFileImportNotice(null), 6000);
   };
 
   const handleDownloadOutput = (fileName: string) => {
@@ -487,6 +695,13 @@ export const SparkJetWorkflow: React.FC = () => {
 
   const handleRunPipeline = async (targetStepAfter: number = 5) => {
     if (!runId) return;
+
+    if (enabledExceptions.ex12 && invalidEx12Items.length > 0) {
+      alert(`Constraint Validation Error in Ex-12 (Unrelated Accounts):\n\nThe following FS Line Items do not exist in the Trial Balance's FS_Line_Item column:\n${invalidEx12Items.map(i => `• ${i}`).join('\n')}\n\nPlease select valid FS Line Items from the Trial Balance before proceeding.`);
+      setParamTab('ex12');
+      return;
+    }
+
     setExecuting(true);
     setCurrentStep(targetStepAfter);
 
@@ -499,19 +714,19 @@ export const SparkJetWorkflow: React.FC = () => {
         ...sparkParams,
         selectedExceptions: selectedList,
         runControlSamples: runControlSample,
-        ex1UnusualAccounts: unusualAccounts.map((a) => a.gl).filter(Boolean),
-        ex2SeldomAccounts: seldomAccounts.map((a) => a.gl).filter(Boolean),
-        ex3RevenueAccounts: revenueAccounts.map((a) => a.gl).filter(Boolean),
+        ex1UnusualAccounts: unusualAccounts.map((a) => a.gl.trim()).filter(Boolean),
+        ex2SeldomAccounts: seldomAccounts.map((a) => a.gl.trim()).filter(Boolean),
+        ex3RevenueAccounts: detectedRevenueInfo.accounts.map((a) => a.gl.trim()).filter(Boolean),
         ex3RevenueDebitsThreshold: Number(ex3Threshold || 0),
         ex3QuarterStartDate: ex3QuarterStart,
         ex3QuarterEndDate: ex3QuarterEnd,
         ex4FewPostingsUserThreshold: Number(ex4Threshold || 1),
-        ex5UsersOfInterest: usersOfInterest.map((u) => u.userId).filter(Boolean),
+        ex5UsersOfInterest: usersOfInterest.map((u) => u.username.trim()).filter(Boolean),
         ex6ClosingEntriesBeforeDays: Number(ex6BeforeDays || 1),
         ex6ClosingEntriesAfterDays: Number(ex6AfterDays || 10),
         ex6ClosingDate: ex6ClosingDate || '31-Dec-25',
         ex6Frequency: ex6Frequency || 'Annually',
-        ex7DatesOfInterest: datesOfInterest.map((d) => d.date).filter(Boolean),
+        ex7DatesOfInterest: datesOfInterest.map((d) => d.date.trim()).filter(Boolean),
         ex8RoundDigits: ex8SelectedDigits,
         ex9DuplicateCountThreshold: Number(ex9CountThreshold || 2),
         ex9DuplicateAmountThreshold: Number(ex9AmountThreshold || 0),
@@ -519,7 +734,7 @@ export const SparkJetWorkflow: React.FC = () => {
         ex11ClosingDate: ex11ClosingDate || '31-Dec-25',
         ex11DaysAfterClosing: Number(ex11DaysAfterClosing || 10),
         ex11Frequency: ex11Frequency || 'Annually',
-        ex12UnrelatedRules: unrelatedRules.map((r) => ({ debitFSLine: r.debitFSLine, creditFSLine: r.creditFSLine })),
+        ex12UnrelatedRules: unrelatedRules.map((r) => ({ debit: r.debit.trim(), credit: r.credit.trim() })),
         controlSampleCount: Number(sampleDocCount || 61),
       };
 
@@ -641,7 +856,7 @@ export const SparkJetWorkflow: React.FC = () => {
     const list: Array<{ id: string; label: string; count: number | null }> = [];
     if (enabledExceptions.ex1) list.push({ id: 'ex1', label: 'Ex1: Unusual Accounts', count: unusualAccounts.length });
     if (enabledExceptions.ex2) list.push({ id: 'ex2', label: 'Ex2: Seldom Accounts', count: seldomAccounts.length });
-    if (enabledExceptions.ex3) list.push({ id: 'ex3', label: 'Ex3: Revenue Debits', count: revenueAccounts.length });
+    if (enabledExceptions.ex3) list.push({ id: 'ex3', label: 'Ex3: Revenue Debits', count: detectedRevenueInfo.accounts.length });
     if (enabledExceptions.ex4) list.push({ id: 'ex4', label: 'Ex4: Few Postings Users', count: null });
     if (enabledExceptions.ex5) list.push({ id: 'ex5', label: 'Ex5: Users of Interest', count: usersOfInterest.length });
     if (enabledExceptions.ex6) list.push({ id: 'ex6', label: 'Ex6: Closing Entries', count: null });
@@ -653,7 +868,7 @@ export const SparkJetWorkflow: React.FC = () => {
     if (enabledExceptions.ex12) list.push({ id: 'ex12', label: 'Ex12: Unrelated Pairings', count: unrelatedRules.length });
     if (runControlSample) list.push({ id: 'controlSample', label: 'Control Sample Dump', count: sampleDocCount });
     return list;
-  }, [enabledExceptions, unusualAccounts, seldomAccounts, usersOfInterest, datesOfInterest, ex8SelectedDigits, keywords, unrelatedRules, runControlSample, sampleDocCount]);
+  }, [enabledExceptions, unusualAccounts, seldomAccounts, detectedRevenueInfo, usersOfInterest, datesOfInterest, ex8SelectedDigits, keywords, unrelatedRules, runControlSample, sampleDocCount]);
 
   useEffect(() => {
     if (visibleParamTabs.length > 0 && !visibleParamTabs.some(t => t.id === paramTab)) {
@@ -692,7 +907,7 @@ export const SparkJetWorkflow: React.FC = () => {
   const renderTimelineActions = () => {
     if (currentStep === 1) {
       return (
-        <button onClick={() => setCurrentStep(2)} disabled={!isStep1Valid} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+        <button onClick={() => { setCurrentStep(2); setMaxCompletedStep(prev => Math.max(prev, 1)); }} disabled={!isStep1Valid} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
           Continue <ArrowRight size={13} />
         </button>
       );
@@ -716,7 +931,7 @@ export const SparkJetWorkflow: React.FC = () => {
       return (
         <>
           <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button onClick={() => setCurrentStep(4)} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+          <button onClick={() => { setCurrentStep(4); setMaxCompletedStep(prev => Math.max(prev, 3)); }} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
             Configure Exceptions <ArrowRight size={13} />
           </button>
         </>
@@ -792,8 +1007,9 @@ export const SparkJetWorkflow: React.FC = () => {
       <StepTimeline
         steps={STEPS}
         currentStep={currentStep}
+        maxCompletedStep={maxCompletedStep}
         canAccessStep={canAccessStep}
-        onStepClick={setCurrentStep}
+        onStepClick={(id) => { setCurrentStep(id); setMaxCompletedStep(prev => Math.max(prev, id - 1)); }}
         activeTitle={STEP_COPY[currentStep]?.title}
         activeDescription={STEP_COPY[currentStep]?.desc}
         headerRight={renderTimelineActions()}
@@ -810,7 +1026,7 @@ export const SparkJetWorkflow: React.FC = () => {
                 Upload Trial Balance, Population & Input Extract
               </h3>
               <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                Upload separate files (<strong>TB.csv</strong>, <strong>Population.csv</strong>) or an all-in-one workbook. Click the <strong>Preview (50)</strong> button next to any file or sheet to inspect sample rows immediately.
+                Upload separate files (<strong>TB.csv</strong>, <strong>Population.csv</strong>) or an all-in-one workbook. Click the <strong>Preview</strong> button next to any file or sheet to inspect sample rows immediately.
               </p>
 
               <FileDropzone
@@ -1145,7 +1361,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         cursor: 'pointer', boxShadow: isChecked ? 'var(--shadow-glow-teal)' : 'var(--shadow-sm)',
                       }}
                     >
-                      <input type="checkbox" checked={isChecked} onChange={() => {}} style={{ marginTop: '3px', cursor: 'pointer', accentColor: 'var(--deloitte-teal)' }} />
+                      <input type="checkbox" checked={isChecked} onChange={() => { }} style={{ marginTop: '3px', cursor: 'pointer', accentColor: 'var(--deloitte-teal)' }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--deloitte-teal)', fontFamily: 'var(--font-mono)' }}>Ex {r.num}</span>
@@ -1194,34 +1410,53 @@ export const SparkJetWorkflow: React.FC = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex1: Entries made to Unusual Accounts</h4>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Target suspense, intercompany clearing, and zero-balance accounts. Schema column: <code>G_L</code></p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Target suspense, intercompany clearing, and unusual GL accounts. Schema column: <code>G_L</code></p>
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => triggerImportFile('unusualAccounts')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_1.csv)</button>
-                        <button onClick={() => setUnusualAccounts((prev) => [...prev, { gl: '', description: '', subtype: 'Assets', notes: '' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add Row</button>
+                        <button onClick={() => triggerImportFile('unusualAccounts')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_1.csv/.xlsx)</button>
+                        <button onClick={() => setUnusualAccounts((prev) => [...prev, { gl: '' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add G_L</button>
                       </div>
                     </div>
 
-                    <div className="table-container">
-                      <table className="jet-table">
-                        <thead><tr><th style={{ width: '180px' }}>G_L (Account Code)</th><th>Description</th><th style={{ width: '160px' }}>Account Subtype</th><th>Audit Notes</th><th style={{ width: '60px', textAlign: 'center' }}>Action</th></tr></thead>
-                        <tbody>
-                          {unusualAccounts.map((row, idx) => (
-                            <tr key={idx}>
-                              <td><input type="text" className="jet-input" value={row.gl} placeholder="e.g. 0059100000" onChange={(e) => { const val = e.target.value; setUnusualAccounts((prev) => { const updated = [...prev]; updated[idx].gl = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }} /></td>
-                              <td><input type="text" className="jet-input" value={row.description || ''} placeholder="Account description" onChange={(e) => { const val = e.target.value; setUnusualAccounts((prev) => { const updated = [...prev]; updated[idx].description = val; return updated; }); }} /></td>
-                              <td>
-                                <select className="jet-select" value={row.subtype || 'Assets'} onChange={(e) => { const val = e.target.value; setUnusualAccounts((prev) => { const updated = [...prev]; updated[idx].subtype = val; return updated; }); }}>
-                                  <option value="Assets">Assets</option><option value="Liabilities">Liabilities</option><option value="Equity">Equity</option><option value="Revenue">Revenue</option><option value="Expense">Expense</option>
-                                </select>
-                              </td>
-                              <td><input type="text" className="jet-input" value={row.notes || ''} placeholder="Suspense / clearing note" onChange={(e) => { const val = e.target.value; setUnusualAccounts((prev) => { const updated = [...prev]; updated[idx].notes = val; return updated; }); }} /></td>
-                              <td style={{ textAlign: 'center' }}><button onClick={() => setUnusualAccounts((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '6px', color: 'var(--status-error)' }}><Trash2 size={13} /></button></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {unusualAccounts.length > 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px', maxHeight: '420px', overflowY: 'auto', padding: '4px' }}>
+                        {unusualAccounts.map((row, idx) => {
+                          const matchedTB = tbAccounts.find((a) => a.gl === row.gl.trim());
+                          return (
+                            <div key={idx} style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <input
+                                  type="text"
+                                  className="jet-input"
+                                  value={row.gl}
+                                  placeholder="G_L Code"
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setUnusualAccounts((prev) => {
+                                      const updated = [...prev];
+                                      updated[idx].gl = val;
+                                      return updated;
+                                    });
+                                  }}
+                                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem', fontWeight: 600, padding: '5px 8px' }}
+                                />
+                                <button onClick={() => setUnusualAccounts((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '5px', color: 'var(--status-error)', flexShrink: 0 }} title="Remove account">
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: matchedTB ? 'var(--deloitte-teal)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: matchedTB ? 600 : 400 }}>
+                                {matchedTB ? `${matchedTB.description} (${matchedTB.subtype})` : (row.gl ? 'Custom Account' : 'Enter GL code')}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '36px 20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 600, marginBottom: '4px' }}>No unusual accounts configured</div>
+                        <div style={{ fontSize: '0.78rem' }}>Click "+ Add G_L" or "Import File (ex_1.csv/.xlsx)" to add target accounts.</div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1231,35 +1466,118 @@ export const SparkJetWorkflow: React.FC = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex2: Entries made to Seldom-based Accounts</h4>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Accounts with infrequent postings. Schema column: <code>G_L</code></p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Accounts with infrequent postings. Schema column: <code>G_L</code>
+                        </p>
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={handleAutoPopulateSeldomFromIR4} className="btn-soft-teal"><RefreshCw size={14} /> Auto-Populate from IR 4</button>
-                        <button onClick={() => triggerImportFile('seldomAccounts')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_2.csv)</button>
-                        <button onClick={() => setSeldomAccounts((prev) => [...prev, { gl: '', description: '', subtype: 'Assets', notes: '' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add Row</button>
+                        <button onClick={() => triggerImportFile('seldomAccounts')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_2.csv/.xlsx)</button>
+                        <button onClick={() => setSeldomAccounts((prev) => [...prev, { gl: '' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add G_L</button>
                       </div>
                     </div>
 
-                    <div className="table-container">
-                      <table className="jet-table">
-                        <thead><tr><th style={{ width: '180px' }}>G_L (Account Code)</th><th>Description</th><th style={{ width: '160px' }}>Account Subtype</th><th>Audit Notes</th><th style={{ width: '60px', textAlign: 'center' }}>Action</th></tr></thead>
-                        <tbody>
-                          {seldomAccounts.map((row, idx) => (
-                            <tr key={idx}>
-                              <td><input type="text" className="jet-input" value={row.gl} placeholder="e.g. 11301060" onChange={(e) => { const val = e.target.value; setSeldomAccounts((prev) => { const updated = [...prev]; updated[idx].gl = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }} /></td>
-                              <td><input type="text" className="jet-input" value={row.description || ''} placeholder="Account description" onChange={(e) => { const val = e.target.value; setSeldomAccounts((prev) => { const updated = [...prev]; updated[idx].description = val; return updated; }); }} /></td>
-                              <td>
-                                <select className="jet-select" value={row.subtype || 'Assets'} onChange={(e) => { const val = e.target.value; setSeldomAccounts((prev) => { const updated = [...prev]; updated[idx].subtype = val; return updated; }); }}>
-                                  <option value="Assets">Assets</option><option value="Liabilities">Liabilities</option><option value="Equity">Equity</option><option value="Revenue">Revenue</option><option value="Expense">Expense</option>
-                                </select>
-                              </td>
-                              <td><input type="text" className="jet-input" value={row.notes || ''} placeholder="Infrequent postings note" onChange={(e) => { const val = e.target.value; setSeldomAccounts((prev) => { const updated = [...prev]; updated[idx].notes = val; return updated; }); }} /></td>
-                              <td style={{ textAlign: 'center' }}><button onClick={() => setSeldomAccounts((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '6px', color: 'var(--status-error)' }}><Trash2 size={13} /></button></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    {/* SELECT FROM IR-4 RESULTS WITH SPECIFIC RANGE OF COUNT */}
+                    <div style={{ marginBottom: '16px', padding: '14px 16px', background: 'var(--deloitte-teal-light)', borderRadius: '8px', border: '1px solid var(--border-medium)' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Sliders size={16} color="var(--deloitte-teal)" />
+                            <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Select from IR-4 Seldom Accounts (Count Range)</span>
+                          </div>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>Filter accounts from Integrity Test 4 by transaction volume and add them directly to Ex-2.</p>
+                        </div>
+                        <button onClick={handleAddAllIR4InRange} disabled={matchingIR4Accounts.length === 0} className="btn-soft-teal" style={{ padding: '5px 12px', fontSize: '0.8rem' }}>
+                          <Plus size={13} /> Add All {matchingIR4Accounts.length} in Range to Ex-2
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <label className="jet-label" style={{ margin: 0, fontSize: '0.76rem' }}>Min Count:</label>
+                          <input type="number" className="jet-input" value={ex2MinCount} onChange={(e) => setEx2MinCount(Math.max(0, Number(e.target.value)))} style={{ width: '70px', padding: '4px 8px', fontSize: '0.8rem' }} min="0" />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <label className="jet-label" style={{ margin: 0, fontSize: '0.76rem' }}>Max Count:</label>
+                          <input type="number" className="jet-input" value={ex2MaxCount} onChange={(e) => setEx2MaxCount(Math.max(0, Number(e.target.value)))} style={{ width: '70px', padding: '4px 8px', fontSize: '0.8rem' }} min="0" />
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                          <strong>{matchingIR4Accounts.length}</strong> matching seldom accounts in IR-4 (Counts between {ex2MinCount} and {ex2MaxCount})
+                        </div>
+                      </div>
+
+                      {matchingIR4Accounts.length > 0 && (
+                        <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '110px', overflowY: 'auto', padding: '8px', background: '#FFFFFF', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                          {matchingIR4Accounts.slice(0, 30).map((item) => {
+                            const isAdded = seldomAccounts.some((s) => s.gl === item.gl);
+                            return (
+                              <button
+                                key={item.gl}
+                                onClick={() => {
+                                  if (!isAdded) setSeldomAccounts((prev) => [...prev, { gl: item.gl }]);
+                                }}
+                                disabled={isAdded}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px',
+                                  borderRadius: '14px', border: isAdded ? '1px solid var(--deloitte-teal)' : '1px solid var(--border-medium)',
+                                  background: isAdded ? 'var(--deloitte-teal)' : '#F8FAFC',
+                                  color: isAdded ? '#FFFFFF' : 'var(--text-primary)',
+                                  fontSize: '0.74rem', fontWeight: 600, cursor: isAdded ? 'default' : 'pointer',
+                                }}
+                              >
+                                <span>{item.gl}</span>
+                                <span style={{ opacity: 0.8, fontSize: '0.68rem' }}>({item.count})</span>
+                                {isAdded ? <CheckCircle2 size={11} /> : <Plus size={11} />}
+                              </button>
+                            );
+                          })}
+                          {matchingIR4Accounts.length > 30 && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'center', padding: '0 4px' }}>
+                              + {matchingIR4Accounts.length - 30} more
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
+
+                    {seldomAccounts.length > 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px', maxHeight: '380px', overflowY: 'auto', padding: '4px' }}>
+                        {seldomAccounts.map((row, idx) => {
+                          const matchedTB = tbAccounts.find((a) => a.gl === row.gl.trim());
+                          return (
+                            <div key={idx} style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <input
+                                  type="text"
+                                  className="jet-input"
+                                  value={row.gl}
+                                  placeholder="G_L Code"
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSeldomAccounts((prev) => {
+                                      const updated = [...prev];
+                                      updated[idx].gl = val;
+                                      return updated;
+                                    });
+                                  }}
+                                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem', fontWeight: 600, padding: '5px 8px' }}
+                                />
+                                <button onClick={() => setSeldomAccounts((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '5px', color: 'var(--status-error)', flexShrink: 0 }} title="Remove account">
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: matchedTB ? 'var(--deloitte-teal)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: matchedTB ? 600 : 400 }}>
+                                {matchedTB ? `${matchedTB.description} (${matchedTB.subtype})` : (row.gl ? 'Custom Account' : 'Enter GL code')}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '36px 20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 600, marginBottom: '4px' }}>No seldom accounts selected</div>
+                        <div style={{ fontSize: '0.78rem' }}>Use the IR-4 range selector above, click "+ Add G_L", or import <code>ex_2.csv/.xlsx</code>.</div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1270,14 +1588,18 @@ export const SparkJetWorkflow: React.FC = () => {
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex3: Large Debits to Revenue During the Period</h4>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          Flags unusual debit transactions to Revenue or Income accounts exceeding the configured threshold.<br />
-                          Exact Schema: <code>G_L | Description | Opening_Balance | Debit | Credit | Closing_Balance | Movement | Account_Subtype | FS_Line_Item</code>
+                          Automatically filters the Trial Balance for Revenue account subtype; if not found, searches for Income subtype, else leaves blank.
                         </p>
                       </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={handleAutoPopulateRevenueFromTB} className="btn-soft-teal"><RefreshCw size={14} /> Auto-Populate from TB</button>
-                        <button onClick={() => triggerImportFile('revenueAccounts')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_3.csv)</button>
-                        <button onClick={() => setRevenueAccounts((prev) => [...prev, { gl: '', description: '', openingBalance: 0, debit: 0, credit: 0, closingBalance: 0, movement: 0, subtype: 'Revenue', fsLineItem: 'NET SALES REVENUE' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add Revenue GL</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          padding: '6px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700,
+                          background: detectedRevenueInfo.accounts.length > 0 ? 'var(--deloitte-teal-light)' : 'var(--bg-secondary)',
+                          color: detectedRevenueInfo.accounts.length > 0 ? 'var(--deloitte-teal)' : 'var(--text-muted)',
+                          border: detectedRevenueInfo.accounts.length > 0 ? '1px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
+                        }}>
+                          {detectedRevenueInfo.status} ({detectedRevenueInfo.accounts.length} accounts)
+                        </span>
                       </div>
                     </div>
 
@@ -1285,7 +1607,7 @@ export const SparkJetWorkflow: React.FC = () => {
                       <div>
                         <label className="jet-label">Debit Amount Threshold ({sparkParams.currencyCode || 'INR'})</label>
                         <input type="number" className="jet-input" value={ex3Threshold} onChange={(e) => setEx3Threshold(Number(e.target.value))} placeholder="0.0" />
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default 0.0 flags all debit postings</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default 0.0 flags any net debit amount</span>
                       </div>
                       <div>
                         <label className="jet-label">Optional Quarter Filter: Start Date</label>
@@ -1297,31 +1619,34 @@ export const SparkJetWorkflow: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="table-container" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                    <div className="table-container" style={{ maxHeight: '340px', overflowY: 'auto' }}>
                       <table className="jet-table">
                         <thead>
                           <tr>
-                            <th style={{ width: '130px' }}>G_L</th><th style={{ minWidth: '180px' }}>Description</th><th style={{ width: '120px' }}>Opening_Balance</th>
-                            <th style={{ width: '100px' }}>Debit</th><th style={{ width: '100px' }}>Credit</th><th style={{ width: '120px' }}>Closing_Balance</th>
-                            <th style={{ width: '110px' }}>Movement</th><th style={{ width: '130px' }}>Account_Subtype</th><th style={{ minWidth: '180px' }}>FS_Line_Item</th>
-                            <th style={{ width: '50px', textAlign: 'center' }}>Action</th>
+                            <th style={{ width: '160px' }}>G_L (Account Code)</th>
+                            <th>Description</th>
+                            <th style={{ width: '160px' }}>Account Subtype</th>
+                            <th>FS Line Item</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {revenueAccounts.map((row, idx) => (
+                          {detectedRevenueInfo.accounts.map((row, idx) => (
                             <tr key={idx}>
-                              <td><input type="text" className="jet-input" value={row.gl} placeholder="41001000" onChange={(e) => { const val = e.target.value; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].gl = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }} /></td>
-                              <td><input type="text" className="jet-input" value={row.description} placeholder="Description" onChange={(e) => { const val = e.target.value; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].description = val; return updated; }); }} /></td>
-                              <td><input type="number" className="jet-input" value={row.openingBalance} onChange={(e) => { const val = parseFloat(e.target.value) || 0; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].openingBalance = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} /></td>
-                              <td><input type="number" className="jet-input" value={row.debit} onChange={(e) => { const val = parseFloat(e.target.value) || 0; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].debit = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} /></td>
-                              <td><input type="number" className="jet-input" value={row.credit} onChange={(e) => { const val = parseFloat(e.target.value) || 0; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].credit = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} /></td>
-                              <td><input type="number" className="jet-input" value={row.closingBalance} onChange={(e) => { const val = parseFloat(e.target.value) || 0; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].closingBalance = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} /></td>
-                              <td><input type="number" className="jet-input" value={row.movement} onChange={(e) => { const val = parseFloat(e.target.value) || 0; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].movement = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }} /></td>
-                              <td><input type="text" className="jet-input" value={row.subtype} onChange={(e) => { const val = e.target.value; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].subtype = val; return updated; }); }} /></td>
-                              <td><input type="text" className="jet-input" value={row.fsLineItem} onChange={(e) => { const val = e.target.value; setRevenueAccounts((prev) => { const updated = [...prev]; updated[idx].fsLineItem = val; return updated; }); }} /></td>
-                              <td style={{ textAlign: 'center' }}><button onClick={() => setRevenueAccounts((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '6px', color: 'var(--status-error)' }}><Trash2 size={13} /></button></td>
+                              <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--deloitte-teal)' }}>{row.gl}</td>
+                              <td style={{ fontWeight: 600 }}>{row.description}</td>
+                              <td><span style={{ padding: '2px 8px', borderRadius: '4px', background: 'var(--deloitte-teal-light)', color: 'var(--deloitte-teal)', fontSize: '0.75rem', fontWeight: 700 }}>{row.subtype}</span></td>
+                              <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{row.fsLineItem}</td>
                             </tr>
                           ))}
+                          {detectedRevenueInfo.accounts.length === 0 && (
+                            <tr>
+                              <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                                <AlertTriangle size={24} style={{ margin: '0 auto 8px', color: 'var(--status-warning)' }} />
+                                <div>No accounts with Account_Subtype matching "Revenue" or "Income" were found in the uploaded Trial Balance.</div>
+                                <div style={{ fontSize: '0.78rem', marginTop: '4px' }}>Ex-3 will remain blank as per audit specification.</div>
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -1336,13 +1661,22 @@ export const SparkJetWorkflow: React.FC = () => {
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex4: Users with Few Postings</h4>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Flags transactions from users with a distinct document count at or below this threshold. Schema input: <code>Value</code></p>
                       </div>
-                      <button onClick={() => triggerImportFile('ex4Threshold')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_4.csv)</button>
                     </div>
 
-                    <div className="jet-card" style={{ maxWidth: '380px', padding: '20px', background: 'var(--bg-secondary)' }}>
-                      <label className="jet-label">User Posting Count Threshold (Value)</label>
-                      <input type="number" className="jet-input" value={ex4Threshold} onChange={(e) => setEx4Threshold(Math.max(1, Number(e.target.value)))} min="1" placeholder="1" style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }} />
-                      <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '8px' }}>Any user whose total distinct journal count is &le; <strong>{ex4Threshold}</strong> will have all their postings flagged.</p>
+                    <div className="jet-card" style={{ maxWidth: '420px', padding: '24px', background: 'var(--bg-secondary)' }}>
+                      <label className="jet-label" style={{ fontSize: '0.88rem' }}>User Posting Count Threshold (Value)</label>
+                      <input
+                        type="number"
+                        className="jet-input"
+                        value={ex4Threshold}
+                        onChange={(e) => setEx4Threshold(Math.max(1, Number(e.target.value)))}
+                        min="1"
+                        placeholder="1"
+                        style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: '6px' }}
+                      />
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.5 }}>
+                        Any user whose distinct journal count in the population is &le; <strong>{ex4Threshold}</strong> will have all their postings flagged under Exception 4.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1353,34 +1687,45 @@ export const SparkJetWorkflow: React.FC = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex5: Users of Interest</h4>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Target specific user accounts for 100% testing. Schema column: <code>User_Name</code></p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Target specific user accounts for 100% testing. Schema column: <code>User_name</code></p>
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => triggerImportFile('usersOfInterest')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_5.csv)</button>
-                        <button onClick={() => setUsersOfInterest((prev) => [...prev, { userId: '', name: '', role: '', category: 'General' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add User</button>
+                        <button onClick={() => triggerImportFile('usersOfInterest')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_5.csv/.xlsx)</button>
+                        <button onClick={() => setUsersOfInterest((prev) => [...prev, { username: '' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add User_name</button>
                       </div>
                     </div>
 
-                    <div className="table-container">
-                      <table className="jet-table">
-                        <thead><tr><th style={{ width: '180px' }}>User_Name (User ID)</th><th>Full Name</th><th>Role / Position</th><th style={{ width: '150px' }}>Category</th><th style={{ width: '60px', textAlign: 'center' }}>Action</th></tr></thead>
-                        <tbody>
-                          {usersOfInterest.map((row, idx) => (
-                            <tr key={idx}>
-                              <td><input type="text" className="jet-input" value={row.userId} placeholder="e.g. SBPATIL" onChange={(e) => { const val = e.target.value; setUsersOfInterest((prev) => { const updated = [...prev]; updated[idx].userId = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }} /></td>
-                              <td><input type="text" className="jet-input" value={row.name || ''} placeholder="User Name" onChange={(e) => { const val = e.target.value; setUsersOfInterest((prev) => { const updated = [...prev]; updated[idx].name = val; return updated; }); }} /></td>
-                              <td><input type="text" className="jet-input" value={row.role || ''} placeholder="Job Role" onChange={(e) => { const val = e.target.value; setUsersOfInterest((prev) => { const updated = [...prev]; updated[idx].role = val; return updated; }); }} /></td>
-                              <td>
-                                <select className="jet-select" value={row.category || 'General'} onChange={(e) => { const val = e.target.value; setUsersOfInterest((prev) => { const updated = [...prev]; updated[idx].category = val; return updated; }); }}>
-                                  <option value="Executive">Executive</option><option value="High Risk">High Risk</option><option value="Contractor">Contractor</option><option value="IT Admin">IT Admin</option><option value="General">General</option>
-                                </select>
-                              </td>
-                              <td style={{ textAlign: 'center' }}><button onClick={() => setUsersOfInterest((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '6px', color: 'var(--status-error)' }}><Trash2 size={13} /></button></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {usersOfInterest.length > 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '10px', maxHeight: '420px', overflowY: 'auto', padding: '4px' }}>
+                        {usersOfInterest.map((row, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                            <input
+                              type="text"
+                              className="jet-input"
+                              value={row.username}
+                              placeholder="User_name"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setUsersOfInterest((prev) => {
+                                  const updated = [...prev];
+                                  updated[idx].username = val;
+                                  return updated;
+                                });
+                              }}
+                              style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem', fontWeight: 600, padding: '5px 8px' }}
+                            />
+                            <button onClick={() => setUsersOfInterest((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '5px', color: 'var(--status-error)', flexShrink: 0 }} title="Remove user">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '36px 20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 600, marginBottom: '4px' }}>No users of interest configured</div>
+                        <div style={{ fontSize: '0.78rem' }}>Click "+ Add User_name" or "Import File (ex_5.csv/.xlsx)" to add users.</div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1395,17 +1740,31 @@ export const SparkJetWorkflow: React.FC = () => {
                           Exact Schema: <code>Closing_Entries_before | Closing_Entries_after | Closing_Date | Frequency</code>
                         </p>
                       </div>
-                      <button onClick={() => triggerImportFile('closingEntries')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_6.csv)</button>
+                      <button onClick={() => triggerImportFile('closingEntries')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_6.csv/.xlsx)</button>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', padding: '20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                      <div><label className="jet-label">Closing_Entries_before (Days)</label><input type="number" className="jet-input" value={ex6BeforeDays} onChange={(e) => setEx6BeforeDays(Number(e.target.value))} min="0" placeholder="1" /></div>
-                      <div><label className="jet-label">Closing_Entries_after (Days)</label><input type="number" className="jet-input" value={ex6AfterDays} onChange={(e) => setEx6AfterDays(Number(e.target.value))} min="0" placeholder="10" /></div>
-                      <div><label className="jet-label">Closing_Date (DD-MMM-YY)</label><input type="text" className="jet-input" value={ex6ClosingDate} onChange={(e) => setEx6ClosingDate(e.target.value)} placeholder="31-Dec-25" /></div>
+                      <div>
+                        <label className="jet-label">Closing_Entries_before (Days)</label>
+                        <input type="number" className="jet-input" value={ex6BeforeDays} onChange={(e) => setEx6BeforeDays(Number(e.target.value))} min="0" placeholder="1" />
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Days before closing date to inspect</span>
+                      </div>
+                      <div>
+                        <label className="jet-label">Closing_Entries_after (Days)</label>
+                        <input type="number" className="jet-input" value={ex6AfterDays} onChange={(e) => setEx6AfterDays(Number(e.target.value))} min="0" placeholder="10" />
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Days after closing date to inspect</span>
+                      </div>
+                      <div>
+                        <label className="jet-label">Closing_Date (DD-MMM-YY)</label>
+                        <input type="text" className="jet-input" value={ex6ClosingDate} onChange={(e) => setEx6ClosingDate(e.target.value)} placeholder="31-Dec-25" />
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>e.g. 31-Dec-25 or 30-Jun-26</span>
+                      </div>
                       <div>
                         <label className="jet-label">Frequency</label>
                         <select className="jet-select" value={ex6Frequency} onChange={(e) => setEx6Frequency(e.target.value)}>
-                          <option value="Annually">Annually</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option>
+                          <option value="Annually">Annually</option>
+                          <option value="Quarterly">Quarterly</option>
+                          <option value="Monthly">Monthly</option>
                         </select>
                       </div>
                     </div>
@@ -1421,26 +1780,42 @@ export const SparkJetWorkflow: React.FC = () => {
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Flags postings made on specific company holidays or non-working dates. Schema column: <code>Pstng_Date</code></p>
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => triggerImportFile('datesOfInterest')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_7.csv)</button>
-                        <button onClick={() => setDatesOfInterest((prev) => [...prev, { date: '', event: '', impact: 'Non-working day' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add Date</button>
+                        <button onClick={() => triggerImportFile('datesOfInterest')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_7.csv/.xlsx)</button>
+                        <button onClick={() => setDatesOfInterest((prev) => [...prev, { date: '' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add Date</button>
                       </div>
                     </div>
 
-                    <div className="table-container">
-                      <table className="jet-table">
-                        <thead><tr><th style={{ width: '180px' }}>Pstng_Date (DD-MMM-YY)</th><th>Event / Holiday Name</th><th>Impact / Reason</th><th style={{ width: '60px', textAlign: 'center' }}>Action</th></tr></thead>
-                        <tbody>
-                          {datesOfInterest.map((row, idx) => (
-                            <tr key={idx}>
-                              <td><input type="text" className="jet-input" value={row.date} placeholder="05-Nov-25" onChange={(e) => { const val = e.target.value; setDatesOfInterest((prev) => { const updated = [...prev]; updated[idx].date = val; return updated; }); }} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }} /></td>
-                              <td><input type="text" className="jet-input" value={row.event} placeholder="e.g. Diwali Holiday" onChange={(e) => { const val = e.target.value; setDatesOfInterest((prev) => { const updated = [...prev]; updated[idx].event = val; return updated; }); }} /></td>
-                              <td><input type="text" className="jet-input" value={row.impact || ''} placeholder="Non-working day" onChange={(e) => { const val = e.target.value; setDatesOfInterest((prev) => { const updated = [...prev]; updated[idx].impact = val; return updated; }); }} /></td>
-                              <td style={{ textAlign: 'center' }}><button onClick={() => setDatesOfInterest((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '6px', color: 'var(--status-error)' }}><Trash2 size={13} /></button></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {datesOfInterest.length > 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '10px', maxHeight: '420px', overflowY: 'auto', padding: '4px' }}>
+                        {datesOfInterest.map((row, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                            <input
+                              type="text"
+                              className="jet-input"
+                              value={row.date}
+                              placeholder="DD-MMM-YY"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setDatesOfInterest((prev) => {
+                                  const updated = [...prev];
+                                  updated[idx].date = val;
+                                  return updated;
+                                });
+                              }}
+                              style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem', fontWeight: 600, padding: '5px 8px' }}
+                            />
+                            <button onClick={() => setDatesOfInterest((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '5px', color: 'var(--status-error)', flexShrink: 0 }} title="Remove date">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '36px 20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 600, marginBottom: '4px' }}>No dates of interest configured</div>
+                        <div style={{ fontSize: '0.78rem' }}>Click "+ Add Date" or "Import File (ex_7.csv/.xlsx)" to add dates.</div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1450,9 +1825,8 @@ export const SparkJetWorkflow: React.FC = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex8: Entries with Round Amounts or Recurring Digits</h4>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Select magnitudes and ending repeating digit rules to flag. Schema input: <code>Digits</code></p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Select magnitudes and recurring ending digit rules to flag. Schema input: <code>Digits</code></p>
                       </div>
-                      <button onClick={() => triggerImportFile('roundDigits')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_8.csv)</button>
                     </div>
 
                     <div style={{ marginBottom: '18px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
@@ -1499,7 +1873,6 @@ export const SparkJetWorkflow: React.FC = () => {
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex9: Duplicate Entries Configuration</h4>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Flags documents sharing identical account and amount combos.<br />Exact Schema: <code>Value | Threshold</code></p>
                       </div>
-                      <button onClick={() => triggerImportFile('duplicateEntries')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_9.csv)</button>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', padding: '20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
@@ -1562,7 +1935,6 @@ export const SparkJetWorkflow: React.FC = () => {
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex11: Entries Posted After Closing Date</h4>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Flags entries recorded after the year-end cutoff plus grace period.<br />Exact Schema: <code>Frequency | Day | Closing_Date</code></p>
                       </div>
-                      <button onClick={() => triggerImportFile('postClosing')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_11.csv)</button>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', padding: '20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
@@ -1581,32 +1953,156 @@ export const SparkJetWorkflow: React.FC = () => {
                 {/* TAB: EX12 UNRELATED ACCOUNTS */}
                 {paramTab === 'ex12' && (
                   <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                    <datalist id="tb-fs-line-items">
+                      {tbFSLineItems.map((item) => (
+                        <option key={item} value={item} />
+                      ))}
+                    </datalist>
+
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex12: Unrelated Financial Statement Line Pairings</h4>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Identify journals posting between incompatible FS line categories. Exact Schema: <code>Debit | Credit</code></p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Identify journals posting between incompatible FS line categories. Exact Schema: <code>Debit | Credit</code>
+                        </p>
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => triggerImportFile('unrelatedRules')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_12.csv)</button>
-                        <button onClick={() => setUnrelatedRules((prev) => [...prev, { debitFSLine: '', creditFSLine: '', category: 'General' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add Rule</button>
+                        <button onClick={() => triggerImportFile('unrelatedRules')} className="btn-soft-slate"><FolderUp size={14} /> Import File (ex_12.csv/.xlsx)</button>
+                        <button onClick={() => setUnrelatedRules((prev) => [...prev, { debit: '', credit: '' }])} className="btn-primary" style={{ padding: '8px 14px' }}><Plus size={14} /> Add Rule</button>
                       </div>
                     </div>
 
-                    <div className="table-container">
-                      <table className="jet-table">
-                        <thead><tr><th>Debit (Debit FS Line Item)</th><th>Credit (Credit FS Line Item)</th><th>Risk Category</th><th style={{ width: '60px', textAlign: 'center' }}>Action</th></tr></thead>
-                        <tbody>
-                          {unrelatedRules.map((row, idx) => (
-                            <tr key={idx}>
-                              <td><input type="text" className="jet-input" value={row.debitFSLine} placeholder="e.g. Trade Receivables" onChange={(e) => { const val = e.target.value; setUnrelatedRules((prev) => { const updated = [...prev]; updated[idx].debitFSLine = val; return updated; }); }} /></td>
-                              <td><input type="text" className="jet-input" value={row.creditFSLine} placeholder="e.g. Property, plant and equipment" onChange={(e) => { const val = e.target.value; setUnrelatedRules((prev) => { const updated = [...prev]; updated[idx].creditFSLine = val; return updated; }); }} /></td>
-                              <td><input type="text" className="jet-input" value={row.category || ''} placeholder="Risk rationale" onChange={(e) => { const val = e.target.value; setUnrelatedRules((prev) => { const updated = [...prev]; updated[idx].category = val; return updated; }); }} /></td>
-                              <td style={{ textAlign: 'center' }}><button onClick={() => setUnrelatedRules((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '6px', color: 'var(--status-error)' }}><Trash2 size={13} /></button></td>
-                            </tr>
+                    {/* FS LINE ITEM CONSTRAINT VALIDATION ALERT */}
+                    {invalidEx12Items.length > 0 && (
+                      <div style={{ marginBottom: '16px', padding: '14px 18px', background: '#FEF2F2', border: '1.5px solid var(--status-error)', borderRadius: '8px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                        <AlertTriangle size={20} color="var(--status-error)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--status-error)' }}>
+                            Constraint Validation Error: FS Line Item Not Found in Trial Balance
+                          </div>
+                          <p style={{ fontSize: '0.78rem', color: '#991B1B', margin: '4px 0 8px' }}>
+                            The following line item values do not exist in the Trial Balance's <code>FS_Line_Item</code> column. Please choose from available TB FS Line Items:
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {invalidEx12Items.map((item) => (
+                              <span key={item} style={{ background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 700, border: '1px solid #FCA5A5' }}>
+                                &times; {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {tbFSLineItems.length > 0 && (
+                      <div style={{ marginBottom: '16px', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                          Available Trial Balance FS Line Items ({tbFSLineItems.length} items):
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '80px', overflowY: 'auto' }}>
+                          {tbFSLineItems.map((item) => (
+                            <span key={item} style={{ fontSize: '0.72rem', background: '#FFFFFF', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-medium)', color: 'var(--text-primary)' }}>
+                              {item}
+                            </span>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {unrelatedRules.length > 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px', maxHeight: '420px', overflowY: 'auto', padding: '4px' }}>
+                        {unrelatedRules.map((row, idx) => {
+                          const isDebitInvalid = Boolean(row.debit && tbFSLineItems.length > 0 && !tbFSLineItems.some((f) => f.trim().toLowerCase() === row.debit.trim().toLowerCase()));
+                          const isCreditInvalid = Boolean(row.credit && tbFSLineItems.length > 0 && !tbFSLineItems.some((f) => f.trim().toLowerCase() === row.credit.trim().toLowerCase()));
+
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                padding: '12px 14px',
+                                background: (isDebitInvalid || isCreditInvalid) ? '#FEF2F2' : '#FFFFFF',
+                                borderRadius: '8px',
+                                border: (isDebitInvalid || isCreditInvalid) ? '1.5px solid var(--status-error)' : '1px solid var(--border-medium)',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>Rule #{idx + 1}</span>
+                                <button onClick={() => setUnrelatedRules((prev) => prev.filter((_, i) => i !== idx))} className="btn-secondary" style={{ padding: '4px', color: 'var(--status-error)' }} title="Remove rule">
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>Debit FS Line Item</label>
+                                <input
+                                  type="text"
+                                  list="tb-fs-line-items"
+                                  className="jet-input"
+                                  value={row.debit}
+                                  placeholder="Select Debit FS Line..."
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setUnrelatedRules((prev) => {
+                                      const updated = [...prev];
+                                      updated[idx].debit = val;
+                                      return updated;
+                                    });
+                                  }}
+                                  style={{
+                                    fontSize: '0.82rem',
+                                    padding: '5px 8px',
+                                    borderColor: isDebitInvalid ? 'var(--status-error)' : undefined,
+                                    background: isDebitInvalid ? '#FEE2E2' : undefined,
+                                  }}
+                                />
+                                {isDebitInvalid && (
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--status-error)', fontWeight: 600, marginTop: '2px' }}>
+                                    &times; Not found in TB
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>Credit FS Line Item</label>
+                                <input
+                                  type="text"
+                                  list="tb-fs-line-items"
+                                  className="jet-input"
+                                  value={row.credit}
+                                  placeholder="Select Credit FS Line..."
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setUnrelatedRules((prev) => {
+                                      const updated = [...prev];
+                                      updated[idx].credit = val;
+                                      return updated;
+                                    });
+                                  }}
+                                  style={{
+                                    fontSize: '0.82rem',
+                                    padding: '5px 8px',
+                                    borderColor: isCreditInvalid ? 'var(--status-error)' : undefined,
+                                    background: isCreditInvalid ? '#FEE2E2' : undefined,
+                                  }}
+                                />
+                                {isCreditInvalid && (
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--status-error)', fontWeight: 600, marginTop: '2px' }}>
+                                    &times; Not found in TB
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '36px 20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 600, marginBottom: '4px' }}>No unrelated account rules configured</div>
+                        <div style={{ fontSize: '0.78rem' }}>Click "+ Add Rule" or "Import File (ex_12.csv/.xlsx)" to add pairings.</div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1689,115 +2185,395 @@ export const SparkJetWorkflow: React.FC = () => {
               })}
             </div>
 
-            {activeVisualTab === 'preview' && (
-              <div>
-                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF', marginBottom: '24px' }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
-                    <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>Parameter Exceptions (Ex1 - Ex12) & Control Sample Results</h4>
-                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>Click <strong>Preview (50)</strong> on any exception below to inspect its top 50 flagged records.</p>
-                    </div>
-                    <div style={{ position: 'relative', width: '260px' }}>
-                      <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                      <input type="text" className="jet-input" placeholder="Search in preview rows..." value={previewSearch} onChange={(e) => setPreviewSearch(e.target.value)} style={{ paddingLeft: '30px', fontSize: '0.82rem' }} />
-                    </div>
+            {activeVisualTab === 'preview' && (() => {
+              const allCards = EXCEPTION_CARDS.filter((card) => {
+                if (card.id === 'controlSample') return runControlSample;
+                return enabledExceptions[card.id as keyof typeof enabledExceptions];
+              }).map((card) => {
+                const count = card.num <= 12 ? getExceptionCount(card.num, card.key) : (status?.controlSampleCount || 4);
+                return { ...card, count };
+              });
+
+              const flaggedCards = allCards.filter((c) => c.count > 0);
+              const cleanCards = allCards.filter((c) => c.count === 0);
+              const selectedCard = allCards.find((c) => c.file === selectedPreviewFile) || allCards[0];
+              const activeCategoryCards = exceptionCategoryFilter === 'flagged' ? flaggedCards : cleanCards;
+
+              const renderExceptionItem = (card: typeof allCards[0], isSelected: boolean) => (
+                <div
+                  key={card.file}
+                  onClick={() => setSelectedPreviewFile(card.file)}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '11px',
+                    cursor: 'pointer',
+                    transition: 'all 0.18s ease',
+                    background: isSelected ? 'var(--deloitte-teal-light)' : '#FFFFFF',
+                    border: `1.5px solid ${isSelected ? 'var(--deloitte-teal)' : 'var(--border-subtle)'}`,
+                    borderLeft: isSelected ? '4px solid var(--deloitte-teal)' : `1.5px solid ${card.count > 0 ? 'var(--status-error)' : 'var(--border-subtle)'}`,
+                    boxShadow: isSelected ? '0 2px 10px rgba(0, 118, 128, 0.14)' : 'var(--shadow-sm)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      fontFamily: 'var(--font-mono)',
+                      color: isSelected ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
+                      background: isSelected ? '#FFFFFF' : 'var(--bg-secondary)',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-subtle)',
+                    }}>
+                      {card.num <= 12 ? `Ex ${card.num.toString().padStart(2, '0')}` : 'SAMPLE'}
+                    </span>
+                    <span
+                      className={card.count > 0 ? 'badge badge-error' : 'badge badge-success'}
+                      style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                    >
+                      {card.count} Flagged
+                    </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-                    {EXCEPTION_CARDS.filter((card) => {
-                      if (card.id === 'controlSample') return runControlSample;
-                      return enabledExceptions[card.id as keyof typeof enabledExceptions];
-                    }).map((card) => {
-                      const isSelected = selectedPreviewFile === card.file;
-                      const count = card.num <= 12 ? getExceptionCount(card.num, card.key) : (status?.controlSampleCount || 4);
-
-                      return (
-                        <div
-                          key={card.file}
-                          className="jet-card"
-                          style={{
-                            padding: '16px',
-                            borderColor: isSelected ? 'var(--deloitte-teal)' : 'var(--border-subtle)',
-                            background: isSelected ? 'var(--deloitte-teal-light)' : '#FFFFFF',
-                            boxShadow: isSelected ? 'var(--shadow-glow-teal)' : 'var(--shadow-sm)',
-                            display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px',
-                          }}
-                        >
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                              <span style={{ fontSize: '0.74rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: isSelected ? 'var(--deloitte-teal)' : 'var(--text-secondary)', background: isSelected ? '#FFFFFF' : 'var(--bg-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
-                                {card.num <= 12 ? `Ex ${card.num.toString().padStart(2, '0')}` : 'SAMPLE'}
-                              </span>
-                              <span className={count > 0 ? 'badge badge-error' : 'badge badge-success'}>{count} Flagged</span>
-                            </div>
-                            <h5 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>{card.title}</h5>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.3 }}>{card.desc}</p>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-subtle)' }}>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedPreviewFile(card.file)}
-                              className={isSelected ? 'btn-primary' : 'btn-soft-teal'}
-                              style={{ flex: 1, justifyContent: 'center', padding: '7px 10px', fontSize: '0.78rem' }}
-                            >
-                              <Eye size={13} />
-                              <span>{isSelected ? 'Viewing (50)' : 'Preview (50)'}</span>
-                            </button>
-                            <a href={RunService.getDownloadOutputUrl(runId!, card.file)} className="btn-soft-slate" style={{ padding: '7px 10px', fontSize: '0.78rem', textDecoration: 'none' }} title={`Download full ${card.file}`}>
-                              <Download size={13} /><span>CSV</span>
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div>
+                    <div style={{
+                      fontWeight: isSelected ? 800 : 700,
+                      fontSize: '0.88rem',
+                      color: 'var(--text-primary)',
+                      lineHeight: 1.25,
+                      marginBottom: '3px',
+                    }}>
+                      {card.title}
+                    </div>
+                    <p style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      margin: 0,
+                      lineHeight: 1.35,
+                    }}>
+                      {card.desc}
+                    </p>
                   </div>
 
+                  {/* Evenly Sized Action Buttons */}
                   <div style={{
-                    padding: '12px 16px', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)',
-                    marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    paddingTop: '8px',
+                    borderTop: '1px solid rgba(0, 0, 0, 0.06)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.84rem' }}>
-                      <Eye size={16} color="var(--deloitte-teal)" />
-                      <span>
-                        Viewing top <strong>{filteredPreviewRows.length}</strong> sample rows of <strong>{previewData?.totalRows || 0}</strong> total records in{' '}
-                        <strong style={{ color: 'var(--deloitte-teal)', fontFamily: 'var(--font-mono)' }}>{selectedPreviewFile}</strong>
-                      </span>
-                    </div>
-                    <a href={RunService.getDownloadOutputUrl(runId!, selectedPreviewFile)} className="btn-soft-teal">
-                      <Download size={13} /> Download Complete File
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPreviewFile(card.file);
+                      }}
+                      style={{
+                        flex: 1,
+                        height: '30px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        padding: '0 10px',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        background: isSelected ? 'var(--deloitte-teal)' : 'rgba(0, 118, 128, 0.06)',
+                        color: isSelected ? '#FFFFFF' : 'var(--deloitte-teal)',
+                        border: isSelected ? '1px solid var(--deloitte-teal)' : '1px solid rgba(0, 118, 128, 0.25)',
+                      }}
+                    >
+                      <Eye size={12} />
+                      <span>{isSelected ? 'Viewing' : 'Preview'}</span>
+                    </button>
+
+                    <a
+                      href={RunService.getDownloadOutputUrl(runId!, card.file)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        flex: 1,
+                        height: '30px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        padding: '0 10px',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        borderRadius: '6px',
+                        background: '#F1F5F9',
+                        color: 'var(--text-secondary)',
+                        border: '1px solid #E2E8F0',
+                        textDecoration: 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                      title={`Download full ${card.file}`}
+                    >
+                      <Download size={12} />
+                      <span>CSV</span>
                     </a>
                   </div>
-
-                  {loadingPreview ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                      <RefreshCw size={24} className="spin-slow" style={{ margin: '0 auto 8px', color: 'var(--deloitte-teal)' }} />
-                      Loading top 50 rows preview...
-                    </div>
-                  ) : previewData && previewData.headers.length > 0 ? (
-                    <div className="table-container" style={{ maxHeight: '520px', overflowY: 'auto' }}>
-                      <table className="jet-table">
-                        <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: '#F8FAFC' }}>
-                          <tr><th style={{ width: '45px' }}>#</th>{previewData.headers.map((h) => <th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
-                        </thead>
-                        <tbody>
-                          {filteredPreviewRows.map((row, idx) => (
-                            <tr key={idx}>
-                              <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.76rem' }}>{idx + 1}</td>
-                              {previewData.headers.map((h) => <td key={h} style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{row[h] !== undefined && row[h] !== '' ? String(row[h]) : '-'}</td>)}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
-                      0 exception rows found in {selectedPreviewFile}.
-                    </div>
-                  )}
                 </div>
-              </div>
-            )}
+              );
+
+              return (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '420px 1fr',
+                  gap: '20px',
+                  alignItems: 'stretch',
+                  marginBottom: '24px',
+                  height: '700px',
+                }}>
+
+                  {/* LEFT MASTER SIDEBAR: Wider, with descriptions, 2-category tabs, equal height */}
+                  <div className="glass-panel" style={{
+                    padding: '16px',
+                    background: '#FFFFFF',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    height: '100%',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        Exception Rules ({allCards.length})
+                      </h4>
+                      <span style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        color: flaggedCards.length > 0 ? 'var(--status-error)' : 'var(--status-success)',
+                      }}>
+                        {flaggedCards.length} Flagged / {cleanCards.length} Clean
+                      </span>
+                    </div>
+
+                    {/* 2-Category Only Filter Tabs: Flagged vs Clean (All removed) */}
+                    <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '3px', borderRadius: '8px', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExceptionCategoryFilter('flagged');
+                          if (flaggedCards.length > 0 && !flaggedCards.some(c => c.file === selectedPreviewFile)) {
+                            setSelectedPreviewFile(flaggedCards[0].file);
+                          }
+                        }}
+                        style={{
+                          flex: 1, padding: '7px 10px', fontSize: '0.76rem', fontWeight: 700,
+                          borderRadius: '6px', border: 'none', cursor: 'pointer',
+                          background: exceptionCategoryFilter === 'flagged' ? 'var(--status-error-bg)' : 'transparent',
+                          color: exceptionCategoryFilter === 'flagged' ? 'var(--status-error)' : 'var(--text-muted)',
+                          boxShadow: exceptionCategoryFilter === 'flagged' ? 'var(--shadow-sm)' : 'none',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <AlertTriangle size={13} />
+                        <span>Flagged ({flaggedCards.length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExceptionCategoryFilter('clean');
+                          if (cleanCards.length > 0 && !cleanCards.some(c => c.file === selectedPreviewFile)) {
+                            setSelectedPreviewFile(cleanCards[0].file);
+                          }
+                        }}
+                        style={{
+                          flex: 1, padding: '7px 10px', fontSize: '0.76rem', fontWeight: 700,
+                          borderRadius: '6px', border: 'none', cursor: 'pointer',
+                          background: exceptionCategoryFilter === 'clean' ? 'var(--status-success-bg)' : 'transparent',
+                          color: exceptionCategoryFilter === 'clean' ? 'var(--status-success)' : 'var(--text-muted)',
+                          boxShadow: exceptionCategoryFilter === 'clean' ? 'var(--shadow-sm)' : 'none',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <CheckCircle size={13} />
+                        <span>Clean & Passed ({cleanCards.length})</span>
+                      </button>
+                    </div>
+
+                    {/* Scrollable Exception List taking remaining height */}
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                      overflowY: 'auto',
+                      paddingRight: '4px',
+                    }}>
+                      {activeCategoryCards.length === 0 ? (
+                        <div style={{
+                          padding: '30px 16px',
+                          background: 'var(--bg-secondary)',
+                          borderRadius: '10px',
+                          border: '1px dashed var(--border-subtle)',
+                          fontSize: '0.8rem',
+                          color: 'var(--text-muted)',
+                          textAlign: 'center',
+                          margin: 'auto 0',
+                        }}>
+                          {exceptionCategoryFilter === 'flagged' ? (
+                            <div>
+                              <CheckCircle size={24} color="var(--status-success)" style={{ margin: '0 auto 8px' }} />
+                              <div style={{ fontWeight: 700, color: 'var(--status-success)' }}>0 Flagged Exceptions</div>
+                              <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>All exception rules passed cleanly without flagged entries.</div>
+                            </div>
+                          ) : (
+                            <div>
+                              <AlertTriangle size={24} color="var(--status-warning)" style={{ margin: '0 auto 8px' }} />
+                              <div style={{ fontWeight: 700 }}>No clean rules found</div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        activeCategoryCards.map((card) => renderExceptionItem(card, selectedPreviewFile === card.file))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* RIGHT DETAIL PANEL: Equal height (700px), internal scrolling */}
+                  <div className="glass-panel" style={{
+                    padding: '20px',
+                    background: '#FFFFFF',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                  }}>
+                    
+                    {/* Header */}
+                    <div style={{ paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '14px', flexShrink: 0 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{
+                            fontSize: '0.76rem', fontWeight: 800, fontFamily: 'var(--font-mono)',
+                            background: 'var(--deloitte-teal-light)', color: 'var(--deloitte-teal)',
+                            padding: '3px 9px', borderRadius: '5px', border: '1px solid rgba(0, 118, 128, 0.2)',
+                          }}>
+                            {selectedCard.num <= 12 ? `Ex ${selectedCard.num.toString().padStart(2, '0')}` : 'SAMPLE'}
+                          </span>
+                          <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                            {selectedCard.title}
+                          </h4>
+                          <span className={selectedCard.count > 0 ? 'badge badge-error' : 'badge badge-success'}>
+                            {selectedCard.count} Flagged
+                          </span>
+                        </div>
+
+                        {/* Top Action Button matching standard height */}
+                        <a
+                          href={RunService.getDownloadOutputUrl(runId!, selectedCard.file)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                            height: '32px', padding: '0 14px', fontSize: '0.78rem', fontWeight: 700,
+                            borderRadius: '7px', background: 'var(--deloitte-teal)', color: '#FFFFFF',
+                            border: 'none', textDecoration: 'none', boxShadow: '0 2px 6px rgba(0, 118, 128, 0.22)',
+                            cursor: 'pointer', transition: 'all 0.15s ease',
+                          }}
+                          title={`Download complete ${selectedCard.file}`}
+                        >
+                          <Download size={13} />
+                          <span>Download CSV</span>
+                        </a>
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>
+                          {selectedCard.desc}
+                        </p>
+                        <div style={{ position: 'relative', width: '260px' }}>
+                          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                          <input
+                            type="text"
+                            className="jet-input"
+                            placeholder="Search in preview rows..."
+                            value={previewSearch}
+                            onChange={(e) => setPreviewSearch(e.target.value)}
+                            style={{ paddingLeft: '30px', fontSize: '0.8rem', height: '32px' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Table View Body with scrolling */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+                      {loadingPreview ? (
+                        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', margin: 'auto' }}>
+                          <RefreshCw size={24} className="spin-slow" style={{ margin: '0 auto 8px', color: 'var(--deloitte-teal)' }} />
+                          Loading {selectedCard.title} sample rows...
+                        </div>
+                      ) : previewData && previewData.headers.length > 0 && filteredPreviewRows.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                          <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', flexShrink: 0 }}>
+                            <span>Showing <strong>{filteredPreviewRows.length}</strong> of <strong>{previewData.rows.length}</strong> loaded sample records</span>
+                            {previewData.totalRows > previewData.rows.length && (
+                              <span>Total full file records: <strong>{previewData.totalRows.toLocaleString()}</strong></span>
+                            )}
+                          </div>
+                          <div className="table-container" style={{ flex: 1, overflowY: 'auto', maxHeight: '100%' }}>
+                            <table className="jet-table">
+                              <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: '#F8FAFC' }}>
+                                <tr>
+                                  <th style={{ width: '45px', textAlign: 'center' }}>#</th>
+                                  {previewData.headers.map((h) => (
+                                    <th key={h} style={{ whiteSpace: 'nowrap' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredPreviewRows.map((row, idx) => (
+                                  <tr key={idx}>
+                                    <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.74rem' }}>{idx + 1}</td>
+                                    {previewData.headers.map((h) => (
+                                      <td key={h} style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
+                                        {row[h] !== undefined && row[h] !== '' ? String(row[h]) : '-'}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{
+                          textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)',
+                          background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px dashed var(--border-subtle)',
+                          margin: 'auto 0',
+                        }}>
+                          <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'var(--status-success-bg)', color: 'var(--status-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                            <CheckCircle size={22} />
+                          </div>
+                          <h5 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+                            0 Exception Records
+                          </h5>
+                          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '360px', marginLeft: 'auto', marginRight: 'auto' }}>
+                            No entries were flagged for {selectedCard.title}. The testing rule completed cleanly.
+                          </p>
+                          <a
+                            href={RunService.getDownloadOutputUrl(runId!, selectedCard.file)}
+                            className="btn-soft-slate"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', height: '32px', padding: '0 14px', textDecoration: 'none' }}
+                          >
+                            <Download size={13} /> Download Clean Output CSV
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {activeVisualTab === 'overview' && (
               <div>
@@ -1923,53 +2699,248 @@ export const SparkJetWorkflow: React.FC = () => {
               </div>
             )}
 
-            {activeVisualTab === 'artifacts' && (
-              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>Generated Audit Workpapers & Artifacts</h3>
-                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>Download full CSV extracts and standardized outputs for working papers.</p>
-                  </div>
-                  <a href={RunService.getDownloadAllZipUrl(runId!)} className="btn-green" style={{ textDecoration: 'none' }}>
-                    <Archive size={16} /> Download All as ZIP
-                  </a>
-                </div>
+            {activeVisualTab === 'artifacts' && (() => {
+              const outputs = status?.outputs || [];
 
-                <div className="table-container">
-                  <table className="jet-table">
-                    <thead><tr><th>Output File</th><th>Category</th><th>Row Count</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
-                    <tbody>
-                      {status?.outputs && status.outputs.length > 0 ? (
-                        status.outputs.map((out) => (
-                          <tr key={out.id}>
-                            <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <FileSpreadsheet size={18} color="var(--deloitte-teal)" />
-                                <span style={{ fontWeight: 700 }}>{out.name}</span>
+              // Categorize outputs
+              const getCategoryForFile = (out: typeof outputs[0]): string => {
+                if (out.category) {
+                  if (out.category === 'PARAMETER') return 'PARAMETER';
+                  if (out.category === 'INTEGRITY') return 'INTEGRITY';
+                  if (out.category === 'MASTER' || out.category === 'RECONCILIATION') return 'MASTER';
+                  if (out.category === 'CONTROL_TOTAL' || out.category === 'CONTROL_SAMPLE') return 'CONTROL_TOTAL';
+                }
+                const name = out.name.toLowerCase();
+                if (name.includes('parameter') || name.includes('ex_') || name.includes('exception_')) return 'PARAMETER';
+                if (name.includes('ir_') || name.includes('integrity')) return 'INTEGRITY';
+                if (name.includes('control') || name.includes('sample')) return 'CONTROL_TOTAL';
+                return 'MASTER';
+              };
+
+              const categories = [
+                { id: 'PARAMETER', label: 'Parameter Exceptions', icon: Settings, count: outputs.filter(o => getCategoryForFile(o) === 'PARAMETER').length, desc: 'Flagged entries and evaluation extracts for Parameter Exceptions (Ex 01 - 12).' },
+                { id: 'INTEGRITY', label: 'Integrity Tests', icon: ShieldCheck, count: outputs.filter(o => getCategoryForFile(o) === 'INTEGRITY').length, desc: 'Audit population integrity, debit/credit balancing, and required field checks.' },
+                { id: 'MASTER', label: 'Master & Clean Data', icon: Database, count: outputs.filter(o => getCategoryForFile(o) === 'MASTER').length, desc: 'Canonical sanitized journal entries and trial balance source datasets.' },
+                { id: 'CONTROL_TOTAL', label: 'Control Totals & Samples', icon: Layers, count: outputs.filter(o => getCategoryForFile(o) === 'CONTROL_TOTAL').length, desc: 'Statistical control samples, population stratification, and hash totals.' },
+              ];
+
+              const filteredOutputs = outputs.filter(out => {
+                const matchesCategory = getCategoryForFile(out) === artifactCategoryFilter;
+                const matchesSearch = !artifactSearch || out.name.toLowerCase().includes(artifactSearch.toLowerCase());
+                return matchesCategory && matchesSearch;
+              });
+
+              const activeCategory = categories.find(c => c.id === artifactCategoryFilter) || categories[0];
+
+              return (
+                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+                        Generated Audit Workpapers & Artifacts
+                      </h3>
+                      <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
+                        Download full CSV extracts and standardized workpapers organized by category.
+                      </p>
+                    </div>
+                    <a href={RunService.getDownloadAllZipUrl(runId!)} className="btn-green" style={{ textDecoration: 'none' }}>
+                      <Archive size={16} /> Download All as ZIP ({outputs.length})
+                    </a>
+                  </div>
+
+                  {/* Category Distribution Switcher Tabs */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '10px',
+                    marginBottom: '20px',
+                  }}>
+                    {categories.map((cat) => {
+                      const isSelected = artifactCategoryFilter === cat.id;
+                      const Icon = cat.icon;
+
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setArtifactCategoryFilter(cat.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 14px',
+                            borderRadius: '10px',
+                            border: `1.5px solid ${isSelected ? 'var(--deloitte-teal)' : 'var(--border-subtle)'}`,
+                            background: isSelected ? 'var(--deloitte-teal-light)' : '#FFFFFF',
+                            boxShadow: isSelected ? '0 2px 8px rgba(0, 118, 128, 0.16)' : 'var(--shadow-sm)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
+                              background: isSelected ? 'var(--deloitte-teal)' : 'var(--bg-secondary)',
+                              color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}>
+                              <Icon size={16} />
+                            </div>
+                            <div>
+                              <div style={{
+                                fontSize: '0.84rem',
+                                fontWeight: isSelected ? 800 : 700,
+                                color: isSelected ? 'var(--deloitte-teal)' : 'var(--text-primary)',
+                                lineHeight: 1.2,
+                              }}>
+                                {cat.label}
                               </div>
-                            </td>
-                            <td><StatusBadge status={out.category} /></td>
-                            <td style={{ fontFamily: 'var(--font-mono)' }}>{out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}</td>
-                            <td style={{ textAlign: 'right' }}>
-                              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <button onClick={() => { setSelectedPreviewFile(out.name); setActiveVisualTab('preview'); }} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
-                                  <Eye size={13} /> Preview
-                                </button>
-                                <a href={out.downloadUrl} className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.78rem', textDecoration: 'none' }}>
-                                  <Download size={13} /> Download
-                                </a>
-                              </div>
+                            </div>
+                          </div>
+                          <span style={{
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-mono)',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background: isSelected ? 'var(--deloitte-teal)' : 'var(--bg-secondary)',
+                            color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
+                          }}>
+                            {cat.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Sub-toolbar: Category Description & Search */}
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    border: '1px solid var(--border-subtle)',
+                  }}>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      <strong>{activeCategory.label}</strong>: {activeCategory.desc}
+                    </div>
+                    <div style={{ position: 'relative', width: '260px' }}>
+                      <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input
+                        type="text"
+                        className="jet-input"
+                        placeholder="Search in category files..."
+                        value={artifactSearch}
+                        onChange={(e) => setArtifactSearch(e.target.value)}
+                        style={{ paddingLeft: '30px', fontSize: '0.8rem', height: '32px' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Categorized Table */}
+                  <div className="table-container">
+                    <table className="jet-table">
+                      <thead>
+                        <tr>
+                          <th>Output File</th>
+                          <th>Category</th>
+                          <th>Row Count</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredOutputs.length > 0 ? (
+                          filteredOutputs.map((out) => (
+                            <tr key={out.id}>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <FileSpreadsheet size={18} color="var(--deloitte-teal)" />
+                                  <span style={{ fontWeight: 700 }}>{out.name}</span>
+                                </div>
+                              </td>
+                              <td><StatusBadge status={out.category || getCategoryForFile(out)} /></td>
+                              <td style={{ fontFamily: 'var(--font-mono)' }}>{out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}</td>
+                              <td style={{ textAlign: 'right' }}>
+                                {/* Even-Sized Action Buttons */}
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedPreviewFile(out.name);
+                                      setActiveVisualTab('preview');
+                                    }}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '5px',
+                                      height: '32px',
+                                      padding: '0 14px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(0, 118, 128, 0.06)',
+                                      color: 'var(--deloitte-teal)',
+                                      border: '1.5px solid rgba(0, 118, 128, 0.25)',
+                                      transition: 'all 0.15s ease',
+                                    }}
+                                  >
+                                    <Eye size={13} />
+                                    <span>Preview</span>
+                                  </button>
+                                  <a
+                                    href={out.downloadUrl}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '5px',
+                                      height: '32px',
+                                      padding: '0 14px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      borderRadius: '6px',
+                                      background: 'var(--deloitte-teal)',
+                                      color: '#FFFFFF',
+                                      border: 'none',
+                                      textDecoration: 'none',
+                                      boxShadow: '0 2px 6px rgba(0, 118, 128, 0.22)',
+                                      transition: 'all 0.15s ease',
+                                    }}
+                                  >
+                                    <Download size={13} />
+                                    <span>Download</span>
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                              No files found in {activeCategory.label}
+                              {artifactSearch ? ` matching "${artifactSearch}"` : ''}.
                             </td>
                           </tr>
-                        ))
-                      ) : (
-                        <tr><td colSpan={4} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>No output files generated yet.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
       </main>

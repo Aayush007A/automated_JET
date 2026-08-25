@@ -9,7 +9,7 @@ Data_Integrity_Check_Name,Description,Error_Warning,Capability_Impacted,Related_
 03a_Error_TB_Amount_Digits_TooLong,Trial balance amounts have excess digits,Error,Data Integrity,ending_balance_ec,0,0,0.0,0.0,No
 03b_Error_JE_Amount_Digits_TooLong,Journal entry amounts have excess digits,Error,Data Integrity,net_amount_ec,0,0,0.0,0.0,No
 04a_Error_COA_Duplicate_Account_Numbers,Chart of accounts has duplicate account numbers,Error,COA Integrity,account_number,0,0,0.0,0.0,No
-04b_Error_TB_Duplicate_Account_Numbers,Trial balance has duplicate account numbers,Error,TB Integrity,account_number,0,52,0.0,0.0,No
+04b_Error_TB_Duplicate_Account_Numbers,Trial balance has duplicate account numbers,Error,TB Integrity,account_number,0,0,0.0,0.0,No
 05_Error_JE_Unknown_Classification,Journal entry has lines with unknown classifications (standard/nonstandard),Error,Classification,is_standard,0,0,0.0,0.0,No
 06_Error_JE_Multiple_Classification,Journal entry has lines with multiple classifications in single entry,Error,Classification,"journal_number, is_standard",0,0,0.0,0.0,No
 07_Error_COA_Unknown_Financial_Statement_Category,Chart of accounts has accounts with an unknown financial statement category,Error,FS Presentation,financial_statement_category,0,0,0.0,0.0,No

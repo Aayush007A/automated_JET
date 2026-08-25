@@ -927,27 +927,46 @@ a:hover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
   position: relative;
-  padding: 8px 16px 14px;
+  padding: 8px 0 14px;
+  width: 100%;
 }
 
-.wizard-line-h {
+.wizard-step-item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wizard-connector-line {
   position: absolute;
-  top: 28px;
-  left: 48px;
-  right: 48px;
-  height: 3px;
+  top: 25px; /* Exact vertical center of the 42px bubble + 4px top padding */
+  left: 50%; /* Starts precisely at the center of this bubble */
+  width: 100%; /* Spans precisely to the center of the next bubble */
+  height: 3.5px;
   background: #E2E8F0;
-  border-radius: 3px;
   z-index: 0;
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-.wizard-line-h-progress {
+.wizard-connector-progress {
   height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #007680, #0D9488);
-  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.35s ease;
+}
+
+.wizard-connector-progress.completed {
+  width: 100%;
+  background: #16A34A;
+}
+
+.wizard-connector-progress.active {
+  width: 100%;
+  background: linear-gradient(90deg, #16A34A 0%, #007680 100%);
 }
 
 .wizard-node-h {
@@ -957,8 +976,8 @@ a:hover {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  max-width: 200px;
+  width: 100%;
+  max-width: 180px;
   background: transparent;
   border: none;
   padding: 4px 6px;
@@ -983,10 +1002,11 @@ a:hover {
   align-items: center;
   justify-content: center;
   background: #FFFFFF;
-  border: 2px solid #CBD5E1;
+  border: 2.5px solid #CBD5E1;
   color: #64748B;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  position: relative;
 }
 
 .wizard-node-h:not(:disabled):hover .wizard-bubble-h {
@@ -998,16 +1018,14 @@ a:hover {
   background: #16A34A;
   border-color: #16A34A;
   color: #FFFFFF;
-  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14);
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.16);
 }
 
 .wizard-node-h.active .wizard-bubble-h {
-  width: 46px;
-  height: 46px;
   background: linear-gradient(135deg, #007680 0%, #005A62 100%);
   border-color: #007680;
   color: #FFFFFF;
-  box-shadow: 0 0 0 5px rgba(0, 118, 128, 0.18);
+  box-shadow: 0 0 0 5px rgba(0, 118, 128, 0.22);
 }
 
 .wizard-node-h.locked .wizard-bubble-h {
@@ -1048,15 +1066,14 @@ a:hover {
 }
 
 @media (max-width: 900px) {
-  .wizard-line-h { left: 24px; right: 24px; }
   .wizard-label-h { font-size: 0.76rem; }
   .wizard-sub-h { display: none; }
 }
 
 @media (max-width: 640px) {
   .wizard-steps-h { overflow-x: auto; justify-content: flex-start; gap: 16px; padding-bottom: 4px; }
-  .wizard-node-h { flex: 0 0 auto; max-width: none; }
-  .wizard-line-h { display: none; }
+  .wizard-step-item { flex: 0 0 auto; min-width: 110px; }
+  .wizard-connector-line { display: none; }
 }
 
 /* ---- Active step contextual banner ---- */

@@ -120,155 +120,214 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
         </span>
       </div>
 
-      {/* Uploaded Files Table */}
-      {files.length > 0 && (
-        <div style={{ marginTop: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Detected Datasets ({files.length} {files.length === 1 ? 'file' : 'files'})
-            </h4>
-          </div>
+      {/* Uploaded Files / Extracted Datasets Table */}
+      {files.length > 0 && (() => {
+        // Flatten files and sheets into direct extracted dataset items
+        interface ExtractedItem {
+          id: string;
+          fileId: string;
+          sheetName?: string;
+          displayName: string;
+          parentFile: UploadedFileInfo;
+          format: string;
+          fileSize: number;
+          detectedDataset: string;
+          confidence: number;
+          status: string;
+          rowCount?: number;
+        }
 
-          <div className="table-container">
-            <table className="jet-table">
-              <thead>
-                <tr>
-                  <th>File Name / Sheets</th>
-                  <th>Format</th>
-                  <th>Size</th>
-                  <th>Detected Dataset</th>
-                  <th>Confidence</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {files.map((file) => (
-                  <tr key={file.fileId}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                        <div
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '6px',
-                            background: 'var(--deloitte-teal-light)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'var(--deloitte-teal)',
-                            marginTop: '2px',
-                          }}
-                        >
-                          <FileSpreadsheet size={18} />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{file.originalName}</div>
-                          {file.sheets && file.sheets.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                              {file.sheets.map((s) => (
-                                <button
-                                  key={s.sheetName}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onPreview?.(file.fileId, s.sheetName);
-                                  }}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    fontSize: '0.74rem',
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    background: '#F1F5F9',
-                                    border: '1px solid #CBD5E1',
-                                    color: 'var(--deloitte-teal)',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                  }}
-                                  title={`Preview 50 sample rows for sheet "${s.sheetName}"`}
-                                >
-                                  <Eye size={12} />
-                                  <span>{s.sheetName}</span>
-                                  <span style={{ color: 'var(--text-muted)' }}>({s.detectedDataset})</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="badge badge-neutral">{file.extension.toUpperCase()}</span>
-                    </td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.84rem' }}>{formatSize(file.fileSize)}</td>
-                    <td>
-                      <StatusBadge status={file.detectedDataset.replace(/_/g, ' ')} />
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div
-                          style={{
-                            width: '60px',
-                            height: '6px',
-                            background: '#E2E8F0',
-                            borderRadius: '3px',
-                            overflow: 'hidden',
-                          }}
-                        >
+        const extractedItems: ExtractedItem[] = [];
+        files.forEach((file) => {
+          if (file.sheets && file.sheets.length > 0) {
+            file.sheets.forEach((s) => {
+              extractedItems.push({
+                id: `${file.fileId}_${s.sheetName}`,
+                fileId: file.fileId,
+                sheetName: s.sheetName,
+                displayName: `${file.originalName} → ${s.sheetName}`,
+                parentFile: file,
+                format: `${file.extension.toUpperCase()} (Sheet)`,
+                fileSize: file.fileSize,
+                detectedDataset: s.detectedDataset !== 'UNKNOWN' ? s.detectedDataset : 'DATASET_EXTRACT',
+                confidence: s.confidence || 100,
+                status: file.status || 'READY',
+                rowCount: s.rowCount,
+              });
+            });
+          } else {
+            extractedItems.push({
+              id: file.fileId,
+              fileId: file.fileId,
+              displayName: file.originalName,
+              parentFile: file,
+              format: file.extension.toUpperCase(),
+              fileSize: file.fileSize,
+              detectedDataset: file.detectedDataset,
+              confidence: file.confidence,
+              status: file.status || 'READY',
+            });
+          }
+        });
+
+        return (
+          <div style={{ marginTop: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Extracted Datasets ({extractedItems.length} {extractedItems.length === 1 ? 'dataset' : 'datasets'} from {files.length} {files.length === 1 ? 'file' : 'files'})
+                </h4>
+              </div>
+            </div>
+
+            <div className="table-container">
+              <table className="jet-table">
+                <thead>
+                  <tr>
+                    <th>Extracted Dataset / Sheet</th>
+                    <th>Format</th>
+                    <th>Size</th>
+                    <th>Detected Dataset</th>
+                    <th>Confidence</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {extractedItems.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div
                             style={{
-                              width: `${file.confidence}%`,
-                              height: '100%',
-                              background: file.confidence >= 80 ? 'var(--deloitte-green-dark)' : 'var(--status-warning)',
+                              width: '34px',
+                              height: '34px',
+                              borderRadius: '8px',
+                              background: item.sheetName ? 'var(--deloitte-teal-light)' : '#EFF6FF',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: item.sheetName ? 'var(--deloitte-teal)' : '#2563EB',
+                              flexShrink: 0,
                             }}
-                          />
+                          >
+                            <FileSpreadsheet size={18} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
+                              {item.displayName}
+                            </div>
+                            {item.rowCount !== undefined && item.rowCount > 0 && (
+                              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                                {item.rowCount.toLocaleString()} rows detected
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                          {file.confidence}%
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <StatusBadge status={file.status} />
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onPreview?.(file.fileId);
-                          }}
-                          className="btn-secondary"
-                          style={{ padding: '6px 10px', fontSize: '0.78rem', gap: '4px' }}
-                          title="Preview Sample 50 Rows"
-                        >
-                          <Eye size={14} color="var(--deloitte-teal)" />
-                          <span>Preview (50)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFileToDelete(file);
-                          }}
-                          className="btn-secondary"
-                          style={{ padding: '6px 10px', color: 'var(--status-error)' }}
-                          title="Remove file"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </td>
+                      <td>
+                        <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>{item.format}</span>
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
+                        {formatSize(item.fileSize)}
+                      </td>
+                      <td>
+                        <StatusBadge status={item.detectedDataset.replace(/_/g, ' ')} />
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div
+                            style={{
+                              width: '60px',
+                              height: '6px',
+                              background: '#E2E8F0',
+                              borderRadius: '3px',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${item.confidence}%`,
+                                height: '100%',
+                                background: item.confidence >= 80 ? 'var(--deloitte-green-dark)' : 'var(--status-warning)',
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                            {item.confidence}%
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <StatusBadge status={item.status} />
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                           <button
+                             type="button"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               onPreview?.(item.fileId, item.sheetName);
+                             }}
+                             style={{
+                               display: 'inline-flex', alignItems: 'center', gap: '6px',
+                               padding: '5px 14px', fontSize: '0.78rem', fontWeight: 700,
+                               background: 'rgba(0, 118, 128, 0.06)',
+                               color: 'var(--deloitte-teal)',
+                               border: '1.5px solid rgba(0, 118, 128, 0.3)',
+                               borderRadius: '8px', cursor: 'pointer',
+                               transition: 'all 0.18s ease',
+                               letterSpacing: '0.01em',
+                             }}
+                             onMouseEnter={e => {
+                               (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0, 118, 128, 0.12)';
+                               (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--deloitte-teal)';
+                               (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+                             }}
+                             onMouseLeave={e => {
+                               (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0, 118, 128, 0.06)';
+                               (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0, 118, 128, 0.3)';
+                               (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                             }}
+                             title={`Preview sample records for ${item.displayName}`}
+                           >
+                             <Eye size={13} />
+                             <span>Preview</span>
+                           </button>
+                           <button
+                             type="button"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setFileToDelete(item.parentFile);
+                             }}
+                             style={{
+                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                               padding: '5px 9px', background: 'rgba(239, 68, 68, 0.06)',
+                               color: 'var(--status-error)', border: '1.5px solid rgba(239, 68, 68, 0.2)',
+                               borderRadius: '8px', cursor: 'pointer', transition: 'all 0.18s ease',
+                             }}
+                             onMouseEnter={e => {
+                               (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239, 68, 68, 0.12)';
+                               (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--status-error)';
+                             }}
+                             onMouseLeave={e => {
+                               (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239, 68, 68, 0.06)';
+                               (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                             }}
+                             title={`Remove ${item.parentFile.originalName}`}
+                           >
+                             <Trash2 size={14} />
+                           </button>
+                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* CUSTOM PREMIUM REMOVE FILE CONFIRMATION MODAL */}
       <ConfirmModal

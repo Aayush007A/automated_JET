@@ -85,7 +85,7 @@ export interface SparkJetParameters {
   ex11Frequency?: string;
   ex11ClosingDate?: string;
   ex11DaysAfterClosing?: number;
-  ex12UnrelatedRules?: Array<{ debitFSLine: string; creditFSLine: string }>;
+  ex12UnrelatedRules?: Array<{ debit: string; credit: string; debitFSLine?: string; creditFSLine?: string }>;
   controlSampleCount?: number;
 }
 

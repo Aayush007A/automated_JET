@@ -276,6 +276,8 @@ def run_spark_jet_pipeline(config_path: str):
     ir_4_cols = ['G_L', 'Description', 'Account_Subtype', 'FS_Line_Item', 'Count']
     ir_4_path = os.path.join(output_dir, 'Parameter_2_Seldom_Accounts_Inputs.csv')
     ir_4[ir_4_cols].to_csv(ir_4_path, index=False)
+    ir_4_alt_path = os.path.join(output_dir, 'IR_Exception_4.csv')
+    ir_4[ir_4_cols].to_csv(ir_4_alt_path, index=False)
 
     # -------------------------------------------------------------
     # 5. PARAMETER TESTING (Ex 1 to Ex 12) - Executed only if selected
@@ -318,7 +320,7 @@ def run_spark_jet_pipeline(config_path: str):
         ex1_gls = params.get('ex1UnusualAccounts', [])
         if not ex1_gls:
             ex1_gls = ['0059100000', '0059100001', '0058809000', '0034100000', '1009', '1012']
-        ex1_gls_clean = [str(x).strip() for x in ex1_gls]
+        ex1_gls_clean = [str(x).strip() for x in ex1_gls if str(x).strip()]
         ex1_docs = set(gl_clean[gl_clean['G_L'].isin(ex1_gls_clean)]['DocumentNo'].unique())
         ex1_df = gl_clean[gl_clean['DocumentNo'].isin(ex1_docs)].copy()
         ex1_df['FS_Line_Item'] = ''
@@ -331,32 +333,51 @@ def run_spark_jet_pipeline(config_path: str):
         if not ex2_gls:
             seldom_list = ir_4[ir_4['Count'].between(1, 5)]['G_L'].tolist()
             ex2_gls = seldom_list[:20] if seldom_list else ['11301060', '11601900', '52002500', '1081001']
-        ex2_gls_clean = [str(x).strip() for x in ex2_gls]
+        ex2_gls_clean = [str(x).strip() for x in ex2_gls if str(x).strip()]
         ex2_docs = set(gl_clean[gl_clean['G_L'].isin(ex2_gls_clean)]['DocumentNo'].unique())
         ex2_df = gl_clean[gl_clean['DocumentNo'].isin(ex2_docs)].copy()
         ex2_df['FS_Line_Item'] = ''
         ex2_df['Exception'] = np.where(ex2_df['G_L'].isin(ex2_gls_clean) & (ex2_df['Amount_in_local_cur'] != 0), 'Exception2', 'NO Exception')
         save_exception_file(ex2_df, 2, 'Seldom_Accounts')
 
-    # Ex3: Large Debits to Revenue During the Period
+    # Ex3: Large Debits to Revenue During the Period (Filter on Revenue subtype automatically; if not then find income else leave blank)
     if 3 in selected_exceptions:
         custom_rev = params.get('ex3RevenueAccounts', [])
         if custom_rev and len(custom_rev) > 0:
             rev_gls = set([str(x).strip() for x in custom_rev if str(x).strip()])
         else:
-            rev_gls = set(tb_clean[tb_clean['Account_Subtype'].str.lower().isin(['revenue', 'income', 'revenues'])]['G_L'].unique())
-            if len(rev_gls) == 0:
-                rev_gls = set(tb_clean[tb_clean['FS_Line_Item'].str.lower().str.contains('revenue|sales|income', regex=True, na=False)]['G_L'].unique())
+            rev_tb = tb_clean[tb_clean['Account_Subtype'].str.strip().str.lower() == 'revenue']
+            if len(rev_tb) == 0:
+                rev_tb = tb_clean[tb_clean['Account_Subtype'].str.strip().str.lower() == 'income']
+            rev_gls = set(rev_tb['G_L'].unique()) if len(rev_tb) > 0 else set()
         
-        rev_docs = gl_clean[gl_clean['G_L'].isin(rev_gls)]
-        doc_rev_sums = rev_docs.groupby('DocumentNo')['Amount_in_local_cur'].sum().reset_index()
-        ex3_threshold = float(params.get('ex3RevenueDebitsThreshold', 0.0))
-        flagged_ex3_docs = set(doc_rev_sums[doc_rev_sums['Amount_in_local_cur'] > ex3_threshold]['DocumentNo'].unique())
-        
-        ex3_df = gl_clean[gl_clean['DocumentNo'].isin(flagged_ex3_docs)].copy()
-        ex3_df['FS_Line_Item'] = ''
-        ex3_df['Exception'] = np.where(ex3_df['G_L'].isin(rev_gls) & (ex3_df['Amount_in_local_cur'] > 0), 'Exception3', 'NO Exception')
-        save_exception_file(ex3_df, 3, 'Revenue_Debits')
+        if not rev_gls:
+            # Leave blank if no revenue/income account subtype found
+            ex3_df = gl_clean.head(0).copy()
+            ex3_df['FS_Line_Item'] = ''
+            ex3_df['Exception'] = 'Exception3'
+            save_exception_file(ex3_df, 3, 'Revenue_Debits')
+        else:
+            rev_docs = gl_clean[gl_clean['G_L'].isin(rev_gls)]
+            # Optional quarter date filtering
+            q_start = params.get('ex3QuarterStartDate')
+            q_end = params.get('ex3QuarterEndDate')
+            if q_start and q_end:
+                q_start_iso = date_to_iso(q_start)
+                q_end_iso = date_to_iso(q_end)
+                if q_start_iso and q_end_iso:
+                    iso_dates = rev_docs['Pstng_Date'].apply(date_to_iso)
+                    in_q = iso_dates.apply(lambda d: d is not None and q_start_iso <= d <= q_end_iso)
+                    rev_docs = rev_docs[in_q]
+
+            doc_rev_sums = rev_docs.groupby('DocumentNo')['Amount_in_local_cur'].sum().reset_index()
+            ex3_threshold = float(params.get('ex3RevenueDebitsThreshold', 0.0))
+            flagged_ex3_docs = set(doc_rev_sums[doc_rev_sums['Amount_in_local_cur'] > ex3_threshold]['DocumentNo'].unique())
+            
+            ex3_df = gl_clean[gl_clean['DocumentNo'].isin(flagged_ex3_docs)].copy()
+            ex3_df['FS_Line_Item'] = ''
+            ex3_df['Exception'] = np.where(ex3_df['G_L'].isin(rev_gls) & (ex3_df['Amount_in_local_cur'] > 0), 'Exception3', 'NO Exception')
+            save_exception_file(ex3_df, 3, 'Revenue_Debits')
 
     # Ex4: Users with few Postings
     if 4 in selected_exceptions:
@@ -512,27 +533,34 @@ def run_spark_jet_pipeline(config_path: str):
             ex11_df['Exception'] = 'NO Exception'
         save_exception_file(ex11_df, 11, 'Post_Closing_Entries')
 
-    # Ex12: Unrelated Accounts
+    # Ex12: Unrelated Accounts (Debit and Credit FS Line Items)
     if 12 in selected_exceptions:
         gl_with_fs = gl_clean.merge(tb_clean[['G_L', 'FS_Line_Item']], on='G_L', how='left')
         gl_with_fs['FS_Line_Item'] = gl_with_fs['FS_Line_Item'].fillna('')
         
         unrelated_rules = params.get('ex12UnrelatedRules', [
-            {"debitFSLine": "Trade Receivables", "creditFSLine": "COST OF SALES AND SERVICES"},
-            {"debitFSLine": "Property, plant and equipment", "creditFSLine": "General and administrative expenses"},
-            {"debitFSLine": "Trade Payables", "creditFSLine": "NET SALES REVENUE"},
-            {"debitFSLine": "Property, plant and equipment", "creditFSLine": "NET SALES REVENUE"},
+            {"debit": "Trade Receivables", "credit": "COST OF SALES AND SERVICES"},
+            {"debit": "Property, plant and equipment", "credit": "General and administrative expenses"},
+            {"debit": "Trade Payables", "credit": "NET SALES REVENUE"},
+            {"debit": "Property, plant and equipment", "credit": "NET SALES REVENUE"},
         ])
         
+        tb_fs_items = set([x.strip().lower() for x in tb_clean['FS_Line_Item'].dropna().unique() if x.strip()])
         ex12_flagged_docs = set()
         for rule in unrelated_rules:
-            d_line = rule.get('debitFSLine', '').strip().lower()
-            c_line = rule.get('creditFSLine', '').strip().lower()
+            d_line = rule.get('debit', rule.get('debitFSLine', '')).strip()
+            c_line = rule.get('credit', rule.get('creditFSLine', '')).strip()
             if not d_line or not c_line:
                 continue
             
-            has_debit = gl_with_fs[(gl_with_fs['Amount_in_local_cur'] > 0) & (gl_with_fs['FS_Line_Item'].str.lower().str.contains(d_line, na=False))]['DocumentNo'].unique()
-            has_credit = gl_with_fs[(gl_with_fs['Amount_in_local_cur'] < 0) & (gl_with_fs['FS_Line_Item'].str.lower().str.contains(c_line, na=False))]['DocumentNo'].unique()
+            # Constraint logging
+            if tb_fs_items and d_line.lower() not in tb_fs_items:
+                log_event(run_id, 'WARNING', 82, f"Ex12 constraint warning: Debit line item '{d_line}' is not present in TB FS_Line_Item column", log_file)
+            if tb_fs_items and c_line.lower() not in tb_fs_items:
+                log_event(run_id, 'WARNING', 82, f"Ex12 constraint warning: Credit line item '{c_line}' is not present in TB FS_Line_Item column", log_file)
+
+            has_debit = gl_with_fs[(gl_with_fs['Amount_in_local_cur'] > 0) & (gl_with_fs['FS_Line_Item'].str.strip().str.lower() == d_line.lower())]['DocumentNo'].unique()
+            has_credit = gl_with_fs[(gl_with_fs['Amount_in_local_cur'] < 0) & (gl_with_fs['FS_Line_Item'].str.strip().str.lower() == c_line.lower())]['DocumentNo'].unique()
             matched = set(has_debit).intersection(set(has_credit))
             ex12_flagged_docs.update(matched)
 

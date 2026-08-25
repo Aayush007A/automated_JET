@@ -540,11 +540,11 @@ def run_omnia_jet(config_path):
         'debit_ec': 0.0, 'credit_ec': 0.0
     })
 
-    # 04b: TB Duplicate Account Numbers
-    tb_dup = tb_clean[tb_clean.duplicated(subset=['entity_id', 'account_number'], keep=False)]
+    # 04b: TB Duplicate Account Numbers (within the same period cutoff)
+    tb_dup = tb_clean[tb_clean.duplicated(subset=['entity_id', 'Fiscal_Year_Identifier', 'account_number'], keep=False)]
     dqc_results.append({
         'check': '04b_Error_TB_Duplicate_Account_Numbers',
-        'desc': 'Trial balance has duplicate account numbers',
+        'desc': 'Trial balance has duplicate account numbers within the same fiscal period',
         'type': 'Error',
         'capability': 'TB Integrity',
         'fields': 'account_number',

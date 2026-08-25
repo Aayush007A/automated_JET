@@ -1,0 +1,451 @@
+{
+  "runId": "JET-20260825-002",
+  "workflow": "OMNIA_JET",
+  "engine": "PYTHON",
+  "createdAt": "2026-08-25T07:38:35.495Z",
+  "updatedAt": "2026-08-25T07:38:35.495Z",
+  "userId": "usr_01",
+  "userName": "Audit Engagement Lead",
+  "files": [],
+  "datasetMap": {},
+  "fieldMappings": {
+    "tb": [
+      {
+        "standardField": "entity_id",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Unique legal entity identifier"
+      },
+      {
+        "standardField": "entity_name",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Name of legal entity"
+      },
+      {
+        "standardField": "account_number",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Unique general ledger account number"
+      },
+      {
+        "standardField": "account_description",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Description of account"
+      },
+      {
+        "standardField": "period_end_date",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "As-of cutoff date"
+      },
+      {
+        "standardField": "entity_currency_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Functional currency code"
+      },
+      {
+        "standardField": "beginning_balance_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Opening balance in entity currency"
+      },
+      {
+        "standardField": "period_activity_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Net movement in entity currency"
+      },
+      {
+        "standardField": "ending_balance_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Ending balance in entity currency"
+      },
+      {
+        "standardField": "debit",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Total debit amount"
+      },
+      {
+        "standardField": "credit",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Total credit amount"
+      },
+      {
+        "standardField": "preliminary_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Preliminary balance before adjustments"
+      },
+      {
+        "standardField": "adjusted_journal_entry_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Adjusting journal entry amount"
+      },
+      {
+        "standardField": "adjusted_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Adjusted ending balance"
+      },
+      {
+        "standardField": "reclassification_journal_entry_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Reclassification amount"
+      },
+      {
+        "standardField": "group_currency_gc",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Presentation group currency code"
+      },
+      {
+        "standardField": "beginning_balance_gc",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Opening balance in group currency"
+      },
+      {
+        "standardField": "ending_balance_gc",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Ending balance in group currency"
+      },
+      {
+        "standardField": "financial_statement_line",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Financial statement line item"
+      },
+      {
+        "standardField": "chart_of_accounts",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Chart of accounts identifier"
+      }
+    ],
+    "gl": [
+      {
+        "standardField": "entity_id",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Legal entity identifier"
+      },
+      {
+        "standardField": "journal_number",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Unique journal document number"
+      },
+      {
+        "standardField": "journal_line_number",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Journal line item sequence number"
+      },
+      {
+        "standardField": "journal_header_description",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Journal header narration/text"
+      },
+      {
+        "standardField": "journal_line_description",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Line item description/narration"
+      },
+      {
+        "standardField": "account_number",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "General ledger account number"
+      },
+      {
+        "standardField": "account_description",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "GL account description"
+      },
+      {
+        "standardField": "date_effective",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Effective/Accounting date"
+      },
+      {
+        "standardField": "date_posted",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Posting date in accounting ledger"
+      },
+      {
+        "standardField": "entity_currency_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Entity local currency code"
+      },
+      {
+        "standardField": "net_amount_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Net signed transaction amount in EC"
+      },
+      {
+        "standardField": "credit_amount_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Credit amount in EC"
+      },
+      {
+        "standardField": "debit_amount_ec",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Debit amount in EC"
+      },
+      {
+        "standardField": "transaction_type",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Transaction type code (e.g., SA, AB, RV, KR)"
+      },
+      {
+        "standardField": "userid_entered",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "User identifier who entered transaction"
+      },
+      {
+        "standardField": "is_standard",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Standard (S) or Non-standard (N)"
+      },
+      {
+        "standardField": "is_manual",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Manual entry flag (Y/N)"
+      },
+      {
+        "standardField": "source",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Source application or module"
+      },
+      {
+        "standardField": "group_currency_gc",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Group presentation currency"
+      },
+      {
+        "standardField": "net_amount_gc",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Net signed amount in GC"
+      }
+    ],
+    "coa": [
+      {
+        "standardField": "chart_of_accounts",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "COA identifier"
+      },
+      {
+        "standardField": "account_number",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "GL account number"
+      },
+      {
+        "standardField": "account_description",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "GL account description"
+      },
+      {
+        "standardField": "financial_statement_category",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Assets, Liabilities, Equity, Revenue/Income, Expenses"
+      },
+      {
+        "standardField": "financial_statement_line",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Financial statement line item"
+      },
+      {
+        "standardField": "account_grouping_1",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Primary account grouping"
+      },
+      {
+        "standardField": "financial_statement_type",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "BS (Balance Sheet) or IS (Income Statement)"
+      },
+      {
+        "standardField": "entity_id",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Associated Entity ID"
+      }
+    ]
+  }
+}
