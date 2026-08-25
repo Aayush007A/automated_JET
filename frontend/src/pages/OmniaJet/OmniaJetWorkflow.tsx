@@ -131,11 +131,11 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
   const [sampleModalData, setSampleModalData] = useState<{
     title: string;
-    subtitle: string;
+    subtitle?: string;
     headers: string[];
     rows: Record<string, any>[];
     totalRows: number;
-  } | null>(null);
+  }>({ title: '', headers: [], rows: [], totalRows: 0 });
 
   // Confirm delete modal state
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -2415,64 +2415,16 @@ export const OmniaJetWorkflow: React.FC = () => {
         )}
       </main>
 
-      {/* Raw Sample 50 Rows Preview Modal */}
-      {sampleModalOpen && sampleModalData && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
-          }}
-          onClick={() => setSampleModalOpen(false)}
-        >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-elevated)',
-              width: '100%', maxWidth: '1100px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
-              animation: 'scaleUp 0.2s ease-out',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', background: '#F8FAFC' }}>
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{sampleModalData.title}</h3>
-                <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>{sampleModalData.subtitle}</p>
-              </div>
-              <button onClick={() => setSampleModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '6px', color: 'var(--text-muted)' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
-              {sampleModalData.rows.length > 0 ? (
-                <div className="table-container" style={{ maxHeight: '55vh', overflowY: 'auto' }}>
-                  <table className="jet-table">
-                    <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
-                      <tr>{sampleModalData.headers.map((h, i) => <th key={i} style={{ whiteSpace: 'nowrap', background: '#F1F5F9' }}>{h}</th>)}</tr>
-                    </thead>
-                    <tbody>
-                      {sampleModalData.rows.map((row, rIdx) => (
-                        <tr key={rIdx}>
-                          {sampleModalData.headers.map((h, cIdx) => (
-                            <td key={cIdx} style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                              {row[h] !== undefined && row[h] !== null && String(row[h]).trim() !== '' ? String(row[h]) : '-'}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>No sample records available in this file.</div>
-              )}
-            </div>
-
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', background: '#F8FAFC' }}>
-              <button onClick={() => setSampleModalOpen(false)} className="btn-secondary">Close Preview</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Sample Data Preview Modal (Same rich component as Spark JET) */}
+      <SampleDataModal
+        isOpen={sampleModalOpen}
+        onClose={() => setSampleModalOpen(false)}
+        title={sampleModalData.title}
+        subtitle={sampleModalData.subtitle}
+        headers={sampleModalData.headers}
+        rows={sampleModalData.rows}
+        totalRows={sampleModalData.totalRows}
+      />
 
       <ConfirmModal
         isOpen={confirmModalOpen}
