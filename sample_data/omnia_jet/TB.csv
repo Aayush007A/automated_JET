@@ -1,27 +1,27 @@
-entity_id,entity_name,account_number,account_description,period_end_date,fiscal_year,fiscal_period,period_type,chart_of_accounts,entity_currency_ec,group_currency_gc,beginning_balance_ec,ending_balance_ec,beginning_balance_gc,ending_balance_gc,debit,credit,financial_statement_category,financial_statement_line,account_grouping_1
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,10100000,Cash and Bank - Current Account,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,45200000.0,38750000.0,543922.98,466305.66,0.0,6450000.0,Assets,Cash and cash equivalents,Cash & Bank
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,10200000,Short-term Investments,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,10000000.0,10000000.0,120336.94,120336.94,0.0,0.0,Assets,Cash and cash equivalents,Cash & Bank
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,11401000,Trade Receivables - Domestic,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,148500000.0,162000000.0,1787003.61,1949458.48,13500000.0,0.0,Assets,Trade Receivables,Receivables
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,11402000,Trade Receivables - Export,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,32000000.0,28500000.0,385078.22,342960.29,0.0,3500000.0,Assets,Trade Receivables,Receivables
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,11500000,Prepaid Expenses,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,3800000.0,4200000.0,45728.04,50541.52,400000.0,0.0,Assets,Other current assets,Prepayments
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,11600000,Security Deposits,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,5000000.0,5000000.0,60168.47,60168.47,0.0,0.0,Assets,Other non-current assets,Deposits
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,12100000,Inventories - Raw Materials,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,62000000.0,58000000.0,746089.05,697954.27,0.0,4000000.0,Assets,Inventories,Inventory
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,12200000,Inventories - Finished Goods,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,28000000.0,31500000.0,336943.44,379061.37,3500000.0,0.0,Assets,Inventories,Inventory
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,51001000,Property Plant and Machinery,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,540000000.0,558000000.0,6498194.95,6714801.44,18000000.0,0.0,Assets,"Property, plant and equipment",PPE - Gross
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,51002000,Accumulated Depreciation,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-180000000.0,-201000000.0,-2166064.98,-2418772.56,0.0,21000000.0,Assets,"Property, plant and equipment",PPE - AccDep
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,20100000,Short-Term Borrowings,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-80000000.0,-75000000.0,-962695.55,-902527.08,5000000.0,0.0,Liabilities,Borrowings,Borrowings
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,20200000,Long-Term Loans,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-250000000.0,-230000000.0,-3008423.59,-2767749.7,20000000.0,0.0,Liabilities,Borrowings,Long-term Loans
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,21100000,Trade Payables - Domestic,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-42000000.0,-48000000.0,-505415.16,-577617.33,0.0,6000000.0,Liabilities,Trade Payables,Payables
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,21200000,Accrued Liabilities,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-18000000.0,-21000000.0,-216606.5,-252707.58,0.0,3000000.0,Liabilities,Other current liabilities,Accruals
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,21302630,Output GST Clearing,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-2500000.0,0.0,-30084.24,0.0,2500000.0,Liabilities,Other Payables,Tax Payables
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,1000001,Equity Share Capital Rs 10,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-117200000.0,-117200000.0,-1410348.98,-1410348.98,0.0,0.0,Equity,Share Capital,Share Capital
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,1160001,Retained Earnings,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-85000000.0,-110000000.0,-1022864.02,-1323706.38,0.0,25000000.0,Equity,Retained Earnings,Reserves
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,41001400,Sales Revenue - Domestic,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-445000000.0,0.0,-5354993.98,0.0,445000000.0,Revenue,NET SALES REVENUE,Revenue
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,41001500,Sales Revenue - Export,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-50500000.0,0.0,-607701.56,0.0,50500000.0,Revenue,NET SALES REVENUE,Revenue
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,41301200,Interest Income,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-4600000.0,0.0,-55354.99,0.0,4600000.0,Revenue,Finance income,Other Income
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,41301600,Miscellaneous Income,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-1800000.0,0.0,-21660.65,0.0,1800000.0,Revenue,"Other operating income (expenses), net",Other Income
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,50001000,Cost of Goods Sold,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,248000000.0,0.0,2984356.2,248000000.0,0.0,Expenses,COST OF SALES AND SERVICES,COGS
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,52001000,Employee Compensation,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,60000000.0,0.0,722021.66,60000000.0,0.0,Expenses,General and administrative expenses,Staff Costs
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,52002500,Consultancy and Audit Fees,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,6000000.0,0.0,72202.17,6000000.0,0.0,Expenses,General and administrative expenses,Admin
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,52003000,Depreciation Expense,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,21000000.0,0.0,252707.58,21000000.0,0.0,Expenses,Depreciation and amortisation,Depreciation
-ENT01,JIOSAT Manufacturing Pvt. Ltd.,52004000,Finance Costs - Interest,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,11200000.0,0.0,134777.38,11200000.0,0.0,Expenses,Finance costs,Finance Costs
+entity_id,entity_name,account_number,account_description,period_end_date,fiscal_year,fiscal_period,period_type,chart_of_accounts,entity_currency_ec,group_currency_gc,beginning_balance_ec,ending_balance_ec,beginning_balance_gc,ending_balance_gc,financial_statement_category,financial_statement_line,account_grouping_1
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,10100000,Cash and Bank - Current Account,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,45200000.0,38750000.0,543922.98,466305.66,Assets,Cash and cash equivalents,Cash & Bank
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,10200000,Short-term Investments,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,10000000.0,10000000.0,120336.94,120336.94,Assets,Cash and cash equivalents,Cash & Bank
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,11401000,Trade Receivables - Domestic,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,148500000.0,162000000.0,1787003.61,1949458.48,Assets,Trade Receivables,Receivables
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,11402000,Trade Receivables - Export,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,32000000.0,28500000.0,385078.22,342960.29,Assets,Trade Receivables,Receivables
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,11500000,Prepaid Expenses,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,3800000.0,4200000.0,45728.04,50541.52,Assets,Other current assets,Prepayments
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,11600000,Security Deposits,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,5000000.0,5000000.0,60168.47,60168.47,Assets,Other non-current assets,Deposits
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,12100000,Inventories - Raw Materials,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,62000000.0,58000000.0,746089.05,697954.27,Assets,Inventories,Inventory
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,12200000,Inventories - Finished Goods,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,28000000.0,31500000.0,336943.44,379061.37,Assets,Inventories,Inventory
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,51001000,Property Plant and Machinery,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,540000000.0,558000000.0,6498194.95,6714801.44,Assets,"Property, plant and equipment",PPE - Gross
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,51002000,Accumulated Depreciation,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-180000000.0,-201000000.0,-2166064.98,-2418772.56,Assets,"Property, plant and equipment",PPE - AccDep
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,20100000,Short-Term Borrowings,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-80000000.0,-75000000.0,-962695.55,-902527.08,Liabilities,Borrowings,Borrowings
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,20200000,Long-Term Loans,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-250000000.0,-230000000.0,-3008423.59,-2767749.7,Liabilities,Borrowings,Long-term Loans
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,21100000,Trade Payables - Domestic,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-42000000.0,-48000000.0,-505415.16,-577617.33,Liabilities,Trade Payables,Payables
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,21200000,Accrued Liabilities,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-18000000.0,-21000000.0,-216606.5,-252707.58,Liabilities,Other current liabilities,Accruals
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,21302630,Output GST Clearing,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-2500000.0,0.0,-30084.24,Liabilities,Other Payables,Tax Payables
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,1000001,Equity Share Capital Rs 10,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-117200000.0,-117200000.0,-1410348.98,-1410348.98,Equity,Share Capital,Share Capital
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,1160001,Retained Earnings,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,-85000000.0,-110000000.0,-1022864.02,-1323706.38,Equity,Retained Earnings,Reserves
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,41001400,Sales Revenue - Domestic,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-445000000.0,0.0,-5354993.98,Revenue,NET SALES REVENUE,Revenue
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,41001500,Sales Revenue - Export,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-50500000.0,0.0,-607701.56,Revenue,NET SALES REVENUE,Revenue
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,41301200,Interest Income,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-4600000.0,0.0,-55354.99,Revenue,Finance income,Other Income
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,41301600,Miscellaneous Income,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,-1800000.0,0.0,-21660.65,Revenue,"Other operating income (expenses), net",Other Income
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,50001000,Cost of Goods Sold,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,248000000.0,0.0,2984356.2,Expenses,COST OF SALES AND SERVICES,COGS
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,52001000,Employee Compensation,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,60000000.0,0.0,722021.66,Expenses,General and administrative expenses,Staff Costs
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,52002500,Consultancy and Audit Fees,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,6000000.0,0.0,72202.17,Expenses,General and administrative expenses,Admin
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,52003000,Depreciation Expense,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,21000000.0,0.0,252707.58,Expenses,Depreciation and amortisation,Depreciation
+ENT01,JIOSAT Manufacturing Pvt. Ltd.,52004000,Finance Costs - Interest,03/31/2026,2026,12,YTD,JIOSAT,INR,USD,0.0,11200000.0,0.0,134777.38,Expenses,Finance costs,Finance Costs

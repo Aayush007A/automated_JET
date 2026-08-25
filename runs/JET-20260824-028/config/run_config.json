@@ -1232,24 +1232,6 @@
         "description": "Ending balance in entity currency"
       },
       {
-        "standardField": "debit",
-        "sourceField": "debit",
-        "matchType": "EXACT",
-        "confidence": 100,
-        "status": "MATCHED",
-        "required": false,
-        "description": "Total debit amount"
-      },
-      {
-        "standardField": "credit",
-        "sourceField": "credit",
-        "matchType": "EXACT",
-        "confidence": 100,
-        "status": "MATCHED",
-        "required": false,
-        "description": "Total credit amount"
-      },
-      {
         "standardField": "preliminary_ec",
         "sourceField": "",
         "matchType": "EXACT",
