@@ -627,44 +627,6 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           );
         })}
       </div>
-
-      {/* Bottom Completion & Navigation Action Bar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: '14px', padding: '16px 20px',
-        background: '#FFFFFF', borderRadius: '10px',
-        border: allPassed ? '1px solid rgba(5, 150, 105, 0.25)' : '1px solid rgba(225, 29, 72, 0.25)',
-        boxShadow: 'var(--shadow-sm)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {allPassed ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontSize: '0.84rem', fontWeight: 700 }}>
-              <CheckCircle2 size={18} color="#059669" />
-              <span>All mandatory data checkpoints passed cleanly. Data is verified ready for mapping.</span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#E11D48', fontSize: '0.84rem', fontWeight: 700 }}>
-              <AlertTriangle size={18} color="#E11D48" />
-              <span>{failedCount} mandatory checkpoint(s) failed. Download failed records to inspect or re-upload cleansed data before proceeding.</span>
-            </div>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={onProceed}
-          disabled={!allPassed}
-          className="btn-primary"
-          style={{
-            padding: '8px 20px', fontSize: '0.84rem', display: 'inline-flex', alignItems: 'center', gap: '6px',
-            opacity: !allPassed ? 0.45 : 1,
-            cursor: !allPassed ? 'not-allowed' : 'pointer'
-          }}
-          title={!allPassed ? 'You cannot proceed to next steps while mandatory constraints are failing' : 'Continue to Data File Mapping'}
-        >
-          Continue to Data File Mapping <ArrowRight size={14} />
-        </button>
-      </div>
     </div>
   );
 };

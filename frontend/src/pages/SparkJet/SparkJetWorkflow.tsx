@@ -1093,25 +1093,6 @@ export const SparkJetWorkflow: React.FC = () => {
                 onPreview={handleOpenSamplePreview}
                 uploading={uploading}
               />
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(2)}
-                  disabled={!isStep1Valid}
-                  className="btn-primary"
-                  style={{
-                    opacity: isStep1Valid ? 1 : 0.5,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 24px',
-                    fontSize: '0.86rem'
-                  }}
-                >
-                  Proceed to Auto-Cleansing & Constraints <ArrowRight size={16} />
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -1158,26 +1139,8 @@ export const SparkJetWorkflow: React.FC = () => {
               ]}
               onProceed={() => {
                 setCurrentStep(4);
-                handleRunPipeline(4);
               }}
             />
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
-              <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <ArrowLeft size={15} /> Back to Auto-Cleansing
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentStep(4);
-                  handleRunPipeline(4);
-                }}
-                disabled={executing}
-                className="btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              >
-                Continue to IR Testing <ArrowRight size={15} />
-              </button>
-            </div>
           </div>
         )}
 
@@ -1327,25 +1290,6 @@ export const SparkJetWorkflow: React.FC = () => {
                   0 exception records found for {selectedIRFile} (Test Passed cleanly).
                 </div>
               )}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-              <button
-                type="button"
-                onClick={() => setCurrentStep(3)}
-                className="btn-secondary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              >
-                <ArrowLeft size={15} /> Back to Data File Mapping
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentStep(5)}
-                className="btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              >
-                Configure Exceptions <ArrowRight size={15} />
-              </button>
             </div>
           </div>
         )}
@@ -2175,33 +2119,6 @@ export const SparkJetWorkflow: React.FC = () => {
                 No exception rules selected. Enable one or more exceptions above to configure rules.
               </div>
             )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-              <button
-                type="button"
-                onClick={() => setCurrentStep(4)}
-                className="btn-secondary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              >
-                <ArrowLeft size={15} /> Back to Integrity Tests
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentStep(6);
-                  handleRunPipeline(6);
-                }}
-                disabled={executing}
-                className="btn-primary"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '8px',
-                  padding: '10px 28px', boxShadow: '0 4px 12px rgba(0, 118, 128, 0.25)'
-                }}
-              >
-                <Play size={15} fill="#FFFFFF" />
-                {executing ? 'Executing Pipeline...' : 'Execute Exceptions & Generate Deliverables'}
-              </button>
-            </div>
           </div>
         )}
 

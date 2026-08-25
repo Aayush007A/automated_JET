@@ -1,12 +1,12 @@
 {
   "runId": "JET-20260824-028",
   "workflow": "OMNIA_JET",
-  "status": "COMPLETED",
-  "progress": 100,
+  "status": "CONFIGURED",
+  "progress": 40,
   "startedAt": "2026-08-24T18:12:45.000Z",
   "completedAt": "2026-08-25T23:56:30.705787",
   "totalInputRows": {
-    "tb": 52,
+    "tb": 26,
     "gl": 36,
     "coa": 26
   },
@@ -14,11 +14,11 @@
     "totalAccounts": 26,
     "reconciledAccounts": 4,
     "unreconciledAccounts": 22,
-    "totalBeginningBalance": 102300000.0,
-    "totalEndingBalance": -64450000.0,
-    "totalJEActivity": 0.0,
-    "totalTrialActivity": -166750000.0,
-    "totalVariance": -166750000.0
+    "totalBeginningBalance": 102300000,
+    "totalEndingBalance": -64450000,
+    "totalJEActivity": 0,
+    "totalTrialActivity": -166750000,
+    "totalVariance": -166750000
   },
   "dqcSummary": {
     "totalErrors": 0,
@@ -28,9 +28,9 @@
     "checksFailed": 1
   },
   "controlTotalsSummary": {
-    "totalDebit": 159250000.0,
-    "totalCredit": 159250000.0,
-    "netAmount": 0.0,
+    "totalDebit": 159250000,
+    "totalCredit": 159250000,
+    "netAmount": 0,
     "periodCount": 12,
     "userCount": 11
   },
@@ -153,5 +153,5 @@
       "path": "runs/JET-20260824-028\\output\\JE-Recon-and-DIC-Template.xlsx"
     }
   ],
-  "currentStage": "COMPLETED"
+  "currentStage": "DATA_CLEANSED"
 }

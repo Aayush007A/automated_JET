@@ -1,0 +1,224 @@
+{
+  "runId": "JET-20260826-001",
+  "workflow": "SPARK_JET",
+  "engine": "PYTHON",
+  "createdAt": "2026-08-25T18:44:07.517Z",
+  "updatedAt": "2026-08-25T18:44:07.518Z",
+  "userId": "usr_test",
+  "userName": "Tester",
+  "files": [],
+  "datasetMap": {},
+  "fieldMappings": {
+    "tb": [
+      {
+        "standardField": "G/L",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "G/L Account Code"
+      },
+      {
+        "standardField": "Description",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Account Description"
+      },
+      {
+        "standardField": "Account Subtype",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Assets, Liabilities, Revenue/Income, Expenses, Equity"
+      },
+      {
+        "standardField": "Opening Balance",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Opening balance for the period"
+      },
+      {
+        "standardField": "Debit",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Total debit activity"
+      },
+      {
+        "standardField": "Credit",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Total credit activity"
+      },
+      {
+        "standardField": "Closing Balance",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Closing balance for the period"
+      },
+      {
+        "standardField": "FS Line Item",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Financial statement line item"
+      }
+    ],
+    "gl": [
+      {
+        "standardField": "G/L",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "G/L Account Number"
+      },
+      {
+        "standardField": "DocumentNo",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Accounting Document Number"
+      },
+      {
+        "standardField": "Type",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Document / Transaction Type (e.g. SA, AB, RV)"
+      },
+      {
+        "standardField": "Entry Date",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Entry Date"
+      },
+      {
+        "standardField": "Pstng Date",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Posting Date"
+      },
+      {
+        "standardField": "Doc. Date",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Document Date"
+      },
+      {
+        "standardField": "Amount in local cur.",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Amount in Local Currency"
+      },
+      {
+        "standardField": "LCurr",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "Local Currency Code"
+      },
+      {
+        "standardField": "Amount in doc. curr.",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Amount in Document Currency"
+      },
+      {
+        "standardField": "Curr.",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Document Currency Code"
+      },
+      {
+        "standardField": "Amount in loc.curr.2",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Amount in Local Currency 2"
+      },
+      {
+        "standardField": "LCur2",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Local Currency 2 Code"
+      },
+      {
+        "standardField": "Document Header Text",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Document Header Text"
+      },
+      {
+        "standardField": "Text",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "OPTIONAL",
+        "required": false,
+        "description": "Line Item Text"
+      },
+      {
+        "standardField": "User name",
+        "sourceField": "",
+        "matchType": "EXACT",
+        "confidence": 0,
+        "status": "UNMATCHED",
+        "required": true,
+        "description": "User Name / User ID"
+      }
+    ]
+  }
+}
