@@ -1,29 +1,85 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { LoginPage } from './pages/LoginPage';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { LoginPage, RegisterPage } from './pages/AuthPages';
 import { DashboardPage } from './pages/DashboardPage';
 import { SparkJetWorkflow } from './pages/SparkJet/SparkJetWorkflow';
 import { OmniaJetWorkflow } from './pages/OmniaJet/OmniaJetWorkflow';
 import { Navbar } from './components/layout/Navbar';
 import { AuthGuard } from './components/layout/AuthGuard';
 
+/* ── Scroll-Reveal Observer ───────────────────────────────────── */
+function ScrollRevealObserver() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const elements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
+      const observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+      );
+      elements.forEach(el => observer.observe(el));
+      return () => observer.disconnect();
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
+  return null;
+}
+
+/* ── Page-level transition (for app pages, not auth) ─────────── */
+const pageVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: {
+    opacity: 1, y: 0,
+    transition: { duration: 0.45, ease: 'easeOut' as const }
+  },
+  exit: {
+    opacity: 0, y: -6,
+    transition: { duration: 0.25, ease: 'easeIn' as const }
+  },
+} as const;
+
+/* ── App Layout with animated page transitions ────────────────── */
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <main style={{ flex: 1 }}>{children}</main>
+      <main style={{ flex: 1 }}>
+        <motion.div
+          key="page"
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
+          {children}
+        </motion.div>
+      </main>
     </div>
   );
 };
 
-export const App: React.FC = () => {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<LoginPage />} />
+/* ── Animated Routes ──────────────────────────────────────────── */
+function AnimatedRoutes() {
+  const location = useLocation();
 
-        {/* Protected Routes */}
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        {/* Auth — full-screen, no navbar */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+
+        {/* Protected */}
         <Route
           path="/dashboard"
           element={
@@ -34,7 +90,6 @@ export const App: React.FC = () => {
             </AuthGuard>
           }
         />
-
         <Route
           path="/spark-jet"
           element={
@@ -45,7 +100,6 @@ export const App: React.FC = () => {
             </AuthGuard>
           }
         />
-
         <Route
           path="/omnia-jet"
           element={
@@ -60,6 +114,16 @@ export const App: React.FC = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+    </AnimatePresence>
+  );
+}
+
+/* ── Root ─────────────────────────────────────────────────────── */
+export const App: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <ScrollRevealObserver />
+      <AnimatedRoutes />
     </BrowserRouter>
   );
 };
