@@ -9,9 +9,12 @@ import { WorkflowType, PipelineEngine } from '../types';
 
 export class RunController {
   public static async createRun(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { workflow, engine } = req.body;
-    if (!workflow || !['SPARK_JET', 'OMNIA_JET'].includes(workflow)) {
-      res.status(400).json({ success: false, message: 'Invalid or missing workflow type (SPARK_JET or OMNIA_JET required)' });
+    let { workflow, engine } = req.body;
+    if (!workflow) {
+      workflow = 'JET';
+    }
+    if (!['JET', 'SPARK_JET', 'OMNIA_JET'].includes(workflow)) {
+      res.status(400).json({ success: false, message: 'Invalid workflow type (JET, SPARK_JET, or OMNIA_JET required)' });
       return;
     }
 

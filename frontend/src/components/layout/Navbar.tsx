@@ -8,7 +8,7 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const user = AuthService.getCurrentUser();
 
-  const isWorkflowPage = location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
+  const isWorkflowPage = location.pathname.includes('/jet') || location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
   const isDashboard = location.pathname === '/dashboard';
 
   const handleLogout = async () => {
@@ -106,7 +106,7 @@ export const Navbar: React.FC = () => {
             </Link>
             <span style={{ fontSize: '0.78rem', color: 'var(--border-medium)' }}>/</span>
             <span style={{ fontSize: '0.78rem', color: 'var(--deloitte-teal)', fontWeight: 800 }}>
-              {location.pathname.includes('/spark-jet') ? 'Spark JET' : 'Omnia JET'}
+              JET Testing Pipeline
             </span>
           </div>
         )}

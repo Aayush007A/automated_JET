@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AnimatePresence, motion } from 'framer-motion';
 import { LoginPage, RegisterPage } from './pages/AuthPages';
 import { DashboardPage } from './pages/DashboardPage';
+import { JetWorkflow } from './pages/Jet/JetWorkflow';
 import { SparkJetWorkflow } from './pages/SparkJet/SparkJetWorkflow';
 import { OmniaJetWorkflow } from './pages/OmniaJet/OmniaJetWorkflow';
 import { Navbar } from './components/layout/Navbar';
@@ -91,11 +92,21 @@ function AnimatedRoutes() {
           }
         />
         <Route
+          path="/jet"
+          element={
+            <AuthGuard>
+              <AppLayout>
+                <JetWorkflow />
+              </AppLayout>
+            </AuthGuard>
+          }
+        />
+        <Route
           path="/spark-jet"
           element={
             <AuthGuard>
               <AppLayout>
-                <SparkJetWorkflow />
+                <JetWorkflow />
               </AppLayout>
             </AuthGuard>
           }
@@ -105,7 +116,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <AppLayout>
-                <OmniaJetWorkflow />
+                <JetWorkflow />
               </AppLayout>
             </AuthGuard>
           }

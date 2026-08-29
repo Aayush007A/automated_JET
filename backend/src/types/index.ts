@@ -1,4 +1,4 @@
-export type WorkflowType = 'SPARK_JET' | 'OMNIA_JET';
+export type WorkflowType = 'JET' | 'SPARK_JET' | 'OMNIA_JET';
 export type PipelineEngine = 'PYTHON' | 'PYSPARK' | 'SCALA_SPARK';
 export type RunStatus = 'CREATED' | 'UPLOADING' | 'DETECTED' | 'MAPPING' | 'CONFIGURED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'WARNING';
 

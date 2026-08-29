@@ -55,7 +55,7 @@ export class FieldMapper {
 
   public static getStandardFieldsForDataset(
     dataset: DatasetClassification, 
-    workflow: WorkflowType = 'SPARK_JET'
+    workflow: WorkflowType = 'JET'
   ): StandardFieldDefinition[] {
     if (workflow === 'SPARK_JET') {
       switch (dataset) {
@@ -70,7 +70,7 @@ export class FieldMapper {
           return [];
       }
     } else {
-      // OMNIA_JET
+      // JET or OMNIA_JET standard schemas
       switch (dataset) {
         case 'TRIAL_BALANCE':
           return OMNIA_TB_FIELDS;

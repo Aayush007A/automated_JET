@@ -2,7 +2,7 @@ import { fetchApi, getToken } from './api';
 import { RunConfig, RunSummary, WorkflowType, PipelineEngine, FieldMappingItem, LogEntry } from '../types';
 
 export class RunService {
-  public static async createRun(workflow: WorkflowType, engine: PipelineEngine = 'PYTHON'): Promise<{ runId: string; config: RunConfig }> {
+  public static async createRun(workflow: WorkflowType = 'JET', engine: PipelineEngine = 'PYTHON'): Promise<{ runId: string; config: RunConfig }> {
     return fetchApi('/runs', {
       method: 'POST',
       body: JSON.stringify({ workflow, engine }),

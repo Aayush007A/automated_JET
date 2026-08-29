@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/authService';
 import { RunService } from '../services/runService';
-import { RunSummary } from '../types';
+import { RunSummary, WorkflowType } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { motion } from 'framer-motion';
 import {
   Sparkles, Layers, ArrowRight, Play, FileSpreadsheet, RefreshCw,
   CheckCircle2, Database, FileText, Activity, Search, Zap, FileCheck,
   Trash2, BarChart3, Shield, Cpu, TrendingUp, BookOpen, ExternalLink,
-  ChevronRight, Check, ShieldCheck, Scale, CheckSquare, Rocket
+  ChevronRight, Check, ShieldCheck, Scale, CheckSquare, Rocket,
+  UploadCloud, Table, Sliders, Plus
 } from 'lucide-react';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 
@@ -69,12 +70,12 @@ export const DashboardPage: React.FC = () => {
     fetchRuns();
   }, []);
 
-  const handleStartWorkflow = (workflow: 'SPARK_JET' | 'OMNIA_JET') => {
-    navigate(workflow === 'SPARK_JET' ? '/spark-jet' : '/omnia-jet');
+  const handleStartWorkflow = (workflow: WorkflowType = 'JET') => {
+    navigate('/jet');
   };
 
   const handleResumeRun = (run: RunSummary) => {
-    navigate(run.workflow === 'SPARK_JET' ? `/spark-jet?runId=${run.runId}` : `/omnia-jet?runId=${run.runId}`);
+    navigate(`/jet?runId=${run.runId}`);
   };
 
   const handleOpenDelete = (run: RunSummary) => {
@@ -175,16 +176,16 @@ export const DashboardPage: React.FC = () => {
             {/* Action Buttons with Depth */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '28px' }}>
               <motion.button
-                onClick={() => handleStartWorkflow('SPARK_JET')}
+                onClick={() => handleStartWorkflow('JET')}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '12px 26px',
+                  padding: '13px 30px',
                   borderRadius: '999px',
                   background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
                   color: '#FFFFFF',
-                  fontSize: '0.88rem',
+                  fontSize: '0.92rem',
                   fontWeight: 700,
                   letterSpacing: '0.015em',
                   border: 'none',
@@ -194,16 +195,19 @@ export const DashboardPage: React.FC = () => {
                 whileHover={{ scale: 1.02, transform: 'translateY(-1px)', boxShadow: '0 12px 28px -4px rgba(0, 118, 128, 0.45)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Rocket size={16} /> Launch Spark JET <ArrowRight size={15} />
+                <Rocket size={16} /> Launch JET Pipeline <ArrowRight size={15} />
               </motion.button>
 
               <motion.button
-                onClick={() => handleStartWorkflow('OMNIA_JET')}
+                onClick={() => {
+                  const sectionEl = document.getElementById('pipeline-methodology');
+                  if (sectionEl) sectionEl.scrollIntoView({ behavior: 'smooth' });
+                }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '7px',
-                  padding: '12px 24px',
+                  padding: '13px 24px',
                   borderRadius: '999px',
                   background: '#FFFFFF',
                   color: '#334155',
@@ -216,7 +220,7 @@ export const DashboardPage: React.FC = () => {
                 whileHover={{ background: '#F8FAFC', borderColor: '#CBD5E1', transform: 'translateY(-1px)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                Launch Omnia CDM <ChevronRight size={15} />
+                Explore 6-Phase Pipeline <ChevronRight size={15} />
               </motion.button>
             </div>
 
@@ -651,232 +655,215 @@ export const DashboardPage: React.FC = () => {
         </div>
       </motion.section>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-          3. FULL-SCREEN WORKFLOW SELECTION SECTION
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ══════════════════════════════════════════════════════════
+          3. THE 6-PHASE JET TESTING PIPELINE ARCHITECTURE
+          ══════════════════════════════════════════════════════════ */}
       <motion.section
+        id="pipeline-methodology"
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.1 }}
+        viewport={{ once: true, amount: 0.08 }}
         variants={sectionReveal}
         style={{
           width: '100%',
           background: '#F8FAFC',
           borderBottom: '1px solid #E2E8F0',
-          padding: 'clamp(36px, 4.5vw, 54px) clamp(20px, 3.2vw, 52px)',
+          padding: 'clamp(44px, 5.5vw, 68px) clamp(20px, 3.2vw, 52px)',
         }}
       >
-        <div style={{ maxWidth: '1560px', margin: '0 auto' }}>
-          {/* Section Header */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
-              <span style={{
-                fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em',
-                color: 'var(--deloitte-teal)', textTransform: 'uppercase',
-                display: 'inline-flex', alignItems: 'center', gap: '5px',
-              }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--deloitte-teal)' }} />
-                Testing Methodology
-              </span>
+        <div style={{ maxWidth: '1520px', margin: '0 auto' }}>
+          {/* Section Header Row */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '20px',
+            marginBottom: '32px',
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{
+                  fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em',
+                  color: 'var(--deloitte-teal)', textTransform: 'uppercase',
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--deloitte-teal)' }} />
+                  Deloitte Testing Methodology
+                </span>
+              </div>
+              <h2 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.035em', margin: 0, marginBottom: '6px' }}>
+                The 6-Phase Unified JET Pipeline
+              </h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, maxWidth: '560px' }}>
+                End-to-end audit testing workflow. Drop any Excel workbook or CSV dataset—the engine automatically cleanses, verifies integrity, tests 12 parameter rules, and generates executive deliverables.
+              </p>
             </div>
-            <h2 style={{ fontSize: 'clamp(1.3rem, 2.2vw, 1.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.035em', marginBottom: '4px' }}>
-              Select JET Workflow
-            </h2>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-              Choose the testing pipeline aligned with your engagement methodology and data format.
-            </p>
+
+            <button
+              onClick={() => handleStartWorkflow('JET')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '11px 24px',
+                borderRadius: '999px',
+                background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                color: '#FFFFFF',
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(0, 118, 128, 0.30)',
+              }}
+            >
+              <Rocket size={15} /> Launch JET Workspace <ArrowRight size={14} />
+            </button>
           </div>
 
-          {/* Workflow Cards */}
+          {/* 6-Phase Pipeline Cards Grid */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 480px), 1fr))',
-            gap: '20px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+            gap: '16px',
           }}>
-            {/* SPARK JET */}
-            <div
-              style={{
-                background: '#FFFFFF',
-                borderRadius: '18px',
-                border: '1.5px solid rgba(134,188,37,0.3)',
-                padding: 'clamp(22px, 2.5vw, 28px)',
-                boxShadow: '0 4px 20px -4px rgba(134,188,37,0.08), 0 2px 8px rgba(0,0,0,0.03)',
-                display: 'flex', flexDirection: 'column',
-                transition: 'all 0.3s ease',
-                position: 'relative', overflow: 'hidden',
-              }}
-              onMouseOver={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 14px 36px -8px rgba(134,188,37,0.14), 0 4px 14px rgba(0,0,0,0.05)';
-                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(134,188,37,0.5)';
-              }}
-              onMouseOut={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px -4px rgba(134,188,37,0.08), 0 2px 8px rgba(0,0,0,0.03)';
-                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(134,188,37,0.3)';
-              }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #86BC25, #A5D643)' }} />
-
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
+            {[
+              {
+                step: '01',
+                title: 'Data Ingest & Auto-Detection',
+                desc: 'Upload multi-sheet Excel workbooks or separate TB & GL CSVs with instant dataset classification.',
+                icon: <UploadCloud size={20} />,
+                accent: '#007680',
+                badge: 'Multi-Format',
+              },
+              {
+                step: '02',
+                title: 'Automated Data Cleansing',
+                desc: 'Standardizes date formats, numeric amounts, null handling, and trims whitespace automatically.',
+                icon: <Sparkles size={20} />,
+                accent: '#00A3AD',
+                badge: 'Zero-Touch',
+              },
+              {
+                step: '03',
+                title: 'Pre-Integrity & Mapping',
+                desc: 'Verifies Trial Balance control totals and maps source columns to canonical Deloitte schemas.',
+                icon: <Table size={20} />,
+                accent: '#2563EB',
+                badge: 'Canonical Match',
+              },
+              {
+                step: '04',
+                title: 'Integrity Testing (IR 1–4)',
+                desc: 'Control totals, account existence across datasets, document sequence gaps, and seldom accounts.',
+                icon: <Activity size={20} />,
+                accent: '#16A34A',
+                badge: '4 Core Tests',
+              },
+              {
+                step: '05',
+                title: 'Parameter Rules (Ex 1–12)',
+                desc: 'Executes 12 parameter exception tests including unusual accounts, round digits, keywords, and unrelated pairings.',
+                icon: <Sliders size={20} />,
+                accent: '#D97706',
+                badge: '12 Exceptions',
+              },
+              {
+                step: '06',
+                title: 'Executive Reconciliation',
+                desc: 'Audit KPI dashboards, interactive exception analytics, workpaper tie-outs, and one-click ZIP download.',
+                icon: <BarChart3 size={20} />,
+                accent: '#86BC25',
+                badge: 'Audit-Ready',
+              },
+            ].map((phase, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: '#FFFFFF',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-subtle)',
+                  padding: '22px 20px',
+                  boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.25s ease',
+                  cursor: 'pointer',
+                }}
+                onClick={() => handleStartWorkflow('JET')}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.borderColor = phase.accent;
+                  e.currentTarget.style.boxShadow = '0 12px 28px -6px rgba(15, 23, 42, 0.08)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                  e.currentTarget.style.boxShadow = '0 2px 10px rgba(15, 23, 42, 0.03)';
+                }}
+              >
+                {/* Top color accent strip */}
                 <div style={{
-                  width: '46px', height: '46px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #F2F9E8, #E3F5C3)',
-                  border: '1.5px solid rgba(134,188,37,0.3)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--deloitte-green-dark)',
-                  boxShadow: '0 3px 10px rgba(134,188,37,0.14)',
-                }}>
-                  <Layers size={24} />
-                </div>
-                <span style={{
-                  fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.05em',
-                  padding: '4px 11px', borderRadius: '999px',
-                  background: 'var(--deloitte-green-light)',
-                  color: 'var(--deloitte-green-dark)',
-                  border: '1px solid rgba(134,188,37,0.3)',
-                }}>STANDARD AUDIT TESTING</span>
-              </div>
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '3px',
+                  background: phase.accent,
+                }} />
 
-              <h3 style={{ fontSize: '1.18rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px', letterSpacing: '-0.025em' }}>
-                SPARK JET Workflow
-              </h3>
-              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.55', marginBottom: '18px', flex: 1 }}>
-                Trial Balance &amp; General Ledger testing pipeline. Executes 4-phase field mapping, integrity tests IR 1–4, and extracts 12 parameter exceptions.
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '22px' }}>
-                {[
-                  { icon: <Database size={13} />, label: 'TB.csv & GL.csv' },
-                  { icon: <Zap size={13} />, label: '4-Phase Mapping' },
-                  { icon: <Cpu size={13} />, label: 'IR 1–4 Integrity' },
-                  { icon: <BarChart3 size={13} />, label: '12 Exceptions' },
-                ].map((f, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 10px', borderRadius: '8px',
-                    background: '#F8FAFC', border: '1px solid #E2E8F0',
-                    fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)',
+                {/* Top Row: Icon + Step Number */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: `${phase.accent}14`,
+                    color: phase.accent,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}>
-                    <span style={{ color: 'var(--deloitte-green-dark)' }}>{f.icon}</span>
-                    {f.label}
+                    {phase.icon}
                   </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>Typical run time: <strong>&lt; 30s</strong></span>
-                <button
-                  onClick={() => handleStartWorkflow('SPARK_JET')}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    padding: '9px 20px', borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #86BC25 0%, #689913 100%)',
-                    color: '#FFFFFF', fontSize: '0.84rem', fontWeight: 800,
-                    border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(134,188,37,0.28)',
-                  }}
-                >
-                  Start Spark JET <ArrowRight size={14} />
-                </button>
-              </div>
-            </div>
-
-            {/* OMNIA CDM */}
-            <div
-              style={{
-                background: '#FFFFFF',
-                borderRadius: '18px',
-                border: '1.5px solid rgba(0,118,128,0.25)',
-                padding: 'clamp(22px, 2.5vw, 28px)',
-                boxShadow: '0 4px 20px -4px rgba(0,118,128,0.08), 0 2px 8px rgba(0,0,0,0.03)',
-                display: 'flex', flexDirection: 'column',
-                transition: 'all 0.3s ease',
-                position: 'relative', overflow: 'hidden',
-              }}
-              onMouseOver={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 14px 36px -8px rgba(0,118,128,0.14), 0 4px 14px rgba(0,0,0,0.05)';
-                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,118,128,0.45)';
-              }}
-              onMouseOut={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px -4px rgba(0,118,128,0.08), 0 2px 8px rgba(0,0,0,0.03)';
-                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,118,128,0.25)';
-              }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #007680, #00A3AD)' }} />
-
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <div style={{
-                  width: '46px', height: '46px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #E6F4F5, #CEECF0)',
-                  border: '1.5px solid rgba(0,118,128,0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--deloitte-teal)',
-                  boxShadow: '0 3px 10px rgba(0,118,128,0.12)',
-                }}>
-                  <FileSpreadsheet size={24} />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 900, color: phase.accent, letterSpacing: '0.04em' }}>
+                    {phase.step}
+                  </span>
                 </div>
-                <span style={{
-                  fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.05em',
-                  padding: '4px 11px', borderRadius: '999px',
-                  background: 'var(--deloitte-teal-light)',
-                  color: 'var(--deloitte-teal)',
-                  border: '1px solid rgba(0,118,128,0.25)',
-                }}>DELOITTE OMNIA CDM</span>
-              </div>
 
-              <h3 style={{ fontSize: '1.18rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px', letterSpacing: '-0.025em' }}>
-                OMNIA JET Workflow
-              </h3>
-              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.55', marginBottom: '18px', flex: 1 }}>
-                Multi-Sheet Excel workbook reconciliation. Ingests JET_Input.xlsx, performs Account Reconciliation, executes 20 Golden DQCs, and generates audit workpapers.
-              </p>
+                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, marginBottom: '6px', lineHeight: 1.3 }}>
+                  {phase.title}
+                </h3>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '22px' }}>
-                {[
-                  { icon: <FileText size={13} />, label: 'JET_Input.xlsx' },
-                  { icon: <TrendingUp size={13} />, label: 'Account Recon' },
-                  { icon: <Shield size={13} />, label: '20 Golden DQCs' },
-                  { icon: <FileCheck size={13} />, label: 'Audit Workpapers' },
-                ].map((f, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 10px', borderRadius: '8px',
-                    background: '#F8FAFC', border: '1px solid #E2E8F0',
-                    fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)',
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, marginBottom: '16px', flex: 1 }}>
+                  {phase.desc}
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: `${phase.accent}12`,
+                    color: phase.accent,
+                    letterSpacing: '0.02em',
                   }}>
-                    <span style={{ color: 'var(--deloitte-teal)' }}>{f.icon}</span>
-                    {f.label}
-                  </div>
-                ))}
+                    {phase.badge}
+                  </span>
+                  <ArrowRight size={14} color="#94A3B8" />
+                </div>
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>Typical run time: <strong>&lt; 45s</strong></span>
-                <button
-                  onClick={() => handleStartWorkflow('OMNIA_JET')}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    padding: '9px 20px', borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #007680 0%, #005A62 100%)',
-                    color: '#FFFFFF', fontSize: '0.84rem', fontWeight: 800,
-                    border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,118,128,0.25)',
-                  }}
-                >
-                  Start Omnia JET <ArrowRight size={14} />
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </motion.section>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      {/* ══════════════════════════════════════════════════════════
           4. FULL-SCREEN EXECUTION HISTORY TABLE SECTION
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          ══════════════════════════════════════════════════════════ */}
       <motion.section
         initial="hidden"
         whileInView="visible"
@@ -888,7 +875,7 @@ export const DashboardPage: React.FC = () => {
           padding: 'clamp(36px, 4.5vw, 54px) clamp(20px, 3.2vw, 52px) 72px',
         }}
       >
-        <div style={{ maxWidth: '1560px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1520px', margin: '0 auto' }}>
           {/* Table Container Card */}
           <div style={{
             background: '#FFFFFF',
@@ -909,44 +896,22 @@ export const DashboardPage: React.FC = () => {
             }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                  <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
                     Execution History &amp; Audit Runs
                   </h3>
                   <span style={{
                     fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px',
                     background: 'var(--bg-secondary)', color: 'var(--text-muted)',
                   }}>
-                    {runs.length} runs Â· {completedRuns} completed
+                    {runs.length} runs • {completedRuns} completed
                   </span>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Filter and inspect previous Trial Balance &amp; General Ledger testing runs.
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>
+                  Filter and inspect previous JET audit execution runs.
                 </p>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '8px', padding: '3px' }}>
-                  {(['ALL', 'SPARK_JET', 'OMNIA_JET'] as const).map(tab => (
-                    <button
-                      key={tab}
-                      onClick={() => setWorkflowFilter(tab)}
-                      style={{
-                        padding: '4px 10px',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: workflowFilter === tab ? '#FFFFFF' : 'transparent',
-                        color: workflowFilter === tab ? 'var(--deloitte-teal)' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        boxShadow: workflowFilter === tab ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                      }}
-                    >
-                      {tab === 'ALL' ? 'All' : tab.replace('_', ' ')}
-                    </button>
-                  ))}
-                </div>
-
                 <div style={{ position: 'relative' }}>
                   <Search size={13} color="#94A3B8" style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
@@ -955,7 +920,7 @@ export const DashboardPage: React.FC = () => {
                     placeholder="Search runs..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    style={{ paddingLeft: '28px', paddingTop: '6px', paddingBottom: '6px', fontSize: '0.78rem', width: '170px' }}
+                    style={{ paddingLeft: '28px', paddingTop: '6px', paddingBottom: '6px', fontSize: '0.78rem', width: '180px' }}
                   />
                 </div>
 
@@ -966,6 +931,14 @@ export const DashboardPage: React.FC = () => {
                 >
                   <RefreshCw size={13} className={loading ? 'spin-slow' : ''} /> Refresh
                 </button>
+
+                <button
+                  onClick={() => handleStartWorkflow('JET')}
+                  className="btn-primary"
+                  style={{ padding: '6px 14px', fontSize: '0.78rem', gap: '5px' }}
+                >
+                  <Plus size={13} /> New Audit Run
+                </button>
               </div>
             </div>
 
@@ -975,8 +948,7 @@ export const DashboardPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Run ID</th>
-                    <th>Workflow</th>
-                    <th>Engine</th>
+                    <th>Testing Engine</th>
                     <th>Status</th>
                     <th>Started</th>
                     <th>Progress</th>
@@ -986,7 +958,7 @@ export const DashboardPage: React.FC = () => {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                         <RefreshCw size={18} className="spin-slow" style={{ margin: '0 auto 8px' }} />
                         <div>Loading runs...</div>
                       </td>
@@ -1009,16 +981,12 @@ export const DashboardPage: React.FC = () => {
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: '5px',
                             fontSize: '0.74rem', fontWeight: 700, padding: '3px 9px', borderRadius: '999px',
-                            background: run.workflow === 'SPARK_JET' ? 'var(--deloitte-green-light)' : 'var(--deloitte-teal-light)',
-                            color: run.workflow === 'SPARK_JET' ? 'var(--deloitte-green-dark)' : 'var(--deloitte-teal-dark)',
-                            border: `1px solid ${run.workflow === 'SPARK_JET' ? 'rgba(134,188,37,0.28)' : 'rgba(0,118,128,0.22)'}`,
+                            background: 'var(--deloitte-teal-light)',
+                            color: 'var(--deloitte-teal)',
+                            border: '1px solid rgba(0,118,128,0.22)',
                           }}>
-                            {run.workflow === 'SPARK_JET' ? <Layers size={10} /> : <FileSpreadsheet size={10} />}
-                            {run.workflow.replace('_', ' ')}
+                            <ShieldCheck size={11} /> JET Pipeline ({run.engine || 'PYTHON'})
                           </span>
-                        </td>
-                        <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                          {run.engine || 'PYTHON'}
                         </td>
                         <td>
                           <StatusBadge status={run.status} />
@@ -1077,7 +1045,7 @@ export const DashboardPage: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '44px', color: 'var(--text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '44px', color: 'var(--text-muted)' }}>
                         <Activity size={26} color="var(--text-subtle)" style={{ margin: '0 auto 10px' }} />
                         <div style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                           No Audit Runs Found

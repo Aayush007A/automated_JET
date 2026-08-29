@@ -33,7 +33,16 @@ export class PythonPipelineExecutor {
       timestamp: new Date().toISOString(),
     });
 
-    const scriptName = config.workflow === 'SPARK_JET' ? 'spark_jet_pipeline.py' : 'omnia_jet_pipeline.py';
+    let scriptName = 'spark_jet_pipeline.py';
+    if (config.workflow === 'OMNIA_JET') {
+      scriptName = 'omnia_jet_pipeline.py';
+    } else if (config.workflow === 'SPARK_JET') {
+      scriptName = 'spark_jet_pipeline.py';
+    } else {
+      // Unified JET workflow: auto-detect based on file extensions/sheets
+      const hasExcel = config.files.some(f => f.extension === 'xlsx' || f.extension === 'xls' || (f.sheets && f.sheets.length > 0));
+      scriptName = hasExcel ? 'omnia_jet_pipeline.py' : 'spark_jet_pipeline.py';
+    }
     const scriptPath = path.resolve(ENV.WORKSPACE_ROOT, 'pipelines', 'pyspark', scriptName);
 
     if (!fs.existsSync(scriptPath)) {
