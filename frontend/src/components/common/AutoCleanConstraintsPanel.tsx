@@ -463,7 +463,7 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
         <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ShieldCheck size={18} color="var(--deloitte-teal)" />
-          {isSpark ? `Spark JET Mandatory Data Checkpoints (${filteredConstraints.length})` : `Omnia JET Schema & Constraints Validation (${filteredConstraints.length})`}
+          {isSpark ? `JET Mandatory Data Checkpoints (${filteredConstraints.length})` : `JET Schema & Data Constraints Validation (${filteredConstraints.length})`}
           {runId && (
             <button
               type="button"
@@ -522,7 +522,13 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginBottom: '22px' }}>
+      {/* 4 Cards Per Row Responsive Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+        gap: '12px',
+        marginBottom: '22px'
+      }}>
         {filteredConstraints.map((c) => {
           const isReq = c.severity === 'Required';
           const hasFailedRows = (c.failedRowsCount !== undefined && c.failedRowsCount > 0) || c.status !== 'PASSED';
@@ -532,48 +538,80 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
             <div
               key={c.id}
               style={{
-                padding: '16px 18px',
-                borderRadius: '10px',
+                padding: '14px 15px',
+                borderRadius: '12px',
                 border: hasFailedRows
-                  ? '1px solid #FDA4AF'
+                  ? '1.5px solid #FDA4AF'
                   : isWarning
-                  ? '1px solid #FDBA74'
-                  : '1px solid var(--border-subtle)',
-                background: '#FFFFFF',
+                  ? '1.5px solid #FCD34D'
+                  : '1px solid #E2E8F0',
+                background: hasFailedRows
+                  ? 'linear-gradient(180deg, #FFFFFF 0%, #FFF5F5 100%)'
+                  : isWarning
+                  ? 'linear-gradient(180deg, #FFFFFF 0%, #FFFDF5 100%)'
+                  : '#FFFFFF',
                 boxShadow: hasFailedRows
-                  ? '0 2px 8px rgba(225, 29, 72, 0.05)'
-                  : 'var(--shadow-sm)',
+                  ? '0 3px 12px rgba(225, 29, 72, 0.07)'
+                  : '0 2px 8px rgba(15, 23, 42, 0.03)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '165px',
-                transition: 'all 0.15s ease'
+                minHeight: '155px',
+                transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = hasFailedRows
+                  ? '0 8px 20px rgba(225, 29, 72, 0.12)'
+                  : '0 6px 16px rgba(0, 118, 128, 0.09)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = hasFailedRows
+                  ? '0 3px 12px rgba(225, 29, 72, 0.07)'
+                  : '0 2px 8px rgba(15, 23, 42, 0.03)';
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, fontFamily: 'var(--font-mono)', padding: '2px 6px', borderRadius: '4px', background: '#F1F5F9', color: 'var(--text-secondary)' }}>{c.id}</span>
-                    <span style={{ fontSize: '0.66rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: isReq ? 'rgba(0, 118, 128, 0.08)' : '#F1F5F9', color: isReq ? 'var(--deloitte-teal)' : 'var(--text-muted)' }}>{c.severity}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{
+                      fontSize: '0.68rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)',
+                      padding: '2px 6px', borderRadius: '4px',
+                      background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0'
+                    }}>
+                      {c.id}
+                    </span>
+                    <span style={{
+                      fontSize: '0.63rem', fontWeight: 700, padding: '2px 5px', borderRadius: '4px',
+                      background: isReq ? 'rgba(0, 118, 128, 0.08)' : '#F8FAFC',
+                      color: isReq ? '#007680' : '#94A3B8',
+                      border: isReq ? '1px solid rgba(0, 118, 128, 0.20)' : '1px solid #E2E8F0',
+                      textTransform: 'uppercase', letterSpacing: '0.02em'
+                    }}>
+                      {c.severity}
+                    </span>
                   </div>
 
                   <span style={{
-                    fontSize: '0.7rem', fontWeight: 800, padding: '3px 8px', borderRadius: '12px',
-                    background: hasFailedRows ? '#FFE4E6' : isWarning ? '#FEF3C7' : 'rgba(5, 150, 105, 0.1)',
-                    color: hasFailedRows ? '#BE123C' : isWarning ? '#B45309' : '#059669',
-                    border: hasFailedRows ? '1px solid #FDA4AF' : isWarning ? '1px solid #FCD34D' : '1px solid rgba(5, 150, 105, 0.25)',
-                    display: 'inline-flex', alignItems: 'center', gap: '4px'
+                    fontSize: '0.67rem', fontWeight: 800, padding: '2px 7px', borderRadius: '999px',
+                    background: hasFailedRows ? 'rgba(225, 29, 72, 0.10)' : isWarning ? 'rgba(217, 119, 6, 0.10)' : 'rgba(5, 150, 105, 0.10)',
+                    color: hasFailedRows ? '#E11D48' : isWarning ? '#D97706' : '#059669',
+                    border: hasFailedRows ? '1px solid rgba(225, 29, 72, 0.25)' : isWarning ? '1px solid rgba(217, 119, 6, 0.25)' : '1px solid rgba(5, 150, 105, 0.25)',
+                    display: 'inline-flex', alignItems: 'center', gap: '3px',
+                    letterSpacing: '0.02em', flexShrink: 0
                   }}>
-                    {hasFailedRows ? <AlertTriangle size={11} /> : isWarning ? <AlertCircle size={11} /> : <CheckCircle2 size={11} />}
-                    {hasFailedRows ? (c.failedRowsCount ? `${c.failedRowsCount} Failed` : 'FAILED') : isWarning ? (c.failedRowsCount ? `${c.failedRowsCount} Warnings` : 'FLAGGED') : 'PASSED'}
+                    {hasFailedRows ? <AlertTriangle size={10} /> : isWarning ? <AlertCircle size={10} /> : <CheckCircle2 size={10} />}
+                    {hasFailedRows ? (c.failedRowsCount ? `${c.failedRowsCount} Failed` : 'FAILED') : isWarning ? (c.failedRowsCount ? `${c.failedRowsCount} Warn` : 'FLAGGED') : 'PASSED'}
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px', lineHeight: 1.3 }}>
+                <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0F172A', marginBottom: '5px', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
                   {c.name}
                 </div>
 
-                <p style={{ fontSize: '0.74rem', color: hasFailedRows ? '#991B1B' : 'var(--text-secondary)', margin: '0 0 8px', lineHeight: 1.35 }}>
+                <p style={{ fontSize: '0.72rem', color: hasFailedRows ? '#BE123C' : '#64748B', margin: '0 0 10px', lineHeight: 1.35, fontWeight: hasFailedRows ? 500 : 400 }}>
                   {c.details}
                 </p>
               </div>
@@ -582,7 +620,7 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                 {/* Action Buttons for Failed / Flagged Constraint Records */}
                 {c.fileName && runId && hasFailedRows && (
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', marginBottom: '8px'
+                    display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', marginBottom: '8px'
                   }}>
                     {onPreviewFailedRows && (
                       <button
@@ -590,40 +628,43 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                         onClick={() => onPreviewFailedRows(c.fileName!, `${c.id}: ${c.name} (Failed Records)`)}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: '4px',
-                          padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700,
+                          padding: '3.5px 8px', borderRadius: '5px', fontSize: '0.69rem', fontWeight: 700,
                           background: 'var(--deloitte-teal-light)', color: 'var(--deloitte-teal)',
                           border: '1px solid rgba(0, 118, 128, 0.25)', cursor: 'pointer',
-                          transition: 'all 0.15s ease'
+                          transition: 'all 0.15s ease', flex: 1, justifyContent: 'center'
                         }}
                         title={`Preview sample failed records for ${c.id}`}
                       >
-                        <Eye size={12} /> Preview ({c.failedRowsCount || 'Rows'})
+                        <Eye size={11} /> Preview ({c.failedRowsCount || 'Rows'})
                       </button>
                     )}
                     <a
                       href={RunService.getDownloadOutputUrl(runId, c.fileName)}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: '4px',
-                        padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600,
-                        background: '#F1F5F9', color: 'var(--text-secondary)',
+                        padding: '3.5px 8px', borderRadius: '5px', fontSize: '0.69rem', fontWeight: 600,
+                        background: '#F1F5F9', color: '#334155',
                         border: '1px solid #CBD5E1', textDecoration: 'none',
-                        transition: 'all 0.15s ease'
+                        transition: 'all 0.15s ease', flex: 1, justifyContent: 'center'
                       }}
                       title={`Download full CSV of failed records for ${c.id}`}
                     >
-                      <Download size={12} /> Download Failed CSV
+                      <Download size={11} /> CSV
                     </a>
                   </div>
                 )}
 
                 <div style={{
-                  fontSize: '0.7rem', color: 'var(--text-muted)', paddingTop: '8px',
-                  borderTop: '1px dashed var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                  fontSize: '0.68rem', color: '#64748B', paddingTop: '7px',
+                  borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px'
                 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)', fontWeight: 600 }}>
+                  <span style={{
+                    fontFamily: 'var(--font-mono, monospace)', color: '#007680', fontWeight: 600,
+                    fontSize: '0.67rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%'
+                  }} title={c.technicalField}>
                     {c.technicalField}
                   </span>
-                  <span style={{ fontStyle: 'italic', fontSize: '0.66rem', color: '#64748B' }}>
+                  <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontWeight: 600, flexShrink: 0 }}>
                     {c.dataset}
                   </span>
                 </div>
