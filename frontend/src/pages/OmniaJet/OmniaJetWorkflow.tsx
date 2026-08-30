@@ -693,30 +693,18 @@ export const OmniaJetWorkflow: React.FC = () => {
       {/* Page Header: Left aligned, generous breathing room */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '18px', marginBottom: '26px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(0, 118, 128, 0.08) 0%, rgba(0, 118, 128, 0.03) 100%)',
-            border: '1px solid rgba(0, 118, 128, 0.18)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 3px 10px rgba(0, 118, 128, 0.08)',
-            flexShrink: 0,
-            padding: '4px'
-          }}>
-            <img
-              src="/icons/concept_1_shield.png"
-              alt="JET Workflow"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                display: 'block'
-              }}
-            />
-          </div>
+          <img
+            src="/icons/concept_3d_jewel_shield.png"
+            alt="JET Workflow"
+            style={{
+              width: '48px',
+              height: '48px',
+              objectFit: 'contain',
+              display: 'block',
+              flexShrink: 0,
+              filter: 'drop-shadow(0 6px 14px rgba(0, 118, 128, 0.25))',
+            }}
+          />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
