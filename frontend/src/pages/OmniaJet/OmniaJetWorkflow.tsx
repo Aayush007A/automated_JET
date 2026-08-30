@@ -2153,7 +2153,7 @@ export const OmniaJetWorkflow: React.FC = () => {
             )}
 
             {activeTab === 'manifest' && (() => {
-              const allOutputs = status?.outputs || [];
+              const allOutputs = (status?.outputs || []).filter(o => o.name !== 'auto_clean_report.json' && !o.name.endsWith('.json'));
               const reconCount = allOutputs.filter(o => o.name.includes('Reconciliation') || o.name.includes('Unreconciled') || o.name.endsWith('.xlsx')).length;
               const masterCount = allOutputs.filter(o => o.name.includes('Trial_Balance') || o.name.includes('TB_') || o.name.includes('Chart_of_Accounts') || o.name.includes('General_Ledger')).length;
               const dqcCount = allOutputs.filter(o => o.name.includes('Data_Integrity') || o.name.includes('DQC')).length;
@@ -2389,21 +2389,47 @@ export const OmniaJetWorkflow: React.FC = () => {
                                 </td>
                                 <td style={{ fontSize: '0.74rem', color: '#64748B', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{out.description}</td>
                                 <td style={{ textAlign: 'right' }}>
-                                  <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center' }}>
+                                  <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
                                     {!isXlsx && (
                                       <button
                                         type="button"
                                         onClick={() => handlePreviewArtifact(out.name, out.description || out.name)}
-                                        className="btn-soft-slate"
-                                        style={{ height: '26px', fontSize: '0.72rem', padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                          padding: '4px 9px',
+                                          borderRadius: '5px',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 700,
+                                          background: 'var(--deloitte-teal-light)',
+                                          color: 'var(--deloitte-teal)',
+                                          border: '1px solid rgba(0, 118, 128, 0.25)',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.15s ease',
+                                        }}
+                                        title={`Preview ${out.name}`}
                                       >
                                         <Eye size={11} /> Preview
                                       </button>
                                     )}
                                     <a
                                       href={RunService.getDownloadOutputUrl(runId!, out.name)}
-                                      className="btn-soft-slate"
-                                      style={{ height: '26px', fontSize: '0.72rem', padding: '0 8px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '4px 9px',
+                                        borderRadius: '5px',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        background: '#F1F5F9',
+                                        color: 'var(--text-secondary)',
+                                        border: '1px solid #E2E8F0',
+                                        textDecoration: 'none',
+                                        transition: 'all 0.15s ease',
+                                      }}
+                                      title={`Download ${out.name}`}
                                     >
                                       <Download size={11} /> Download
                                     </a>

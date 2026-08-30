@@ -18,8 +18,10 @@ export class OutputService {
     const outputs: OutputItem[] = [];
 
     for (const file of files) {
+      if (file === 'auto_clean_report.json' || file.endsWith('.json')) continue;
       const filePath = path.join(outputDir, file);
       const stats = fs.statSync(filePath);
+      if (stats.isDirectory()) continue;
       const ext = path.extname(file).toLowerCase().replace('.', '') as any;
 
       let rowCount: number | undefined = undefined;

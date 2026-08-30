@@ -2729,7 +2729,7 @@ export const SparkJetWorkflow: React.FC = () => {
             )}
 
             {activeVisualTab === 'artifacts' && (() => {
-              const outputs = status?.outputs || [];
+              const outputs = (status?.outputs || []).filter(o => o.name !== 'auto_clean_report.json' && !o.name.endsWith('.json'));
 
               // Categorize outputs
               const getCategoryForFile = (out: typeof outputs[0]): string => {
@@ -2913,19 +2913,18 @@ export const SparkJetWorkflow: React.FC = () => {
                                     style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center',
                                       gap: '4px',
-                                      height: '26px',
-                                      padding: '0 10px',
+                                      padding: '4px 9px',
+                                      borderRadius: '5px',
                                       fontSize: '0.72rem',
                                       fontWeight: 700,
-                                      borderRadius: '5px',
-                                      cursor: 'pointer',
-                                      background: 'rgba(0, 118, 128, 0.06)',
+                                      background: 'var(--deloitte-teal-light)',
                                       color: 'var(--deloitte-teal)',
-                                      border: '1.5px solid rgba(0, 118, 128, 0.25)',
+                                      border: '1px solid rgba(0, 118, 128, 0.25)',
+                                      cursor: 'pointer',
                                       transition: 'all 0.15s ease',
                                     }}
+                                    title={`Preview ${out.name}`}
                                   >
                                     <Eye size={11} />
                                     <span>Preview</span>
@@ -2935,20 +2934,18 @@ export const SparkJetWorkflow: React.FC = () => {
                                     style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center',
                                       gap: '4px',
-                                      height: '26px',
-                                      padding: '0 10px',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
+                                      padding: '4px 9px',
                                       borderRadius: '5px',
-                                      background: 'var(--deloitte-teal)',
-                                      color: '#FFFFFF',
-                                      border: 'none',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 600,
+                                      background: '#F1F5F9',
+                                      color: 'var(--text-secondary)',
+                                      border: '1px solid #E2E8F0',
                                       textDecoration: 'none',
-                                      boxShadow: '0 2px 6px rgba(0, 118, 128, 0.22)',
                                       transition: 'all 0.15s ease',
                                     }}
+                                    title={`Download ${out.name}`}
                                   >
                                     <Download size={11} />
                                     <span>Download</span>

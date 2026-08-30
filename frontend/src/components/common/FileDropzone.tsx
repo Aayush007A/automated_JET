@@ -270,29 +270,17 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                                onPreview?.(item.fileId, item.sheetName);
                              }}
                              style={{
-                               display: 'inline-flex', alignItems: 'center', gap: '6px',
-                               padding: '5px 14px', fontSize: '0.78rem', fontWeight: 700,
-                               background: 'rgba(0, 118, 128, 0.06)',
+                               display: 'inline-flex', alignItems: 'center', gap: '4px',
+                               padding: '4px 9px', fontSize: '0.72rem', fontWeight: 700,
+                               background: 'var(--deloitte-teal-light)',
                                color: 'var(--deloitte-teal)',
-                               border: '1.5px solid rgba(0, 118, 128, 0.3)',
-                               borderRadius: '8px', cursor: 'pointer',
-                               transition: 'all 0.18s ease',
-                               letterSpacing: '0.01em',
+                               border: '1px solid rgba(0, 118, 128, 0.25)',
+                               borderRadius: '5px', cursor: 'pointer',
+                               transition: 'all 0.15s ease',
                              }}
-                             onMouseEnter={e => {
-                               (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0, 118, 128, 0.12)';
-                               (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--deloitte-teal)';
-                               (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
-                             }}
-                             onMouseLeave={e => {
-                               (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0, 118, 128, 0.06)';
-                               (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0, 118, 128, 0.3)';
-                               (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                             }}
-                             title={`Preview sample records for ${item.displayName}`}
+                             title={`Preview ${item.displayName}`}
                            >
-                             <Eye size={13} />
-                             <span>Preview</span>
+                             <Eye size={11} /> Preview
                            </button>
                            <button
                              type="button"
