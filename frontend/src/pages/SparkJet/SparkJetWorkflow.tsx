@@ -1055,21 +1055,18 @@ export const SparkJetWorkflow: React.FC = () => {
       {/* Page Header: Left aligned, generous breathing room */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '18px', marginBottom: '26px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '46px', height: '46px', borderRadius: '12px',
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(0, 118, 128, 0.12)',
-            overflow: 'hidden',
-            flexShrink: 0
-          }}>
-            <img
-              src="/icons/jet_workflow_icon.png"
-              alt="JET Workflow"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          </div>
+          <img
+            src="/icons/jet_workflow_icon.png"
+            alt="JET Workflow"
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.14)',
+              flexShrink: 0,
+              display: 'block',
+            }}
+          />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
