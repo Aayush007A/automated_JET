@@ -2354,16 +2354,16 @@ export const OmniaJetWorkflow: React.FC = () => {
                   </div>
 
                   {/* Artifacts Table */}
-                  <div className="table-container" style={{ maxHeight: '420px', overflowY: 'auto' }}>
-                    <table className="jet-table">
+                  <div className="table-container" style={{ maxHeight: '420px', overflowY: 'auto', overflowX: 'hidden' }}>
+                    <table className="jet-table" style={{ width: '100%', tableLayout: 'fixed' }}>
                       <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
                         <tr>
-                          <th style={{ background: '#F8FAFC', width: '260px' }}>Artifact File</th>
-                          <th style={{ background: '#F8FAFC' }}>Category</th>
-                          <th style={{ background: '#F8FAFC' }}>Format</th>
-                          <th style={{ background: '#F8FAFC' }}>Row Count</th>
-                          <th style={{ background: '#F8FAFC' }}>Audit Description</th>
-                          <th style={{ textAlign: 'right', background: '#F8FAFC', width: '200px', whiteSpace: 'nowrap' }}>Actions</th>
+                          <th style={{ background: '#F8FAFC', width: '34%' }}>Artifact File</th>
+                          <th style={{ background: '#F8FAFC', width: '13%' }}>Category</th>
+                          <th style={{ background: '#F8FAFC', width: '9%' }}>Format</th>
+                          <th style={{ background: '#F8FAFC', width: '10%' }}>Row Count</th>
+                          <th style={{ background: '#F8FAFC', width: '17%' }}>Audit Description</th>
+                          <th style={{ textAlign: 'right', background: '#F8FAFC', width: '17%', whiteSpace: 'nowrap' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2378,10 +2378,23 @@ export const OmniaJetWorkflow: React.FC = () => {
 
                             return (
                               <tr key={out.id}>
-                                <td style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                                    {isXlsx ? <FileSpreadsheet size={14} color="#059669" /> : <FileText size={14} color="#007680" />}
-                                    <span style={{ fontFamily: 'var(--font-mono, monospace)', color: '#007680', fontWeight: 600 }}>{out.name}</span>
+                                <td style={{ fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0, overflow: 'hidden' }}>
+                                    {isXlsx ? <FileSpreadsheet size={14} color="#059669" style={{ flexShrink: 0 }} /> : <FileText size={14} color="#007680" style={{ flexShrink: 0 }} />}
+                                    <span
+                                      title={out.name}
+                                      style={{
+                                        fontFamily: 'var(--font-mono, monospace)',
+                                        color: '#007680',
+                                        fontWeight: 600,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        display: 'inline-block'
+                                      }}
+                                    >
+                                      {out.name}
+                                    </span>
                                   </div>
                                 </td>
                                 <td><span className={`badge ${catBadge}`} style={{ fontSize: '0.67rem', padding: '2px 7px', fontWeight: 700 }}>{out.category}</span></td>
@@ -2397,9 +2410,13 @@ export const OmniaJetWorkflow: React.FC = () => {
                                 <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.76rem', color: '#334155' }}>
                                   {out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}
                                 </td>
-                                <td style={{ fontSize: '0.74rem', color: '#64748B', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{out.description}</td>
+                                <td style={{ fontSize: '0.74rem', color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <span title={out.description || out.name} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {out.description || out.name}
+                                  </span>
+                                </td>
                                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                  <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', whiteSpace: 'nowrap', justifyContent: 'flex-end' }}>
                                     {!isXlsx && (
                                       <button
                                         type="button"

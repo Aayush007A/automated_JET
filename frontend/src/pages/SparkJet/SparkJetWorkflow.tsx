@@ -2881,24 +2881,37 @@ export const SparkJetWorkflow: React.FC = () => {
                   </div>
 
                   {/* Categorized Table */}
-                  <div className="table-container">
-                    <table className="jet-table">
+                  <div className="table-container" style={{ overflowX: 'hidden' }}>
+                    <table className="jet-table" style={{ width: '100%', tableLayout: 'fixed' }}>
                       <thead>
                         <tr>
-                          <th>Output File</th>
-                          <th>Category</th>
-                          <th>Row Count</th>
-                          <th style={{ textAlign: 'right' }}>Actions</th>
+                          <th style={{ width: '52%' }}>Output File</th>
+                          <th style={{ width: '18%' }}>Category</th>
+                          <th style={{ width: '12%' }}>Row Count</th>
+                          <th style={{ textAlign: 'right', width: '18%', whiteSpace: 'nowrap' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredOutputs.length > 0 ? (
                           filteredOutputs.map((out) => (
                             <tr key={out.id}>
-                              <td style={{ fontSize: '0.78rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <FileSpreadsheet size={15} color="#007680" />
-                                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 600, color: '#007680' }}>{out.name}</span>
+                              <td style={{ fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
+                                  <FileSpreadsheet size={15} color="#007680" style={{ flexShrink: 0 }} />
+                                  <span
+                                    title={out.name}
+                                    style={{
+                                      fontFamily: 'var(--font-mono, monospace)',
+                                      fontWeight: 600,
+                                      color: '#007680',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                      display: 'inline-block'
+                                    }}
+                                  >
+                                    {out.name}
+                                  </span>
                                 </div>
                               </td>
                               <td><StatusBadge status={out.category || getCategoryForFile(out)} size="sm" /></td>
