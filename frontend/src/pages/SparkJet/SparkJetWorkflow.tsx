@@ -2939,19 +2939,20 @@ export const SparkJetWorkflow: React.FC = () => {
                                       alignItems: 'center',
                                       gap: '4px',
                                       padding: '4px 9px',
-                                      borderRadius: '5px',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 600,
-                                      background: '#F1F5F9',
-                                      color: 'var(--text-secondary)',
-                                      border: '1px solid #E2E8F0',
+                                      borderRadius: '6px',
+                                      fontSize: '0.70rem',
+                                      fontWeight: 700,
+                                      background: '#0F172A',
+                                      color: '#FFFFFF',
+                                      border: '1px solid #0F172A',
                                       textDecoration: 'none',
+                                      boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)',
                                       transition: 'all 0.15s ease',
                                     }}
                                     title={`Download ${out.name}`}
                                   >
-                                    <Download size={11} />
-                                    <span>Download</span>
+                                    <Download size={11} color="#FFFFFF" />
+                                    <span>Export CSV</span>
                                   </a>
                                 </div>
                               </td>

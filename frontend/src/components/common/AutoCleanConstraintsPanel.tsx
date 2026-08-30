@@ -642,14 +642,15 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                       href={RunService.getDownloadOutputUrl(runId, c.fileName)}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: '4px',
-                        padding: '3.5px 8px', borderRadius: '5px', fontSize: '0.69rem', fontWeight: 600,
-                        background: '#F1F5F9', color: '#334155',
-                        border: '1px solid #CBD5E1', textDecoration: 'none',
-                        transition: 'all 0.15s ease', flex: 1, justifyContent: 'center'
+                        padding: '3.5px 8px', borderRadius: '6px', fontSize: '0.69rem', fontWeight: 700,
+                        background: '#0F172A', color: '#FFFFFF',
+                        border: '1px solid #0F172A', textDecoration: 'none',
+                        transition: 'all 0.15s ease', flex: 1, justifyContent: 'center',
+                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)'
                       }}
                       title={`Download full CSV of failed records for ${c.id}`}
                     >
-                      <Download size={11} /> CSV
+                      <Download size={11} color="#FFFFFF" /> Export CSV
                     </a>
                   </div>
                 )}

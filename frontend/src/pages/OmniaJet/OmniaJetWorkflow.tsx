@@ -1551,21 +1551,26 @@ export const OmniaJetWorkflow: React.FC = () => {
                           </div>
                           <a
                             href={RunService.getDownloadOutputUrl(runId!, activeFile)}
-                            className="btn-soft-slate"
                             title={`Download ${activeFile}`}
                             style={{
                               textDecoration: 'none',
-                              fontSize: '0.76rem',
+                              fontSize: '0.74rem',
                               height: '30px',
-                              padding: '0 10px',
+                              padding: '0 12px',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '5px',
                               fontWeight: 700,
-                              whiteSpace: 'nowrap'
+                              whiteSpace: 'nowrap',
+                              background: '#0F172A',
+                              color: '#FFFFFF',
+                              borderRadius: '7px',
+                              border: '1px solid #0F172A',
+                              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)',
+                              transition: 'all 0.15s ease'
                             }}
                           >
-                            <Download size={12} /> Download {activeLabel}
+                            <Download size={12} color="#FFFFFF" /> Export CSV
                           </a>
                         </div>
                       );
@@ -1801,14 +1806,15 @@ export const OmniaJetWorkflow: React.FC = () => {
                                       href={RunService.getDownloadOutputUrl(runId!, dqc.fileName)}
                                       style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                        padding: '4px 8px', borderRadius: '5px', fontSize: '0.72rem', fontWeight: 600,
-                                        background: '#F1F5F9', color: 'var(--text-secondary)',
-                                        border: '1px solid #E2E8F0', textDecoration: 'none',
+                                        padding: '4px 9px', borderRadius: '6px', fontSize: '0.70rem', fontWeight: 700,
+                                        background: '#0F172A', color: '#FFFFFF',
+                                        border: '1px solid #0F172A', textDecoration: 'none',
+                                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)',
                                         transition: 'all 0.15s ease'
                                       }}
                                       title={`Download full ${dqc.fileName}`}
                                     >
-                                      <Download size={11} /> CSV
+                                      <Download size={11} color="#FFFFFF" /> Export CSV
                                     </a>
                                   </div>
                                 </td>
@@ -2423,18 +2429,19 @@ export const OmniaJetWorkflow: React.FC = () => {
                                         alignItems: 'center',
                                         gap: '4px',
                                         padding: '4px 9px',
-                                        borderRadius: '5px',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        background: '#F1F5F9',
-                                        color: 'var(--text-secondary)',
-                                        border: '1px solid #E2E8F0',
+                                        borderRadius: '6px',
+                                        fontSize: '0.70rem',
+                                        fontWeight: 700,
+                                        background: '#0F172A',
+                                        color: '#FFFFFF',
+                                        border: '1px solid #0F172A',
                                         textDecoration: 'none',
+                                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)',
                                         transition: 'all 0.15s ease',
                                       }}
                                       title={`Download ${out.name}`}
                                     >
-                                      <Download size={11} /> Download
+                                      <Download size={11} color="#FFFFFF" /> Export CSV
                                     </a>
                                   </div>
                                 </td>

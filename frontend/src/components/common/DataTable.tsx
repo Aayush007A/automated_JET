@@ -107,13 +107,28 @@ export const DataTable: React.FC<DataTableProps> = ({
 
           {/* Export CSV */}
           <button
+            type="button"
             onClick={handleDownloadCsv}
-            className="btn-secondary"
-            style={{ padding: '8px 14px', fontSize: '0.82rem' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '32px',
+              padding: '0 12px',
+              borderRadius: '7px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              background: '#0F172A',
+              color: '#FFFFFF',
+              border: '1px solid #0F172A',
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)',
+              transition: 'all 0.15s ease'
+            }}
             title="Download table data as CSV"
           >
-            <Download size={15} />
-            Export CSV
+            <Download size={12} color="#FFFFFF" />
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
