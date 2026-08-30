@@ -2892,17 +2892,18 @@ export const SparkJetWorkflow: React.FC = () => {
                         {filteredOutputs.length > 0 ? (
                           filteredOutputs.map((out) => (
                             <tr key={out.id}>
-                              <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <FileSpreadsheet size={18} color="var(--deloitte-teal)" />
-                                  <span style={{ fontWeight: 700 }}>{out.name}</span>
+                              <td style={{ fontSize: '0.78rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <FileSpreadsheet size={15} color="#007680" />
+                                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 600, color: '#007680' }}>{out.name}</span>
                                 </div>
                               </td>
-                              <td><StatusBadge status={out.category || getCategoryForFile(out)} /></td>
-                              <td style={{ fontFamily: 'var(--font-mono)' }}>{out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}</td>
+                              <td><StatusBadge status={out.category || getCategoryForFile(out)} size="sm" /></td>
+                              <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.76rem', color: '#334155' }}>
+                                {out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}
+                              </td>
                               <td style={{ textAlign: 'right' }}>
-                                {/* Even-Sized Action Buttons */}
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px' }}>
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -2913,12 +2914,12 @@ export const SparkJetWorkflow: React.FC = () => {
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      gap: '5px',
-                                      height: '32px',
-                                      padding: '0 14px',
-                                      fontSize: '0.78rem',
+                                      gap: '4px',
+                                      height: '26px',
+                                      padding: '0 10px',
+                                      fontSize: '0.72rem',
                                       fontWeight: 700,
-                                      borderRadius: '6px',
+                                      borderRadius: '5px',
                                       cursor: 'pointer',
                                       background: 'rgba(0, 118, 128, 0.06)',
                                       color: 'var(--deloitte-teal)',
@@ -2926,7 +2927,7 @@ export const SparkJetWorkflow: React.FC = () => {
                                       transition: 'all 0.15s ease',
                                     }}
                                   >
-                                    <Eye size={13} />
+                                    <Eye size={11} />
                                     <span>Preview</span>
                                   </button>
                                   <a
@@ -2935,12 +2936,12 @@ export const SparkJetWorkflow: React.FC = () => {
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      gap: '5px',
-                                      height: '32px',
-                                      padding: '0 14px',
-                                      fontSize: '0.78rem',
+                                      gap: '4px',
+                                      height: '26px',
+                                      padding: '0 10px',
+                                      fontSize: '0.72rem',
                                       fontWeight: 700,
-                                      borderRadius: '6px',
+                                      borderRadius: '5px',
                                       background: 'var(--deloitte-teal)',
                                       color: '#FFFFFF',
                                       border: 'none',
@@ -2949,7 +2950,7 @@ export const SparkJetWorkflow: React.FC = () => {
                                       transition: 'all 0.15s ease',
                                     }}
                                   >
-                                    <Download size={13} />
+                                    <Download size={11} />
                                     <span>Download</span>
                                   </a>
                                 </div>

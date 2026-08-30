@@ -533,25 +533,27 @@ a:hover {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 0.80rem;
 }
 
 .jet-table th {
   background: #F8FAFC;
   color: var(--text-muted);
   font-weight: 700;
-  padding: 13px 16px;
+  padding: 9px 14px;
   border-bottom: 1px solid var(--border-subtle);
   white-space: nowrap;
-  font-size: 0.75rem;
+  font-size: 0.70rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 .jet-table td {
-  padding: 12px 16px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
+  font-size: 0.80rem;
+  line-height: 1.4;
   transition: background 0.15s;
 }
 

@@ -1115,28 +1115,28 @@ export const DashboardPage: React.FC = () => {
                             onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
                           >
                             {/* Run ID & Engagement */}
-                            <td style={{ padding: '14px 20px' }}>
+                            <td style={{ padding: '9px 14px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <div style={{
-                                  width: '7px',
-                                  height: '7px',
+                                  width: '6px',
+                                  height: '6px',
                                   borderRadius: '50%',
                                   flexShrink: 0,
                                   background: run.status === 'COMPLETED' ? '#16A34A' : run.status === 'FAILED' ? '#E11D48' : run.status === 'RUNNING' ? '#0284C7' : '#94A3B8',
                                 }} />
                                 <div>
                                   <span style={{
-                                    fontWeight: 800,
+                                    fontWeight: 700,
                                     fontFamily: 'var(--font-mono, monospace)',
-                                    fontSize: '0.81rem',
+                                    fontSize: '0.77rem',
                                     color: '#007680',
                                     background: 'rgba(0, 118, 128, 0.07)',
-                                    padding: '2px 7px',
-                                    borderRadius: '5px',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
                                   }}>
                                     {run.runId}
                                   </span>
-                                  <div style={{ fontSize: '0.71rem', color: '#94A3B8', marginTop: '3px', fontWeight: 500 }}>
+                                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '2px', fontWeight: 500 }}>
                                     Deloitte JET Workpapers
                                   </div>
                                 </div>
@@ -1144,55 +1144,55 @@ export const DashboardPage: React.FC = () => {
                             </td>
 
                             {/* Audit Pipeline */}
-                            <td style={{ padding: '14px 20px' }}>
+                            <td style={{ padding: '9px 14px' }}>
                               <div>
                                 <span style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '5px',
-                                  fontSize: '0.74rem',
+                                  gap: '4px',
+                                  fontSize: '0.70rem',
                                   fontWeight: 700,
-                                  padding: '3px 9px',
+                                  padding: '2px 7px',
                                   borderRadius: '999px',
                                   background: 'rgba(0, 118, 128, 0.07)',
                                   color: '#007680',
                                   border: '1px solid rgba(0, 118, 128, 0.16)',
                                 }}>
                                   <ShieldCheck size={11} />
-                                  {run.workflow === 'OMNIA_JET' ? 'Omnia JET Multi-Sheet Pipeline' : 'Spark JET Enterprise Pipeline'}
+                                  {run.workflow === 'OMNIA_JET' ? 'Multi-Sheet Workbook' : 'Standard Stream JET'}
                                 </span>
-                                <div style={{ fontSize: '0.71rem', color: '#64748B', marginTop: '3px' }}>
+                                <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '2px' }}>
                                   General Ledger &amp; Trial Balance Audit
                                 </div>
                               </div>
                             </td>
 
                             {/* Engine */}
-                            <td style={{ padding: '14px 18px' }}>
-                              <div style={{ fontSize: '0.78rem', color: '#334155', fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>
+                            <td style={{ padding: '9px 14px' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#334155', fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>
                                 {run.engine || 'PYTHON'}
                               </div>
-                              <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
+                              <div style={{ fontSize: '0.67rem', color: '#94A3B8', marginTop: '1px' }}>
                                 Core Runtime
                               </div>
                             </td>
 
                             {/* Status */}
-                            <td style={{ padding: '14px 18px' }}>
-                              <StatusBadge status={run.status} />
-                              <div style={{ fontSize: '0.70rem', color: run.status === 'COMPLETED' ? '#15803D' : '#94A3B8', marginTop: '3px', fontWeight: 600 }}>
+                            <td style={{ padding: '9px 14px' }}>
+                              <StatusBadge status={run.status} size="sm" />
+                              <div style={{ fontSize: '0.67rem', color: run.status === 'COMPLETED' ? '#15803D' : '#94A3B8', marginTop: '2px', fontWeight: 600 }}>
                                 {run.status === 'COMPLETED' ? 'Zero-Sum Verified' : run.status === 'RUNNING' ? 'In Progress' : 'Audit Logged'}
                               </div>
                             </td>
 
                             {/* Date & Runtime */}
-                            <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '9px 14px', whiteSpace: 'nowrap' }}>
                               {run.startedAt || run.completedAt || run.createdAt ? (
                                 <div>
-                                  <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.79rem' }}>
+                                  <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.75rem' }}>
                                     {new Date(run.startedAt || run.completedAt || run.createdAt!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                   </div>
-                                  <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
+                                  <div style={{ fontSize: '0.67rem', color: '#94A3B8', marginTop: '1px' }}>
                                     {new Date(run.startedAt || run.completedAt || run.createdAt!).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                   </div>
                                 </div>
@@ -1200,19 +1200,19 @@ export const DashboardPage: React.FC = () => {
                             </td>
 
                             {/* Actions */}
-                            <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <td style={{ padding: '9px 14px', textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                                 <button
                                   onClick={() => handleResumeRun(run)}
                                   style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '5px',
-                                    padding: '6px 13px',
-                                    borderRadius: '7px',
+                                    gap: '4px',
+                                    padding: '5px 11px',
+                                    borderRadius: '6px',
                                     background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
                                     color: '#FFFFFF',
-                                    fontSize: '0.76rem',
+                                    fontSize: '0.72rem',
                                     fontWeight: 700,
                                     border: 'none',
                                     cursor: 'pointer',
@@ -1222,7 +1222,7 @@ export const DashboardPage: React.FC = () => {
                                   onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
                                   onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                                 >
-                                  {run.status === 'COMPLETED' ? <ExternalLink size={12} /> : <Play size={12} />}
+                                  {run.status === 'COMPLETED' ? <ExternalLink size={11} /> : <Play size={11} />}
                                   {run.status === 'COMPLETED' ? 'View Suite' : 'Resume'}
                                 </button>
 
@@ -1233,9 +1233,9 @@ export const DashboardPage: React.FC = () => {
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '28px',
-                                    height: '28px',
-                                    borderRadius: '7px',
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '6px',
                                     background: '#FFFFFF',
                                     border: '1px solid #E2E8F0',
                                     color: '#94A3B8',

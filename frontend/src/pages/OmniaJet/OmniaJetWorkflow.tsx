@@ -1742,37 +1742,37 @@ export const OmniaJetWorkflow: React.FC = () => {
 
                             return (
                               <tr key={dqc.code}>
-                                <td style={{ fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)', whiteSpace: 'nowrap' }}>
+                                <td style={{ fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--deloitte-teal)', whiteSpace: 'nowrap', fontSize: '0.76rem' }}>
                                   DQC {dqc.code}
                                 </td>
                                 <td>
-                                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.84rem' }}>{dqc.name}</div>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{dqc.desc}</div>
+                                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.78rem' }}>{dqc.name}</div>
+                                  <div style={{ fontSize: '0.70rem', color: 'var(--text-muted)', marginTop: '1px' }}>{dqc.desc}</div>
                                 </td>
-                                <td><span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{dqc.category}</span></td>
-                                <td><span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>{dqc.dataset}</span></td>
-                                <td><span className={`badge ${sevBadge}`} style={{ fontSize: '0.72rem' }}>{dqc.severity}</span></td>
+                                <td><span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{dqc.category}</span></td>
+                                <td><span className="badge badge-neutral" style={{ fontSize: '0.67rem', padding: '2px 6px' }}>{dqc.dataset}</span></td>
+                                <td><span className={`badge ${sevBadge}`} style={{ fontSize: '0.67rem', padding: '2px 6px' }}>{dqc.severity}</span></td>
                                 <td style={{ textAlign: 'center' }}>
                                   {isPassed ? (
                                     <span style={{
                                       display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                      fontSize: '0.74rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px',
+                                      fontSize: '0.69rem', fontWeight: 800, padding: '2px 7px', borderRadius: '4px',
                                       background: 'rgba(5, 150, 105, 0.08)', color: 'var(--deloitte-green)', border: '1px solid rgba(5, 150, 105, 0.25)'
                                     }}>
-                                      <CheckCircle2 size={12} /> PASS
+                                      <CheckCircle2 size={11} /> PASS
                                     </span>
                                   ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                                       <span style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                        fontSize: '0.74rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px',
+                                        fontSize: '0.69rem', fontWeight: 800, padding: '2px 7px', borderRadius: '4px',
                                         background: dqc.severity === 'ERROR' ? 'rgba(225, 29, 72, 0.08)' : 'rgba(217, 119, 6, 0.08)',
                                         color: dqc.severity === 'ERROR' ? 'var(--status-error)' : 'var(--status-warning)',
                                         border: `1px solid ${dqc.severity === 'ERROR' ? 'rgba(225, 29, 72, 0.3)' : 'rgba(217, 119, 6, 0.3)'}`,
                                       }}>
-                                        <AlertTriangle size={12} /> {dqc.severity === 'ERROR' ? 'FAIL' : 'FLAGGED'}
+                                        <AlertTriangle size={11} /> {dqc.severity === 'ERROR' ? 'FAIL' : 'FLAGGED'}
                                       </span>
-                                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                                      <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)' }}>
                                         {affectedLines} lines ({affectedJEs} JEs)
                                       </span>
                                     </div>
@@ -2368,44 +2368,44 @@ export const OmniaJetWorkflow: React.FC = () => {
 
                             return (
                               <tr key={out.id}>
-                                <td style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)', whiteSpace: 'nowrap' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    {isXlsx ? <FileSpreadsheet size={15} color="#059669" /> : <FileText size={15} color="var(--deloitte-teal)" />}
-                                    <span>{out.name}</span>
+                                <td style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                                    {isXlsx ? <FileSpreadsheet size={14} color="#059669" /> : <FileText size={14} color="#007680" />}
+                                    <span style={{ fontFamily: 'var(--font-mono, monospace)', color: '#007680', fontWeight: 600 }}>{out.name}</span>
                                   </div>
                                 </td>
-                                <td><span className={`badge ${catBadge}`} style={{ fontSize: '0.72rem' }}>{out.category}</span></td>
+                                <td><span className={`badge ${catBadge}`} style={{ fontSize: '0.67rem', padding: '2px 7px', fontWeight: 700 }}>{out.category}</span></td>
                                 <td>
                                   <span className="badge" style={{
-                                    fontSize: '0.7rem', fontWeight: 800,
+                                    fontSize: '0.67rem', fontWeight: 800, padding: '2px 6px',
                                     background: isXlsx ? 'rgba(5, 150, 105, 0.12)' : 'var(--bg-secondary)',
                                     color: isXlsx ? '#059669' : 'var(--text-secondary)'
                                   }}>
                                     {out.type.toUpperCase()}
                                   </span>
                                 </td>
-                                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+                                <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.76rem', color: '#334155' }}>
                                   {out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}
                                 </td>
-                                <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{out.description}</td>
+                                <td style={{ fontSize: '0.74rem', color: '#64748B', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{out.description}</td>
                                 <td style={{ textAlign: 'right' }}>
-                                  <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                                  <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center' }}>
                                     {!isXlsx && (
                                       <button
                                         type="button"
                                         onClick={() => handlePreviewArtifact(out.name, out.description || out.name)}
                                         className="btn-soft-slate"
-                                        style={{ height: '30px', fontSize: '0.75rem', padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                        style={{ height: '26px', fontSize: '0.72rem', padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}
                                       >
-                                        <Eye size={12} /> Preview
+                                        <Eye size={11} /> Preview
                                       </button>
                                     )}
                                     <a
                                       href={RunService.getDownloadOutputUrl(runId!, out.name)}
                                       className="btn-soft-slate"
-                                      style={{ height: '30px', fontSize: '0.75rem', padding: '0 10px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                      style={{ height: '26px', fontSize: '0.72rem', padding: '0 8px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}
                                     >
-                                      <Download size={12} /> Download
+                                      <Download size={11} /> Download
                                     </a>
                                   </div>
                                 </td>

@@ -104,22 +104,22 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
                   <td>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.80rem' }}>
                           {item.standardField}
                         </span>
                         {item.required && (
-                          <span style={{ color: '#EF4444', fontSize: '0.9rem', fontWeight: 800, marginLeft: '2px' }}>*</span>
+                          <span style={{ color: '#EF4444', fontSize: '0.82rem', fontWeight: 800, marginLeft: '2px' }}>*</span>
                         )}
                       </div>
                       {item.description && (
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        <div style={{ fontSize: '0.70rem', color: 'var(--text-muted)', marginTop: '1px' }}>
                           {item.description}
                         </div>
                       )}
                     </div>
                   </td>
                   <td style={{ textAlign: 'center', color: '#94A3B8' }}>
-                    <span style={{ fontSize: '1rem', fontWeight: 600 }}>→</span>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 600 }}>→</span>
                   </td>
                   <td>
                     <select
@@ -128,8 +128,8 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
                       onChange={(e) => onChangeMapping(item.standardField, e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '8px 12px',
-                        fontSize: '0.84rem',
+                        padding: '6px 10px',
+                        fontSize: '0.78rem',
                         fontWeight: 600,
                         borderRadius: '6px',
                         borderColor: isMatched ? '#CBD5E1' : item.required ? '#FCA5A5' : '#CBD5E1',
