@@ -24,12 +24,15 @@ export class RunService {
     });
   }
 
-  public static async uploadFiles(runId: string, files: File[]): Promise<any> {
+  public static async uploadFiles(runId: string, files: File[], workflow?: WorkflowType): Promise<any> {
     const formData = new FormData();
     for (const file of files) {
       formData.append('files', file);
     }
-    return fetchApi(`/runs/${runId}/upload`, {
+    if (workflow) {
+      formData.append('workflow', workflow);
+    }
+    return fetchApi(`/runs/${runId}/upload${workflow ? `?workflow=${workflow}` : ''}`, {
       method: 'POST',
       body: formData,
     });

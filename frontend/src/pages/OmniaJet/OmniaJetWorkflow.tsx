@@ -309,7 +309,7 @@ export const OmniaJetWorkflow: React.FC = () => {
         activeRunId = res.runId;
         navigate(`/omnia-jet?runId=${activeRunId}`, { replace: true });
       }
-      const res = await RunService.uploadFiles(activeRunId, files);
+      const res = await RunService.uploadFiles(activeRunId, files, 'OMNIA_JET');
       setConfig((prev) => prev ? { ...prev, files: res.files, datasetMap: res.datasetMap, fieldMappings: res.fieldMappings } : null);
       await loadRun(activeRunId);
     } catch (err: any) {

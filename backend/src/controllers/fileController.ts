@@ -9,8 +9,8 @@ import { FileDetector } from '../services/fileDetector';
 import { FieldMapper } from '../services/fieldMapper';
 import { DataNormalizer } from '../services/dataNormalizer';
 import { LogService } from '../services/logService';
-import { DatasetClassification } from '../types';
 import { ENV } from '../config/env';
+import { DatasetClassification, WorkflowType } from '../types';
 import { FastPreviewReader } from '../utils/fastPreviewReader';
 import { AutoCleanService } from '../services/autoCleanService';
 
@@ -42,19 +42,24 @@ export class FileController {
 
     // Intelligent Auto-Routing Decision Engine
     // Determine whether this run should be handled by OMNIA_JET or SPARK_JET based on file types and sheet structures
-    const hasMultiSheetExcel = config.files.some(
-      (f) => (f.extension === 'xlsx' || f.extension === 'xls') && f.sheets && f.sheets.length > 1
-    );
-    const hasOmniaWorkbook = config.files.some(
-      (f) => f.originalName.toLowerCase().includes('omnia') || f.originalName.toLowerCase().includes('jet_input')
-    );
+    const requestedWorkflow = ((req.body && req.body.workflow) || req.query.workflow) as WorkflowType | undefined;
+    if (requestedWorkflow === 'SPARK_JET' || requestedWorkflow === 'OMNIA_JET') {
+      config.workflow = requestedWorkflow;
+    } else if (config.workflow !== 'SPARK_JET' && config.workflow !== 'OMNIA_JET') {
+      const hasMultiSheetExcel = config.files.some(
+        (f) => (f.extension === 'xlsx' || f.extension === 'xls') && f.sheets && f.sheets.length > 1
+      );
+      const hasOmniaWorkbook = config.files.some(
+        (f) => f.originalName.toLowerCase().includes('omnia') || f.originalName.toLowerCase().includes('jet_input')
+      );
 
-    if (hasMultiSheetExcel || hasOmniaWorkbook) {
-      config.workflow = 'OMNIA_JET';
-      LogService.log('INFO', 'INTELLIGENT_ROUTER', `Auto-routed run ${runId} to OMNIA_JET based on multi-sheet Excel structure`, runId);
-    } else {
-      config.workflow = 'SPARK_JET';
-      LogService.log('INFO', 'INTELLIGENT_ROUTER', `Auto-routed run ${runId} to SPARK_JET based on separate stream file structure`, runId);
+      if (hasMultiSheetExcel || hasOmniaWorkbook) {
+        config.workflow = 'OMNIA_JET';
+        LogService.log('INFO', 'INTELLIGENT_ROUTER', `Auto-routed run ${runId} to OMNIA_JET based on multi-sheet Excel structure`, runId);
+      } else {
+        config.workflow = 'SPARK_JET';
+        LogService.log('INFO', 'INTELLIGENT_ROUTER', `Auto-routed run ${runId} to SPARK_JET based on separate stream file structure`, runId);
+      }
     }
 
     // Reset datasetMap and recompute mappings based on the routed workflow

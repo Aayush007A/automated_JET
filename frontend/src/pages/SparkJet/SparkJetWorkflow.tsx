@@ -531,7 +531,7 @@ export const SparkJetWorkflow: React.FC = () => {
         activeRunId = res.runId;
         navigate(`/spark-jet?runId=${activeRunId}`, { replace: true });
       }
-      await RunService.uploadFiles(activeRunId, files);
+      await RunService.uploadFiles(activeRunId, files, 'SPARK_JET');
       await loadRun(activeRunId);
     } catch (err) {
       console.error(err);
