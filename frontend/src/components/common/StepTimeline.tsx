@@ -46,10 +46,10 @@ export const StepTimeline: React.FC<StepTimelineProps> = ({
       <div className="wizard-steps-h">
         {steps.map((step, idx) => {
           const isLast = idx === steps.length - 1;
-          const allowed = canAccessStep(step.id);
+          const isFinishedStep = (maxCompletedStep !== undefined && step.id <= maxCompletedStep) || (isAllResultsDone && (step.id <= highWaterMark || isLast)) || step.id <= currentStep;
+          const allowed = isAllResultsDone || canAccessStep(step.id) || isFinishedStep;
           const isActive = step.id === currentStep;
-          // A step is "completed" if it's been reached in the past AND is not currently active,
-          // OR if all results are populated (completed) and this step has been finished (including the last step)
+          // A step is "completed" if it has been finished or if all results are done
           const isCompleted = step.id < currentStep || (step.id <= highWaterMark && step.id !== currentStep) || (isAllResultsDone && (step.id <= highWaterMark || isLast));
           // A connecting segment is completed if the destination step is reached or all results are done
           const isSegmentCompleted = step.id < highWaterMark || isAllResultsDone;

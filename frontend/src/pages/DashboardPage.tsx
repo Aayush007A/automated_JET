@@ -133,7 +133,7 @@ export const DashboardPage: React.FC = () => {
     <div style={{ width: '100%', minHeight: '100vh', background: '#FFFFFF', overflowX: 'hidden' }}>
 
       {/* ══════════════════════════════════════════════════════════
-          1. FULL-SCREEN EDITORIAL HERO SECTION (Seamless Spacing)
+          1. FULL-SCREEN EDITORIAL HERO SECTION (Only Hero Visible)
           ══════════════════════════════════════════════════════════ */}
       <motion.section
         initial={false}
@@ -142,39 +142,42 @@ export const DashboardPage: React.FC = () => {
         variants={sectionReveal}
         style={{
           width: '100%',
+          minHeight: 'calc(100vh - 72px)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
+          alignItems: 'center',
           background: '#FFFFFF',
           borderBottom: '1px solid #E2E8F0',
           position: 'relative',
           overflow: 'hidden',
-          padding: 'clamp(36px, 4.5vw, 56px) 0 clamp(40px, 4.5vw, 56px)',
+          padding: 'clamp(40px, 6vh, 72px) 0 clamp(36px, 5vh, 60px)',
+          boxSizing: 'border-box',
         }}
       >
         <div style={{
           width: '100%',
-          maxWidth: '1520px',
+          maxWidth: '1600px',
           margin: '0 auto',
-          padding: '0 clamp(24px, 4vw, 56px)',
+          padding: '0 clamp(24px, 4vw, 64px)',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
-          gap: 'clamp(24px, 4vw, 52px)',
+          gridTemplateColumns: 'minmax(420px, 0.95fr) minmax(500px, 1.35fr)',
+          gap: 'clamp(28px, 4vw, 60px)',
           alignItems: 'center',
           position: 'relative',
           zIndex: 1,
         }}>
           {/* Left Text & CTAs */}
-          <div style={{ maxWidth: '600px' }}>
+          <div style={{ maxWidth: '640px' }}>
             {/* Headline with Strong Visual Hierarchy */}
             <h1 style={{
-              fontSize: 'clamp(2.4rem, 3.8vw, 3.5rem)',
+              fontSize: 'clamp(2.6rem, 3.9vw, 3.85rem)',
               fontWeight: 800,
               color: '#0F172A',
               letterSpacing: '-0.04em',
               lineHeight: 1.08,
               margin: 0,
-              marginBottom: '16px',
+              marginBottom: '18px',
             }}>
               Audited before<br />
               <span style={{ color: '#007680' }}>it's an exception</span>
@@ -182,32 +185,32 @@ export const DashboardPage: React.FC = () => {
 
             {/* Light, Airy, Premium Subtitle */}
             <p style={{
-              fontSize: 'clamp(0.92rem, 1.15vw, 1.02rem)',
+              fontSize: 'clamp(0.96rem, 1.15vw, 1.06rem)',
               fontWeight: 400,
               color: '#64748B',
               lineHeight: 1.65,
               letterSpacing: '-0.01em',
-              maxWidth: '520px',
+              maxWidth: '540px',
               margin: 0,
-              marginBottom: '28px',
+              marginBottom: '32px',
             }}>
               Automated journal entry testing visual automation for the Deloitte Automated JET Platform.
               Accelerating Trial Balance &amp; General Ledger reconciliation, 20 Golden DQC rules, and audit-ready workpapers.
             </p>
 
             {/* Action Buttons with Depth */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '32px' }}>
               <motion.button
                 onClick={() => handleStartWorkflow()}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '12px 24px',
+                  padding: '13px 26px',
                   borderRadius: '999px',
                   background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
                   color: '#FFFFFF',
-                  fontSize: '0.88rem',
+                  fontSize: '0.90rem',
                   fontWeight: 700,
                   letterSpacing: '0.015em',
                   border: 'none',
@@ -217,7 +220,7 @@ export const DashboardPage: React.FC = () => {
                 whileHover={{ scale: 1.02, transform: 'translateY(-1px)', boxShadow: '0 12px 28px -4px rgba(0, 118, 128, 0.45)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Rocket size={16} /> Launch JET Workflow <ArrowRight size={15} />
+                <Rocket size={17} /> Launch JET Workflow <ArrowRight size={16} />
               </motion.button>
 
               <motion.button
@@ -229,11 +232,11 @@ export const DashboardPage: React.FC = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '7px',
-                  padding: '12px 22px',
+                  padding: '13px 24px',
                   borderRadius: '999px',
                   background: '#FFFFFF',
                   color: '#334155',
-                  fontSize: '0.88rem',
+                  fontSize: '0.90rem',
                   fontWeight: 600,
                   border: '1.5px solid #E2E8F0',
                   cursor: 'pointer',
@@ -242,12 +245,12 @@ export const DashboardPage: React.FC = () => {
                 whileHover={{ background: '#F8FAFC', borderColor: '#CBD5E1', transform: 'translateY(-1px)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                View Audit Runs <ChevronRight size={15} />
+                View Audit Runs <ChevronRight size={16} />
               </motion.button>
             </div>
 
             {/* Refined Feature Checkmark Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap', fontSize: '0.82rem', color: '#64748B', fontWeight: 500 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap', fontSize: '0.84rem', color: '#64748B', fontWeight: 500 }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
                 <span style={{
                   width: '18px', height: '18px', borderRadius: '50%',
@@ -284,7 +287,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Seamlessly Blended 3D Visual */}
+          {/* Right Column: Seamlessly Blended Prominent 3D Visual */}
           <motion.div
             style={{
               display: 'flex',
@@ -302,13 +305,17 @@ export const DashboardPage: React.FC = () => {
               alt="Deloitte Audit Engagement Team"
               style={{
                 width: '100%',
-                maxWidth: '780px',
-                maxHeight: '480px',
+                maxWidth: '920px',
+                maxHeight: 'min(72vh, 580px)',
                 height: 'auto',
                 objectFit: 'contain',
                 display: 'block',
                 position: 'relative',
                 zIndex: 1,
+                border: 'none',
+                outline: 'none',
+                boxShadow: 'none',
+                mixBlendMode: 'multiply',
               }}
             />
           </motion.div>
@@ -1125,19 +1132,21 @@ export const DashboardPage: React.FC = () => {
                                   background: run.status === 'COMPLETED' ? '#16A34A' : run.status === 'FAILED' ? '#E11D48' : run.status === 'RUNNING' ? '#0284C7' : '#94A3B8',
                                 }} />
                                 <div>
-                                  <span style={{
-                                    fontWeight: 700,
-                                    fontFamily: 'var(--font-mono, monospace)',
-                                    fontSize: '0.77rem',
-                                    color: '#007680',
-                                    background: 'rgba(0, 118, 128, 0.07)',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                  }}>
-                                    {run.runId}
-                                  </span>
-                                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '2px', fontWeight: 500 }}>
-                                    Deloitte JET Workpapers
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{
+                                      fontWeight: 700,
+                                      fontFamily: 'var(--font-mono, monospace)',
+                                      fontSize: '0.77rem',
+                                      color: '#007680',
+                                      background: 'rgba(0, 118, 128, 0.07)',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                    }}>
+                                      {run.runId}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '0.74rem', color: '#1E293B', marginTop: '3px', fontWeight: 600, maxWidth: '220px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={run.config?.sparkParameters?.engagementName || 'Tangerine Skies Pvt Ltd - JET Audit FY26'}>
+                                    {run.config?.sparkParameters?.engagementName || 'Tangerine Skies Pvt Ltd - JET Audit FY26'}
                                   </div>
                                 </div>
                               </div>
@@ -1504,9 +1513,9 @@ export const DashboardPage: React.FC = () => {
         isOpen={confirmDeleteModal.isOpen}
         onClose={() => setConfirmDeleteModal({ isOpen: false, run: null })}
         onConfirm={handleConfirmDelete}
-        title={confirmDeleteModal.run ? `Delete Run ${confirmDeleteModal.run.runId}` : 'Delete Run'}
-        message="Are you sure you want to permanently delete this audit execution? All standardized outputs, integrity test results, and execution logs will be permanently deleted. This action cannot be undone."
-        confirmText="Delete Run"
+        title={confirmDeleteModal.run ? `Delete Run ${confirmDeleteModal.run.runId}?` : 'Delete this run?'}
+        message="Once you delete this, it will be permanently removed from your workspace."
+        confirmText="Delete"
         cancelText="Cancel"
         variant="danger"
         isLoading={Boolean(deletingId)}

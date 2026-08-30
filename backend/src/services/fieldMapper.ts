@@ -65,7 +65,7 @@ export class FieldMapper {
         case 'POPULATION':
           return SPARK_GL_FIELDS;
         case 'COA':
-          return COA_FIELDS;
+          return []; // Spark Jet does not use separate Chart of Accounts dataset
         default:
           return [];
       }

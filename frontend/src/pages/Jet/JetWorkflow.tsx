@@ -12,6 +12,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { SampleDataModal } from '../../components/common/SampleDataModal';
 import { StepTimeline, TimelineStep } from '../../components/common/StepTimeline';
 import { JetSummaryReportSuite } from '../../components/summary/JetSummaryReportSuite';
+import { EngagementAuditParametersCard, EngagementAuditParametersData } from '../../components/common/EngagementAuditParametersCard';
 import {
   ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download,
   Layers, Settings, FileSpreadsheet, ShieldCheck, Database, RefreshCw, Archive,
@@ -110,6 +111,22 @@ export const JetWorkflow: React.FC = () => {
   // Auto-cleaning state & report
   const [autoCleaning, setAutoCleaning] = useState(false);
   const [autoCleanReport, setAutoCleanReport] = useState<any>(null);
+
+  // Engagement Audit Parameters (Matching Executive Overview & History)
+  const [engagementAuditParams, setEngagementAuditParams] = useState<EngagementAuditParametersData>({
+    engagementName: 'Tangerine Skies Pvt Ltd - JET Audit FY26',
+    startDate: '01-Apr-2025',
+    endDate: '31-Mar-2026',
+    financialYearEnd: '31-Mar',
+    engagementRunId: runId || 'JET-20260830-012',
+    operatingCurrency: 'USD',
+    overallMateriality: 500000,
+    engagementClassification: 'Tier 1 Key Audit Engagement',
+  });
+
+  const handleUpdateEngagementParams = (newParams: EngagementAuditParametersData) => {
+    setEngagementAuditParams(newParams);
+  };
 
   // Results & Outputs State
   const [resultsData, setResultsData] = useState<any>(null);
@@ -499,14 +516,21 @@ export const JetWorkflow: React.FC = () => {
           STAGE 1: DATA UPLOAD & INTELLIGENT INSPECTION
           ═════════════════════════════════════════════════════════════════════ */}
       {currentStep === 1 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-          {/* Universal Dropzone */}
-          <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* 1. Engagement Audit Parameters Card (Image 2) */}
+          <EngagementAuditParametersCard
+            parameters={engagementAuditParams}
+            onChange={handleUpdateEngagementParams}
+            runId={runId || undefined}
+          />
+
+          {/* 2. Universal Dropzone (Image 1) */}
+          <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '22px 24px', boxShadow: '0 2px 10px -2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02)' }}>
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0F172A' }}>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
                 Upload Audit Datasets
               </div>
-              <div style={{ fontSize: '0.80rem', color: '#64748B', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '2px', fontWeight: 500 }}>
                 Upload either <strong>separate data streams (CSV/Excel)</strong> or a <strong>multi-sheet workbook</strong> to launch JET testing.
               </div>
             </div>

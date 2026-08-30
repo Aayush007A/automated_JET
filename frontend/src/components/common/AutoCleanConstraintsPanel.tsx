@@ -334,9 +334,12 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   const isSpark = workflowType === 'SPARK_JET';
   const defaultList = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
 
-  const [isRunningClean, setIsRunningClean] = useState(false);
+  // Start as PENDING so we don't flash "PASSED" before API returns
+  const [isRunningClean, setIsRunningClean] = useState(!autoCleanReport);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'TB' | 'GL' | 'COA' | 'FAILED'>('ALL');
-  const [constraints, setConstraints] = useState<SchemaConstraintItem[]>(defaultList);
+  const [constraints, setConstraints] = useState<SchemaConstraintItem[]>(
+    autoCleanReport ? defaultList : defaultList.map(c => ({ ...c, status: 'PENDING' }))
+  );
   const [localReport, setLocalReport] = useState<any>(autoCleanReport);
 
   const applyReportToConstraints = (rep: any) => {
@@ -594,17 +597,30 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                     </span>
                   </div>
 
-                  <span style={{
-                    fontSize: '0.67rem', fontWeight: 800, padding: '2px 7px', borderRadius: '999px',
-                    background: hasFailedRows ? 'rgba(225, 29, 72, 0.10)' : isWarning ? 'rgba(217, 119, 6, 0.10)' : 'rgba(5, 150, 105, 0.10)',
-                    color: hasFailedRows ? '#E11D48' : isWarning ? '#D97706' : '#059669',
-                    border: hasFailedRows ? '1px solid rgba(225, 29, 72, 0.25)' : isWarning ? '1px solid rgba(217, 119, 6, 0.25)' : '1px solid rgba(5, 150, 105, 0.25)',
-                    display: 'inline-flex', alignItems: 'center', gap: '3px',
-                    letterSpacing: '0.02em', flexShrink: 0
-                  }}>
-                    {hasFailedRows ? <AlertTriangle size={10} /> : isWarning ? <AlertCircle size={10} /> : <CheckCircle2 size={10} />}
-                    {hasFailedRows ? (c.failedRowsCount ? `${c.failedRowsCount} Failed` : 'FAILED') : isWarning ? (c.failedRowsCount ? `${c.failedRowsCount} Warn` : 'FLAGGED') : 'PASSED'}
-                  </span>
+                  {c.status === 'PENDING' ? (
+                    <span style={{
+                      fontSize: '0.67rem', fontWeight: 800, padding: '2px 7px', borderRadius: '999px',
+                      background: 'rgba(148, 163, 184, 0.12)',
+                      color: '#64748B',
+                      border: '1px solid rgba(148, 163, 184, 0.3)',
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      letterSpacing: '0.02em', flexShrink: 0
+                    }}>
+                      <Loader2 size={10} className="spin" /> EVALUATING
+                    </span>
+                  ) : (
+                    <span style={{
+                      fontSize: '0.67rem', fontWeight: 800, padding: '2px 7px', borderRadius: '999px',
+                      background: hasFailedRows ? 'rgba(225, 29, 72, 0.10)' : isWarning ? 'rgba(217, 119, 6, 0.10)' : 'rgba(5, 150, 105, 0.10)',
+                      color: hasFailedRows ? '#E11D48' : isWarning ? '#D97706' : '#059669',
+                      border: hasFailedRows ? '1px solid rgba(225, 29, 72, 0.25)' : isWarning ? '1px solid rgba(217, 119, 6, 0.25)' : '1px solid rgba(5, 150, 105, 0.25)',
+                      display: 'inline-flex', alignItems: 'center', gap: '3px',
+                      letterSpacing: '0.02em', flexShrink: 0
+                    }}>
+                      {hasFailedRows ? <AlertTriangle size={10} /> : isWarning ? <AlertCircle size={10} /> : <CheckCircle2 size={10} />}
+                      {hasFailedRows ? (c.failedRowsCount ? `${c.failedRowsCount} Failed` : 'FAILED') : isWarning ? (c.failedRowsCount ? `${c.failedRowsCount} Warn` : 'FLAGGED') : 'PASSED'}
+                    </span>
+                  )}
                 </div>
 
                 <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0F172A', marginBottom: '5px', lineHeight: 1.3, letterSpacing: '-0.01em' }}>

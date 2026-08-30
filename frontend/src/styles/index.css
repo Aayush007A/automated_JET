@@ -33,9 +33,9 @@
   --text-subtle: #94A3B8;
   
   /* Audit Status Badges (Light Themed) */
-  --status-success: #0D9488;
-  --status-success-bg: #F0FDF9;
-  --status-success-border: #99F6E4;
+  --status-success: #007680;
+  --status-success-bg: #E6F4F5;
+  --status-success-border: #99D5D9;
   
   --status-warning: #D97706;
   --status-warning-bg: #FFFBEB;
@@ -417,22 +417,22 @@ a:hover {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, #86BC25 0%, #68991C 100%);
+  background: linear-gradient(135deg, #007680 0%, #00565E 100%);
   color: #FFFFFF;
   font-weight: 700;
   font-size: 0.92rem;
   padding: 10px 22px;
   border-radius: var(--radius-md);
-  border: none;
+  border: 1px solid rgba(0, 118, 128, 0.3);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(134, 188, 37, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 118, 128, 0.25);
   letter-spacing: -0.01em;
 }
 
 .btn-green:hover {
-  background: linear-gradient(135deg, #96CE35 0%, #78AC20 100%);
-  box-shadow: 0 6px 20px rgba(134, 188, 37, 0.42);
+  background: linear-gradient(135deg, #005F67 0%, #00454B 100%);
+  box-shadow: 0 6px 20px rgba(0, 118, 128, 0.38);
   transform: translateY(-1px);
 }
 
@@ -681,6 +681,28 @@ a:hover {
 @keyframes shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-slide-in {
+  animation: fadeSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes skeletonWave {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton-pulse {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E8EDF4 50%, #F1F5F9 75%);
+  background-size: 800px 100%;
+  animation: skeletonWave 1.6s ease-in-out infinite;
+  border-radius: 8px;
+}
+.spin {
+  animation: spinSlow 0.9s linear infinite;
 }
 
 /* Capability feature tiles */
@@ -959,12 +981,12 @@ a:hover {
 
 .wizard-connector-progress.completed {
   width: 100%;
-  background: #16A34A;
+  background: #007680;
 }
 
 .wizard-connector-progress.active {
   width: 100%;
-  background: linear-gradient(90deg, #16A34A 0%, #007680 100%);
+  background: linear-gradient(90deg, #007680 0%, #00A3AD 100%);
 }
 
 .wizard-node-h {
@@ -1013,17 +1035,17 @@ a:hover {
 }
 
 .wizard-node-h.completed .wizard-bubble-h {
-  background: #16A34A;
-  border-color: #16A34A;
-  color: #FFFFFF;
-  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.16);
+  background: #007680 !important;
+  border-color: #007680 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 0 4px rgba(0, 118, 128, 0.18) !important;
 }
 
 .wizard-node-h.completed.active .wizard-bubble-h {
-  background: #16A34A;
-  border-color: #16A34A;
-  color: #FFFFFF;
-  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.28);
+  background: linear-gradient(135deg, #007680 0%, #005A62 100%) !important;
+  border-color: #007680 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 0 5px rgba(0, 118, 128, 0.28) !important;
 }
 
 .wizard-node-h.active .wizard-bubble-h {
@@ -1628,4 +1650,15 @@ a:hover {
   background: #34D399;
   box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
   animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }

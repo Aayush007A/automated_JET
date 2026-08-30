@@ -51,6 +51,50 @@ describe('JET Backend Core Services Unit Tests', () => {
       expect(result.classification).toBe('COA');
       expect(result.confidence).toBeGreaterThanOrEqual(80);
     });
+
+    it('should accurately route dual-stream and multi-sheet Spark JET files to SPARK_JET', () => {
+      const mockSparkFiles: any[] = [
+        {
+          originalName: 'Trial_Balance.csv',
+          headers: ['G/L', 'Description', 'Account Subtype', 'Opening Balance', 'Closing Balance'],
+          detectedDataset: 'TRIAL_BALANCE'
+        },
+        {
+          originalName: 'Population.csv',
+          headers: ['G/L', 'DocumentNo', 'Type', 'Entry Date', 'Pstng Date', 'Amount in local cur.', 'LCurr', 'User name'],
+          detectedDataset: 'GENERAL_LEDGER'
+        },
+        {
+          originalName: 'Input_Files.xlsx',
+          detectedDataset: 'INPUT_PARAMETERS',
+          sheets: [
+            { sheetName: 'Unusual Accounts', headers: ['G/L', 'Description'], detectedDataset: 'INPUT_PARAMETERS' },
+            { sheetName: 'Users of Interest', headers: ['User name'], detectedDataset: 'INPUT_PARAMETERS' }
+          ]
+        }
+      ];
+
+      const routing = FileDetector.detectWorkflowFamily(mockSparkFiles);
+      expect(routing.workflow).toBe('SPARK_JET');
+      expect(routing.confidence).toBeGreaterThanOrEqual(90);
+    });
+
+    it('should accurately route Omnia CDM workbooks to OMNIA_JET', () => {
+      const mockOmniaFiles: any[] = [
+        {
+          originalName: 'Deloitte_Omnia_Engagement.xlsx',
+          sheets: [
+            { sheetName: 'Trial Balance', headers: ['entity_id', 'account_number', 'period_end_date', 'ending_balance_ec', 'chart_of_accounts'], detectedDataset: 'TRIAL_BALANCE' },
+            { sheetName: 'Journal Entries', headers: ['entity_id', 'journal_number', 'account_number', 'date_effective', 'net_amount_ec', 'userid_entered'], detectedDataset: 'GENERAL_LEDGER' },
+            { sheetName: 'COA', headers: ['chart_of_accounts', 'account_number', 'financial_statement_category', 'financial_statement_line'], detectedDataset: 'COA' }
+          ]
+        }
+      ];
+
+      const routing = FileDetector.detectWorkflowFamily(mockOmniaFiles);
+      expect(routing.workflow).toBe('OMNIA_JET');
+      expect(routing.confidence).toBeGreaterThanOrEqual(85);
+    });
   });
 
   describe('FieldMapper Engine', () => {
@@ -77,6 +121,11 @@ describe('JET Backend Core Services Unit Tests', () => {
       const glMap = mappings.find(m => m.standardField === 'account_number');
       expect(glMap).toBeDefined();
       expect(glMap?.sourceField).toBe('GL Code');
+    });
+
+    it('should NEVER return COA standard fields for SPARK_JET workflow', () => {
+      const coaFields = FieldMapper.getStandardFieldsForDataset('COA', 'SPARK_JET');
+      expect(coaFields).toHaveLength(0);
     });
   });
 

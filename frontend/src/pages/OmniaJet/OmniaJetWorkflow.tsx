@@ -12,12 +12,14 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { SampleDataModal } from '../../components/common/SampleDataModal';
 import { StepTimeline, TimelineStep } from '../../components/common/StepTimeline';
+import { TabSlider } from '../../components/common/TabSlider';
+import { EngagementAuditParametersCard, EngagementAuditParametersData } from '../../components/common/EngagementAuditParametersCard';
 import {
   ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download,
   FileSpreadsheet, Settings, ShieldCheck, Database, RefreshCw, Archive, FileCheck,
   Search, Filter, PieChart, BarChart3, Eye, Sparkles, Check, X, Trash2,
   Table, Layers, HelpCircle, Activity, FileText, Lock, Loader2, UploadCloud, Clock, Calendar,
-  Sliders, UserCheck, Coins, Scale
+  Sliders, UserCheck, Coins, Scale, TrendingUp, RotateCw, Repeat, GitFork, Folder
 } from 'lucide-react';
 
 const STEPS: TimelineStep[] = [
@@ -141,6 +143,55 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
+  // Engagement Audit Parameters (Matching Executive Overview & History)
+  const [engagementAuditParams, setEngagementAuditParams] = useState<EngagementAuditParametersData>({
+    engagementName: 'Tangerine Skies Pvt Ltd - JET Audit FY26',
+    startDate: '01-Apr-2025',
+    endDate: '31-Mar-2026',
+    financialYearEnd: '31-Mar',
+    engagementRunId: runId || 'JET-20260830-012',
+    operatingCurrency: 'USD',
+    overallMateriality: 500000,
+    engagementClassification: 'Tier 1 Key Audit Engagement',
+  });
+
+  const handleUpdateEngagementParams = async (newParams: EngagementAuditParametersData) => {
+    setEngagementAuditParams(newParams);
+    setOmniaParams((prev) => ({
+      ...prev,
+      fiscalYearEnd: newParams.financialYearEnd,
+      testingPeriodStart: newParams.startDate,
+      testingPeriodEnd: newParams.endDate,
+      entityCurrencyCode: newParams.operatingCurrency,
+    }));
+    if (runId && config) {
+      try {
+        await RunService.updateConfig(runId, {
+          omniaParameters: {
+            fiscalYear: 2026,
+            currency: 'Entity Currency',
+            ...config.omniaParameters,
+            fiscalYearEnd: newParams.financialYearEnd,
+            testingPeriodStart: newParams.startDate,
+            testingPeriodEnd: newParams.endDate,
+            entityCurrencyCode: newParams.operatingCurrency,
+          },
+          sparkParameters: {
+            ...config.sparkParameters,
+            engagementName: newParams.engagementName,
+            startDate: newParams.startDate,
+            endDate: newParams.endDate,
+            financialYearEnd: newParams.financialYearEnd,
+            currencyCode: newParams.operatingCurrency,
+            materiality: typeof newParams.overallMateriality === 'number' ? newParams.overallMateriality : parseFloat(String(newParams.overallMateriality).replace(/[^0-9.-]+/g, '')) || 500000,
+          }
+        });
+      } catch (e) {
+        console.error('Failed to sync engagement parameters:', e);
+      }
+    }
+  };
+
   // Omnia Parameters state
   const [omniaParams, setOmniaParams] = useState<OmniaJetParameters>({
     fiscalYear: 2026,
@@ -148,7 +199,7 @@ export const OmniaJetWorkflow: React.FC = () => {
     testingPeriodStart: '04/01/2025',
     testingPeriodEnd: '03/31/2026',
     currency: 'Entity Currency',
-    entityCurrencyCode: 'INR',
+    entityCurrencyCode: 'USD',
     groupCurrencyCode: 'USD',
     decimalSeparator: 'Period',
     excludeZeroLines: true,
@@ -162,6 +213,9 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'reconciliation' | 'dqc' | 'controlTotals' | 'stratification' | 'manifest'>('reconciliation');
   const [dqcFilter, setDqcFilter] = useState<'FLAGGED' | 'ALL' | 'ERROR' | 'WARNING' | 'OBSERVATION'>('FLAGGED');
   const [dqcSearch, setDqcSearch] = useState('');
+  // Sequential reveal states for premium in-progress experience
+  const [pipelineRevealed, setPipelineRevealed] = useState(false);
+  const [resultsRevealed, setResultsRevealed] = useState(false);
 
   // Top 50 In-Place Reconciliation Preview state
   const [reconSubView, setReconSubView] = useState<'matrix' | 'tb_start' | 'tb_end' | 'unreconciled'>('matrix');
@@ -256,6 +310,26 @@ export const OmniaJetWorkflow: React.FC = () => {
 
     return unsub;
   }, [runId]);
+
+  // Step 5: Show pipeline immediately when not executing
+  useEffect(() => {
+    if (currentStep !== 5) return;
+    if (executing) {
+      setPipelineRevealed(false);
+    } else {
+      setPipelineRevealed(true);
+    }
+  }, [currentStep, executing]);
+
+  // Step 6: Show results immediately when not executing
+  useEffect(() => {
+    if (currentStep !== 6) return;
+    if (executing) {
+      setResultsRevealed(false);
+    } else {
+      setResultsRevealed(true);
+    }
+  }, [currentStep, executing]);
 
   // Load In-Place Reconciliation Preview when in Step 6 Tab 1
   useEffect(() => {
@@ -414,17 +488,15 @@ export const OmniaJetWorkflow: React.FC = () => {
   }, [config]);
 
   const isConstraintsPassed = Boolean(
-    autoCleanReport?.constraintsPassed === true ||
-    status?.status === 'COMPLETED'
+    autoCleanReport?.constraintsPassed === true
   );
 
   const canAccessStep = (stepId: number) => {
-    // For any COMPLETED run, all steps are unlocked
-    if (status?.status === 'COMPLETED') return true;
+    if ((status?.status as string) === 'COMPLETED' || maxCompletedStep >= 6) return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
-    if (stepId >= 3 && stepId <= 5) return isStep1Valid && isConstraintsPassed;
-    if (stepId === 6) return (status?.status as string) === 'COMPLETED';
+    if (stepId >= 3 && stepId <= 5) return isStep1Valid;
+    if (stepId === 6) return isStep1Valid && maxCompletedStep >= 5;
     return false;
   };
 
@@ -598,6 +670,26 @@ export const OmniaJetWorkflow: React.FC = () => {
     return { errors, warnings, observations };
   }, [dqcSummaryData, status?.dqcSummary]);
 
+  const step4Validation = useMemo(() => {
+    const errors: string[] = [];
+    if (!omniaParams.fiscalYear || isNaN(Number(omniaParams.fiscalYear))) {
+      errors.push('Financial Year (FY) is required');
+    }
+    if (!omniaParams.testingPeriodStart || !omniaParams.testingPeriodStart.trim()) {
+      errors.push('Testing Period Start date is required');
+    }
+    if (!omniaParams.testingPeriodEnd || !omniaParams.testingPeriodEnd.trim()) {
+      errors.push('Testing Period End date is required');
+    }
+    if (!omniaParams.fiscalYearEnd || !omniaParams.fiscalYearEnd.trim()) {
+      errors.push('Fiscal Year End Cutoff Date is required');
+    }
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }, [omniaParams]);
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
@@ -670,7 +762,18 @@ export const OmniaJetWorkflow: React.FC = () => {
       return (
         <>
           <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button onClick={handleStartPipeline} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+          <button
+            onClick={handleStartPipeline}
+            disabled={executing || !step4Validation.isValid}
+            className="btn-primary"
+            style={{
+              padding: '6px 16px',
+              fontSize: '0.82rem',
+              opacity: executing || !step4Validation.isValid ? 0.45 : 1,
+              cursor: executing || !step4Validation.isValid ? 'not-allowed' : 'pointer'
+            }}
+            title={!step4Validation.isValid ? `Configuration Incomplete: ${step4Validation.errors.join(', ')}` : 'Run JET Workflow'}
+          >
             <Play size={13} fill="#FFFFFF" />
             {executing ? 'Executing Pipeline...' : 'Run JET Workflow'}
           </button>
@@ -736,28 +839,45 @@ export const OmniaJetWorkflow: React.FC = () => {
       {/* Main Workspace Content */}
       <main>
 
-        {/* STEP 1: FILE UPLOAD */}
+        {/* STEP 1: ENGAGEMENT AUDIT PARAMETERS & FILE INGESTION */}
         {currentStep === 1 && (
-          <div>
-            <div className="glass-panel" style={{ padding: '28px', marginBottom: '24px', background: '#FFFFFF' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* 1. Engagement Audit Parameters Card (Image 2) */}
+            <EngagementAuditParametersCard
+              parameters={engagementAuditParams}
+              onChange={handleUpdateEngagementParams}
+              runId={runId || undefined}
+            />
+
+            {/* 2. Data File Upload Dropzone (Image 1) */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                borderRadius: '16px',
+                border: '1px solid #E2E8F0',
+                padding: '22px 24px',
+                boxShadow: '0 2px 10px -2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02)',
+              }}
+            >
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                    Upload Datasets
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: '0 0 3px', letterSpacing: '-0.02em' }}>
+                    Upload Audit Datasets
                   </h3>
-                  <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>
+                  <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, fontWeight: 500 }}>
                     Upload your multi-sheet workbook (<strong>JET_Input.xlsx</strong> containing TB, Population, and COA sheets) or separate CSV files.
                   </p>
                 </div>
 
                 {config && config.files.length > 0 && (
                   <button
+                    type="button"
                     onClick={handleRunAutoClean}
                     disabled={autoCleaning}
                     className="btn-soft-teal"
-                    style={{ padding: '9px 16px', fontSize: '0.84rem', fontWeight: 700 }}
+                    style={{ padding: '8px 14px', fontSize: '0.80rem', fontWeight: 700 }}
                   >
-                    <Sparkles size={15} className={autoCleaning ? 'spin-slow' : ''} />
+                    <Sparkles size={14} className={autoCleaning ? 'spin-slow' : ''} />
                     {autoCleaning ? 'Cleaning & Checking Constraints...' : 'Run Auto-Clean & Sanitize Data'}
                   </button>
                 )}
@@ -769,6 +889,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                 onRemove={triggerRemoveFile}
                 onPreview={handleOpenSamplePreview}
                 uploading={uploading}
+                isCleaningPassed={isConstraintsPassed}
               />
 
               {autoCleanReport && (
@@ -1077,18 +1198,101 @@ export const OmniaJetWorkflow: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Parameter Validation Status & Bottom Execution Bar */}
+              <div style={{
+                marginTop: '20px',
+                padding: '16px 20px',
+                background: step4Validation.isValid ? '#F0FDF4' : '#FFFBEB',
+                border: step4Validation.isValid ? '1px solid #BBF7D0' : '1px solid #FDE68A',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '14px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', minWidth: 0, flex: 1 }}>
+                  {step4Validation.isValid ? (
+                    <CheckCircle2 size={20} color="#16A34A" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  ) : (
+                    <AlertTriangle size={20} color="#D97706" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  )}
+                  <div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: step4Validation.isValid ? '#15803D' : '#B45309' }}>
+                      {step4Validation.isValid
+                        ? 'All Audit Parameters & Fiscal Boundaries Configured'
+                        : `Configuration Incomplete (${step4Validation.errors.length} required field${step4Validation.errors.length > 1 ? 's' : ''})`}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: step4Validation.isValid ? '#166534' : '#92400E', marginTop: '2px' }}>
+                      {step4Validation.isValid ? (
+                        'Fiscal year boundaries and DQC rules are validated. Click "Run JET Workflow" to trigger the engine.'
+                      ) : (
+                        <div>
+                          <span>Please fill in the following required audit parameter fields:</span>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                            {step4Validation.errors.map((err, i) => (
+                              <span
+                                key={i}
+                                style={{
+                                  background: '#FEF2F2',
+                                  border: '1px solid #FECDD3',
+                                  color: '#DC2626',
+                                  borderRadius: '6px',
+                                  padding: '2px 8px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                &times; {err}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleStartPipeline}
+                  disabled={executing || !step4Validation.isValid}
+                  className="btn-primary"
+                  style={{
+                    padding: '8px 20px',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    opacity: executing || !step4Validation.isValid ? 0.45 : 1,
+                    cursor: executing || !step4Validation.isValid ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    flexShrink: 0
+                  }}
+                  title={!step4Validation.isValid ? 'Provide all required parameters to enable execution' : 'Run JET Workflow'}
+                >
+                  <Play size={14} fill="#FFFFFF" />
+                  <span>{executing ? 'Executing Pipeline...' : 'Run JET Workflow'}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* STEP 5: DATA QUALITY & RECONCILIATION EXECUTION ENGINE */}
-        {currentStep === 5 && (() => {
-          const isCompleted = status?.status === 'COMPLETED';
-          const isFailed = status?.status === 'FAILED';
-          const isRunning = !isCompleted && !isFailed;
+        {currentStep === 5 && (
+          <div className="fade-slide-in">
+            {(() => {
+              const isCompleted = status?.status === 'COMPLETED';
+              const isFailed = status?.status === 'FAILED';
+              const isRunning = !isCompleted && !isFailed;
 
-          const pipelineStages = [
-            {
+                  const pipelineStages = [
+                    {
               id: 1,
               title: 'CDM Ingestion & Partitioning',
               desc: 'Normalizes TB, COA, GL and partitions Beginning (TB_Start) & Ending (TB_End) balances.',
@@ -1152,8 +1356,8 @@ export const OmniaJetWorkflow: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
                       width: '40px', height: '40px', borderRadius: '10px',
-                      background: isCompleted ? 'rgba(5, 150, 105, 0.1)' : 'var(--deloitte-teal-light)',
-                      color: isCompleted ? '#059669' : 'var(--deloitte-teal)',
+                      background: isCompleted ? '#E6F4F5' : 'var(--deloitte-teal-light)',
+                      color: 'var(--deloitte-teal)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                       {isCompleted ? <CheckCircle2 size={22} /> : <Loader2 size={22} className="spin-slow" />}
@@ -1173,7 +1377,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{
                       fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)',
-                      color: isCompleted ? '#059669' : 'var(--deloitte-teal)'
+                      color: 'var(--deloitte-teal)'
                     }}>
                       {status?.progress ?? (isCompleted ? 100 : 0)}%
                     </span>
@@ -1191,7 +1395,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                   <div style={{
                     width: `${status?.progress ?? (isCompleted ? 100 : 0)}%`,
                     height: '100%',
-                    background: isCompleted ? 'linear-gradient(90deg, #007680 0%, #059669 100%)' : 'linear-gradient(90deg, #007680 0%, #86BC25 100%)',
+                    background: isCompleted ? 'linear-gradient(90deg, #007680 0%, #00A3AD 100%)' : 'linear-gradient(90deg, #007680 0%, #00A3AD 100%)',
                     borderRadius: '999px',
                     transition: 'width 0.4s ease'
                   }} />
@@ -1310,10 +1514,12 @@ export const OmniaJetWorkflow: React.FC = () => {
             </div>
           );
         })()}
+      </div>
+    )}
 
         {/* STEP 6: RECONCILIATION & DQC TABLE MATRIX (EXECUTIVE RESULTS) */}
         {currentStep === 6 && (
-          <div>
+          <div className="fade-slide-in">
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -1362,7 +1568,19 @@ export const OmniaJetWorkflow: React.FC = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '18px', overflowX: 'auto' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                gap: '4px',
+                background: '#F1F5F9',
+                padding: '4px',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0',
+                marginBottom: '20px',
+                width: '100%',
+              }}
+            >
               {[
                 { id: 'reconciliation', label: 'Account Reconciliation (TB vs JE)', icon: Table },
                 { id: 'dqc', label: '20 DQC Golden Checks Matrix', icon: ShieldCheck },
@@ -1371,20 +1589,31 @@ export const OmniaJetWorkflow: React.FC = () => {
                 { id: 'manifest', label: 'Excel Template & Artifacts', icon: Archive },
               ].map((tab) => {
                 const IconComp = tab.icon;
+                const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
-                      background: 'transparent', border: 'none', whiteSpace: 'nowrap',
-                      borderBottom: activeTab === tab.id ? '2.5px solid var(--deloitte-teal)' : '2.5px solid transparent',
-                      color: activeTab === tab.id ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
-                      fontWeight: 700, fontSize: '0.86rem', cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      background: isActive ? '#FFFFFF' : 'transparent',
+                      border: isActive ? '1px solid #E2E8F0' : '1px solid transparent',
+                      borderRadius: '8px',
+                      whiteSpace: 'nowrap',
+                      color: isActive ? '#007680' : '#64748B',
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: '0.80rem',
+                      cursor: 'pointer',
+                      boxShadow: isActive ? '0 1px 3px rgba(0, 0, 0, 0.04)' : 'none',
+                      transition: 'all 0.15s ease',
                     }}
                   >
-                    <IconComp size={15} />
-                    {tab.label}
+                    <IconComp size={14} color={isActive ? '#007680' : '#64748B'} />
+                    <span>{tab.label}</span>
                   </button>
                 );
               })}
@@ -2480,7 +2709,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                   </div>
                 </div>
               );
-            })()}
+             })()}
           </div>
         )}
       </main>
@@ -2498,10 +2727,12 @@ export const OmniaJetWorkflow: React.FC = () => {
 
       <ConfirmModal
         isOpen={confirmModalOpen}
-        title="Remove Uploaded File?"
-        message="Are you sure you want to remove this dataset from the workflow? Field mappings and preliminary configuration for this file will be reset."
-        confirmText="Remove File"
-        cancelText="Keep File"
+        title={fileToDelete && config?.files.find(f => f.fileId === fileToDelete)?.originalName 
+          ? `Delete ${config.files.find(f => f.fileId === fileToDelete)?.originalName}?` 
+          : 'Delete this file?'}
+        message="Once you delete this, it will be permanently removed from your workspace."
+        confirmText="Delete"
+        cancelText="Cancel"
         variant="danger"
         onConfirm={handleConfirmRemoveFile}
         onClose={() => {

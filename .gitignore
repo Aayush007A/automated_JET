@@ -32,6 +32,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Scala & SBT builds
+target/
+pipelines/scala/target/
+pipelines/scala/project/project/
+pipelines/scala/project/target/
+.bsp/
+.bloop/
+.metals/
+
 # OS Files
 .DS_Store
 Thumbs.db

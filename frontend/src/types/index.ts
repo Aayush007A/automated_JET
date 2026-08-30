@@ -180,6 +180,8 @@ export interface RunSummary {
   progress: number;
   currentStage?: string;
   errorMessage?: string;
+  config?: RunConfig;
+  engagementName?: string;
   
   totalInputRows?: {
     tb?: number;
@@ -262,7 +264,7 @@ export interface SchemaConstraintItem {
   dataset: 'Trial Balance' | 'General Ledger' | 'Chart of Accounts';
   name: string;
   severity: 'Required' | 'Optional';
-  status: 'PASSED' | 'WARNING' | 'FAILED';
+  status: 'PASSED' | 'WARNING' | 'FAILED' | 'PENDING';
   details: string;
   guidance?: string;
   technicalField?: string;

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Trash2, AlertTriangle, X, ShieldAlert, CheckCircle2, Info } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
 export type ConfirmVariant = 'danger' | 'warning' | 'info';
 
@@ -8,7 +8,7 @@ interface ConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void | Promise<void>;
   title: string;
-  message: string;
+  message?: string;
   confirmText?: string;
   cancelText?: string;
   variant?: ConfirmVariant;
@@ -27,9 +27,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   message,
   confirmText = 'Delete',
   cancelText = 'Cancel',
-  variant = 'danger',
   isLoading = false,
-  itemDetails,
 }) => {
   // Close on Escape key
   useEffect(() => {
@@ -44,13 +42,27 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isDanger = variant === 'danger';
-  const isWarning = variant === 'warning';
+  // Extract clean question and optional target item name from title
+  let displayTitle = 'Do you want to delete this file?';
+  let targetName: string | null = null;
 
-  const iconBg = isDanger ? '#FEE2E2' : isWarning ? '#FEF3C7' : 'var(--deloitte-teal-light)';
-  const iconColor = isDanger ? '#DC2626' : isWarning ? '#D97706' : 'var(--deloitte-teal)';
-  const confirmBtnBg = isDanger ? '#DC2626' : isWarning ? '#D97706' : 'var(--deloitte-teal)';
-  const confirmBtnHover = isDanger ? '#B91C1C' : isWarning ? '#B45309' : '#005E66';
+  if (title.toLowerCase().includes('run')) {
+    displayTitle = 'Do you want to delete this run?';
+    const match = title.match(/JET-\d{8}-\d{3}/i) || title.match(/run\s+([^\s?]+)/i);
+    if (match) targetName = match[0];
+  } else if (title.toLowerCase().includes('delete') || title.toLowerCase().includes('remove')) {
+    displayTitle = 'Do you want to delete this file?';
+    const cleaned = title
+      .replace(/^Delete\s+/i, '')
+      .replace(/^Remove\s+/i, '')
+      .replace(/\?$/, '')
+      .trim();
+    if (cleaned && cleaned.toLowerCase() !== 'this file' && cleaned.toLowerCase() !== 'file') {
+      targetName = cleaned;
+    }
+  } else {
+    displayTitle = title;
+  }
 
   return (
     <div
@@ -68,196 +80,223 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         padding: '20px',
-        animation: 'fadeIn 0.2s ease-out',
+        animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
       onClick={() => !isLoading && onClose()}
     >
       <div
         style={{
+          position: 'relative',
           background: '#FFFFFF',
-          borderRadius: '20px',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0,0,0,0.1)',
+          borderRadius: '24px',
+          boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(226, 232, 240, 0.9)',
           width: '100%',
-          maxWidth: '460px',
-          overflow: 'hidden',
-          border: '1px solid rgba(226, 232, 240, 0.9)',
-          animation: 'scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          maxWidth: '380px',
+          padding: '28px 24px 24px',
+          textAlign: 'center',
+          animation: 'scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header & Content */}
-        <div style={{ padding: '28px 28px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '18px' }}>
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '14px',
-                background: iconBg,
-                color: iconColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: isDanger ? '0 4px 14px rgba(220, 38, 38, 0.2)' : 'none',
-              }}
-            >
-              {isDanger ? <Trash2 size={24} /> : isWarning ? <AlertTriangle size={24} /> : <Info size={24} />}
-            </div>
-
-            <button
-              onClick={onClose}
-              disabled={isLoading}
-              style={{
-                background: '#F1F5F9',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.background = '#E2E8F0')}
-              onMouseOut={(e) => (e.currentTarget.style.background = '#F1F5F9')}
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          <h3
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
-              margin: '0 0 8px',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {title}
-          </h3>
-
-          <p
-            style={{
-              fontSize: '0.88rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.5,
-              margin: 0,
-            }}
-          >
-            {message}
-          </p>
-
-          {/* Optional item details card */}
-          {itemDetails && itemDetails.length > 0 && (
-            <div
-              style={{
-                marginTop: '16px',
-                padding: '12px 16px',
-                background: '#F8FAFC',
-                borderRadius: '10px',
-                border: '1px solid #E2E8F0',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}
-            >
-              {itemDetails.map((detail, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>{detail.label}:</span>
-                  <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                    {detail.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Modal Action Buttons */}
-        <div
+        {/* Top Right Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
           style={{
-            padding: '16px 28px 24px',
-            background: '#FAFAFA',
-            borderTop: '1px solid #F1F5F9',
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            background: 'transparent',
+            border: 'none',
+            color: '#94A3B8',
+            cursor: isLoading ? 'not-allowed' : 'pointer',
+            width: '30px',
+            height: '30px',
+            borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: '12px',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            if (!isLoading) {
+              e.currentTarget.style.background = '#F1F5F9';
+              e.currentTarget.style.color = '#0F172A';
+            }
+          }}
+          onMouseOut={(e) => {
+            if (!isLoading) {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#94A3B8';
+            }
           }}
         >
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isLoading}
-            style={{
-              padding: '9px 18px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-medium)',
-              background: '#FFFFFF',
-              color: 'var(--text-secondary)',
-              fontSize: '0.86rem',
-              fontWeight: 700,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s ease',
-              boxShadow: 'var(--shadow-sm)',
-            }}
-            onMouseOver={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.background = '#F8FAFC';
-                e.currentTarget.style.borderColor = '#CBD5E1';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.background = '#FFFFFF';
-                e.currentTarget.style.borderColor = 'var(--border-medium)';
-              }
-            }}
-          >
-            {cancelText}
-          </button>
+          <X size={18} strokeWidth={2.4} />
+        </button>
 
+        {/* Delete Illustration */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: '12px',
+          }}
+        >
+          <img
+            src="/delete-illustration.webp"
+            alt="Delete Illustration"
+            style={{
+              width: '140px',
+              height: '140px',
+              objectFit: 'contain',
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          />
+        </div>
+
+        {/* Clean Standard Question Title */}
+        <h3
+          style={{
+            fontSize: '1.24rem',
+            fontWeight: 800,
+            color: '#EF4444',
+            margin: '0 0 6px',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.3,
+          }}
+        >
+          {displayTitle}
+        </h3>
+
+        {/* Target Item Name (Truncated Chip) */}
+        {targetName && (
+          <div
+            style={{
+              display: 'inline-block',
+              maxWidth: '310px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+              color: '#334155',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              padding: '3px 10px',
+              borderRadius: '8px',
+              margin: '0 auto 10px',
+            }}
+            title={targetName}
+          >
+            {targetName}
+          </div>
+        )}
+
+        {/* Subtitle Message */}
+        <p
+          style={{
+            fontSize: '0.86rem',
+            color: '#64748B',
+            lineHeight: 1.45,
+            margin: '0 auto 22px',
+            maxWidth: '300px',
+          }}
+        >
+          {message || 'Once you delete this, it will be permanently removed from your workspace.'}
+        </p>
+
+        {/* Action Buttons */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            width: '100%',
+          }}
+        >
+          {/* Delete Button (Primary Left) */}
           <button
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
             style={{
-              padding: '9px 22px',
-              borderRadius: '8px',
+              flex: 1,
+              padding: '11px 16px',
+              borderRadius: '12px',
               border: 'none',
-              background: confirmBtnBg,
+              background: '#EF4444',
               color: '#FFFFFF',
-              fontSize: '0.86rem',
+              fontSize: '0.92rem',
               fontWeight: 700,
               cursor: isLoading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
               transition: 'all 0.15s ease',
-              boxShadow: isDanger ? '0 4px 12px rgba(220, 38, 38, 0.3)' : '0 4px 12px rgba(0, 118, 128, 0.25)',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
             }}
             onMouseOver={(e) => {
               if (!isLoading) {
-                e.currentTarget.style.background = confirmBtnHover;
+                e.currentTarget.style.background = '#DC2626';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.4)';
               }
             }}
             onMouseOut={(e) => {
               if (!isLoading) {
-                e.currentTarget.style.background = confirmBtnBg;
+                e.currentTarget.style.background = '#EF4444';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
               }
             }}
           >
             {isLoading ? (
-              <span>Deleting...</span>
-            ) : (
               <>
-                {isDanger && <Trash2 size={15} />}
-                <span>{confirmText}</span>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Deleting...</span>
               </>
+            ) : (
+              <span>{confirmText}</span>
             )}
+          </button>
+
+          {/* Cancel Button (Soft Rose Right) */}
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            style={{
+              flex: 1,
+              padding: '11px 16px',
+              borderRadius: '12px',
+              border: 'none',
+              background: '#FFF1F2',
+              color: '#E11D48',
+              fontSize: '0.92rem',
+              fontWeight: 700,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseOver={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.background = '#FFE4E6';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.background = '#FFF1F2';
+              }
+            }}
+          >
+            {cancelText}
           </button>
         </div>
       </div>

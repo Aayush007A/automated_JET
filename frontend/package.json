@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@types/three": "^0.185.4",
+    "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
     "framer-motion": "^13.1.1",
     "lucide-react": "^0.395.0",
     "react": "^18.3.1",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.1",
     "recharts": "^3.10.1",

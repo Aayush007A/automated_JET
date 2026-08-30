@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileSpreadsheet, Trash2, CheckCircle, AlertCircle, File, Eye } from 'lucide-react';
+import {
+  UploadCloud, FileSpreadsheet, Trash2, Eye, Layers, Clock,
+  AlertTriangle, CheckCircle2, FileText, Sparkles, HardDrive
+} from 'lucide-react';
 import { UploadedFileInfo } from '../../types';
-import { StatusBadge } from './StatusBadge';
 import { ConfirmModal } from './ConfirmModal';
 
 interface FileDropzoneProps {
@@ -10,6 +12,7 @@ interface FileDropzoneProps {
   onRemove: (fileId: string) => Promise<void>;
   onPreview?: (fileId: string, sheetName?: string) => void;
   uploading?: boolean;
+  isCleaningPassed?: boolean;
 }
 
 export const FileDropzone: React.FC<FileDropzoneProps> = ({
@@ -18,6 +21,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   onRemove,
   onPreview,
   uploading = false,
+  isCleaningPassed = false,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<UploadedFileInfo | null>(null);
@@ -26,15 +30,19 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(true);
   };
 
-  const handleDragLeave = () => {
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
   };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       await onUpload(Array.from(e.dataTransfer.files));
@@ -42,6 +50,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
     if (e.target.files && e.target.files.length > 0) {
       await onUpload(Array.from(e.target.files));
       e.target.value = '';
@@ -49,6 +58,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   };
 
   const formatSize = (bytes: number) => {
+    if (!bytes || bytes === 0) return '0 B';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
@@ -59,7 +69,8 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
     id: string;
     fileId: string;
     sheetName?: string;
-    displayName: string;
+    titleName: string;
+    sourceWorkbookName: string;
     parentFile: UploadedFileInfo;
     format: string;
     fileSize: number;
@@ -77,7 +88,8 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
           id: `${file.fileId}_${s.sheetName}`,
           fileId: file.fileId,
           sheetName: s.sheetName,
-          displayName: `${file.originalName} → ${s.sheetName}`,
+          titleName: s.sheetName || file.originalName,
+          sourceWorkbookName: file.originalName,
           parentFile: file,
           format: `${file.extension.toUpperCase()} (Sheet)`,
           fileSize: file.fileSize,
@@ -91,7 +103,8 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
       extractedItems.push({
         id: file.fileId,
         fileId: file.fileId,
-        displayName: file.originalName,
+        titleName: file.originalName,
+        sourceWorkbookName: file.originalName,
         parentFile: file,
         format: file.extension.toUpperCase(),
         fileSize: file.fileSize,
@@ -102,8 +115,71 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
     }
   });
 
+  // Curated theme styling per dataset type
+  const getDatasetTheme = (type: string) => {
+    const t = type.toUpperCase();
+    if (t.includes('TRIAL') || t === 'TB') {
+      return {
+        bg: '#EFF6FF',
+        border: '#BFDBFE',
+        color: '#0284C7',
+        badgeBg: '#F0F9FF',
+        badgeColor: '#0369A1',
+        badgeBorder: '#BAE6FD',
+        dotColor: '#0284C7',
+        label: 'TRIAL BALANCE',
+      };
+    }
+    if (t.includes('GENERAL') || t.includes('POPULATION') || t === 'GL') {
+      return {
+        bg: '#E6F4F5',
+        border: '#B2DFE2',
+        color: '#007680',
+        badgeBg: '#F0FDFA',
+        badgeColor: '#005A60',
+        badgeBorder: '#99F6E4',
+        dotColor: '#007680',
+        label: 'POPULATION / GL',
+      };
+    }
+    if (t.includes('PARAM') || t.includes('INPUT') || t.includes('EXCEPTION') || t.includes('AUDIT_PARAM')) {
+      return {
+        bg: '#F0FDF4',
+        border: '#BBF7D0',
+        color: '#16A34A',
+        badgeBg: '#F0FDF4',
+        badgeColor: '#15803D',
+        badgeBorder: '#BBF7D0',
+        dotColor: '#16A34A',
+        label: 'INPUT PARAMETERS',
+      };
+    }
+    if (t.includes('COA') || t.includes('CHART')) {
+      return {
+        bg: '#FAF5FF',
+        border: '#E9D5FF',
+        color: '#7C3AED',
+        badgeBg: '#FAF5FF',
+        badgeColor: '#6D28D9',
+        badgeBorder: '#DDD6FE',
+        dotColor: '#7C3AED',
+        label: 'CHART OF ACCOUNTS',
+      };
+    }
+    return {
+      bg: '#F8FAFC',
+      border: '#E2E8F0',
+      color: '#475569',
+      badgeBg: '#F1F5F9',
+      badgeColor: '#334155',
+      badgeBorder: '#CBD5E1',
+      dotColor: '#64748B',
+      label: type.replace(/_/g, ' '),
+    };
+  };
+
   return (
-    <div>
+    <div style={{ width: '100%' }}>
       <input
         type="file"
         ref={fileInputRef}
@@ -114,302 +190,652 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
         disabled={uploading}
       />
 
-      {/* ── CASE 1: ZERO FILES UPLOADED (Centered Full Dropzone) ── */}
-      {files.length === 0 ? (
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            border: `2px dashed ${isDragOver ? 'var(--deloitte-teal)' : '#CBD5E1'}`,
-            backgroundColor: isDragOver ? 'var(--deloitte-teal-light)' : '#FAFCFC',
-            borderRadius: '14px',
-            padding: '48px 24px',
-            textAlign: 'center',
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.25s ease',
-            boxShadow: isDragOver ? '0 0 20px var(--deloitte-teal-glow)' : 'var(--shadow-sm)',
-          }}
-        >
+      {/* ── 2-COLUMN SPLIT: 35% (Upload Left) & 65% (File Info Right) ── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(300px, 35%) 1fr',
+          gap: '18px',
+          alignItems: 'stretch',
+          width: '100%',
+        }}
+      >
+        {/* ── LEFT COLUMN (35%): FILE UPLOAD DROPZONE ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
           <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!uploading) fileInputRef.current?.click();
+            }}
             style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '50%',
-              background: 'var(--deloitte-teal-light)',
+              border: `2px dashed ${isDragOver ? '#007680' : 'rgba(0, 118, 128, 0.28)'}`,
+              backgroundColor: isDragOver ? '#F0FDFA' : '#FAFCFD',
+              borderRadius: '16px',
+              padding: '28px 20px',
+              textAlign: 'center',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: isDragOver
+                ? '0 0 20px rgba(0, 118, 128, 0.18)'
+                : '0 1px 3px rgba(0, 0, 0, 0.02)',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 16px',
-              color: 'var(--deloitte-teal)',
-              border: '1px solid rgba(0, 118, 128, 0.2)',
+              minHeight: '260px',
+              flex: 1,
+              position: 'relative',
             }}
           >
-            <UploadCloud size={30} />
-          </div>
-          <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>
-            {uploading ? 'Inspecting & Parsing Files...' : 'Drag & Drop JET Input Files Here'}
-          </h4>
-          <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', maxWidth: '540px', margin: '0 auto 14px' }}>
-            Upload separate files (<strong>TB.csv, Population.csv, COA.csv</strong>) or a single multi-sheet workbook (<strong>JET_Input.xlsx</strong>).
-          </p>
-          <span
-            style={{
-              display: 'inline-block',
-              fontSize: '0.74rem',
-              fontWeight: 600,
-              color: 'var(--text-muted)',
-              background: 'var(--bg-secondary)',
-              padding: '4px 12px',
-              borderRadius: '6px',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            Supported Formats: XLSX, XLS, CSV, TXT, ZIP
-          </span>
-        </div>
-      ) : (
-        /* ── CASE 2: FILES UPLOADED (Side-by-Side Left & Right Layout) ── */
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '310px minmax(0, 1fr)',
-          gap: '22px',
-          alignItems: 'stretch'
-        }}>
-          {/* Left Column: Compact Dropzone & Summary Card */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Pulsing Upload Icon Badge */}
             <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
               style={{
-                border: `2px dashed ${isDragOver ? 'var(--deloitte-teal)' : '#CBD5E1'}`,
-                backgroundColor: isDragOver ? 'var(--deloitte-teal-light)' : '#FAFCFC',
+                width: '52px',
+                height: '52px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(0, 118, 128, 0.12) 0%, rgba(0, 77, 84, 0.06) 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 14px',
+                color: '#007680',
+                border: '1px solid rgba(0, 118, 128, 0.22)',
+                boxShadow: '0 4px 14px rgba(0, 118, 128, 0.12)',
+              }}
+            >
+              <UploadCloud size={24} />
+            </div>
+
+            <h4
+              style={{
+                fontSize: '1.02rem',
+                fontWeight: 800,
+                color: '#0F172A',
+                marginBottom: '6px',
+                letterSpacing: '-0.015em',
+              }}
+            >
+              {uploading
+                ? 'Inspecting & Ingesting...'
+                : files.length === 0
+                ? 'Upload Audit Datasets'
+                : 'Upload / Add More Files'}
+            </h4>
+
+            <p
+              style={{
+                fontSize: '0.78rem',
+                color: '#64748B',
+                maxWidth: '260px',
+                margin: '0 auto 14px',
+                lineHeight: 1.45,
+              }}
+            >
+              {files.length === 0 ? (
+                <>
+                  Upload raw <strong>Trial Balance</strong> and <strong>General Ledger / Population</strong> files or an all-in-one workbook.
+                </>
+              ) : (
+                'Drop extra files here or click to browse'
+              )}
+            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.70rem',
+                  fontWeight: 700,
+                  color: '#007680',
+                  background: '#E6F4F5',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #B2DFE2',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                XLSX, XLS, CSV, TXT, ZIP
+              </span>
+            </div>
+          </div>
+
+          {/* Ingestion Summary Metrics Card (Shown when files exist) */}
+          {files.length > 0 && (
+            <div
+              style={{
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
                 borderRadius: '12px',
-                padding: '24px 16px',
-                textAlign: 'center',
-                cursor: uploading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.22s ease',
-                boxShadow: isDragOver ? '0 0 16px var(--deloitte-teal-glow)' : 'none',
+                padding: '12px 14px',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
               }}
             >
               <div
                 style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  background: 'var(--deloitte-teal-light)',
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  color: '#64748B',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span>INGESTION OVERVIEW</span>
+                <span style={{ color: '#007680', fontWeight: 700 }}>Auto-Detected</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                <div style={{ background: '#FFFFFF', padding: '8px 10px', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: 600 }}>Files</div>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono, monospace)' }}>
+                    {files.length}
+                  </div>
+                </div>
+                <div style={{ background: '#FFFFFF', padding: '8px 10px', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: 600 }}>Datasets</div>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#007680', fontFamily: 'var(--font-mono, monospace)' }}>
+                    {extractedItems.length}
+                  </div>
+                </div>
+                <div style={{ background: '#FFFFFF', padding: '8px 10px', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: 600 }}>Total Size</div>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#334155', fontFamily: 'var(--font-mono, monospace)' }}>
+                    {formatSize(files.reduce((sum, f) => sum + (f.fileSize || 0), 0))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── RIGHT COLUMN (65%): VISUALLY STUNNING DATASET SECTION ── */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: '16px',
+            padding: '18px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            boxShadow: '0 2px 10px -2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02)',
+            minHeight: '260px',
+          }}
+        >
+          {/* Header Row: Title with Count + Prominent Cleaning Status Badge */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '14px',
+              paddingBottom: '12px',
+              borderBottom: '1px solid #F1F5F9',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '9px',
+                  background: 'linear-gradient(135deg, rgba(0, 118, 128, 0.12) 0%, rgba(0, 77, 84, 0.06) 100%)',
+                  color: '#007680',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 10px',
-                  color: 'var(--deloitte-teal)',
-                  border: '1px solid rgba(0, 118, 128, 0.2)',
+                  border: '1px solid rgba(0, 118, 128, 0.20)',
                 }}
               >
-                <UploadCloud size={22} />
+                <Layers size={17} />
               </div>
-              <h5 style={{ fontSize: '0.90rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                {uploading ? 'Processing...' : 'Upload / Add More Files'}
-              </h5>
-              <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', margin: '0 0 10px' }}>
-                Drop extra files or click to browse
-              </p>
-              <span
-                style={{
-                  display: 'inline-block',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  color: 'var(--deloitte-teal)',
-                  background: 'var(--deloitte-teal-light)',
-                  padding: '3px 8px',
-                  borderRadius: '5px',
-                  border: '1px solid rgba(0, 118, 128, 0.25)',
-                }}
-              >
-                XLSX, XLS, CSV, ZIP
-              </span>
-            </div>
 
-            {/* Ingestion Meta Summary Card */}
-            <div style={{
-              background: '#F8FAFC',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '10px',
-              padding: '14px 16px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-            }}>
-              <div style={{ fontSize: '0.70rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
-                Ingestion Summary
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Uploaded Files</span>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{files.length}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Extracted Datasets</span>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#007680', fontFamily: 'var(--font-mono)' }}>{extractedItems.length}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Total Ingested Size</span>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', fontFamily: 'var(--font-mono)' }}>
-                    {formatSize(files.reduce((sum, f) => sum + f.fileSize, 0))}
+              <div>
+                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.015em' }}>
+                  Extracted Audit Datasets
+                </h4>
+                {files.length > 0 && (
+                  <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>
+                    {extractedItems.length} dataset{extractedItems.length === 1 ? '' : 's'} detected across {files.length} file{files.length === 1 ? '' : 's'}
                   </span>
-                </div>
+                )}
               </div>
             </div>
+
+            {/* Prominent Cleaning Status Badge */}
+            <div>
+              {files.length === 0 ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    background: '#F1F5F9',
+                    color: '#64748B',
+                    border: '1px solid #E2E8F0',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <Clock size={12} /> Awaiting Files
+                </span>
+              ) : isCleaningPassed ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 14px',
+                    borderRadius: '20px',
+                    background: '#ECFDF5',
+                    color: '#059669',
+                    border: '1px solid #A7F3D0',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    boxShadow: '0 2px 6px rgba(5, 150, 105, 0.1)',
+                  }}
+                >
+                  <CheckCircle2 size={13} /> CLEANING PASSED
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 14px',
+                    borderRadius: '20px',
+                    background: '#FFFBEB',
+                    color: '#D97706',
+                    border: '1px solid #FDE68A',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    boxShadow: '0 2px 8px rgba(217, 119, 6, 0.12)',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#D97706',
+                      boxShadow: '0 0 6px #D97706',
+                    }}
+                  />
+                  CLEANING PENDING
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Right Column: Extracted Datasets Table */}
-          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                Extracted Datasets ({extractedItems.length} {extractedItems.length === 1 ? 'dataset' : 'datasets'} from {files.length} {files.length === 1 ? 'file' : 'files'})
-              </h4>
+          {/* ── CASE A: ZERO FILES (Clean Empty State) ── */}
+          {uploading && files.length === 0 ? (
+            /* ── UPLOADING STATE: Skeleton loader ── */
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', padding: '4px 0' }}>
+              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#007680', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <Sparkles size={14} className="spin-slow" />
+                <span>Smart Inspection Engine — Detecting datasets and schema structures...</span>
+              </div>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{
+                  height: '68px',
+                  borderRadius: '12px',
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  opacity: 0.8 - i * 0.2,
+                }} />
+              ))}
             </div>
+          ) : files.length === 0 ? (
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: '36px 20px',
+                background: '#FAFCFD',
+                borderRadius: '12px',
+                border: '1px dashed #CBD5E1',
+              }}
+            >
+              <div
+                style={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '14px',
+                  background: '#EEF2F6',
+                  color: '#94A3B8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '10px',
+                }}
+              >
+                <FileSpreadsheet size={26} />
+              </div>
+              <h5 style={{ fontSize: '0.94rem', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>
+                No Datasets Uploaded Yet
+              </h5>
+              <p style={{ fontSize: '0.78rem', color: '#64748B', maxWidth: '360px', margin: '0 0 14px', lineHeight: 1.45 }}>
+                Upload files on the left. The smart inspection engine will automatically detect and extract sheets, row counts, and data classifications here.
+              </p>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  background: '#FFFBEB',
+                  border: '1px solid #FDE68A',
+                  borderRadius: '7px',
+                  fontSize: '0.72rem',
+                  color: '#B45309',
+                  fontWeight: 600,
+                }}
+              >
+                <AlertTriangle size={12} />
+                <span>Cleaning status will remain PENDING until step 2 verification.</span>
+              </div>
+            </div>
+          ) : (
+            /* ── CASE B: VISUALLY STUNNING DATASET CARDS (Matching Image 1) ── */
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                maxHeight: '360px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                paddingRight: '2px',
+              }}
+            >
+              {extractedItems.map((item) => {
+                const theme = getDatasetTheme(item.detectedDataset);
 
-            <div className="table-container" style={{ flex: 1, maxHeight: '380px', overflowY: 'auto' }}>
-              <table className="jet-table" style={{ width: '100%' }}>
-                <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
-                  <tr>
-                    <th style={{ background: '#F8FAFC' }}>Extracted Dataset / Sheet</th>
-                    <th style={{ background: '#F8FAFC' }}>Format</th>
-                    <th style={{ background: '#F8FAFC' }}>Size</th>
-                    <th style={{ background: '#F8FAFC' }}>Detected Dataset</th>
-                    <th style={{ background: '#F8FAFC' }}>Confidence</th>
-                    <th style={{ background: '#F8FAFC' }}>Status</th>
-                    <th style={{ textAlign: 'right', background: '#F8FAFC' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {extractedItems.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div
-                            style={{
-                              width: '30px',
-                              height: '30px',
-                              borderRadius: '7px',
-                              background: item.sheetName ? 'var(--deloitte-teal-light)' : '#EFF6FF',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: item.sheetName ? 'var(--deloitte-teal)' : '#2563EB',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <FileSpreadsheet size={15} />
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {item.displayName}
-                            </div>
-                            {item.rowCount !== undefined && item.rowCount > 0 && (
-                              <div style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>
-                                {item.rowCount.toLocaleString()} rows detected
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="badge badge-neutral" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>{item.format}</span>
-                      </td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: '#334155' }}>
-                        {formatSize(item.fileSize)}
-                      </td>
-                      <td>
-                        <StatusBadge status={item.detectedDataset.replace(/_/g, ' ')} size="sm" />
-                      </td>
-                      <td>
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#CBD5E1';
+                      e.currentTarget.style.boxShadow = '0 3px 10px rgba(15, 23, 42, 0.05)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.02)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    {/* Left: Icon + Dataset Name + Workbook Reference */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
+                          background: theme.bg,
+                          border: `1px solid ${theme.border}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: theme.color,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <FileSpreadsheet size={18} />
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div
+                          <span
                             style={{
-                              width: '50px',
-                              height: '5px',
-                              background: '#E2E8F0',
-                              borderRadius: '3px',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${item.confidence}%`,
-                                height: '100%',
-                                background: item.confidence >= 80 ? 'var(--deloitte-green-dark)' : 'var(--status-warning)',
-                              }}
-                            />
-                          </div>
-                          <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                            {item.confidence}%
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <StatusBadge status={item.status} size="sm" />
-                      </td>
-                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', whiteSpace: 'nowrap' }}>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onPreview?.(item.fileId, item.sheetName);
-                            }}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '4px',
-                              padding: '4px 8px', fontSize: '0.70rem', fontWeight: 700,
-                              background: 'var(--deloitte-teal-light)',
-                              color: 'var(--deloitte-teal)',
-                              border: '1px solid rgba(0, 118, 128, 0.25)',
-                              borderRadius: '5px', cursor: 'pointer',
+                              fontWeight: 800,
+                              color: '#0F172A',
+                              fontSize: '0.86rem',
                               whiteSpace: 'nowrap',
-                              transition: 'all 0.15s ease',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '220px',
+                              letterSpacing: '-0.01em',
                             }}
-                            title={`Preview ${item.displayName}`}
+                            title={item.titleName}
                           >
-                            <Eye size={11} /> Preview
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFileToDelete(item.parentFile);
-                            }}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              padding: '4px 8px', background: 'rgba(239, 68, 68, 0.06)',
-                              color: 'var(--status-error)', border: '1px solid rgba(239, 68, 68, 0.2)',
-                              borderRadius: '6px', cursor: 'pointer', transition: 'all 0.18s ease',
-                            }}
-                            onMouseEnter={e => {
-                              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239, 68, 68, 0.12)';
-                              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--status-error)';
-                            }}
-                            onMouseLeave={e => {
-                              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239, 68, 68, 0.06)';
-                              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239, 68, 68, 0.2)';
-                            }}
-                            title={`Remove ${item.parentFile.originalName}`}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+                            {item.titleName}
+                          </span>
 
-      {/* CUSTOM PREMIUM REMOVE FILE CONFIRMATION MODAL */}
+                          {item.sheetName && (
+                            <span
+                              style={{
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                color: '#64748B',
+                                background: '#F1F5F9',
+                                border: '1px solid #E2E8F0',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              Sheet
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Meta Tags: Rows • Size • Workbook */}
+                        <div style={{ fontSize: '0.72rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                          {item.rowCount !== undefined && item.rowCount > 0 && (
+                            <span style={{ fontWeight: 700, color: '#0F172A', fontFamily: 'var(--font-mono, monospace)' }}>
+                              {item.rowCount.toLocaleString()} rows
+                            </span>
+                          )}
+                          <span>•</span>
+                          <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{formatSize(item.fileSize)}</span>
+                          {item.sheetName && (
+                            <>
+                              <span>•</span>
+                              <span
+                                style={{
+                                  maxWidth: '140px',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                                title={item.sourceWorkbookName}
+                              >
+                                {item.sourceWorkbookName}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Middle: Classification Tag & Confidence Score */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          background: theme.badgeBg,
+                          color: theme.badgeColor,
+                          border: `1px solid ${theme.badgeBorder}`,
+                          fontSize: '0.70rem',
+                          fontWeight: 800,
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: '5px',
+                            height: '5px',
+                            borderRadius: '50%',
+                            background: theme.dotColor,
+                          }}
+                        />
+                        {theme.label}
+                      </span>
+
+                      {/* Confidence Pill */}
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          color: '#475569',
+                          background: '#F8FAFC',
+                          border: '1px solid #E2E8F0',
+                          padding: '2px 7px',
+                          borderRadius: '5px',
+                          fontFamily: 'var(--font-mono, monospace)',
+                        }}
+                      >
+                        {item.confidence}% Match
+                      </span>
+                    </div>
+
+                    {/* Right: Cleaning Status & Action Buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      {/* Cleaning Status Pill */}
+                      {isCleaningPassed ? (
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            color: '#059669',
+                            background: '#ECFDF5',
+                            border: '1px solid #A7F3D0',
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <CheckCircle2 size={11} /> Cleaned
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            color: '#D97706',
+                            background: '#FFFBEB',
+                            border: '1px solid #FDE68A',
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <Clock size={11} /> Pending
+                        </span>
+                      )}
+
+                      {/* Preview Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onPreview?.(item.fileId, item.sheetName);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 9px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: '#FFFFFF',
+                          color: '#007680',
+                          border: '1px solid rgba(0, 118, 128, 0.3)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#F0FDFA';
+                          e.currentTarget.style.borderColor = '#007680';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#FFFFFF';
+                          e.currentTarget.style.borderColor = 'rgba(0, 118, 128, 0.3)';
+                        }}
+                        title={`Preview ${item.titleName}`}
+                      >
+                        <Eye size={12} /> Preview
+                      </button>
+
+                      {/* Delete Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setFileToDelete(item.parentFile);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '4px 7px',
+                          background: '#FFF1F2',
+                          color: '#E11D48',
+                          border: '1px solid #FFE4E6',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#FEE2E2';
+                          e.currentTarget.style.borderColor = '#FDA4AF';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#FFF1F2';
+                          e.currentTarget.style.borderColor = '#FFE4E6';
+                        }}
+                        title={`Delete ${item.parentFile.originalName}`}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
       <ConfirmModal
         isOpen={Boolean(fileToDelete)}
         onClose={() => setFileToDelete(null)}
@@ -423,17 +849,12 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
             setIsRemoving(false);
           }
         }}
-        title={fileToDelete ? `Remove ${fileToDelete.originalName}?` : 'Remove File'}
-        message="Are you sure you want to remove this dataset from the execution workspace? Its extracted sheets, canonical field mappings, and cached sample records will be cleared."
-        confirmText="Remove File"
+        title={fileToDelete ? `Delete ${fileToDelete.originalName}?` : 'Delete this file?'}
+        message="Once you delete this, it will be permanently removed from your workspace."
+        confirmText="Delete"
         cancelText="Cancel"
         variant="danger"
         isLoading={isRemoving}
-        itemDetails={fileToDelete ? [
-          { label: 'File Name', value: fileToDelete.originalName },
-          { label: 'Detected Dataset', value: fileToDelete.detectedDataset.replace(/_/g, ' ') },
-          { label: 'File Size', value: formatSize(fileToDelete.fileSize) },
-        ] : []}
       />
     </div>
   );

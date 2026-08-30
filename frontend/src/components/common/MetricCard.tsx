@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface MetricCardProps {
   label: string;
@@ -24,34 +25,35 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   let badgeColor = 'var(--text-secondary)';
 
   if (variant === 'success') {
-    valueColor = '#0F766E';
-    iconBg = 'rgba(15, 118, 110, 0.06)';
-    borderColor = 'rgba(15, 118, 110, 0.2)';
-    badgeBg = 'rgba(15, 118, 110, 0.09)';
-    badgeColor = '#0F766E';
+    valueColor = '#007680';
+    iconBg = 'rgba(0, 118, 128, 0.06)';
+    borderColor = '#CCECEF';
+    badgeBg = '#E6F4F5';
+    badgeColor = '#007680';
   } else if (variant === 'warning') {
-    valueColor = '#B45309';
-    iconBg = 'rgba(180, 83, 9, 0.06)';
-    borderColor = 'rgba(180, 83, 9, 0.2)';
-    badgeBg = 'rgba(180, 83, 9, 0.09)';
-    badgeColor = '#92400E';
+    valueColor = '#D97706';
+    iconBg = 'rgba(217, 119, 6, 0.06)';
+    borderColor = '#FDE68A';
+    badgeBg = '#FEF3C7';
+    badgeColor = '#B45309';
   } else if (variant === 'error') {
-    valueColor = '#BE123C';
-    iconBg = 'rgba(190, 18, 60, 0.06)';
-    borderColor = 'rgba(190, 18, 60, 0.2)';
-    badgeBg = 'rgba(190, 18, 60, 0.09)';
-    badgeColor = '#9F1239';
+    valueColor = '#DC2626';
+    iconBg = 'rgba(220, 38, 38, 0.06)';
+    borderColor = '#FECDD3';
+    badgeBg = '#FEE2E2';
+    badgeColor = '#991B1B';
   } else if (variant === 'teal' || variant === 'info') {
     valueColor = 'var(--deloitte-teal)';
     iconBg = 'rgba(0, 118, 128, 0.06)';
-    borderColor = 'rgba(0, 118, 128, 0.2)';
-    badgeBg = 'rgba(0, 118, 128, 0.09)';
+    borderColor = '#E2E8F0';
+    badgeBg = '#E6F4F5';
     badgeColor = 'var(--deloitte-teal)';
   }
 
-  // Parse value string if it contains embedded status badges (e.g. "0 (Passed)", "1 Flagged", "22 Accounts")
+  // Parse value string if it contains embedded status badges
   let displayValue = typeof value === 'number' ? value.toLocaleString() : String(value || '');
   let parsedBadge = badge;
+  const isCalculating = typeof displayValue === 'string' && (displayValue.includes('In Progress') || displayValue.includes('Calculating'));
 
   if (!parsedBadge && typeof value === 'string') {
     const passedMatch = displayValue.match(/^(\d+)\s*\((Passed)\)$/i);
@@ -70,7 +72,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   // Determine dynamic font size based on character length so it never wraps
   const valLength = displayValue.length;
   let fontSize = '1.5rem';
-  if (valLength > 12) {
+  if (isCalculating) {
+    fontSize = '0.98rem';
+  } else if (valLength > 12) {
     fontSize = '1.15rem';
   } else if (valLength > 8) {
     fontSize = '1.28rem';
@@ -83,13 +87,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        borderColor,
+        border: `1px solid ${borderColor}`,
         padding: '16px 18px',
         backgroundColor: '#FFFFFF',
         minHeight: '126px',
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+        borderRadius: '14px',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 12px -2px rgba(15, 23, 42, 0.03)',
         position: 'relative',
+        transition: 'transform 0.18s ease, box-shadow 0.18s ease',
       }}
     >
       {/* Card Header: Label & Optional Icon */}
@@ -139,13 +144,17 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           style={{
             fontSize,
             fontWeight: 800,
-            color: valueColor,
+            color: isCalculating ? 'var(--deloitte-teal)' : valueColor,
             fontFamily: 'var(--font-mono)',
             lineHeight: 1.1,
             whiteSpace: 'nowrap',
             letterSpacing: '-0.02em',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
           }}
         >
+          {isCalculating && <Loader2 size={15} className="spin" color="var(--deloitte-teal)" />}
           {displayValue}
         </span>
 

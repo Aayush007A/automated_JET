@@ -40,29 +40,20 @@ export class FileController {
 
     config.files = [...config.files, ...uploadedInfos];
 
-    // Intelligent Auto-Routing Decision Engine
-    // Determine whether this run should be handled by OMNIA_JET or SPARK_JET based on file types and sheet structures
+    // Ultra-Intelligent Auto-Routing Decision Engine
+    // Automatically analyzes all files, sheets, and headers to distinguish Spark JET vs Omnia JET
     const requestedWorkflow = ((req.body && req.body.workflow) || req.query.workflow) as WorkflowType | undefined;
-    if (requestedWorkflow === 'SPARK_JET' || requestedWorkflow === 'OMNIA_JET') {
-      config.workflow = requestedWorkflow;
-    } else if (config.workflow !== 'SPARK_JET' && config.workflow !== 'OMNIA_JET') {
-      const hasMultiSheetExcel = config.files.some(
-        (f) => (f.extension === 'xlsx' || f.extension === 'xls') && f.sheets && f.sheets.length > 1
-      );
-      const hasOmniaWorkbook = config.files.some(
-        (f) => f.originalName.toLowerCase().includes('omnia') || f.originalName.toLowerCase().includes('jet_input')
-      );
+    const routingResult = FileDetector.detectWorkflowFamily(config.files, requestedWorkflow);
 
-      if (hasMultiSheetExcel || hasOmniaWorkbook) {
-        config.workflow = 'OMNIA_JET';
-        LogService.log('INFO', 'INTELLIGENT_ROUTER', `Auto-routed run ${runId} to OMNIA_JET based on multi-sheet Excel structure`, runId);
-      } else {
-        config.workflow = 'SPARK_JET';
-        LogService.log('INFO', 'INTELLIGENT_ROUTER', `Auto-routed run ${runId} to SPARK_JET based on separate stream file structure`, runId);
-      }
-    }
+    config.workflow = routingResult.workflow;
+    LogService.log(
+      'INFO',
+      'INTELLIGENT_ROUTER',
+      `Auto-routed run ${runId} to ${config.workflow} (Confidence: ${routingResult.confidence}%). ${routingResult.reasoning}`,
+      runId
+    );
 
-    // Reset datasetMap and recompute mappings based on the routed workflow
+    // Reset datasetMap and recompute clean mappings based on the routed workflow
     config.datasetMap = {};
     config.fieldMappings = {
       tb: FieldMapper.mapFields([], 'TRIAL_BALANCE', config.workflow),
@@ -70,9 +61,14 @@ export class FileController {
     };
     if (config.workflow === 'OMNIA_JET') {
       config.fieldMappings.coa = FieldMapper.mapFields([], 'COA', config.workflow);
+    } else {
+      delete config.fieldMappings.coa;
     }
 
     for (const fileInfo of config.files) {
+      if (fileInfo.detectedDataset === 'INPUT_PARAMETERS') {
+        config.datasetMap.parametersFileId = fileInfo.fileId;
+      }
       if (fileInfo.detectedDataset !== 'UNKNOWN' && fileInfo.headers.length > 0) {
         const mappings = FieldMapper.mapFields(fileInfo.headers, fileInfo.detectedDataset, config.workflow);
         if (fileInfo.detectedDataset === 'TRIAL_BALANCE' && !config.datasetMap.tbFileId) {
@@ -81,12 +77,15 @@ export class FileController {
         } else if ((fileInfo.detectedDataset === 'GENERAL_LEDGER' || fileInfo.detectedDataset === 'POPULATION') && !config.datasetMap.glFileId) {
           config.fieldMappings.gl = mappings;
           config.datasetMap.glFileId = fileInfo.fileId;
-        } else if (fileInfo.detectedDataset === 'COA' && !config.datasetMap.coaFileId) {
+        } else if (fileInfo.detectedDataset === 'COA' && config.workflow === 'OMNIA_JET' && !config.datasetMap.coaFileId) {
           config.fieldMappings.coa = mappings;
           config.datasetMap.coaFileId = fileInfo.fileId;
         }
       } else if (fileInfo.sheets && fileInfo.sheets.length > 0) {
         for (const sheet of fileInfo.sheets) {
+          if (sheet.detectedDataset === 'INPUT_PARAMETERS' && !config.datasetMap.parametersFileId) {
+            config.datasetMap.parametersFileId = fileInfo.fileId;
+          }
           if (sheet.detectedDataset === 'TRIAL_BALANCE' && !config.datasetMap.tbFileId) {
             config.datasetMap.tbFileId = fileInfo.fileId;
             config.datasetMap.tbSheetName = sheet.sheetName;
@@ -95,13 +94,18 @@ export class FileController {
             config.datasetMap.glFileId = fileInfo.fileId;
             config.datasetMap.glSheetName = sheet.sheetName;
             config.fieldMappings.gl = FieldMapper.mapFields(sheet.headers, 'GENERAL_LEDGER', config.workflow);
-          } else if (sheet.detectedDataset === 'COA' && !config.datasetMap.coaFileId) {
+          } else if (sheet.detectedDataset === 'COA' && config.workflow === 'OMNIA_JET' && !config.datasetMap.coaFileId) {
             config.datasetMap.coaFileId = fileInfo.fileId;
             config.datasetMap.coaSheetName = sheet.sheetName;
             config.fieldMappings.coa = FieldMapper.mapFields(sheet.headers, 'COA', config.workflow);
           }
         }
       }
+    }
+
+    // For SPARK_JET, parse any uploaded parameter exception input files/sheets into config.sparkParameters
+    if (config.workflow === 'SPARK_JET') {
+      config.sparkParameters = FileDetector.parseSparkParameters(config.files, config.sparkParameters);
     }
 
     RunManager.saveRunConfig(runId, config);
@@ -125,27 +129,26 @@ export class FileController {
       }
     });
 
-    const isMultiSheet = config.workflow === 'OMNIA_JET';
+    const isOmnia = config.workflow === 'OMNIA_JET';
     const routingDiagnostic = {
-      detectedProfile: isMultiSheet ? 'EXCEL_MULTISHEET' : 'CSV_DUAL_STREAM',
+      detectedProfile: isOmnia ? 'OMNIA_CDM_ENTERPRISE' : 'SPARK_CANONICAL_DUAL_STREAM',
       inferredPipeline: config.workflow,
-      confidence: isMultiSheet ? 99 : 98,
-      reasoning: isMultiSheet
-        ? 'Multi-sheet enterprise audit workbook detected. Pipeline automatically configured for multi-tab extraction, account reconciliation, and 20 Golden DQC checks.'
-        : 'Separate Trial Balance and General Ledger datasets detected. Pipeline automatically configured for 4-phase canonical mapping, balance testing, and 12 parameter exceptions.',
+      confidence: routingResult.confidence,
+      reasoning: routingResult.reasoning,
       detectedSheets: allSheetNames,
       detectedFilesSummary: {
         tbFound: Boolean(config.datasetMap.tbFileId),
         glFound: Boolean(config.datasetMap.glFileId),
         coaFound: Boolean(config.datasetMap.coaFileId),
+        parametersFound: Boolean(config.datasetMap.parametersFileId),
         totalFiles: config.files.length,
         totalSheets: allSheetNames.length,
       },
-      capabilities: isMultiSheet
+      capabilities: isOmnia
         ? [
-            'Multi-Sheet Workbook Reconciliation',
+            'Multi-Sheet Omnia CDM Reconciliation',
             '20 Golden DQC Integrity Rules',
-            'Trial Balance vs Population Alignment',
+            'Trial Balance vs JE Rollforward',
             'Standard Audit-Ready Workpapers',
           ]
         : [
@@ -153,6 +156,7 @@ export class FileController {
             'Trial Balance & GL Zero-Sum Balancing',
             'IR 1-4 Integrity & Gap Testing',
             '12 Parameter Exception Testing (Ex 1-12)',
+            'Automated Parameter Exception Ingestion',
           ],
     };
 
@@ -162,6 +166,7 @@ export class FileController {
       files: config.files,
       datasetMap: config.datasetMap,
       fieldMappings: config.fieldMappings,
+      sparkParameters: config.sparkParameters,
       routingDiagnostic,
       workflow: config.workflow,
     });
@@ -445,12 +450,12 @@ export class FileController {
       return null;
     };
 
-    const tbGlCol = (config.fieldMappings.tb || []).find((m) => ['G_L', 'GL_Account', 'Account', 'Account_Number'].includes(m.standardField))?.sourceField;
-    const tbDescCol = (config.fieldMappings.tb || []).find((m) => ['Description', 'Account_Description'].includes(m.standardField))?.sourceField;
-    const tbSubtypeCol = (config.fieldMappings.tb || []).find((m) => ['Account_Subtype', 'Subtype'].includes(m.standardField))?.sourceField;
+    const tbGlCol = (config.fieldMappings.tb || []).find((m) => ['G/L', 'G_L', 'GL', 'GL_Account', 'Account', 'Account_Number', 'account_number'].includes(m.standardField))?.sourceField;
+    const tbDescCol = (config.fieldMappings.tb || []).find((m) => ['Description', 'Account_Description', 'account_description'].includes(m.standardField))?.sourceField;
+    const tbSubtypeCol = (config.fieldMappings.tb || []).find((m) => ['Account Subtype', 'Account_Subtype', 'Subtype'].includes(m.standardField))?.sourceField;
 
-    const glDocCol = (config.fieldMappings.gl || []).find((m) => ['DocumentNo', 'Document_Number', 'Journal_ID', 'Accounting_Document'].includes(m.standardField))?.sourceField;
-    const glAccCol = (config.fieldMappings.gl || []).find((m) => ['G_L', 'GL_Account', 'Account', 'Account_Number'].includes(m.standardField))?.sourceField;
+    const glDocCol = (config.fieldMappings.gl || []).find((m) => ['DocumentNo', 'Document_Number', 'Journal_ID', 'Accounting_Document', 'journal_number'].includes(m.standardField))?.sourceField;
+    const glAccCol = (config.fieldMappings.gl || []).find((m) => ['G/L', 'G_L', 'GL', 'GL_Account', 'Account', 'Account_Number', 'account_number'].includes(m.standardField))?.sourceField;
 
     const constraintResults: ConstraintEvaluation[] = [];
 
@@ -1039,8 +1044,12 @@ export class FileController {
       config.fieldMappings.tb = mappings;
     } else if (datasetType === 'GENERAL_LEDGER' || datasetType === 'POPULATION' || datasetType === 'gl') {
       config.fieldMappings.gl = mappings;
-    } else if (datasetType === 'COA' || datasetType === 'coa') {
+    } else if ((datasetType === 'COA' || datasetType === 'coa') && config.workflow === 'OMNIA_JET') {
       config.fieldMappings.coa = mappings;
+    }
+
+    if (config.workflow === 'SPARK_JET' && config.fieldMappings.coa) {
+      delete config.fieldMappings.coa;
     }
 
     RunManager.saveRunConfig(runId, config);

@@ -12,13 +12,18 @@ import { MetricCard } from '../../components/common/MetricCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { SampleDataModal } from '../../components/common/SampleDataModal';
 import { StepTimeline, TimelineStep } from '../../components/common/StepTimeline';
+import { TabSlider } from '../../components/common/TabSlider';
+import { JetSummaryReportSuite } from '../../components/summary/JetSummaryReportSuite';
+import { ExecutiveChartJsAnalyticsSuite } from '../../components/summary/ExecutiveChartJsAnalyticsSuite';
+import { ExecutiveForensicIntelligenceHub } from '../../components/summary/ExecutiveForensicIntelligenceHub';
+import { EngagementAuditParametersCard, EngagementAuditParametersData } from '../../components/common/EngagementAuditParametersCard';
 import {
   ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download,
   Layers, Settings, FileSpreadsheet, ShieldCheck, Database, RefreshCw, Archive,
   BarChart3, PieChart, CheckSquare, Plus, Trash2, Sliders, FileCheck,
   Upload, Search, Filter, HelpCircle, FileText, Sparkles, X, UserCheck, Calendar, Hash, Tag,
-  FolderUp, Edit3, Eye, CheckCircle, ChevronRight, Activity, Clock, Save, Menu,
-  Lock, Loader2, UploadCloud, Table
+  FolderUp, Edit3, Eye, CheckCircle, ChevronRight, ChevronDown, Activity, Clock, Save, Menu,
+  Lock, Loader2, UploadCloud, Table, ShieldAlert, Folder, RotateCw, TrendingUp, Repeat, Scale
 } from 'lucide-react';
 
 const STEPS: TimelineStep[] = [
@@ -103,6 +108,151 @@ interface IR4AccountItem {
   count: number;
 }
 
+const InlineAutoSuggestInput: React.FC<{
+  value: string;
+  options: string[];
+  onChange: (val: string) => void;
+  placeholder?: string;
+  isInvalid?: boolean;
+}> = ({ value, options, onChange, placeholder = 'Type FS Line Item...', isInvalid }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState(value || '');
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 240 });
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setSearch(value || '');
+  }, [value]);
+
+  const updateCoords = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isOpen) updateCoords();
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [isOpen]);
+
+  const hasTyped = search.trim().length > 0;
+  const filteredOptions = hasTyped
+    ? options.filter(
+        (opt) =>
+          opt.toLowerCase().includes(search.toLowerCase()) &&
+          opt.toLowerCase() !== search.trim().toLowerCase()
+      )
+    : [];
+
+  const isExactMatched = Boolean(
+    search.trim() && options.some((opt) => opt.toLowerCase() === search.trim().toLowerCase())
+  );
+  const showRedError = isInvalid && !isOpen && !isExactMatched && search.trim() !== '0' && search.trim() !== '';
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+      <input
+        ref={inputRef}
+        type="text"
+        className="jet-input"
+        value={search}
+        placeholder={placeholder}
+        onChange={(e) => {
+          const val = e.target.value;
+          setSearch(val);
+          onChange(val);
+          updateCoords();
+          setIsOpen(val.trim().length > 0);
+        }}
+        onFocus={() => {
+          updateCoords();
+          if (search.trim().length > 0) setIsOpen(true);
+        }}
+        style={{
+          fontSize: '0.84rem',
+          padding: '7px 10px',
+          borderColor: showRedError ? 'var(--status-error)' : undefined,
+          background: showRedError ? '#FEE2E2' : '#FFFFFF',
+          width: '100%',
+        }}
+      />
+
+      {isOpen && filteredOptions.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            top: `${coords.top - window.scrollY + 4}px`,
+            left: `${coords.left - window.scrollX}px`,
+            width: `${Math.max(coords.width, 240)}px`,
+            zIndex: 999999,
+            background: '#FFFFFF',
+            borderRadius: '8px',
+            border: '1px solid #CBD5E1',
+            boxShadow: '0 12px 28px -5px rgba(15, 23, 42, 0.22), 0 8px 12px -6px rgba(15, 23, 42, 0.1)',
+            maxHeight: '180px',
+            overflowY: 'auto',
+            padding: '4px',
+          }}
+        >
+          <div style={{ padding: '4px 8px', fontSize: '0.70rem', fontWeight: 700, color: 'var(--deloitte-teal)', letterSpacing: '0.02em' }}>
+            Matching Suggestions ({filteredOptions.length}):
+          </div>
+          {filteredOptions.map((opt) => (
+            <div
+              key={opt}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(opt);
+                setSearch(opt);
+                setIsOpen(false);
+              }}
+              style={{
+                padding: '6px 10px',
+                fontSize: '0.80rem',
+                fontWeight: 600,
+                color: '#1E293B',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                marginBottom: '2px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#F0FDFA';
+                e.currentTarget.style.color = 'var(--deloitte-teal)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#1E293B';
+              }}
+            >
+              {opt}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const SparkJetWorkflow: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -138,6 +288,13 @@ export const SparkJetWorkflow: React.FC = () => {
     status: string;
   } | null>(null);
 
+  // Step 4 Integrity Testing states & auditor approval
+  const [isIrApproved, setIsIrApproved] = useState(false);
+  const [autoTriggeredIR, setAutoTriggeredIR] = useState(false);
+  // Sequential reveal states: show in-progress before exposing numbers
+  const [irResultsRevealed, setIrResultsRevealed] = useState(false);
+  const [resultsRevealed, setResultsRevealed] = useState(false);
+
   // Step 3 In-Place IR Preview State
   const [selectedIRFile, setSelectedIRFile] = useState<string>('IR_Exception_1.csv');
   const [irPreviewData, setIrPreviewData] = useState<{ headers: string[]; rows: Record<string, any>[]; totalRows: number } | null>(null);
@@ -170,12 +327,54 @@ export const SparkJetWorkflow: React.FC = () => {
   const [ex2MinCount, setEx2MinCount] = useState<number>(1);
   const [ex2MaxCount, setEx2MaxCount] = useState<number>(5);
 
+  // Engagement Audit Parameters (Matching Executive Overview & History)
+  const [engagementAuditParams, setEngagementAuditParams] = useState<EngagementAuditParametersData>({
+    engagementName: 'Tangerine Skies Pvt Ltd - JET Audit FY26',
+    startDate: '01-Apr-2025',
+    endDate: '31-Mar-2026',
+    financialYearEnd: '31-Mar',
+    engagementRunId: runId || 'JET-20260830-012',
+    operatingCurrency: 'USD',
+    overallMateriality: 500000,
+    engagementClassification: 'Tier 1 Key Audit Engagement',
+  });
+
+  const handleUpdateEngagementParams = async (newParams: EngagementAuditParametersData) => {
+    setEngagementAuditParams(newParams);
+    setSparkParams((prev) => ({
+      ...prev,
+      engagementName: newParams.engagementName,
+      startDate: newParams.startDate,
+      endDate: newParams.endDate,
+      financialYearEnd: newParams.financialYearEnd,
+      currencyCode: newParams.operatingCurrency,
+      materiality: typeof newParams.overallMateriality === 'number' ? newParams.overallMateriality : parseFloat(String(newParams.overallMateriality).replace(/[^0-9.-]+/g, '')) || 500000,
+    }));
+    if (runId && config) {
+      try {
+        await RunService.updateConfig(runId, {
+          sparkParameters: {
+            ...config.sparkParameters,
+            engagementName: newParams.engagementName,
+            startDate: newParams.startDate,
+            endDate: newParams.endDate,
+            financialYearEnd: newParams.financialYearEnd,
+            currencyCode: newParams.operatingCurrency,
+            materiality: typeof newParams.overallMateriality === 'number' ? newParams.overallMateriality : parseFloat(String(newParams.overallMateriality).replace(/[^0-9.-]+/g, '')) || 500000,
+          }
+        });
+      } catch (e) {
+        console.error('Failed to sync engagement parameters:', e);
+      }
+    }
+  };
+
   // General Spark JET Parameters (Clean: No dummy engagement name)
   const [sparkParams, setSparkParams] = useState<SparkJetParameters>({
     fiscalYear: 2026,
     financialYearEnd: '31-Dec-25',
-    engagementName: '',
-    currencyCode: 'INR',
+    engagementName: 'Tangerine Skies Pvt Ltd - JET Audit FY26',
+    currencyCode: 'USD',
     ex3RevenueDebitsThreshold: 0.0,
     ex4FewPostingsUserThreshold: 2,
     ex6ClosingEntriesBeforeDays: 1,
@@ -185,13 +384,31 @@ export const SparkJetWorkflow: React.FC = () => {
     controlSampleCount: 61,
   });
 
-  // Active Parameter Tab in Step 4
+  // Active Parameter Form Values
+  const [ex3Threshold, setEx3Threshold] = useState<number>(0.0);
+  const [ex3QuarterStart, setEx3QuarterStart] = useState<string>('');
+  const [ex3QuarterEnd, setEx3QuarterEnd] = useState<string>('');
+  const [ex4Threshold, setEx4Threshold] = useState<number>(2);
+  const [ex6BeforeDays, setEx6BeforeDays] = useState<number>(1);
+  const [ex6AfterDays, setEx6AfterDays] = useState<number>(10);
+  const [ex6ClosingDate, setEx6ClosingDate] = useState<string>('31-Dec-25');
+  const [ex6Frequency, setEx6Frequency] = useState<string>('Annually');
+  const [ex8SelectedDigits, setEx8SelectedDigits] = useState<string[]>(['1000', '10000', '100000', '1000000', '6', '7', '8', '9']);
+  const [ex9CountThreshold, setEx9CountThreshold] = useState<number>(2);
+  const [ex9AmountThreshold, setEx9AmountThreshold] = useState<number>(0.0);
+  const [ex11DaysAfterClosing, setEx11DaysAfterClosing] = useState<number>(10);
+  const [ex11ClosingDate, setEx11ClosingDate] = useState<string>('31-Dec-25');
+  const [ex11Frequency, setEx11Frequency] = useState<string>('Annually');
+  const [runControlSample, setRunControlSample] = useState<boolean>(true);
+  const [sampleDocCount, setSampleDocCount] = useState<number>(61);
+
+  // Active Parameter Tab in Step 5
   const [paramTab, setParamTab] = useState<string>('ex1');
   const [newKeyword, setNewKeyword] = useState('');
   const [fileImportNotice, setFileImportNotice] = useState<string | null>(null);
 
   // Results View Tabs in Step 5
-  const [activeVisualTab, setActiveVisualTab] = useState<'preview' | 'overview' | 'checkpoints' | 'artifacts'>('preview');
+  const [activeVisualTab, setActiveVisualTab] = useState<'preview' | 'overview' | 'checkpoints' | 'forensic' | 'artifacts'>('preview');
   const [exceptionCategoryFilter, setExceptionCategoryFilter] = useState<'flagged' | 'clean'>('flagged');
   const [artifactCategoryFilter, setArtifactCategoryFilter] = useState<string>('PARAMETER');
   const [artifactSearch, setArtifactSearch] = useState('');
@@ -352,7 +569,7 @@ export const SparkJetWorkflow: React.FC = () => {
         userName: 'Auditor',
         files: [],
         datasetMap: {},
-        fieldMappings: { tb: [], gl: [], coa: [] },
+        fieldMappings: { tb: [], gl: [] },
         sparkParameters: {
           selectedExceptions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
           ex10Keywords: [],
@@ -411,6 +628,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
       if (data.status.status === 'COMPLETED') {
         setMaxCompletedStep(6);
+        setIsIrApproved(true);
         setCurrentStep((prev) => (prev === 1 ? 6 : prev));
       } else if (data.config.files.length > 0) {
         setMaxCompletedStep((prev) => Math.max(prev, 2));
@@ -505,6 +723,51 @@ export const SparkJetWorkflow: React.FC = () => {
       console.error(err);
     }
   };
+
+  const handleStartIntegrityTesting = async () => {
+    if (!runId) return;
+    setExecuting(true);
+    try {
+      await RunService.startPipeline(runId);
+    } catch (err: any) {
+      console.error('Failed to start pipeline integrity testing:', err);
+      setExecuting(false);
+    }
+  };
+
+  const handleApproveIrResults = () => {
+    setIsIrApproved(true);
+  };
+
+  // Automatically trigger Integrity Testing when landing on Step 4
+  useEffect(() => {
+    if (currentStep === 4 && runId && !autoTriggeredIR) {
+      if (status?.status !== 'COMPLETED' && !executing) {
+        setAutoTriggeredIR(true);
+        handleStartIntegrityTesting();
+      }
+    }
+  }, [currentStep, runId, autoTriggeredIR, status?.status, executing]);
+
+  // Step 4: Show results immediately when not executing (no fake loading on revisit)
+  useEffect(() => {
+    if (currentStep !== 4) return;
+    if (executing) {
+      setIrResultsRevealed(false);
+    } else {
+      setIrResultsRevealed(true);
+    }
+  }, [currentStep, executing]);
+
+  // Step 6: Show results immediately when not executing (no fake loading on revisit)
+  useEffect(() => {
+    if (currentStep !== 6) return;
+    if (executing) {
+      setResultsRevealed(false);
+    } else {
+      setResultsRevealed(true);
+    }
+  }, [currentStep, executing]);
 
   const handleRunAutoClean = async () => {
     if (!runId) return;
@@ -721,11 +984,13 @@ export const SparkJetWorkflow: React.FC = () => {
     if (tbFSLineItems.length === 0) return [];
     const invalid: string[] = [];
     unrelatedRules.forEach(r => {
-      if (r.debit && !tbFSLineItems.some(f => f.trim().toLowerCase() === r.debit.trim().toLowerCase())) {
-        if (!invalid.includes(r.debit.trim())) invalid.push(r.debit.trim());
+      const d = (r.debit || '').trim();
+      const c = (r.credit || '').trim();
+      if (d && d !== '0' && !tbFSLineItems.some(f => f.trim().toLowerCase() === d.toLowerCase())) {
+        if (!invalid.includes(d)) invalid.push(d);
       }
-      if (r.credit && !tbFSLineItems.some(f => f.trim().toLowerCase() === r.credit.trim().toLowerCase())) {
-        if (!invalid.includes(r.credit.trim())) invalid.push(r.credit.trim());
+      if (c && c !== '0' && !tbFSLineItems.some(f => f.trim().toLowerCase() === c.toLowerCase())) {
+        if (!invalid.includes(c)) invalid.push(c);
       }
     });
     return invalid;
@@ -745,6 +1010,123 @@ export const SparkJetWorkflow: React.FC = () => {
     }
     setTimeout(() => setFileImportNotice(null), 6000);
   };
+
+  // Helper to check individual exception input completeness
+  const getExceptionInputStatus = (id: string): { hasInput: boolean; label: string; issue?: string } => {
+    switch (id) {
+      case 'ex1': {
+        const count = unusualAccounts.filter((a) => a.gl && a.gl.trim().length > 0).length;
+        return { hasInput: count > 0, label: count > 0 ? `${count} GLs` : 'Missing GL', issue: 'At least 1 GL code is required' };
+      }
+      case 'ex2': {
+        const count = seldomAccounts.filter((a) => a.gl && a.gl.trim().length > 0).length;
+        return { hasInput: count > 0, label: count > 0 ? `${count} GLs` : 'Missing GL', issue: 'At least 1 seldom GL code is required' };
+      }
+      case 'ex3': {
+        const count = detectedRevenueInfo.accounts.length;
+        return { hasInput: count > 0, label: count > 0 ? `${count} GLs` : 'No Revenue GL', issue: 'At least 1 Revenue / Income GL account is required' };
+      }
+      case 'ex4': {
+        const valid = ex4Threshold !== undefined && ex4Threshold !== null && !isNaN(Number(ex4Threshold)) && Number(ex4Threshold) >= 1;
+        return { hasInput: valid, label: valid ? `≤ ${ex4Threshold}` : 'Invalid Threshold', issue: 'Posting threshold must be ≥ 1' };
+      }
+      case 'ex5': {
+        const count = usersOfInterest.filter((u) => u.username && u.username.trim().length > 0).length;
+        return { hasInput: count > 0, label: count > 0 ? `${count} Users` : 'Missing User', issue: 'At least 1 username is required' };
+      }
+      case 'ex6': {
+        const valid = ex6BeforeDays !== undefined && ex6AfterDays !== undefined && !isNaN(Number(ex6BeforeDays)) && !isNaN(Number(ex6AfterDays)) && Number(ex6BeforeDays) >= 0 && Number(ex6AfterDays) >= 0 && !!ex6ClosingDate && ex6ClosingDate.trim().length > 0;
+        return { hasInput: valid, label: valid ? `${ex6BeforeDays}/${ex6AfterDays}d` : 'Missing Days/Date', issue: 'Closing date and before/after days (≥0) required' };
+      }
+      case 'ex7': {
+        const count = datesOfInterest.filter((d) => d.date && d.date.trim().length > 0).length;
+        return { hasInput: count > 0, label: count > 0 ? `${count} Dates` : 'Missing Date', issue: 'At least 1 date of interest is required' };
+      }
+      case 'ex8': {
+        const count = ex8SelectedDigits.length;
+        return { hasInput: count > 0, label: count > 0 ? `${count} Rules` : 'Select Rule', issue: 'At least 1 round digit or repeating rule must be selected' };
+      }
+      case 'ex9': {
+        const valid = ex9CountThreshold !== undefined && !isNaN(Number(ex9CountThreshold)) && Number(ex9CountThreshold) >= 1;
+        return { hasInput: valid, label: valid ? `> ${ex9CountThreshold}` : 'Invalid Count', issue: 'Duplicate multiplier threshold must be ≥ 1' };
+      }
+      case 'ex10': {
+        const count = keywords.filter((k) => k && k.trim().length > 0).length;
+        return { hasInput: count > 0, label: count > 0 ? `${count} Words` : 'Missing Keyword', issue: 'At least 1 keyword is required' };
+      }
+      case 'ex11': {
+        const valid = ex11DaysAfterClosing !== undefined && !isNaN(Number(ex11DaysAfterClosing)) && Number(ex11DaysAfterClosing) >= 0 && !!ex11ClosingDate && ex11ClosingDate.trim().length > 0;
+        return { hasInput: valid, label: valid ? `${ex11DaysAfterClosing}d Cutoff` : 'Missing Days/Date', issue: 'Closing date and cutoff days (≥0) required' };
+      }
+      case 'ex12': {
+        const validRules = unrelatedRules.filter((r) => r.debit && r.debit.trim().length > 0 && r.credit && r.credit.trim().length > 0);
+        const hasValid = validRules.length > 0 && invalidEx12Items.length === 0;
+        return {
+          hasInput: hasValid,
+          label: invalidEx12Items.length > 0 ? 'Invalid TB Line' : validRules.length > 0 ? `${validRules.length} Rules` : 'Missing Rule',
+          issue: invalidEx12Items.length > 0 ? 'Contains invalid FS Line items not present in TB' : 'At least 1 Debit / Credit pairing rule required'
+        };
+      }
+      case 'controlSample': {
+        const valid = sampleDocCount !== undefined && !isNaN(Number(sampleDocCount)) && Number(sampleDocCount) >= 1;
+        return { hasInput: valid, label: valid ? `${sampleDocCount} Docs` : 'Invalid Count', issue: 'Control sample doc count must be ≥ 1' };
+      }
+      default:
+        return { hasInput: true, label: '' };
+    }
+  };
+
+  // Step 5 Exception Input Validation Summary
+  const step5Validation = useMemo(() => {
+    const missing: { id: string; name: string; issue: string }[] = [];
+    const EXCEPTION_NAMES: Record<string, string> = {
+      ex1: 'Ex 01: Unusual Accounts',
+      ex2: 'Ex 02: Seldom Accounts',
+      ex3: 'Ex 03: Revenue Account Debits',
+      ex4: 'Ex 04: Few Postings Users',
+      ex5: 'Ex 05: Users of Interest',
+      ex6: 'Ex 06: Closing Entries',
+      ex7: 'Ex 07: Dates of Interest',
+      ex8: 'Ex 08: Round Amounts',
+      ex9: 'Ex 09: Duplicate Entries',
+      ex10: 'Ex 10: Keywords in Text',
+      ex11: 'Ex 11: Post-Closing Entries',
+      ex12: 'Ex 12: Unrelated Pairings',
+      controlSample: 'Control Sample Dump',
+    };
+
+    Object.entries(enabledExceptions).forEach(([key, isEnabled]) => {
+      if (isEnabled) {
+        const inputStatus = getExceptionInputStatus(key);
+        if (!inputStatus.hasInput) {
+          missing.push({ id: key, name: EXCEPTION_NAMES[key] || key, issue: inputStatus.issue || 'Missing input configuration' });
+        }
+      }
+    });
+
+    if (runControlSample) {
+      const csStatus = getExceptionInputStatus('controlSample');
+      if (!csStatus.hasInput) {
+        missing.push({ id: 'controlSample', name: EXCEPTION_NAMES.controlSample, issue: csStatus.issue || 'Invalid count' });
+      }
+    }
+
+    const anySelected = Object.values(enabledExceptions).some(Boolean) || runControlSample;
+    if (!anySelected) {
+      missing.push({ id: 'general', name: 'Audit Selection', issue: 'Select at least one exception or control sample to execute' });
+    }
+
+    return {
+      isValid: missing.length === 0,
+      missing,
+    };
+  }, [
+    enabledExceptions, unusualAccounts, seldomAccounts, detectedRevenueInfo,
+    ex4Threshold, usersOfInterest, ex6BeforeDays, ex6AfterDays, ex6ClosingDate,
+    datesOfInterest, ex8SelectedDigits, ex9CountThreshold, keywords,
+    ex11DaysAfterClosing, ex11ClosingDate, unrelatedRules, invalidEx12Items,
+    runControlSample, sampleDocCount
+  ]);
 
   const handleDownloadOutput = (fileName: string) => {
     if (!runId) return;
@@ -842,16 +1224,17 @@ export const SparkJetWorkflow: React.FC = () => {
   }, [config]);
 
   const isConstraintsPassed = Boolean(
-    autoCleanReport?.constraintsPassed === true ||
-    status?.status === 'COMPLETED'
+    autoCleanReport?.constraintsPassed === true
   );
 
   const canAccessStep = (stepId: number) => {
-    if (status?.status === 'COMPLETED') return true;
+    if (status?.status === 'COMPLETED' || maxCompletedStep >= 6) return true;
     if (stepId === 1) return true;
     if (stepId === 2) return isStep1Valid;
-    if (stepId >= 3 && stepId <= 5) return isStep1Valid && isConstraintsPassed;
-    if (stepId === 6) return (status?.status as string) === 'COMPLETED';
+    if (stepId === 3) return isStep1Valid;
+    if (stepId === 4) return isStep1Valid;
+    if (stepId === 5) return isStep1Valid && (isIrApproved || maxCompletedStep >= 4);
+    if (stepId === 6) return isStep1Valid && (isIrApproved || maxCompletedStep >= 5);
     return false;
   };
 
@@ -880,23 +1263,6 @@ export const SparkJetWorkflow: React.FC = () => {
     if (file?.rowCount !== undefined) return file.rowCount;
     return status?.integritySummary?.[summaryField] ?? 0;
   };
-
-  const [ex3Threshold, setEx3Threshold] = useState<number>(0.0);
-  const [ex3QuarterStart, setEx3QuarterStart] = useState<string>('');
-  const [ex3QuarterEnd, setEx3QuarterEnd] = useState<string>('');
-  const [ex4Threshold, setEx4Threshold] = useState<number>(1);
-  const [ex6BeforeDays, setEx6BeforeDays] = useState<number>(1);
-  const [ex6AfterDays, setEx6AfterDays] = useState<number>(10);
-  const [ex6ClosingDate, setEx6ClosingDate] = useState<string>('31-Dec-25');
-  const [ex6Frequency, setEx6Frequency] = useState<string>('Annually');
-  const [ex8SelectedDigits, setEx8SelectedDigits] = useState<string[]>(['1000', '10000', '100000', '1000000', '10000000', '6', '7', '8', '9']);
-  const [ex9CountThreshold, setEx9CountThreshold] = useState<number>(2);
-  const [ex9AmountThreshold, setEx9AmountThreshold] = useState<number>(0.0);
-  const [ex11ClosingDate, setEx11ClosingDate] = useState<string>('31-Dec-25');
-  const [ex11DaysAfterClosing, setEx11DaysAfterClosing] = useState<number>(10);
-  const [ex11Frequency, setEx11Frequency] = useState<string>('Annually');
-  const [runControlSample, setRunControlSample] = useState<boolean>(true);
-  const [sampleDocCount, setSampleDocCount] = useState<number>(61);
 
   const filteredPreviewRows = useMemo(() => {
     if (!previewData || !previewData.rows) return [];
@@ -1019,8 +1385,39 @@ export const SparkJetWorkflow: React.FC = () => {
     if (currentStep === 4) {
       return (
         <>
-          <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button onClick={() => { setCurrentStep(5); setMaxCompletedStep(prev => Math.max(prev, 4)); }} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+          <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+            <ArrowLeft size={13} /> Back
+          </button>
+          {irResultsRevealed && (
+            <button
+              type="button"
+              onClick={handleStartIntegrityTesting}
+              disabled={executing}
+              className="btn-soft-slate"
+              style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <RefreshCw size={13} className={executing ? 'spin-slow' : ''} />
+              {executing ? 'Testing In Progress...' : 'Re-Run Tests'}
+            </button>
+          )}
+          {/* Configure Exceptions: locked until explicitly approved via the in-page Approve button */}
+          <button
+            onClick={() => {
+              if (isIrApproved) {
+                setCurrentStep(5);
+                setMaxCompletedStep(prev => Math.max(prev, 4));
+              }
+            }}
+            disabled={!isIrApproved || executing}
+            className="btn-primary"
+            style={{
+              padding: '6px 16px',
+              fontSize: '0.82rem',
+              opacity: !isIrApproved || executing ? 0.45 : 1,
+              cursor: !isIrApproved || executing ? 'not-allowed' : 'pointer',
+            }}
+            title={!isIrApproved ? 'Approve integrity test results in the panel below to unlock' : 'Configure Exceptions'}
+          >
             Configure Exceptions <ArrowRight size={13} />
           </button>
         </>
@@ -1029,8 +1426,26 @@ export const SparkJetWorkflow: React.FC = () => {
     if (currentStep === 5) {
       return (
         <>
-          <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button onClick={() => { setCurrentStep(6); handleRunPipeline(6); }} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
+          <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+            <ArrowLeft size={13} /> Back
+          </button>
+          <button
+            onClick={() => {
+              if (step5Validation.isValid) {
+                setCurrentStep(6);
+                handleRunPipeline(6);
+              }
+            }}
+            disabled={executing || !step5Validation.isValid}
+            className="btn-primary"
+            style={{
+              padding: '6px 16px',
+              fontSize: '0.82rem',
+              opacity: executing || !step5Validation.isValid ? 0.45 : 1,
+              cursor: executing || !step5Validation.isValid ? 'not-allowed' : 'pointer',
+            }}
+            title={!step5Validation.isValid ? `Configuration Incomplete: ${step5Validation.missing.map(m => `${m.name} (${m.issue})`).join('; ')}` : 'Execute Exceptions'}
+          >
             <Play size={13} fill="#FFFFFF" />
             {executing ? 'Executing...' : 'Execute Exceptions'}
           </button>
@@ -1080,19 +1495,6 @@ export const SparkJetWorkflow: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Right side action if on completed step */}
-        {currentStep === 6 && (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <a
-              href={RunService.getDownloadAllZipUrl(runId!)}
-              className="btn-green"
-              style={{ textDecoration: 'none', padding: '9px 18px', fontSize: '0.84rem' }}
-            >
-              <Archive size={14} /> Download All ZIP
-            </a>
-          </div>
-        )}
       </div>
 
       {/* Horizontal Bubble Step Timeline */}
@@ -1111,14 +1513,32 @@ export const SparkJetWorkflow: React.FC = () => {
       {/* MAIN WORKSPACE */}
       <main>
 
-        {/* STEP 1: FILE UPLOAD & PREVIEW */}
+        {/* STEP 1: ENGAGEMENT AUDIT PARAMETERS & FILE INGESTION */}
         {currentStep === 1 && (
-          <div>
-            <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF', marginTop: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
+            {/* 1. Engagement Audit Parameters Card (Image 2) */}
+            <EngagementAuditParametersCard
+              parameters={engagementAuditParams}
+              onChange={handleUpdateEngagementParams}
+              runId={runId || undefined}
+            />
+
+            {/* 2. Data File Upload Dropzone (Image 1) */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                borderRadius: '16px',
+                border: '1px solid #E2E8F0',
+                padding: '22px 24px',
+                boxShadow: '0 2px 10px -2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02)',
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 4px' }}>Data File Upload</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 3px', color: '#0F172A', letterSpacing: '-0.02em' }}>
+                    Data File Upload
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, fontWeight: 500 }}>
                     Upload your raw Trial Balance and General Ledger / Population dataset files.
                   </p>
                 </div>
@@ -1130,6 +1550,7 @@ export const SparkJetWorkflow: React.FC = () => {
                 onRemove={handleRemoveFile}
                 onPreview={handleOpenSamplePreview}
                 uploading={uploading}
+                isCleaningPassed={isConstraintsPassed}
               />
             </div>
           </div>
@@ -1185,54 +1606,72 @@ export const SparkJetWorkflow: React.FC = () => {
 
         {/* STEP 4: CHECKPOINTS & INTEGRITY TESTING (IR 1-4) */}
         {currentStep === 4 && (
-          <div>
-            {executing && (
-              <div style={{ maxWidth: '680px', margin: '0 auto 30px' }}>
-                <ProgressBar
-                  progress={status?.progress || 0}
-                  stage={status?.currentStage}
-                  message="Evaluating Trial Balance checkpoints and Population balancing pivot..."
-                  isCompleted={status?.status === 'COMPLETED'}
-                  isFailed={status?.status === 'FAILED'}
-                />
-              </div>
-            )}
-
+          <div className="fade-slide-in">
+            {/* Top Metric Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-              <MetricCard label="TB Accounts" value={status?.totalInputRows?.tb || 0} subtitle="Trial Balance Accounts" variant="teal" />
-              <MetricCard label="GL Population Lines" value={status?.totalInputRows?.gl || 0} subtitle="Journal Entries" variant="teal" />
-              <MetricCard label="Balanced Journals" value={status?.glCheckpointsSummary?.balancedJournalsCount ?? (status?.totalInputRows?.gl || 0)} subtitle="Net Balance = 0.0" variant="success" />
-              <MetricCard label="Unbalanced Journals" value={status?.glCheckpointsSummary?.unbalancedJournalsCount || 0} subtitle="Net Balance ≠ 0.0" variant={status?.glCheckpointsSummary?.unbalancedJournalsCount ? 'warning' : 'success'} />
+              <MetricCard
+                label="TB Accounts"
+                value={executing ? 'In Progress...' : (status?.totalInputRows?.tb || 0)}
+                subtitle="Trial Balance Accounts"
+                variant="teal"
+              />
+              <MetricCard
+                label="GL Population Lines"
+                value={executing ? 'In Progress...' : (status?.totalInputRows?.gl || 0)}
+                subtitle="Journal Entries"
+                variant="teal"
+              />
+              <MetricCard
+                label="Balanced Journals"
+                value={executing ? 'In Progress...' : (status?.glCheckpointsSummary?.balancedJournalsCount ?? (status?.totalInputRows?.gl || 0))}
+                subtitle="Net Balance = 0.0"
+                variant="success"
+              />
+              <MetricCard
+                label="Unbalanced Journals"
+                value={executing ? 'In Progress...' : (status?.glCheckpointsSummary?.unbalancedJournalsCount || 0)}
+                subtitle="Net Balance ≠ 0.0"
+                variant={status?.glCheckpointsSummary?.unbalancedJournalsCount ? 'warning' : 'success'}
+              />
               <MetricCard
                 label="Total IR Exceptions"
-                value={getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}
+                value={executing ? 'In Progress...' : (getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'))}
                 subtitle="Integrity Tests 1 - 3"
                 variant="warning"
               />
             </div>
 
+            {/* Trial Balance & IR 1-4 Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px', marginBottom: '24px' }}>
               <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>Trial Balance Checkpoints</h4>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', marginBottom: '14px' }}>
+                  Trial Balance Checkpoints
+                </h4>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.9rem', margin: 0, padding: 0 }}>
                   <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                    <span>1. G/L & Description Non-Blank</span><StatusBadge status="PASS" />
+                    <span>1. G/L & Description Non-Blank</span>
+                    <StatusBadge status={executing ? 'PENDING' : 'PASS'} />
                   </li>
                   <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                    <span>2. Account Subtype Validity</span><StatusBadge status="PASS" />
+                    <span>2. Account Subtype Validity</span>
+                    <StatusBadge status={executing ? 'PENDING' : 'PASS'} />
                   </li>
                   <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                    <span>3. Total Column Sum of Balances = 0</span><StatusBadge status={status?.tbCheckpointsSummary?.totalBalanceZero ? 'PASS' : 'WARNING'} />
+                    <span>3. Total Column Sum of Balances = 0</span>
+                    <StatusBadge status={executing ? 'PENDING' : (status?.tbCheckpointsSummary?.totalBalanceZero ? 'PASS' : 'WARNING')} />
                   </li>
                   <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                    <span>4. Debit vs Credit Total Balancing</span><StatusBadge status={status?.tbCheckpointsSummary?.debitCreditEqual ? 'PASS' : 'PASS'} />
+                    <span>4. Debit vs Credit Total Balancing</span>
+                    <StatusBadge status={executing ? 'PENDING' : (status?.tbCheckpointsSummary?.debitCreditEqual ? 'PASS' : 'PASS')} />
                   </li>
                 </ul>
               </div>
 
               <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', margin: 0 }}>Integrity Tests (IR 1 - 4) Summary</h4>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--deloitte-teal)', margin: 0 }}>
+                    Integrity Tests (IR 1 - 4) Summary
+                  </h4>
                   <button onClick={() => window.open(RunService.getDownloadAllZipUrl(runId || ''), '_blank')} className="btn-soft-slate" title="Download complete zip of all IR exception outputs">
                     <Download size={13} /> Export All IR (ZIP)
                   </button>
@@ -1240,21 +1679,125 @@ export const SparkJetWorkflow: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                     <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>IR 1: GL in TB not in Population</span>
-                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
+                    {executing ? (
+                      <span style={{ fontSize: '0.74rem', color: '#D97706', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Loader2 size={11} className="spin-slow" /> In Progress...
+                      </span>
+                    ) : (
+                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv')}</span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                     <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>IR 2: Activity Mismatches</span>
-                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
+                    {executing ? (
+                      <span style={{ fontSize: '0.74rem', color: '#D97706', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Loader2 size={11} className="spin-slow" /> In Progress...
+                      </span>
+                    ) : (
+                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv')}</span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                     <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>IR 3: GL in Population not in TB</span>
-                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
+                    {executing ? (
+                      <span style={{ fontSize: '0.74rem', color: '#D97706', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Loader2 size={11} className="spin-slow" /> In Progress...
+                      </span>
+                    ) : (
+                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}</span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                     <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>IR 4: Seldom Accounts (Transaction Counts)</span>
-                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv')}</span>
+                    {executing ? (
+                      <span style={{ fontSize: '0.74rem', color: '#D97706', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Loader2 size={11} className="spin-slow" /> In Progress...
+                      </span>
+                    ) : (
+                      <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv')}</span>
+                    )}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Auditor Approval Banner */}
+            <div
+              style={{
+                background: isIrApproved ? '#E6F4F5' : '#FFFBEB',
+                border: `1.5px solid ${isIrApproved ? '#99D5D9' : '#FDE68A'}`,
+                borderRadius: '16px',
+                padding: '16px 20px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                boxShadow: isIrApproved ? '0 4px 14px rgba(0, 118, 128, 0.08)' : '0 4px 14px rgba(217, 119, 6, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {isIrApproved ? (
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#CCECEF', color: '#007680', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <CheckCircle2 size={20} />
+                  </div>
+                ) : (
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <ShieldAlert size={20} />
+                  </div>
+                )}
+                <div>
+                  <h4 style={{ fontSize: '0.94rem', fontWeight: 800, margin: '0 0 2px', color: isIrApproved ? '#005A62' : '#92400E' }}>
+                    {isIrApproved ? 'Integrity Test Results Approved by Auditor' : 'Auditor Approval Required to Proceed to Parameters'}
+                  </h4>
+                  <p style={{ fontSize: '0.80rem', margin: 0, color: isIrApproved ? '#007680' : '#B45309' }}>
+                    {isIrApproved
+                      ? 'Trial Balance balancing and IR 1-4 exception test results are approved. Parameter rules (Ex 1-12) are now unlocked.'
+                      : 'Review the Trial Balance checkpoints and IR 1-4 exception results above. Click "Approve Results" to unlock parameter exception testing.'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                {!isIrApproved ? (
+                  <button
+                    type="button"
+                    onClick={handleApproveIrResults}
+                    disabled={executing}
+                    style={{
+                      background: 'linear-gradient(135deg, #007680 0%, #005A62 100%)',
+                      color: '#FFFFFF',
+                      padding: '9px 20px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      fontSize: '0.88rem',
+                      fontWeight: 800,
+                      cursor: executing ? 'not-allowed' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(0, 118, 128, 0.3)',
+                      transition: 'all 0.18s ease',
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                    onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                  >
+                    <CheckCircle2 size={16} />
+                    Approve Results
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentStep(5);
+                      setMaxCompletedStep((prev) => Math.max(prev, 4));
+                    }}
+                    className="btn-primary"
+                    style={{ padding: '9px 20px', fontSize: '0.88rem' }}
+                  >
+                    Configure Parameters <ArrowRight size={14} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1343,98 +1886,163 @@ export const SparkJetWorkflow: React.FC = () => {
               </div>
             )}
 
-            <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', background: '#FFFFFF' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Select & Configure Parameter Exceptions (Ex1 to Ex12)</h3>
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>Select which audit exception algorithms to test. Input tables appear only for selected rules.</p>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => setEnabledExceptions({ ex1: true, ex2: true, ex3: true, ex4: true, ex5: true, ex6: true, ex7: true, ex8: true, ex9: true, ex10: true, ex11: true, ex12: true })}
-                    className="btn-soft-slate"
-                  >
-                    Select All 12
-                  </button>
-                  <button
-                    onClick={() => setEnabledExceptions({ ex1: false, ex2: false, ex3: false, ex4: false, ex5: false, ex6: false, ex7: false, ex8: false, ex9: false, ex10: false, ex11: false, ex12: false })}
-                    className="btn-soft-slate"
-                  >
-                    Deselect All
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
-                {[
-                  { id: 'ex1', num: '01', title: 'Unusual Accounts', desc: 'Entries in suspense / clearing GLs' },
-                  { id: 'ex2', num: '02', title: 'Seldom Accounts', desc: 'Infrequent posting GL accounts' },
-                  { id: 'ex3', num: '03', title: 'Revenue Account Debits', desc: 'Unusual debit transactions on revenue' },
-                  { id: 'ex4', num: '04', title: 'Few Postings Users', desc: 'Users posting rarely' },
-                  { id: 'ex5', num: '05', title: 'Users of Interest', desc: 'High-risk / Executive / IT users' },
-                  { id: 'ex6', num: '06', title: 'Closing Entries', desc: 'Postings before / after period close' },
-                  { id: 'ex7', num: '07', title: 'Dates of Interest', desc: 'Holidays & non-working day postings' },
-                  { id: 'ex8', num: '08', title: 'Round Amounts', desc: 'Amounts ending in multiples of 100/1000' },
-                  { id: 'ex9', num: '09', title: 'Duplicate Entries', desc: 'Identical amount, date, GL pairs' },
-                  { id: 'ex10', num: '10', title: 'Keywords in Text', desc: 'Journals with words like "bribe", "error"' },
-                  { id: 'ex11', num: '11', title: 'Post-Closing Entries', desc: 'Entries posted after year-end date' },
-                  { id: 'ex12', num: '12', title: 'Unrelated Pairings', desc: 'Incompatible debit/credit FS pairings' },
-                ].map((r) => {
-                  const isChecked = enabledExceptions[r.id];
-                  return (
-                    <div
-                      key={r.id}
-                      onClick={() => setEnabledExceptions((prev) => ({ ...prev, [r.id]: !prev[r.id] }))}
-                      className="jet-card"
-                      style={{
-                        display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px',
-                        borderColor: isChecked ? 'var(--deloitte-teal)' : 'var(--border-subtle)',
-                        background: isChecked ? 'var(--deloitte-teal-light)' : '#FFFFFF',
-                        cursor: 'pointer', boxShadow: isChecked ? 'var(--shadow-glow-teal)' : 'var(--shadow-sm)',
-                      }}
-                    >
-                      <input type="checkbox" checked={isChecked} onChange={() => { }} style={{ marginTop: '3px', cursor: 'pointer', accentColor: 'var(--deloitte-teal)' }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--deloitte-teal)', fontFamily: 'var(--font-mono)' }}>Ex {r.num}</span>
-                          <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>{r.title}</span>
-                        </div>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>{r.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {visibleParamTabs.length > 0 ? (
-              <div>
-                <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '16px', overflowX: 'auto' }}>
-                  {visibleParamTabs.map((tab) => (
+            {/* Master-Detail 2-Column Split Workspace */}
+            <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '20px', alignItems: 'start' }}>
+              
+              {/* LEFT SIDEBAR: Exception Selection & Navigation Palette (No Horizontal Scrolling!) */}
+              <div className="glass-panel" style={{ padding: '18px', background: '#FFFFFF', position: 'sticky', top: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid #E2E8F0' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Audit Exceptions</h4>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Ex1 to Ex12 + Control Sample</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
                     <button
-                      key={tab.id}
-                      onClick={() => setParamTab(tab.id)}
-                      style={{
-                        padding: '10px 16px', background: 'transparent', border: 'none', whiteSpace: 'nowrap',
-                        borderBottom: paramTab === tab.id ? '2.5px solid var(--deloitte-teal)' : '2.5px solid transparent',
-                        color: paramTab === tab.id ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
-                        fontWeight: paramTab === tab.id ? 700 : 600, fontSize: '0.86rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                      }}
+                      onClick={() => setEnabledExceptions({ ex1: true, ex2: true, ex3: true, ex4: true, ex5: true, ex6: true, ex7: true, ex8: true, ex9: true, ex10: true, ex11: true, ex12: true })}
+                      style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--deloitte-teal)', background: 'transparent', border: 'none', cursor: 'pointer' }}
                     >
-                      <span>{tab.label}</span>
-                      {tab.count !== null && (
-                        <span style={{
-                          background: paramTab === tab.id ? 'var(--deloitte-teal)' : 'var(--bg-secondary)',
-                          color: paramTab === tab.id ? '#FFFFFF' : 'var(--text-muted)',
-                          padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontFamily: 'var(--font-mono)',
-                        }}>
-                          {tab.count}
-                        </span>
-                      )}
+                      All
                     </button>
-                  ))}
+                    <span style={{ color: '#CBD5E1', fontSize: '0.72rem' }}>|</span>
+                    <button
+                      onClick={() => setEnabledExceptions({ ex1: false, ex2: false, ex3: false, ex4: false, ex5: false, ex6: false, ex7: false, ex8: false, ex9: false, ex10: false, ex11: false, ex12: false })}
+                      style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    >
+                      None
+                    </button>
+                  </div>
                 </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: 'calc(100vh - 210px)', overflowY: 'auto', paddingRight: '2px' }}>
+                  {[
+                    { id: 'ex1', num: '01', title: 'Unusual Accounts' },
+                    { id: 'ex2', num: '02', title: 'Seldom Accounts' },
+                    { id: 'ex3', num: '03', title: 'Revenue Account Debits' },
+                    { id: 'ex4', num: '04', title: 'Few Postings Users' },
+                    { id: 'ex5', num: '05', title: 'Users of Interest' },
+                    { id: 'ex6', num: '06', title: 'Closing Entries' },
+                    { id: 'ex7', num: '07', title: 'Dates of Interest' },
+                    { id: 'ex8', num: '08', title: 'Round Amounts' },
+                    { id: 'ex9', num: '09', title: 'Duplicate Entries' },
+                    { id: 'ex10', num: '10', title: 'Keywords in Text' },
+                    { id: 'ex11', num: '11', title: 'Post-Closing Entries' },
+                    { id: 'ex12', num: '12', title: 'Unrelated Pairings' },
+                    { id: 'controlSample', num: 'CS', title: 'Control Sample Dump' },
+                  ].map((r) => {
+                    const isControl = r.id === 'controlSample';
+                    const isChecked = isControl ? runControlSample : enabledExceptions[r.id];
+                    const isActiveTab = paramTab === r.id;
+                    const inputStatus = getExceptionInputStatus(r.id);
+                    const isMissingInput = isChecked && !inputStatus.hasInput;
+
+                    return (
+                      <div
+                        key={r.id}
+                        onClick={() => {
+                          if (!isControl && !isChecked) {
+                            setEnabledExceptions((prev) => ({ ...prev, [r.id]: true }));
+                          } else if (isControl && !isChecked) {
+                            setRunControlSample(true);
+                          }
+                          setParamTab(r.id);
+                        }}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: isActiveTab ? '1.5px solid #007680' : isMissingInput ? '1.5px solid #FECDD3' : isChecked ? '1px solid #E2E8F0' : '1px solid transparent',
+                          borderLeft: isActiveTab ? '4px solid #007680' : isMissingInput ? '4px solid #EF4444' : isChecked ? '4px solid #CBD5E1' : '4px solid transparent',
+                          background: isActiveTab ? '#F0FDFA' : isMissingInput ? '#FFF5F5' : isChecked ? '#FFFFFF' : 'transparent',
+                          boxShadow: isActiveTab ? '0 3px 12px rgba(0, 118, 128, 0.12)' : isChecked ? '0 2px 6px rgba(15, 23, 42, 0.03)' : 'none',
+                          opacity: isChecked ? 1 : 0.5,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                          {!isControl ? (
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setEnabledExceptions((prev) => ({ ...prev, [r.id]: e.target.checked }));
+                              }}
+                              style={{ cursor: 'pointer', accentColor: '#007680', width: '15px', height: '15px' }}
+                            />
+                          ) : (
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setRunControlSample(e.target.checked);
+                              }}
+                              style={{ cursor: 'pointer', accentColor: '#007680', width: '15px', height: '15px' }}
+                            />
+                          )}
+                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{
+                                fontSize: '0.68rem', fontWeight: 800, fontFamily: 'var(--font-mono, monospace)',
+                                color: isActiveTab ? '#007680' : isMissingInput ? '#DC2626' : '#475569',
+                                background: isActiveTab ? '#FFFFFF' : isMissingInput ? '#FEE2E2' : '#F1F5F9',
+                                padding: '1px 6px', borderRadius: '4px', border: isMissingInput ? '1px solid #FECDD3' : '1px solid #CBD5E1'
+                              }}>
+                                {r.id !== 'controlSample' ? `Ex ${r.num}` : 'CS'}
+                              </span>
+                              <span style={{ fontSize: '0.82rem', fontWeight: isActiveTab ? 800 : 600, color: isActiveTab ? '#0F172A' : '#334155' }}>
+                                {r.title}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {isChecked && (
+                          isMissingInput ? (
+                            <span style={{
+                              background: '#FEF2F2',
+                              color: '#DC2626',
+                              border: '1px solid #FECDD3',
+                              padding: '2px 7px',
+                              borderRadius: '12px',
+                              fontSize: '0.66rem',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              flexShrink: 0
+                            }}>
+                              <AlertTriangle size={10} color="#DC2626" />
+                              <span>Missing Input</span>
+                            </span>
+                          ) : inputStatus.label ? (
+                            <span style={{
+                              background: isActiveTab ? '#007680' : '#F1F5F9',
+                              color: isActiveTab ? '#FFFFFF' : '#475569',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              fontFamily: 'var(--font-mono, monospace)',
+                              border: isActiveTab ? '1px solid #007680' : '1px solid #CBD5E1',
+                              flexShrink: 0,
+                            }}>
+                              {inputStatus.label}
+                            </span>
+                          ) : null
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN: Active Parameter Configuration Workspace */}
+              <div style={{ minWidth: 0 }}>
 
                 {/* TAB: EX1 UNUSUAL ACCOUNTS */}
                 {paramTab === 'ex1' && (
@@ -1695,8 +2303,10 @@ export const SparkJetWorkflow: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="jet-card" style={{ maxWidth: '420px', padding: '24px', background: 'var(--bg-secondary)' }}>
-                      <label className="jet-label" style={{ fontSize: '0.88rem' }}>User Posting Count Threshold (Value)</label>
+                    <div style={{ maxWidth: '320px', padding: '20px', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-sm)' }}>
+                      <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                        User Posting Count Threshold (Value)
+                      </label>
                       <input
                         type="number"
                         className="jet-input"
@@ -1704,10 +2314,10 @@ export const SparkJetWorkflow: React.FC = () => {
                         onChange={(e) => setEx4Threshold(Math.max(1, Number(e.target.value)))}
                         min="1"
                         placeholder="1"
-                        style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'var(--font-mono)', marginTop: '6px' }}
+                        style={{ fontSize: '0.86rem', fontWeight: 600, padding: '7px 10px', width: '100%', maxWidth: '320px' }}
                       />
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.5 }}>
-                        Any user whose distinct journal count in the population is &le; <strong>{ex4Threshold}</strong> will have all their postings flagged under Exception 4.
+                      <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '8px', margin: '8px 0 0', lineHeight: 1.4 }}>
+                        Any user whose distinct journal count in the population is &le; <strong style={{ color: 'var(--deloitte-teal)' }}>{ex4Threshold}</strong> will have all their postings flagged under Exception 4.
                       </p>
                     </div>
                   </div>
@@ -1985,12 +2595,6 @@ export const SparkJetWorkflow: React.FC = () => {
                 {/* TAB: EX12 UNRELATED ACCOUNTS */}
                 {paramTab === 'ex12' && (
                   <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                    <datalist id="tb-fs-line-items">
-                      {tbFSLineItems.map((item) => (
-                        <option key={item} value={item} />
-                      ))}
-                    </datalist>
-
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Ex12: Unrelated Financial Statement Line Pairings</h4>
@@ -2027,38 +2631,72 @@ export const SparkJetWorkflow: React.FC = () => {
                     )}
 
                     {tbFSLineItems.length > 0 && (
-                      <div style={{ marginBottom: '16px', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ marginBottom: '16px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
                         <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
                           Available Trial Balance FS Line Items ({tbFSLineItems.length} items):
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '80px', overflowY: 'auto' }}>
                           {tbFSLineItems.map((item) => (
-                            <span key={item} style={{ fontSize: '0.72rem', background: '#FFFFFF', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-medium)', color: 'var(--text-primary)' }}>
-                              {item}
-                            </span>
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => {
+                                const emptyDebitIdx = unrelatedRules.findIndex((r) => !r.debit || r.debit.trim() === '0');
+                                const emptyCreditIdx = unrelatedRules.findIndex((r) => r.debit && r.debit.trim() !== '0' && (!r.credit || r.credit.trim() === '0'));
+                                if (emptyDebitIdx !== -1) {
+                                  setUnrelatedRules((prev) => {
+                                    const updated = [...prev];
+                                    updated[emptyDebitIdx].debit = item;
+                                    return updated;
+                                  });
+                                } else if (emptyCreditIdx !== -1) {
+                                  setUnrelatedRules((prev) => {
+                                    const updated = [...prev];
+                                    updated[emptyCreditIdx].credit = item;
+                                    return updated;
+                                  });
+                                } else {
+                                  setUnrelatedRules((prev) => [...prev, { debit: item, credit: '' }]);
+                                }
+                              }}
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                background: '#FFFFFF',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-medium)',
+                                color: 'var(--text-primary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                              title="Click to auto-fill this FS Line Item into rule"
+                            >
+                              + {item}
+                            </button>
                           ))}
                         </div>
                       </div>
                     )}
 
                     {unrelatedRules.length > 0 ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px', maxHeight: '420px', overflowY: 'auto', padding: '4px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '14px', maxHeight: '420px', overflowY: 'auto', padding: '4px' }}>
                         {unrelatedRules.map((row, idx) => {
-                          const isDebitInvalid = Boolean(row.debit && tbFSLineItems.length > 0 && !tbFSLineItems.some((f) => f.trim().toLowerCase() === row.debit.trim().toLowerCase()));
-                          const isCreditInvalid = Boolean(row.credit && tbFSLineItems.length > 0 && !tbFSLineItems.some((f) => f.trim().toLowerCase() === row.credit.trim().toLowerCase()));
+                          const isDebitInvalid = Boolean(row.debit && row.debit.trim() !== '0' && tbFSLineItems.length > 0 && !tbFSLineItems.some((f) => f.trim().toLowerCase() === row.debit.trim().toLowerCase()));
+                          const isCreditInvalid = Boolean(row.credit && row.credit.trim() !== '0' && tbFSLineItems.length > 0 && !tbFSLineItems.some((f) => f.trim().toLowerCase() === row.credit.trim().toLowerCase()));
 
                           return (
                             <div
                               key={idx}
                               style={{
-                                padding: '12px 14px',
+                                padding: '14px',
                                 background: (isDebitInvalid || isCreditInvalid) ? '#FEF2F2' : '#FFFFFF',
-                                borderRadius: '8px',
-                                border: (isDebitInvalid || isCreditInvalid) ? '1.5px solid var(--status-error)' : '1px solid var(--border-medium)',
+                                borderRadius: '10px',
+                                border: (isDebitInvalid || isCreditInvalid) ? '1.5px solid var(--status-error)' : '1px solid #E2E8F0',
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '8px',
+                                gap: '10px',
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2068,26 +2706,18 @@ export const SparkJetWorkflow: React.FC = () => {
                                 </button>
                               </div>
                               <div>
-                                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>Debit FS Line Item</label>
-                                <input
-                                  type="text"
-                                  list="tb-fs-line-items"
-                                  className="jet-input"
+                                <label style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Debit FS Line Item</label>
+                                <InlineAutoSuggestInput
                                   value={row.debit}
-                                  placeholder="Select Debit FS Line..."
-                                  onChange={(e) => {
-                                    const val = e.target.value;
+                                  options={tbFSLineItems}
+                                  placeholder="Type Debit FS Line..."
+                                  isInvalid={isDebitInvalid}
+                                  onChange={(val) => {
                                     setUnrelatedRules((prev) => {
                                       const updated = [...prev];
                                       updated[idx].debit = val;
                                       return updated;
                                     });
-                                  }}
-                                  style={{
-                                    fontSize: '0.82rem',
-                                    padding: '5px 8px',
-                                    borderColor: isDebitInvalid ? 'var(--status-error)' : undefined,
-                                    background: isDebitInvalid ? '#FEE2E2' : undefined,
                                   }}
                                 />
                                 {isDebitInvalid && (
@@ -2097,26 +2727,18 @@ export const SparkJetWorkflow: React.FC = () => {
                                 )}
                               </div>
                               <div>
-                                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>Credit FS Line Item</label>
-                                <input
-                                  type="text"
-                                  list="tb-fs-line-items"
-                                  className="jet-input"
+                                <label style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Credit FS Line Item</label>
+                                <InlineAutoSuggestInput
                                   value={row.credit}
-                                  placeholder="Select Credit FS Line..."
-                                  onChange={(e) => {
-                                    const val = e.target.value;
+                                  options={tbFSLineItems}
+                                  placeholder="Type Credit FS Line..."
+                                  isInvalid={isCreditInvalid}
+                                  onChange={(val) => {
                                     setUnrelatedRules((prev) => {
                                       const updated = [...prev];
                                       updated[idx].credit = val;
                                       return updated;
                                     });
-                                  }}
-                                  style={{
-                                    fontSize: '0.82rem',
-                                    padding: '5px 8px',
-                                    borderColor: isCreditInvalid ? 'var(--status-error)' : undefined,
-                                    background: isCreditInvalid ? '#FEE2E2' : undefined,
                                   }}
                                 />
                                 {isCreditInvalid && (
@@ -2130,7 +2752,7 @@ export const SparkJetWorkflow: React.FC = () => {
                         })}
                       </div>
                     ) : (
-                      <div style={{ textAlign: 'center', padding: '36px 20px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px dashed var(--border-medium)', color: 'var(--text-muted)' }}>
+                      <div style={{ textAlign: 'center', padding: '36px 20px', background: '#F8FAFC', borderRadius: '8px', border: '1px dashed #CBD5E1', color: 'var(--text-muted)' }}>
                         <div style={{ fontSize: '0.86rem', fontWeight: 600, marginBottom: '4px' }}>No unrelated account rules configured</div>
                         <div style={{ fontSize: '0.78rem' }}>Click "+ Add Rule" or "Import File (ex_12.csv/.xlsx)" to add pairings.</div>
                       </div>
@@ -2143,75 +2765,207 @@ export const SparkJetWorkflow: React.FC = () => {
                   <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                     <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Representative Control Sample Dump Configuration</h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>Randomly extracts full journal documents using seed 42 to satisfy ET sample testing requirements.</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                      <div>
-                        <label className="jet-label">Sample Document Count Requested</label>
-                        <input type="number" className="jet-input" value={sampleDocCount} onChange={(e) => setSampleDocCount(Math.max(1, Number(e.target.value)))} min="1" placeholder="61" />
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Default is 61 randomized documents.</span>
-                      </div>
+                    <div style={{ maxWidth: '320px' }}>
+                      <label className="jet-label">Sample Document Count Requested</label>
+                      <input type="number" className="jet-input" value={sampleDocCount} onChange={(e) => setSampleDocCount(Math.max(1, Number(e.target.value)))} min="1" placeholder="61" style={{ width: '100%', maxWidth: '320px' }} />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Default is 61 randomized documents.</span>
                     </div>
                   </div>
                 )}
+
+                {/* Parameter Validation Status & Bottom Execution Bar */}
+                <div style={{
+                  marginTop: '20px',
+                  padding: '16px 20px',
+                  background: step5Validation.isValid ? '#F0FDF4' : '#FFFBEB',
+                  border: step5Validation.isValid ? '1px solid #BBF7D0' : '1px solid #FDE68A',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '14px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', minWidth: 0, flex: 1 }}>
+                    {step5Validation.isValid ? (
+                      <CheckCircle2 size={20} color="#16A34A" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    ) : (
+                      <AlertTriangle size={20} color="#D97706" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    )}
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: step5Validation.isValid ? '#15803D' : '#B45309' }}>
+                        {step5Validation.isValid
+                          ? 'All Selected Audit Exceptions Configured & Ready'
+                          : `Configuration Incomplete (${step5Validation.missing.length} exception${step5Validation.missing.length > 1 ? 's' : ''} require attention)`}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: step5Validation.isValid ? '#166534' : '#92400E', marginTop: '2px' }}>
+                        {step5Validation.isValid ? (
+                          'All selected exceptions contain valid input parameters. Click "Execute Exceptions" to run the full audit pipeline.'
+                        ) : (
+                          <div>
+                            <span>Please provide required inputs or uncheck inactive exceptions to enable execution:</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                              {step5Validation.missing.map(m => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => { if (m.id !== 'general') setParamTab(m.id); }}
+                                  style={{
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECDD3',
+                                    color: '#DC2626',
+                                    borderRadius: '6px',
+                                    padding: '3px 8px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    cursor: m.id !== 'general' ? 'pointer' : 'default',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                >
+                                  <span>{m.name}: {m.issue}</span>
+                                  {m.id !== 'general' && <ArrowRight size={10} />}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (step5Validation.isValid) {
+                        setCurrentStep(6);
+                        handleRunPipeline(6);
+                      }
+                    }}
+                    disabled={executing || !step5Validation.isValid}
+                    className="btn-primary"
+                    style={{
+                      padding: '8px 20px',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      opacity: executing || !step5Validation.isValid ? 0.45 : 1,
+                      cursor: executing || !step5Validation.isValid ? 'not-allowed' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      flexShrink: 0
+                    }}
+                    title={!step5Validation.isValid ? 'Provide inputs for all selected exceptions to enable execution' : 'Execute Exceptions'}
+                  >
+                    <Play size={14} fill="#FFFFFF" />
+                    <span>{executing ? 'Executing Pipeline...' : 'Execute Exceptions'}</span>
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="glass-panel" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)', background: '#FFFFFF' }}>
-                No exception rules selected. Enable one or more exceptions above to configure rules.
-              </div>
-            )}
+            </div>
           </div>
         )}
 
         {/* STEP 6: RESULTS & EXECUTIVE VISUALS */}
         {currentStep === 6 && (
-          <div>
-            {executing && (
-              <div style={{ maxWidth: '680px', margin: '0 auto 30px' }}>
-                <ProgressBar
-                  progress={status?.progress || 0}
-                  stage={status?.currentStage}
-                  message="Executing Selected Parameter Exceptions (Ex1 to Ex12) and Generating Audit Outputs..."
-                  isCompleted={status?.status === 'COMPLETED'}
-                  isFailed={status?.status === 'FAILED'}
-                />
+          <div className="fade-slide-in">
+            {/* Success Banner when Completed */}
+            {status?.status === 'COMPLETED' && !executing && (
+              <div
+                style={{
+                  background: '#E6F4F5',
+                  border: '1px solid #99D5D9',
+                  borderRadius: '12px',
+                  padding: '14px 18px',
+                  marginBottom: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  boxShadow: '0 2px 8px rgba(0, 118, 128, 0.06)',
+                }}
+              >
+                <CheckCircle2 size={18} color="#007680" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#005A62' }}>
+                  Audit Pipeline Execution Completed — All 12 Parameter Exceptions and Deliverables Ready.
+                </span>
               </div>
             )}
 
+            {/* Top Metric Cards: Show In Progress... when executing, computed numbers when completed */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-              <MetricCard label="Total Population Rows" value={status?.glCheckpointsSummary?.totalLines || (status?.totalInputRows?.gl || 0)} subtitle="General Ledger Lines" variant="teal" />
-              <MetricCard label="TB Accounts" value={status?.totalInputRows?.tb || 0} subtitle="Trial Balance Accounts" variant="teal" />
+              <MetricCard
+                label="Total Population Rows"
+                value={executing || status?.status === 'RUNNING' ? 'In Progress...' : (status?.glCheckpointsSummary?.totalLines || (status?.totalInputRows?.gl || 0))}
+                subtitle="General Ledger Lines"
+                variant="teal"
+              />
+              <MetricCard
+                label="TB Accounts"
+                value={executing || status?.status === 'RUNNING' ? 'In Progress...' : (status?.totalInputRows?.tb || 0)}
+                subtitle="Trial Balance Accounts"
+                variant="teal"
+              />
               <MetricCard
                 label="IR Exceptions"
-                value={getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv')}
+                value={executing || status?.status === 'RUNNING' ? 'In Progress...' : (getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'))}
                 subtitle="Integrity Tests 1-3"
                 variant="warning"
               />
               <MetricCard
                 label="Parameter Exceptions"
-                value={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reduce((acc, num) => acc + getExceptionCount(num, `Ex${num}`), 0)}
+                value={executing || status?.status === 'RUNNING' ? 'In Progress...' : ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reduce((acc, num) => acc + getExceptionCount(num, `Ex${num}`), 0))}
                 subtitle="Ex1 - Ex12 Total Flagged"
                 variant="teal"
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '20px', overflowX: 'auto' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '4px',
+                background: '#F1F5F9',
+                padding: '4px',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0',
+                marginBottom: '20px',
+                width: '100%',
+              }}
+            >
               {[
                 { id: 'preview', label: 'Parameter Exception Previews (Top 50)', icon: Eye },
                 { id: 'overview', label: 'Executive Visual Analytics', icon: BarChart3 },
                 { id: 'checkpoints', label: 'TB & GL Checkpoints', icon: Activity },
+                { id: 'forensic', label: 'Forensic & CFO Intelligence', icon: Scale },
                 { id: 'artifacts', label: 'Download All Outputs', icon: Archive },
               ].map((tab) => {
                 const IconComp = tab.icon;
+                const isActive = activeVisualTab === tab.id;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveVisualTab(tab.id as any)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 18px', background: 'transparent', border: 'none', whiteSpace: 'nowrap',
-                      borderBottom: activeVisualTab === tab.id ? '2.5px solid var(--deloitte-teal)' : '2.5px solid transparent',
-                      color: activeVisualTab === tab.id ? 'var(--deloitte-teal)' : 'var(--text-secondary)', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '7px',
+                      padding: '8px 14px',
+                      background: isActive ? '#FFFFFF' : 'transparent',
+                      border: isActive ? '1px solid #E2E8F0' : '1px solid transparent',
+                      borderRadius: '8px',
+                      whiteSpace: 'nowrap',
+                      color: isActive ? '#007680' : '#64748B',
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      boxShadow: isActive ? '0 1px 3px rgba(0, 0, 0, 0.04)' : 'none',
+                      transition: 'all 0.15s ease',
                     }}
                   >
-                    <IconComp size={16} />{tab.label}
+                    <IconComp size={15} color={isActive ? '#007680' : '#64748B'} />
+                    <span>{tab.label}</span>
                   </button>
                 );
               })}
@@ -2236,55 +2990,74 @@ export const SparkJetWorkflow: React.FC = () => {
                   key={card.file}
                   onClick={() => setSelectedPreviewFile(card.file)}
                   style={{
-                    padding: '14px 16px',
-                    borderRadius: '11px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
                     cursor: 'pointer',
                     transition: 'all 0.18s ease',
-                    background: isSelected ? 'var(--deloitte-teal-light)' : '#FFFFFF',
-                    border: `1.5px solid ${isSelected ? 'var(--deloitte-teal)' : 'var(--border-subtle)'}`,
-                    borderLeft: isSelected ? '4px solid var(--deloitte-teal)' : `1.5px solid ${card.count > 0 ? 'var(--status-error)' : 'var(--border-subtle)'}`,
-                    boxShadow: isSelected ? '0 2px 10px rgba(0, 118, 128, 0.14)' : 'var(--shadow-sm)',
+                    background: isSelected ? '#F0FDFA' : '#FFFFFF',
+                    border: isSelected ? '1.5px solid #007680' : '1px solid #E2E8F0',
+                    borderLeft: isSelected
+                      ? '4px solid #007680'
+                      : card.count > 0
+                      ? '4px solid #EF4444'
+                      : '4px solid #007680',
+                    boxShadow: isSelected ? '0 4px 14px rgba(0, 118, 128, 0.12)' : '0 2px 5px rgba(15, 23, 42, 0.04)',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px',
+                    gap: '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
                     <span style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.70rem',
                       fontWeight: 800,
-                      fontFamily: 'var(--font-mono)',
-                      color: isSelected ? 'var(--deloitte-teal)' : 'var(--text-secondary)',
-                      background: isSelected ? '#FFFFFF' : 'var(--bg-secondary)',
+                      fontFamily: 'var(--font-mono, monospace)',
+                      color: isSelected ? '#007680' : '#334155',
+                      background: isSelected ? '#FFFFFF' : '#F1F5F9',
                       padding: '2px 7px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '5px',
+                      border: '1px solid #CBD5E1',
                     }}>
                       {card.num <= 12 ? `Ex ${card.num.toString().padStart(2, '0')}` : 'SAMPLE'}
                     </span>
                     <span
-                      className={card.count > 0 ? 'badge badge-error' : 'badge badge-success'}
-                      style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                      style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '20px',
+                        background: card.count > 0 ? '#FEF2F2' : '#E6F4F5',
+                        color: card.count > 0 ? '#DC2626' : '#007680',
+                        border: card.count > 0 ? '1px solid #FCA5A5' : '1px solid #99D5D9',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
                     >
-                      {card.count} Flagged
+                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: card.count > 0 ? '#DC2626' : '#007680' }} />
+                      {card.count > 0 ? `${card.count} Flagged` : '0 Flagged'}
                     </span>
                   </div>
 
                   <div>
                     <div style={{
                       fontWeight: isSelected ? 800 : 700,
-                      fontSize: '0.88rem',
-                      color: 'var(--text-primary)',
+                      fontSize: '0.86rem',
+                      color: '#0F172A',
                       lineHeight: 1.25,
                       marginBottom: '3px',
                     }}>
                       {card.title}
                     </div>
                     <p style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--text-muted)',
+                      fontSize: '0.73rem',
+                      color: '#64748B',
                       margin: 0,
                       lineHeight: 1.35,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
                     }}>
                       {card.desc}
                     </p>
@@ -2294,9 +3067,9 @@ export const SparkJetWorkflow: React.FC = () => {
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    paddingTop: '8px',
-                    borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+                    gap: '6px',
+                    paddingTop: '6px',
+                    borderTop: '1px solid #F1F5F9',
                   }}>
                     <button
                       type="button"
@@ -2306,24 +3079,25 @@ export const SparkJetWorkflow: React.FC = () => {
                       }}
                       style={{
                         flex: 1,
-                        height: '30px',
+                        height: '29px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '5px',
-                        padding: '0 10px',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
+                        padding: '0 8px',
+                        fontSize: '0.73rem',
+                        fontWeight: 800,
                         borderRadius: '6px',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
-                        background: isSelected ? 'var(--deloitte-teal)' : 'rgba(0, 118, 128, 0.06)',
-                        color: isSelected ? '#FFFFFF' : 'var(--deloitte-teal)',
-                        border: isSelected ? '1px solid var(--deloitte-teal)' : '1px solid rgba(0, 118, 128, 0.25)',
+                        background: isSelected ? '#007680' : '#F1F5F9',
+                        color: isSelected ? '#FFFFFF' : '#334155',
+                        border: isSelected ? '1px solid #007680' : '1px solid #CBD5E1',
+                        boxShadow: isSelected ? '0 2px 6px rgba(0, 118, 128, 0.28)' : 'none',
                       }}
                     >
-                      <Eye size={12} />
-                      <span>{isSelected ? 'Viewing' : 'Preview'}</span>
+                      <Eye size={12} color={isSelected ? '#FFFFFF' : '#334155'} />
+                      <span>{isSelected ? 'Viewing' : 'View'}</span>
                     </button>
 
                     <a
@@ -2331,25 +3105,26 @@ export const SparkJetWorkflow: React.FC = () => {
                       onClick={(e) => e.stopPropagation()}
                       style={{
                         flex: 1,
-                        height: '30px',
+                        height: '29px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '4px',
-                        padding: '0 10px',
-                        fontSize: '0.74rem',
-                        fontWeight: 600,
+                        padding: '0 8px',
+                        fontSize: '0.73rem',
+                        fontWeight: 800,
                         borderRadius: '6px',
-                        background: '#F1F5F9',
-                        color: 'var(--text-secondary)',
-                        border: '1px solid #E2E8F0',
+                        background: '#0F172A',
+                        color: '#FFFFFF',
+                        border: '1px solid #0F172A',
                         textDecoration: 'none',
                         transition: 'all 0.15s ease',
+                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)',
                       }}
                       title={`Download full ${card.file}`}
                     >
-                      <Download size={12} />
-                      <span>CSV</span>
+                      <Download size={12} color="#FFFFFF" />
+                      <span style={{ color: '#FFFFFF' }}>CSV</span>
                     </a>
                   </div>
                 </div>
@@ -2358,8 +3133,8 @@ export const SparkJetWorkflow: React.FC = () => {
               return (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '420px 1fr',
-                  gap: '20px',
+                  gridTemplateColumns: '345px 1fr',
+                  gap: '18px',
                   alignItems: 'stretch',
                   marginBottom: '24px',
                   height: '700px',
@@ -2485,7 +3260,7 @@ export const SparkJetWorkflow: React.FC = () => {
                     
                     {/* Header */}
                     <div style={{ paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '14px', flexShrink: 0 }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span style={{
                             fontSize: '0.76rem', fontWeight: 800, fontFamily: 'var(--font-mono)',
@@ -2502,27 +3277,7 @@ export const SparkJetWorkflow: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* Top Action Button matching standard height */}
-                        <a
-                          href={RunService.getDownloadOutputUrl(runId!, selectedCard.file)}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                            height: '32px', padding: '0 14px', fontSize: '0.78rem', fontWeight: 700,
-                            borderRadius: '7px', background: 'var(--deloitte-teal)', color: '#FFFFFF',
-                            border: 'none', textDecoration: 'none', boxShadow: '0 2px 6px rgba(0, 118, 128, 0.22)',
-                            cursor: 'pointer', transition: 'all 0.15s ease',
-                          }}
-                          title={`Download complete ${selectedCard.file}`}
-                        >
-                          <Download size={13} />
-                          <span>Download CSV</span>
-                        </a>
-                      </div>
-
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>
-                          {selectedCard.desc}
-                        </p>
+                        {/* Search Bar Placed Top Right */}
                         <div style={{ position: 'relative', width: '260px' }}>
                           <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                           <input
@@ -2535,6 +3290,10 @@ export const SparkJetWorkflow: React.FC = () => {
                           />
                         </div>
                       </div>
+
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>
+                        {selectedCard.desc}
+                      </p>
                     </div>
 
                     {/* Table View Body with scrolling */}
@@ -2578,26 +3337,73 @@ export const SparkJetWorkflow: React.FC = () => {
                           </div>
                         </div>
                       ) : (
-                        <div style={{
-                          textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)',
-                          background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px dashed var(--border-subtle)',
-                          margin: 'auto 0',
-                        }}>
-                          <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'var(--status-success-bg)', color: 'var(--status-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                            <CheckCircle size={22} />
+                        <div
+                          style={{
+                            margin: 'auto 0',
+                            padding: '36px 28px',
+                            background: 'linear-gradient(135deg, #F0FDFA 0%, #FFFFFF 50%, #F8FAFC 100%)',
+                            borderRadius: '16px',
+                            border: '1px solid #CCFBF1',
+                            borderTop: '4px solid #007680',
+                            boxShadow: '0 8px 30px rgba(0, 118, 128, 0.08)',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {/* Centered Audit Success Ring */}
+                          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '18px' }}>
+                            <div style={{ position: 'relative', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0, 118, 128, 0.12)' }} />
+                              <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#FFFFFF', border: '2px solid #007680', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#007680', boxShadow: '0 4px 12px rgba(0, 118, 128, 0.18)' }}>
+                                <CheckCircle2 size={24} color="#007680" />
+                              </div>
+                            </div>
                           </div>
-                          <h5 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+
+                          <h5 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
                             0 Exception Records
                           </h5>
-                          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: '360px', marginLeft: 'auto', marginRight: 'auto' }}>
-                            No entries were flagged for {selectedCard.title}. The testing rule completed cleanly.
+                          <p style={{ fontSize: '0.84rem', color: '#475569', margin: '0 0 20px', maxWidth: '420px', marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
+                            No entries were flagged for <strong>{selectedCard.title}</strong>. The automated audit testing rule executed cleanly across the full population.
                           </p>
+
+                          {/* 3 Symmetrical Audit Assertions */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', maxWidth: '480px', margin: '0 auto 24px' }}>
+                            <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.04em' }}>POPULATION</div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>Full Scan</div>
+                            </div>
+                            <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.04em' }}>STATUS</div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#007680', marginTop: '2px' }}>Clean & Passed</div>
+                            </div>
+                            <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.04em' }}>DELIVERABLE</div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#007680', marginTop: '2px' }}>CSV Ready</div>
+                            </div>
+                          </div>
+
+                          {/* Download Button with Black Background and White Text */}
                           <a
                             href={RunService.getDownloadOutputUrl(runId!, selectedCard.file)}
-                            className="btn-soft-slate"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', height: '32px', padding: '0 14px', textDecoration: 'none' }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '8px',
+                              height: '38px',
+                              padding: '0 22px',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              borderRadius: '8px',
+                              background: '#0F172A',
+                              color: '#FFFFFF',
+                              border: '1px solid #0F172A',
+                              textDecoration: 'none',
+                              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
+                              transition: 'all 0.15s ease',
+                            }}
                           >
-                            <Download size={13} /> Download Clean Output CSV
+                            <Download size={14} color="#FFFFFF" /> <span style={{ color: '#FFFFFF' }}>Download Clean Output CSV</span>
                           </a>
                         </div>
                       )}
@@ -2608,107 +3414,12 @@ export const SparkJetWorkflow: React.FC = () => {
             })()}
 
             {activeVisualTab === 'overview' && (
-              <div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: '20px', marginBottom: '24px' }}>
-                  <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Parameter Exceptions (Ex1 - Ex12) Frequency Breakdown</h4>
-                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Number of journal entries flagged across each testing algorithm.</p>
-                      </div>
-                      <BarChart3 size={20} color="var(--deloitte-teal)" />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {[
-                        { num: 1, key: 'Ex1_Unusual_Accounts', label: 'Ex1 Unusual Accounts', color: 'var(--deloitte-teal)' },
-                        { num: 2, key: 'Ex2_Seldom_Accounts', label: 'Ex2 Seldom Accounts', color: 'var(--deloitte-teal)' },
-                        { num: 3, key: 'Ex3_Revenue_Debits', label: 'Ex3 Revenue Debits', color: 'var(--status-error)' },
-                        { num: 4, key: 'Ex4_Few_Postings_Users', label: 'Ex4 Few Postings Users', color: 'var(--status-warning)' },
-                        { num: 5, key: 'Ex5_Users_Of_Interest', label: 'Ex5 Users of Interest', color: 'var(--status-warning)' },
-                        { num: 6, key: 'Ex6_Closing_Entries', label: 'Ex6 Closing Entries', color: 'var(--status-success)' },
-                        { num: 7, key: 'Ex7_Dates_Of_Interest', label: 'Ex7 Dates of Interest', color: 'var(--status-success)' },
-                        { num: 8, key: 'Ex8_Round_Amounts', label: 'Ex8 Round Amounts', color: 'var(--status-info)' },
-                        { num: 9, key: 'Ex9_Duplicate_Entries', label: 'Ex9 Duplicate Entries', color: 'var(--status-error)' },
-                        { num: 10, key: 'Ex10_Keyword_Entries', label: 'Ex10 Keyword Entries', color: 'var(--deloitte-green)' },
-                        { num: 11, key: 'Ex11_Post_Closing_Entries', label: 'Ex11 Post-Closing', color: 'var(--status-success)' },
-                        { num: 12, key: 'Ex12_Unrelated_Accounts', label: 'Ex12 Unrelated Accounts', color: 'var(--deloitte-green)' },
-                      ].map((rule) => {
-                        const count = getExceptionCount(rule.num, rule.key);
-                        const maxVal = Math.max(20, count);
-                        return (
-                          <div key={rule.key}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '3px' }}>
-                              <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{rule.label}</span>
-                              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: count > 0 ? rule.color : 'var(--text-muted)' }}>{count} Flagged</span>
-                            </div>
-                            <div style={{ height: '7px', background: 'var(--border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
-                              <div style={{ width: `${Math.min(100, Math.max(count > 0 ? 8 : 0, (count / maxVal) * 100))}%`, height: '100%', background: rule.color, borderRadius: '4px' }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Document Balancing Ratio</h4>
-                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Balancing status across {status?.glCheckpointsSummary?.totalJournals || (status?.totalInputRows?.gl || 0)} unique accounting documents.</p>
-                        </div>
-                        <PieChart size={20} color="var(--deloitte-teal)" />
-                      </div>
-
-                      <div style={{ display: 'flex', height: '14px', borderRadius: '7px', overflow: 'hidden', background: 'var(--border-subtle)', marginBottom: '14px' }}>
-                        <div style={{ width: `${status?.glCheckpointsSummary?.totalJournals ? ((status.glCheckpointsSummary.balancedJournalsCount || 0) / status.glCheckpointsSummary.totalJournals) * 100 : 100}%`, background: 'var(--status-success)' }} />
-                        <div style={{ width: `${status?.glCheckpointsSummary?.totalJournals ? ((status.glCheckpointsSummary.unbalancedJournalsCount || 0) / status.glCheckpointsSummary.totalJournals) * 100 : 0}%`, background: 'var(--status-error)' }} />
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--status-success)' }} />
-                          <span>Balanced ({status?.glCheckpointsSummary?.balancedJournalsCount ?? (status?.totalInputRows?.gl ? status.totalInputRows.gl : 0)})</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--status-error)' }} />
-                          <span>Unbalanced ({status?.glCheckpointsSummary?.unbalancedJournalsCount ?? 0})</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Integrity Testing (IR 1 - 4) Breakdown</h4>
-                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>TB accounts vs Population consistency.</p>
-                        </div>
-                        <Activity size={20} color="var(--deloitte-green-dark)" />
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {[
-                          { label: 'IR 1: GL in TB not in Pop', val: getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv'), max: 20 },
-                          { label: 'IR 2: Activity Mismatches', val: getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv'), max: 20 },
-                          { label: 'IR 3: GL in Pop not in TB', val: getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'), max: 20 },
-                          { label: 'IR 4: Seldom Accounts Total', val: getIRTestCount(4, 'test4SeldomAccountsCount', 'Parameter_2_Seldom_Accounts_Inputs.csv'), max: 50 },
-                        ].map((item) => (
-                          <div key={item.label}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-                              <span style={{ fontWeight: 600 }}>{item.label}</span>
-                              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: item.val > 0 ? 'var(--deloitte-teal)' : 'var(--text-muted)' }}>{item.val}</span>
-                            </div>
-                            <div style={{ height: '7px', background: 'var(--border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
-                              <div style={{ width: `${Math.min(100, (item.val / Math.max(item.max, item.val || 1)) * 100)}%`, height: '100%', background: item.val > 0 ? 'var(--deloitte-teal)' : 'var(--status-success)' }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ExecutiveChartJsAnalyticsSuite
+                runId={runId!}
+                status={status}
+                config={config}
+                enabledExceptions={enabledExceptions}
+              />
             )}
 
             {activeVisualTab === 'checkpoints' && (
@@ -2729,6 +3440,14 @@ export const SparkJetWorkflow: React.FC = () => {
                   </div>
                 </div>
               </div>
+            )}
+
+            {activeVisualTab === 'forensic' && (
+              <ExecutiveForensicIntelligenceHub
+                runId={runId!}
+                status={status}
+                config={config}
+              />
             )}
 
             {activeVisualTab === 'artifacts' && (() => {
@@ -2986,7 +3705,7 @@ export const SparkJetWorkflow: React.FC = () => {
                   </div>
                 </div>
               );
-            })()}
+             })()}
           </div>
         )}
       </main>

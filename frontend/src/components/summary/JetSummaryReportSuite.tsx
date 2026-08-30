@@ -31,7 +31,8 @@ interface JetSummaryReportSuiteProps {
   runId: string;
   status: RunSummary | null;
   config: RunConfig | null;
-  resultsData: { summary: RunSummary; config: RunConfig; outputs: any[] } | null;
+  resultsData?: { summary: RunSummary; config: RunConfig; outputs: any[] } | null;
+  enabledExceptions?: Record<string, boolean>;
 }
 
 type SummarySheetId =
@@ -88,6 +89,7 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
   status,
   config,
   resultsData,
+  enabledExceptions,
 }) => {
   const [activeTab, setActiveTab] = useState<SummarySheetId>('overview');
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,9 +109,22 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
   const totalCreditSum = 48592310.5;
   const netVariance = 0.0;
 
-  // Filtered Sheet list for navigation
+  // Filtered Sheet list for navigation considering enabledExceptions
   const filteredNavSheets = useMemo(() => {
     return SUMMARY_SHEETS.filter((sheet) => {
+      if (enabledExceptions) {
+        if (sheet.id === 'account_wise' && enabledExceptions.ex1 === false && enabledExceptions.ex2 === false) return false;
+        if (sheet.id === 'large_debits_revenue' && enabledExceptions.ex3 === false) return false;
+        if (sheet.id === 'user_wise' && enabledExceptions.ex4 === false && enabledExceptions.ex5 === false) return false;
+        if (sheet.id === 'closing_entries' && enabledExceptions.ex6 === false) return false;
+        if (sheet.id === 'dates_of_interest' && enabledExceptions.ex7 === false) return false;
+        if (sheet.id === 'amount_analysis' && enabledExceptions.ex8 === false) return false;
+        if (sheet.id === 'duplicate_analysis' && enabledExceptions.ex9 === false) return false;
+        if (sheet.id === 'word_count' && enabledExceptions.ex10 === false) return false;
+        if (sheet.id === 'after_closing' && enabledExceptions.ex11 === false) return false;
+        if (sheet.id === 'unrelated_accounts' && enabledExceptions.ex12 === false) return false;
+      }
+
       const matchCat = filterCategory === 'ALL' || sheet.category.toUpperCase() === filterCategory;
       const matchSearch =
         !searchQuery ||
@@ -117,7 +132,7 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
         sheet.category.toLowerCase().includes(searchQuery.toLowerCase());
       return matchCat && matchSearch;
     });
-  }, [filterCategory, searchQuery]);
+  }, [filterCategory, searchQuery, enabledExceptions]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -319,7 +334,7 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
             </div>
 
             {/* Category Filter Pills */}
-            <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', paddingBottom: '4px' }}>
               {['ALL', 'ANALYSIS', 'EXCEPTIONS'].map((cat) => (
                 <button
                   key={cat}
