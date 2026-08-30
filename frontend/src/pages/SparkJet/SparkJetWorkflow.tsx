@@ -2905,8 +2905,8 @@ export const SparkJetWorkflow: React.FC = () => {
                               <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.76rem', color: '#334155' }}>
                                 {out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}
                               </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px' }}>
+                              <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -2925,6 +2925,7 @@ export const SparkJetWorkflow: React.FC = () => {
                                       color: 'var(--deloitte-teal)',
                                       border: '1px solid rgba(0, 118, 128, 0.25)',
                                       cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
                                       transition: 'all 0.15s ease',
                                     }}
                                     title={`Preview ${out.name}`}
@@ -2938,7 +2939,7 @@ export const SparkJetWorkflow: React.FC = () => {
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       gap: '4px',
-                                      padding: '4px 9px',
+                                      padding: '4px 10px',
                                       borderRadius: '6px',
                                       fontSize: '0.70rem',
                                       fontWeight: 700,
@@ -2946,6 +2947,7 @@ export const SparkJetWorkflow: React.FC = () => {
                                       color: '#FFFFFF',
                                       border: '1px solid #0F172A',
                                       textDecoration: 'none',
+                                      whiteSpace: 'nowrap',
                                       boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)',
                                       transition: 'all 0.15s ease',
                                     }}

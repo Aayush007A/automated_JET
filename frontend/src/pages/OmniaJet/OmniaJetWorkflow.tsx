@@ -473,6 +473,7 @@ export const OmniaJetWorkflow: React.FC = () => {
   const filteredArtifacts = useMemo(() => {
     if (!status?.outputs) return [];
     return status.outputs.filter((out) => {
+      if (out.name === 'auto_clean_report.json' || out.name.endsWith('.json')) return false;
       const isExcel = out.name.endsWith('.xlsx');
       const isRecon = out.name.includes('Reconciliation') || out.name.includes('Unreconciled') || isExcel;
       const isMaster = out.name.includes('Trial_Balance') || out.name.includes('TB_') || out.name.includes('Chart_of_Accounts') || out.name.includes('General_Ledger');
@@ -2362,7 +2363,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                           <th style={{ background: '#F8FAFC' }}>Format</th>
                           <th style={{ background: '#F8FAFC' }}>Row Count</th>
                           <th style={{ background: '#F8FAFC' }}>Audit Description</th>
-                          <th style={{ textAlign: 'right', background: '#F8FAFC', width: '180px' }}>Actions</th>
+                          <th style={{ textAlign: 'right', background: '#F8FAFC', width: '200px', whiteSpace: 'nowrap' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2397,8 +2398,8 @@ export const OmniaJetWorkflow: React.FC = () => {
                                   {out.rowCount !== undefined ? out.rowCount.toLocaleString() : '-'}
                                 </td>
                                 <td style={{ fontSize: '0.74rem', color: '#64748B', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{out.description}</td>
-                                <td style={{ textAlign: 'right' }}>
-                                  <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', whiteSpace: 'nowrap' }}>
                                     {!isXlsx && (
                                       <button
                                         type="button"
@@ -2415,6 +2416,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                                           color: 'var(--deloitte-teal)',
                                           border: '1px solid rgba(0, 118, 128, 0.25)',
                                           cursor: 'pointer',
+                                          whiteSpace: 'nowrap',
                                           transition: 'all 0.15s ease',
                                         }}
                                         title={`Preview ${out.name}`}
@@ -2428,7 +2430,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         gap: '4px',
-                                        padding: '4px 9px',
+                                        padding: '4px 10px',
                                         borderRadius: '6px',
                                         fontSize: '0.70rem',
                                         fontWeight: 700,
@@ -2436,6 +2438,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                                         color: '#FFFFFF',
                                         border: '1px solid #0F172A',
                                         textDecoration: 'none',
+                                        whiteSpace: 'nowrap',
                                         boxShadow: '0 1px 3px rgba(15, 23, 42, 0.2)',
                                         transition: 'all 0.15s ease',
                                       }}
