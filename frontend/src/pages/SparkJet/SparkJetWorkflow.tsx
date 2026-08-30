@@ -1056,15 +1056,15 @@ export const SparkJetWorkflow: React.FC = () => {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '18px', marginBottom: '26px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <img
-            src="/icons/concept_3d_jewel_shield.png"
+            src="/icons/clay_concept_1_shield.png"
             alt="JET Workflow"
             style={{
-              width: '48px',
-              height: '48px',
+              width: '46px',
+              height: '46px',
               objectFit: 'contain',
               display: 'block',
               flexShrink: 0,
-              filter: 'drop-shadow(0 6px 14px rgba(0, 118, 128, 0.25))',
+              filter: 'drop-shadow(0 5px 12px rgba(0, 118, 128, 0.20))',
             }}
           />
           <div>
