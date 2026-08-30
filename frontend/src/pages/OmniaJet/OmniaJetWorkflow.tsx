@@ -694,12 +694,18 @@ export const OmniaJetWorkflow: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
             width: '46px', height: '46px', borderRadius: '12px',
-            background: 'linear-gradient(135deg, #007680 0%, #005A62 100%)',
+            background: '#FFFFFF',
+            border: '1.5px solid #E2E8F0',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(0, 118, 128, 0.22)', color: '#FFFFFF',
+            boxShadow: '0 4px 14px rgba(0, 118, 128, 0.12)',
+            overflow: 'hidden',
             flexShrink: 0
           }}>
-            <FileSpreadsheet size={22} />
+            <img
+              src="/icons/jet_workflow_icon.png"
+              alt="JET Workflow"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
