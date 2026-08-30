@@ -138,8 +138,8 @@ const AuthLeftPanel: React.FC<{ mode: 'login' | 'register' }> = ({ mode }) => {
   const navigate = useNavigate();
 
   const stats = [
-    { icon: Layers, label: 'SPARK JET', desc: 'TB/GL extraction & tests' },
-    { icon: FileSpreadsheet, label: 'OMNIA JET', desc: 'CDM workbook recon' },
+    { icon: Layers, label: 'JET WORKFLOW', desc: 'TB/GL extraction & tests' },
+    { icon: FileSpreadsheet, label: 'JET WORKBOOK', desc: 'CDM workbook recon' },
     { icon: Activity, label: '20 DQC Rules', desc: 'Automated validation' },
     { icon: BarChart3, label: 'Audit Analytics', desc: 'Real-time telemetry' },
   ];

@@ -50,8 +50,10 @@ export class RunManager {
     const fieldMappings: RunConfig['fieldMappings'] = {
       tb: FieldMapper.mapFields([], 'TRIAL_BALANCE', workflow),
       gl: FieldMapper.mapFields([], 'GENERAL_LEDGER', workflow),
-      coa: FieldMapper.mapFields([], 'COA', workflow),
     };
+    if (workflow === 'OMNIA_JET') {
+      fieldMappings.coa = FieldMapper.mapFields([], 'COA', workflow);
+    }
 
     const config: RunConfig = {
       runId,

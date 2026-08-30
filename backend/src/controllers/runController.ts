@@ -9,24 +9,20 @@ import { WorkflowType, PipelineEngine } from '../types';
 
 export class RunController {
   public static async createRun(req: AuthenticatedRequest, res: Response): Promise<void> {
-    let { workflow, engine } = req.body;
-    if (!workflow) {
-      workflow = 'JET';
-    }
-    if (!['JET', 'SPARK_JET', 'OMNIA_JET'].includes(workflow)) {
-      res.status(400).json({ success: false, message: 'Invalid workflow type (JET, SPARK_JET, or OMNIA_JET required)' });
-      return;
-    }
+    const { workflow, engine } = req.body;
+    const targetWorkflow: WorkflowType = (workflow === 'OMNIA_JET' || workflow === 'SPARK_JET') 
+      ? workflow 
+      : 'SPARK_JET';
 
     const selectedEngine: PipelineEngine = engine || 'PYTHON';
     const userId = req.user?.id || 'usr_unknown';
     const userName = req.user?.fullName || req.user?.username || 'Audit Practitioner';
 
-    const { runId, config } = RunManager.initializeRun(workflow as WorkflowType, userId, userName, selectedEngine);
+    const { runId, config } = RunManager.initializeRun(targetWorkflow, userId, userName, selectedEngine);
 
     res.json({
       success: true,
-      message: `Run ${runId} created successfully for ${workflow}`,
+      message: `Run ${runId} initialized successfully`,
       runId,
       config,
     });
@@ -72,7 +68,7 @@ export class RunController {
 
   public static async updateConfig(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { runId } = req.params;
-    const { sparkParameters, omniaParameters, datasetMap, engine } = req.body;
+    const { sparkParameters, omniaParameters, datasetMap, engine, workflow } = req.body;
 
     const config = RunManager.getRunConfig(runId);
     if (!config) {
@@ -80,13 +76,21 @@ export class RunController {
       return;
     }
 
+    if (workflow === 'SPARK_JET' || workflow === 'OMNIA_JET') {
+      config.workflow = workflow;
+      const status = RunManager.getRunStatus(runId);
+      if (status) {
+        status.workflow = workflow;
+        RunManager.saveRunStatus(runId, status);
+      }
+    }
     if (sparkParameters) config.sparkParameters = { ...config.sparkParameters, ...sparkParameters };
     if (omniaParameters) config.omniaParameters = { ...config.omniaParameters, ...omniaParameters };
     if (datasetMap) config.datasetMap = { ...config.datasetMap, ...datasetMap };
     if (engine) config.engine = engine;
 
     RunManager.saveRunConfig(runId, config);
-    LogService.log('INFO', 'RUN_CONFIG', `Updated configuration for run ${runId}`, runId);
+    LogService.log('INFO', 'RUN_CONFIG', `Updated configuration for run ${runId} (workflow: ${config.workflow})`, runId);
 
     res.json({
       success: true,

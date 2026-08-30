@@ -1,0 +1,4399 @@
+Summary Prompt:
+Create a professional Excel workbook named "JET Summary Report" with the following worksheets in the exact order and structure.
+
+WORKBOOK REQUIREMENTS:
+- Use professional audit/reporting formatting.
+- Each sheet must contain a title section, "How the Test Works" description (where applicable), and a formatted summary table.
+- Use bold headers, light blue header fill, borders, auto-fit columns, and number formatting for amounts.
+- Include placeholder data where actual data is unavailable.
+- Add filters to all table headers.
+- Maintain consistency across all worksheets.
+
+====================================================
+SHEET 1: Engagement Details
+====================================================
+Title: Engagement Details
+
+Fields:
+- Engagement Name
+- Start Date
+- End Date
+- Financial Year End
+- Engagement Code
+- Engagement Tier Classification
+
+====================================================
+SHEET 2: Account Wise Analysis
+====================================================
+Title: Summary 1 - Account Wise Analysis
+
+Description:
+This summary gives an overview of entries and activity of specified GLs. It identifies entries by GL and bifurcates them into Standard and Non-Standard types.
+
+Columns:
+- G/L
+- Description
+- FS Line Items
+- Total Journal Lines
+- Total Standard Lines
+- Total Non Standard Lines
+- No of Journal Entries
+- Activity
+- Total Debits
+- Total Credits
+- Net Activity
+- Q1
+- Q2
+- Q3
+- Q4
+- Q1
+- Q2
+- Q3
+- Q4
+
+====================================================
+SHEET 3: Large Debits to Revenue
+====================================================
+Title: Summary 2 - Large Debits to Revenue
+
+Description:
+This summary identifies reversals in revenue that may have been improperly recognized by finding entries resulting in a net debit to revenue above a defined threshold.
+
+Columns:
+- Journal Entry Type
+- User ID
+- User Name
+- Approver ID
+- Approver Name
+- Total Nbr of Journal Entries
+- Total Journal Entry Net Amount
+- Entries Posted on Weekend
+- Entries Posted on Holidays
+- No of Journal Entries
+- Activity
+- Q1
+- Q2
+- Q3
+- Q4
+- Q1
+- Q2
+- Q3
+- Q4
+
+====================================================
+SHEET 4: User Wise Analysis
+====================================================
+Title: Summary 3 - User Wise Analysis
+
+Description:
+Analyze journal entries by user.
+
+Columns:
+- Journal Entry Type
+- User Name
+- Total Nbr of Journal Entries
+- Total Journal Entry Amount
+- No of Journal Entries
+- Q1
+- Q2
+- Q3
+- Q4
+
+====================================================
+SHEET 5: Closing Entries
+====================================================
+Title: Summary 4 - Closing Entries
+
+Description:
+Identify entries having limited, weak, or blank narration during the closing period.
+
+Columns:
+- Journal Entry Type
+- Financial Statement Effect
+- Total Nbr of Journal Entry Lines
+- Total Debit Amount
+- Total Credit Amount
+- No of Journal Entries
+- Activity
+- Q1
+- Q2
+- Q3
+- Q4
+- Q1
+- Q2
+- Q3
+- Q4
+
+====================================================
+SHEET 6: Dates of Interest
+====================================================
+Title: Summary 5 - Dates of Interest
+
+Description:
+Identify entries posted on weekends, holidays, or specified dates.
+
+Columns:
+- Journal Entry Type
+- Day
+- Date (MM/DD/YYYY)
+- Nbr of Journal Entries
+- Credit Amount
+- Debit Amount
+
+====================================================
+SHEET 7: Amount Analysis
+====================================================
+Title: Summary 6 - Amount Analysis
+
+Description:
+Identify journal entries with round amounts and recurring ending digits.
+
+Section A: Recurring Digits
+Columns:
+- Digit
+- Journal Entry Type
+- No of Journal Entries
+- No of Journal Lines
+- Debit Amount
+- Credit Amount
+
+Section B: Rounded Amounts
+Columns:
+- Round Amounts
+- Journal Entry Type
+- No of Journal Entries
+- No of Journal Lines
+- Debit Amount
+- Credit Amount
+
+====================================================
+SHEET 8: Duplicate Analysis
+====================================================
+Title: Summary 7 - Duplicate Analysis
+
+Description:
+Identify duplicate entries with identical account/amount combinations.
+
+Columns:
+- Journal Entry Type
+- Number of Duplicates
+- Nbr of Journal Entries
+- Nbr of Journal Entry Lines
+- Sum Debit Amount
+- Sum Credit Amount
+
+====================================================
+SHEET 9: Word Count
+====================================================
+Title: Summary 8 - Word Count
+
+Description:
+Identify entries with keywords of interest in journal descriptions.
+
+Columns:
+- Journal Entry Type
+- Keyword
+- Nbr of Journal Entries
+- Nbr of Journal Entry Lines
+- Sum Debit Amount
+- Sum Credit Amount
+
+====================================================
+SHEET 10: After Closing Entries
+====================================================
+Title: Summary 9 - After Closing Entries
+
+Description:
+Identify entries posted after the closing period.
+
+Columns:
+- Journal Entry Type
+- Financial Statement Effect
+- Total Nbr of Journal Entry Lines
+- Total Debit Amount
+- Total Credit Amount
+- No of Journal Entries
+- Activity
+- Q1
+- Q2
+- Q3
+- Q4
+- Q1
+- Q2
+- Q3
+- Q4
+
+====================================================
+SHEET 11: Unrelated Accounts
+====================================================
+Title: Summary 10 - Unrelated Accounts
+
+Description:
+Identify transactions posted between unrelated account combinations.
+
+Columns:
+- Journal Entry Type
+- Debit Account
+- Credit Account
+- Debit Amount
+- Credit Amount
+- No. of Journal Entries
+
+====================================================
+SHEET 12: Population Statistics
+====================================================
+Title: Population Statistics
+
+Subtitle: Period Wise Analysis
+
+Columns:
+- Period
+- Std / NonStd
+- Lcurr
+- Total Debit Amount
+- Total Credit Amount
+- Total Amount in Local Currency
+- Nbr of Journal Entries
+
+====================================================
+FINAL FORMATTING
+====================================================
+- Create a professional cover/dashboard feel.
+- Freeze header rows.
+- Add table formatting to every data range.
+- Use accounting format for monetary fields.
+- Use date format for date fields.
+- Include navigation hyperlinks from a contents section to each sheet.
+- Make the workbook audit-ready and visually similar to a Big 4 audit summary report.
+
+
+
+
+Summary Part-1
+
+// Databricks notebook source
+sc.getConf.getAll.foreach(println)
+spark.sql("set spark.sql.legacy.timeParserPolicy=LEGACY")
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions
+import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerType, DoubleType, DecimalType, LongType};
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Input & Output File Path
+
+// COMMAND ----------
+
+val client_name = "4538076 - Tengerine Skies Pvt Ltd"
+
+// COMMAND ----------
+
+val file_path: String = "C:/Work/JET/" + client_name + "/"
+val output_path: String = "C:/Work/JET/" + client_name + "/Output/Summaries 2/"
+val statistic_path: String = "C:/Work/JET/" + client_name + "/Output/Population_Statistics 2/"
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Population & TB Part
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-1 TB
+
+// COMMAND ----------
+
+val trial_balance = spark.read
+.format("csv")
+.option("header",true)
+.option("delimiter",",")
+.load(file_path + "/input/tb.csv")
+
+// COMMAND ----------
+
+trial_balance.count()
+
+// COMMAND ----------
+
+trial_balance.createOrReplaceTempView("trial_balance")
+
+// COMMAND ----------
+
+trial_balance.printSchema()
+
+// COMMAND ----------
+
+val trial_balance_stage1 = spark.sql("""select TRIM(G_L) AS G_L, TRIM(Description) AS Description, 
+TRIM(Opening_Balance) AS Opening_Balance, TRIM(Debit) AS Debit, TRIM(Credit) AS Credit, 
+TRIM(Closing_Balance) AS Closing_Balance, TRIM(Movement) AS Movement, TRIM(Account_Subtype) AS Account_Subtype,  
+TRIM(FS_Line_Item) AS FS_Line_Item from trial_balance""")
+
+// COMMAND ----------
+
+trial_balance_stage1.createOrReplaceTempView("trial_balance_stage1")
+
+// COMMAND ----------
+
+val trial_balance_stage2 = spark.sql("""select STRING(G_L), STRING(Description), DOUBLE(Opening_Balance), DOUBLE(Debit), 
+DOUBLE(Credit), DOUBLE(Closing_Balance), DOUBLE(Movement), 
+STRING(Account_Subtype), STRING(FS_Line_Item) from trial_balance_stage1""")
+
+// COMMAND ----------
+
+trial_balance_stage2.count()
+
+// COMMAND ----------
+
+var tb_WithoutNull = trial_balance_stage2.na.fill(0.0, Array("Opening_Balance"))
+.na.fill(0.0, Array("Debit"))
+.na.fill(0.0, Array("Credit"))
+.na.fill(0.0, Array("Closing_Balance"))
+.na.fill(0.0, Array("Movement"))
+.na.fill("NA", Array("Description"))
+.na.fill("NA", Array("G_L"))
+
+// COMMAND ----------
+
+tb_WithoutNull.createOrReplaceTempView("tb_WithoutNull")
+
+// COMMAND ----------
+
+spark.catalog.dropTempView("trial_balance")
+
+// COMMAND ----------
+
+spark.catalog.dropTempView("trial_balance_stage1")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-2 Population
+
+// COMMAND ----------
+
+// val population = spark.read.parquet(file_path + "/GL_withoutNull 24_Sep_25.parquet")
+
+val population = spark.read
+.format("csv")
+.option("delimeter",",")
+.option("header",true)
+.option("escape","\"")
+.option("quote","\"")
+.load(file_path+"/input/Population.csv")
+
+// COMMAND ----------
+
+// population.select("Type").distinct.coalesce(1).write
+// .format("csv")
+// .option("header",true)
+// .save(file_path + "Distinct_Types")
+
+// COMMAND ----------
+
+population.show(3,false)
+
+// COMMAND ----------
+
+population.createOrReplaceTempView("population")
+
+// COMMAND ----------
+
+population.printSchema()
+
+// COMMAND ----------
+
+var population_stage2 = spark.sql("""select TRIM(G_L) AS G_L, TRIM(DocumentNo) AS DocumentNo, TRIM(Type) AS Type, 
+TRIM(Entry_Date) AS Entry_Date, TRIM(Pstng_Date) AS Pstng_Date, TRIM(Doc_Date) AS Doc_Date, 
+TRIM(Amount_in_local_cur) AS Amount_in_local_cur, TRIM(Lcurr) AS Lcurr, TRIM(Amount_in_doc_curr) AS Amount_in_doc_curr, 
+TRIM(Curr) AS Curr, TRIM(Amount_in_loc_curr_2) AS Amount_in_loc_curr_2, TRIM(LCur2) AS LCur2, 
+TRIM(Document_Header_Text) AS Document_Header_Text, TRIM(Text) AS Text, TRIM(User_name) AS User_name from population""")
+
+// COMMAND ----------
+
+population_stage2.createOrReplaceTempView("population_stage2")
+
+// COMMAND ----------
+
+var population_stage3 = spark.sql("""select STRING(G_L), STRING(DocumentNo), STRING(Type), 
+STRING(Entry_Date), STRING(Pstng_Date), STRING(Doc_Date), DOUBLE(Amount_in_local_cur), STRING(Lcurr), 
+DOUBLE(Amount_in_doc_curr), STRING(Curr), DOUBLE(Amount_in_loc_curr_2), STRING(LCur2), STRING(LOWER(Document_Header_Text)) as Document_Header_Text, 
+STRING(LOWER(Text)) as Text, STRING(User_name) from population_stage2""")
+
+// COMMAND ----------
+
+val population_stage4 = population_stage3.na.fill(0.0, Array("Amount_in_local_cur"))
+.na.fill(0.0, Array("Amount_in_doc_curr"))
+.na.fill(0.0, Array("Amount_in_loc_curr_2"))
+.na.fill("NA", Array("G_L"))
+.na.fill("NA", Array("DocumentNo"))
+.na.fill("NA", Array("User_name"))
+.na.fill("NA",Array("Type"))
+.na.fill("NA",Array("Entry_Date"))
+
+// COMMAND ----------
+
+population_stage4.createOrReplaceTempView("population_stage4")
+
+// COMMAND ----------
+
+val population_stage5 = spark.sql("""select a.G_L, b.FS_Line_Item, a.DocumentNo, a.Type, 
+a.Entry_Date, a.Pstng_Date, a.Doc_Date, a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, 
+a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name, b.Account_Subtype, b.Description
+from population_stage4 a LEFT JOIN tb_WithoutNull b
+ON a.G_L = b.G_L""")
+
+// COMMAND ----------
+
+population_stage5.createOrReplaceTempView("population_stage5")
+
+// COMMAND ----------
+
+population_stage5.count()
+
+// COMMAND ----------
+
+val Financial_year_end = spark.read
+.format("csv")
+.option("header",true)
+.option("delimiter",",")
+.load(file_path + "/JET_Summary_Inputs/Financial_year_end.csv")
+
+// COMMAND ----------
+
+val financial_date = Financial_year_end.select(date_format(to_date($"Financial_Year_End","dd-MMM-yy"),"dd-MMM").cast("String")).collect()(0).getString(0)
+
+// COMMAND ----------
+
+val population_stage6 = spark.read
+.format("csv")
+.option("header",true)
+.option("delimiter",",")
+.load(file_path + "/JET_Summary_Inputs/DocumentType.csv")
+
+// COMMAND ----------
+
+population_stage6.count()
+
+// COMMAND ----------
+
+population_stage6.createOrReplaceTempView("population_stage6")
+
+// COMMAND ----------
+
+val available_bifurcation = population_stage6.select(trim($"Value").cast("String")).collect()(0).getString(0)
+
+// COMMAND ----------
+
+var not_available_bifurcation = "Non-Standard";
+if(available_bifurcation == "Non-Standard")
+{
+    not_available_bifurcation = "Standard";
+}
+
+// COMMAND ----------
+
+population_stage6.count()
+
+// COMMAND ----------
+
+population_stage6.createOrReplaceTempView("population_stage6")
+
+// COMMAND ----------
+
+val population_stage7 = spark.sql("""select a.*,trim(b.Value) as Std_NonStd
+from population_stage5 a LEFT JOIN population_stage6 b ON a.Type = b.Type""").na.fill(not_available_bifurcation,Array("Std_NonStd"))
+
+// COMMAND ----------
+
+population_stage7.createOrReplaceTempView("population_stage7")
+
+// COMMAND ----------
+
+var population_stage8 = population_stage7.withColumn("DocumentNoOld",$"DocumentNo")
+// .withColumn("DocumentNo",concat($"DocumentNo",$"Entry_Date",$"Type"))
+
+// COMMAND ----------
+
+population_stage8.createOrReplaceTempView("population_stage8")
+
+// COMMAND ----------
+
+var GL_withoutNull=population_stage8
+
+if(financial_date=="31-Mar")
+{
+    GL_withoutNull = spark.sql("""select a.*,
+    CASE
+        WHEN MONTH(TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))) BETWEEN 4 AND 6 THEN 'Q1'
+        WHEN MONTH(TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))) BETWEEN 7 AND 9 THEN 'Q2'
+        WHEN MONTH(TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))) BETWEEN 10 AND 12 THEN 'Q3'
+        WHEN MONTH(TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))) BETWEEN 1 AND 3 THEN 'Q4'
+    ELSE ''
+        END AS quarter 
+        from population_stage8 a""")
+}
+if(financial_date=="31-Dec")
+{
+    GL_withoutNull = spark.sql("""select a.*,
+    CASE
+        WHEN MONTH(TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))) BETWEEN 1 AND 3 THEN 'Q1'
+        WHEN MONTH(TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))) BETWEEN 4 AND 6 THEN 'Q2'
+        WHEN MONTH(TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))) BETWEEN 7 AND 9 THEN 'Q3'
+        WHEN MONTH(TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP))) BETWEEN 10 AND 12 THEN 'Q4'
+    ELSE ''
+        END AS quarter
+        from population_stage8 a""")
+}
+
+// COMMAND ----------
+
+if(financial_date=="31-Mar")
+    print(true)
+
+// COMMAND ----------
+
+financial_date
+
+// COMMAND ----------
+
+GL_withoutNull.createOrReplaceTempView("GL_withoutNull")
+
+// COMMAND ----------
+
+GL_withoutNull.printSchema
+
+// COMMAND ----------
+
+val GL_new_unique = spark.sql("""select G_L, sum(Amount_in_local_cur) as Total_Amount_in_local_cur 
+from GL_withoutNull group by G_L""")
+
+// COMMAND ----------
+
+GL_new_unique.createOrReplaceTempView("GL_new_unique")
+
+// COMMAND ----------
+
+spark.catalog.dropTempView("population")
+
+// COMMAND ----------
+
+spark.catalog.dropTempView("population_stage2")
+
+// COMMAND ----------
+
+spark.catalog.dropTempView("population_stage4")
+
+// COMMAND ----------
+
+GL_withoutNull.show(2,false)
+
+// COMMAND ----------
+
+tb_WithoutNull.show(2,false)
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary - 1 (Account Wise Analysis) [Exception 1 & 2]
+
+// COMMAND ----------
+
+val summary1_stage1 = spark.sql("""select G_L, Description, FS_Line_Item, count(distinct DocumentNo) AS Total_Journal_Lines,
+COUNT(distinct CASE WHEN Std_NonStd = 'Standard' THEN DocumentNo else null END) AS Total_Standard_Lines,
+COUNT(distinct CASE WHEN Std_NonStd = 'Non-Standard' THEN DocumentNo else null END) AS Total_Non_Standard_Lines,
+
+COUNT(distinct CASE WHEN quarter = 'Q1' THEN DocumentNo else null END) AS Q1_Journal_Lines,
+COUNT(distinct CASE WHEN quarter = 'Q2' THEN DocumentNo else null END) AS Q2_Journal_Lines,
+COUNT(distinct CASE WHEN quarter = 'Q3' THEN DocumentNo else null END) AS Q3_Journal_Lines,
+COUNT(distinct CASE WHEN quarter = 'Q4' THEN DocumentNo else null END) AS Q4_Journal_Lines,
+
+SUM(CASE WHEN quarter = 'Q1' THEN Amount_in_local_cur ELSE 0 END) AS Q1_Activity,
+SUM(CASE WHEN quarter = 'Q2' THEN Amount_in_local_cur ELSE 0 END) AS Q2_Activity,
+SUM(CASE WHEN quarter = 'Q3' THEN Amount_in_local_cur ELSE 0 END) AS Q3_Activity,
+SUM(CASE WHEN quarter = 'Q4' THEN Amount_in_local_cur ELSE 0 END) AS Q4_Activity,
+
+SUM(CASE WHEN Amount_in_local_cur >= 0 THEN Amount_in_local_cur ELSE 0 END) AS Total_Debits,
+SUM(CASE WHEN Amount_in_local_cur < 0 THEN (Amount_in_local_cur * (-1)) ELSE 0 END) AS Total_Credits,
+
+SUM(Amount_in_local_cur) AS Net_Activity
+
+from GL_withoutNull 
+group by G_L, Description, FS_Line_Item
+""")
+
+// COMMAND ----------
+
+val summary1_stage1 = spark.sql("""select G_L, Description, FS_Line_Item, count(*) AS Total_Journal_Lines,
+SUM(CASE WHEN Std_NonStd = 'Standard' THEN 1 ELSE 0 END) AS Total_Standard_Lines,
+SUM(CASE WHEN Std_NonStd = 'Non-Standard' THEN 1 ELSE 0 END) AS Total_Non_Standard_Lines,
+
+SUM(CASE WHEN quarter = 'Q1' THEN 1 ELSE 0 END) AS Q1_Journal_Lines,
+SUM(CASE WHEN quarter = 'Q2' THEN 1 ELSE 0 END) AS Q2_Journal_Lines,
+SUM(CASE WHEN quarter = 'Q3' THEN 1 ELSE 0 END) AS Q3_Journal_Lines,
+SUM(CASE WHEN quarter = 'Q4' THEN 1 ELSE 0 END) AS Q4_Journal_Lines,
+
+SUM(CASE WHEN quarter = 'Q1' THEN Amount_in_local_cur ELSE 0 END) AS Q1_Activity,
+SUM(CASE WHEN quarter = 'Q2' THEN Amount_in_local_cur ELSE 0 END) AS Q2_Activity,
+SUM(CASE WHEN quarter = 'Q3' THEN Amount_in_local_cur ELSE 0 END) AS Q3_Activity,
+SUM(CASE WHEN quarter = 'Q4' THEN Amount_in_local_cur ELSE 0 END) AS Q4_Activity,
+
+SUM(CASE WHEN Amount_in_local_cur >= 0 THEN Amount_in_local_cur ELSE 0 END) AS Total_Debits,
+SUM(CASE WHEN Amount_in_local_cur < 0 THEN (Amount_in_local_cur * (-1)) ELSE 0 END) AS Total_Credits,
+
+SUM(Amount_in_local_cur) AS Net_Activity
+
+from GL_withoutNull 
+group by G_L, Description, FS_Line_Item
+""")
+
+// COMMAND ----------
+
+summary1_stage1.count()
+
+// COMMAND ----------
+
+summary1_stage1.coalesce(1).write
+.format("csv")
+.option("header",true)
+//.option("escape", ",")
+//.option("quote", "")
+//.option("quote", "\"") 
+//.option("escape", "\"")
+.save(output_path + "1_AccountWise_Analysis")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =====================================================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary - 2 (Large Debits To Revenue) [Exception 3]
+
+// COMMAND ----------
+
+val dateFormat = "dd-MMM-yy"
+
+// COMMAND ----------
+
+import java.sql.Date
+
+val startInput = GL_withoutNull.select(min(to_date($"Pstng_Date","dd-MMM-yy")).cast("String")).collect()(0).getString(0)
+val endInput = GL_withoutNull.select(max(to_date($"Pstng_Date","dd-MMM-yy")).cast("String")).collect()(0).getString(0)
+
+val startDate = Date.valueOf(startInput)
+val endDate = Date.valueOf(endInput)
+
+val dateSeq = spark.sqlContext.range(0, 1 + (endDate.getTime - startDate.getTime) / (24 * 3600 * 1000))
+  .selectExpr(s"date_add('$startDate', cast(id as int)) as calendar_date")
+
+dateSeq.createOrReplaceTempView("dateSeq")
+
+// COMMAND ----------
+
+val calendar = spark.sql("""Select date_format(calendar_date,"dd-MMM-yy") as calendar_date from dateSeq""")
+
+// COMMAND ----------
+
+calendar.createOrReplaceTempView("calendar")
+
+// COMMAND ----------
+
+val holidayList = spark.read
+.format("csv")
+.option("quote","\"")
+.option("escape","\"")
+.option("delimeter",",")
+.option("header",true)
+.load(file_path+"/JET_Summary_Inputs/Holiday_List_22_25.csv")
+
+// COMMAND ----------
+
+holidayList.createOrReplaceTempView("holidayList")
+
+// COMMAND ----------
+
+val holidayList_stg1 = spark.sql("""
+  SELECT Date, Reason, 
+         row_number() OVER (PARTITION BY(Date) ORDER BY(Reason)) AS rno
+  FROM holidayList
+""").filter(col("rno") === 1).drop("rno")
+
+holidayList_stg1.createOrReplaceTempView("holidayList_stg1")
+
+val holidayList_stg2 = spark.sql("""
+  SELECT a.calendar_date, b.Reason AS Holiday
+  FROM calendar a 
+  LEFT JOIN holidayList_stg1 b ON a.calendar_date = b.Date
+""")
+
+holidayList_stg2.createOrReplaceTempView("holidayList_stg2")
+
+val holidayList_stg3 = spark.sql("""
+  SELECT calendar_date, holiday, date_format(to_date(calendar_date,"dd-MMM-yy"),'E') AS day 
+  FROM holidayList_stg2
+""")
+
+holidayList_stg3.createOrReplaceTempView("holidayList_stg3")
+
+val holidayList_stg4 = spark.sql("""
+  SELECT a.calendar_date, a.holiday, a.day, 
+         CASE
+           WHEN (a.holiday IS NOT NULL) THEN holiday
+           WHEN (a.day = 'Sat' OR a.day = 'Sun') THEN 'Weekend'
+           ELSE 'NA' 
+         END AS Reason
+  FROM holidayList_stg3 a
+""")
+
+holidayList_stg4.createOrReplaceTempView("holidayList_stg4")
+
+val holidayList_stg5 = spark.sql("""
+  SELECT *
+  FROM holidayList_stg4
+  WHERE Reason != 'NA'
+""")
+
+holidayList_stg5.createOrReplaceTempView("holidayList_stg5")
+
+// COMMAND ----------
+
+tb_WithoutNull.select(col("Account_Subtype")).distinct.show(false)
+
+// COMMAND ----------
+
+val Input_Final1 = spark.read
+.format("csv")
+.option("delimeter",",")
+.option("header",true)
+.load(file_path+"/JET_Summary_Inputs/ex_3.csv")
+
+// COMMAND ----------
+
+Input_Final1.count()
+
+// COMMAND ----------
+
+Input_Final1.createOrReplaceTempView("Input_Final1")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-2
+
+// COMMAND ----------
+
+val Input_Final2 = spark.sql("""select a.G_L, b.DocumentNo, b.Type, b.Entry_Date, b.Pstng_Date, b.Doc_Date, 
+b.Amount_in_local_cur, b.Lcurr, b.Amount_in_doc_curr, b.Curr, b.Amount_in_loc_curr_2, b.LCur2,
+b.Document_Header_Text, b.Text, b.User_name, b.Std_NonStd, b.Account_Subtype from 
+Input_Final1 a INNER JOIN GL_withoutNull b
+ON a.G_L = b.G_L 
+""")
+
+// COMMAND ----------
+
+Input_Final2.createOrReplaceTempView("Input_Final2")
+
+// COMMAND ----------
+
+val Input_Final2_Stage2 = Input_Final2.na.fill(0.0, Array("Amount_in_local_cur"))
+.na.fill("0", Array("G_L"))
+.na.fill("0", Array("DocumentNo"))
+.na.fill("0", Array("Text"))
+
+// COMMAND ----------
+
+Input_Final2_Stage2.createOrReplaceTempView("Input_Final2_Stage2")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-3
+
+// COMMAND ----------
+
+val Input_Final3 = spark.sql("""select DocumentNo, SUM(Amount_in_local_cur) AS Amount_in_local_cur 
+from Input_Final2 group by DocumentNo""")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC Input_Final3.count()
+
+// COMMAND ----------
+
+Input_Final3.createOrReplaceTempView("Input_Final3")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-4 (User Input -> Input Sheet value require for b.Amount_in_local_cur)
+
+// COMMAND ----------
+
+val Exception3_Stage1 = spark.sql("""select a.G_L, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, 
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, 
+a.Document_Header_Text, a.Text, a.User_name, a.Std_NonStd, a.Account_Subtype,
+CASE WHEN a.DocumentNo = b.DocumentNo and b.Amount_in_local_cur > 0 THEN 'Exception'
+ELSE  'NO Exception' END AS Exception3
+from Input_Final2 a LEFT JOIN Input_Final3 b ON a.DocumentNo = b.DocumentNo
+""")
+
+// COMMAND ----------
+
+Exception3_Stage1.createOrReplaceTempView("Exception3_Stage1")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-5
+
+// COMMAND ----------
+
+val output_stage2 = spark.sql("""select G_L,DocumentNo,Amount_in_local_cur,Exception3 
+from Exception3_Stage1 where Exception3='Exception'
+group by G_L,DocumentNo,Amount_in_local_cur,Exception3
+""")
+
+// COMMAND ----------
+
+output_stage2.createOrReplaceTempView("output_stage2")
+
+// COMMAND ----------
+
+val Exception3_Stage2 = spark.sql("""select * from GL_withoutNull 
+where DocumentNo in(select DocumentNo from Exception3_Stage1 where Exception3='Exception' group by DocumentNo)""")
+
+// COMMAND ----------
+
+Exception3_Stage2.createOrReplaceTempView("Exception3_Stage2")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-6
+
+// COMMAND ----------
+
+val Exception3_Stage3 = spark.sql("""select a.G_L, '' AS FS_Line_Item,a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, 
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, 
+a.Document_Header_Text, a.Text, a.User_name, a.Std_NonStd, a.Account_Subtype, a.Quarter,
+CASE WHEN b.Exception3='Exception' THEN 'Exception3'
+ELSE 'NO Exception' END AS Exception
+from Exception3_Stage2 a LEFT JOIN output_stage2 b 
+ON a.G_L = b.G_L and a.DocumentNo = b.DocumentNo and a.Amount_in_local_cur = b.Amount_in_local_cur""")
+
+// COMMAND ----------
+
+Exception3_Stage3.createOrReplaceTempView("Exception3_Stage3")
+
+// COMMAND ----------
+
+val Exception3_Stage4 = spark.sql("""select * from Exception3_Stage3 where Exception = 'Exception3' """)
+
+// COMMAND ----------
+
+Exception3_Stage4.createOrReplaceTempView("Exception3_Stage4")
+
+// COMMAND ----------
+
+val Revenue_GL_Stage3 =  spark.sql(s""" Select *, DATE(TO_TIMESTAMP(Doc_Date, '$dateFormat')) AS Doc_Date_Formatted,
+              DATE(TO_TIMESTAMP(Pstng_Date, '$dateFormat')) AS Pstng_Date_Formatted
+              FROM Exception3_Stage4
+""")
+
+// COMMAND ----------
+
+Revenue_GL_Stage3.createOrReplaceTempView("Revenue_GL_Stage3")
+
+// COMMAND ----------
+
+val quarterSummaryDF = spark.sql("""
+  SELECT
+    e.Quarter,
+    e.Std_NonStd,
+    e.Pstng_Date,
+    COUNT(*) AS `Total Nbr of Journal Entries`,
+    SUM(e.Amount_in_local_cur) AS `Total Journal Entry Net Amount`,
+    SUM(CASE WHEN h.day IN ('Sat', 'Sun') AND (h.reason = "Weekend") THEN 1 ELSE 0 END) AS `Entries Posted on weekend`,
+    SUM(CASE WHEN h.calendar_date IS NOT NULL AND (h.reason != "Weekend") THEN 1 ELSE 0 END) AS `Entries Posted on Holidays`
+  FROM Revenue_GL_Stage3 e
+  LEFT JOIN holidayList_stg5 h ON e.Pstng_Date = h.calendar_date
+  LEFT JOIN holidayList_stg5 w ON e.Pstng_Date = w.calendar_date
+  GROUP BY Quarter,e.Pstng_Date, e.Std_NonStd, e.DocumentNo
+  ORDER BY Quarter, e.Std_NonStd
+""")
+
+// COMMAND ----------
+
+quarterSummaryDF.createOrReplaceTempView("quarterSummaryDF")
+
+// COMMAND ----------
+
+val quarterSummaryDF2 = spark.sql("""Select a.Std_NonStd,a.Quarter,
+count(*) as `Total Nbr of Journal Entries`,sum(`Total Journal Entry Net Amount`) as `Total Journal Entry Net Amount`, 
+sum(`Entries Posted on weekend`) as `Entries Posted on weekend`,
+sum(`Entries Posted on Holidays`) as `Entries Posted on Holidays`
+FROM quarterSummaryDF a 
+group by a.Std_NonStd,a.Quarter 
+order by a.Std_NonStd""")
+
+// COMMAND ----------
+
+quarterSummaryDF2.printSchema()
+
+// COMMAND ----------
+
+quarterSummaryDF2.createOrReplaceTempView("quarterSummaryDF2")
+
+// COMMAND ----------
+
+val ex_3_combinations = spark.sql("""
+  SELECT 'Standard' AS Std_NonStd, 'Q1' AS Quarter
+  UNION ALL SELECT 'Standard', 'Q2'
+  UNION ALL SELECT 'Standard', 'Q3'
+  UNION ALL SELECT 'Standard', 'Q4'
+  UNION ALL SELECT 'Non-Standard', 'Q1'
+  UNION ALL SELECT 'Non-Standard', 'Q2'
+  UNION ALL SELECT 'Non-Standard', 'Q3'
+  UNION ALL SELECT 'Non-Standard', 'Q4'
+""")
+
+// COMMAND ----------
+
+ex_3_combinations.createOrReplaceTempView("ex_3_combinations")
+
+// COMMAND ----------
+
+val ex3_Summary = spark.sql("""
+  SELECT
+    ac.Std_NonStd AS `Journal Entry Type`,
+    '' AS `User ID`,
+    '' AS `User Name`,
+    '' AS `Approver ID`,
+    '' AS `Approver Name`,
+    SUM(q.`Total Entries`) AS `Total Nbr of Journal Entries`,
+    SUM(q.`Total Amount`) AS `Total Journal Entry Net Amount`,
+    SUM(q.`Entries Posted on weekend`) AS `Entries Posted on weekend`,
+    SUM(q.`Entries Posted on Holidays`) AS `Entries Posted on Holidays`,
+    SUM(CASE WHEN q.Quarter = 'Q1' THEN q.`Total Entries` ELSE 0 END) AS Q1_Nbr_of_Journal_Entries,
+    SUM(CASE WHEN q.Quarter = 'Q2' THEN q.`Total Entries` ELSE 0 END) AS Q2_Nbr_of_Journal_Entries,
+    SUM(CASE WHEN q.Quarter = 'Q3' THEN q.`Total Entries` ELSE 0 END) AS Q3_Nbr_of_Journal_Entries,
+    SUM(CASE WHEN q.Quarter = 'Q4' THEN q.`Total Entries` ELSE 0 END) AS Q4_Nbr_of_Journal_Entries,
+    SUM(CASE WHEN q.Quarter = 'Q1' THEN q.`Total Amount` ELSE 0 END) AS Q1_Activity,
+    SUM(CASE WHEN q.Quarter = 'Q2' THEN q.`Total Amount` ELSE 0 END) AS Q2_Activity,
+    SUM(CASE WHEN q.Quarter = 'Q3' THEN q.`Total Amount` ELSE 0 END) AS Q3_Activity,
+    SUM(CASE WHEN q.Quarter = 'Q4' THEN q.`Total Amount` ELSE 0 END) AS Q4_Activity
+  FROM (
+    SELECT
+      qs.Std_NonStd,
+      qs.Quarter,
+      SUM(qs.`Total Nbr of Journal Entries`) AS `Total Entries`,
+      SUM(qs.`Total Journal Entry Net Amount`) AS `Total Amount`,
+      SUM(qs.`Entries Posted on weekend`) AS `Entries Posted on weekend`,
+      SUM(qs.`Entries Posted on Holidays`) AS `Entries Posted on Holidays`
+    FROM quarterSummaryDF2 qs
+    GROUP BY qs.Std_NonStd, qs.Quarter
+  ) q
+  RIGHT JOIN ex_3_combinations ac
+    ON q.Std_NonStd = ac.Std_NonStd AND q.Quarter = ac.Quarter
+  GROUP BY ac.Std_NonStd
+""")
+
+
+// COMMAND ----------
+
+ex3_Summary.coalesce(1).write
+.format("csv")
+.option("header",true)
+.mode("Overwrite")
+.save(output_path + "2_Large_Debits_to_Revenue")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =====================================================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary - 3 (User Wise Analysis) [Exception 4 & 5]
+
+// COMMAND ----------
+
+val summary3_stage1 = spark.sql("""select Std_NonStd, User_name, DocumentNo, quarter,
+SUM(Amount_in_local_cur) AS Total_Net_Amount
+
+from GL_withoutNull
+group by Std_NonStd, User_name, DocumentNo, quarter
+""")
+
+// COMMAND ----------
+
+summary3_stage1.createOrReplaceTempView("summary3_stage1")
+summary3_stage1.count()
+
+// COMMAND ----------
+
+val summary3_stage2 = spark.sql("""select Std_NonStd, User_name, 
+count(distinct DocumentNo) AS `Total Nbr of Journal Entries`, SUM(Total_Net_Amount) AS `Total Journal Entry Amount`,
+
+SUM(CASE WHEN quarter = 'Q1' THEN 1 ELSE 0 END) AS Q1_Journal_Lines,
+SUM(CASE WHEN quarter = 'Q2' THEN 1 ELSE 0 END) AS Q2_Journal_Lines,
+SUM(CASE WHEN quarter = 'Q3' THEN 1 ELSE 0 END) AS Q3_Journal_Lines,
+SUM(CASE WHEN quarter = 'Q4' THEN 1 ELSE 0 END) AS Q4_Journal_Lines
+
+from summary3_stage1
+group by Std_NonStd, User_name
+order by Std_NonStd, User_name
+""")
+
+// COMMAND ----------
+
+summary3_stage2.filter($"User_name" === "VASU150380").show(false)
+
+// COMMAND ----------
+
+summary3_stage2.count()
+
+// COMMAND ----------
+
+summary3_stage2.coalesce(1).write
+.format("csv")
+.option("header",true)
+//.option("escape", "")
+//.option("quote", "")
+.save(output_path + "3_UserWise_Analysis")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =====================================================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 4 - (Closing Entries) [Exception 6] Annually
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-1
+
+// COMMAND ----------
+
+val Input_Exception6_Stage1 = spark.read
+.format("csv")
+.option("header",true)
+.option("delimiter",",")
+.load(file_path + "/JET_Summary_Inputs/ex_6_Annually.csv")
+
+// COMMAND ----------
+
+Input_Exception6_Stage1.count()
+
+// COMMAND ----------
+
+Input_Exception6_Stage1.createOrReplaceTempView("Input_Exception6_Stage1")
+
+// COMMAND ----------
+
+Input_Exception6_Stage1.show()
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-2
+
+// COMMAND ----------
+
+val Input_Exception6_Stage2 = spark.sql("""select Frequency,
+TO_DATE(CAST(UNIX_TIMESTAMP(Closing_Date, 'dd-MMM-yy') AS TIMESTAMP)) AS Closing_Date,
+INT(Closing_Entries_before), INT(Closing_Entries_after) from Input_Exception6_Stage1 where Frequency IS NOT NULL""")
+
+// COMMAND ----------
+
+Input_Exception6_Stage2.createOrReplaceTempView("Input_Exception6_Stage2")
+
+// COMMAND ----------
+
+Input_Exception6_Stage2.show()
+
+// COMMAND ----------
+
+spark.sql("""select Closing_Date, date_add(Closing_Date,Closing_Entries_after) as End_Date, 
+date_sub(Closing_Date,Closing_Entries_before) as Start_Date from Input_Exception6_Stage2""").show()
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-3
+
+// COMMAND ----------
+
+val Exception6 = spark.sql("""select a.G_L, a.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, a.Amount_in_local_cur, 
+a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name,
+a.Std_NonStd, a.Account_Subtype,Quarter,
+
+CASE WHEN 'Annually' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(Closing_Date,Closing_Entries_before) and date_add(Closing_Date,Closing_Entries_after) THEN 'Exception6' 
+
+WHEN 'Quarterly' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(Closing_Date,Closing_Entries_before) and date_add(Closing_Date,Closing_Entries_after) THEN 'Exception6' 
+
+WHEN 'Quarterly' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(add_months(Closing_Date,-3),Closing_Entries_before) and date_add(add_months(Closing_Date,-3),Closing_Entries_after) THEN 'Exception6' 
+
+WHEN 'Quarterly' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(add_months(Closing_Date,-6),Closing_Entries_before) and date_add(add_months(Closing_Date,-6),Closing_Entries_after) THEN 'Exception6' 
+
+WHEN 'Quarterly' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(add_months(Closing_Date,-9),Closing_Entries_before) and date_add(add_months(Closing_Date,-9),Closing_Entries_after) THEN 'Exception6'
+
+ELSE 'NO Exception' END AS Exception 
+
+from GL_withoutNull a LEFT JOIN Input_Exception6_Stage2 b ON 
+'Annually' = b.Frequency or
+'Quarterly' = b.Frequency
+""")
+
+// COMMAND ----------
+
+Exception6.createOrReplaceTempView("Exception6")
+
+// COMMAND ----------
+
+Exception6.count()
+
+// COMMAND ----------
+
+val output_Exception6 = spark.sql("""select G_L, FS_Line_Item, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date,
+Amount_in_local_cur, Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2, Document_Header_Text, Text,
+User_name, Std_NonStd, Exception, Account_Subtype, Quarter
+
+from Exception6 where Exception='Exception6'""")
+
+// COMMAND ----------
+
+output_Exception6.count()
+
+// COMMAND ----------
+
+output_Exception6.createOrReplaceTempView("output_Exception6")
+
+// COMMAND ----------
+
+val output_Exception6_1 = output_Exception6.withColumn("Amount_in_local_cur", round(col("Amount_in_local_cur"), 2))
+
+// COMMAND ----------
+
+output_Exception6_1.createOrReplaceTempView("output_Exception6_1")
+
+// COMMAND ----------
+
+val ex6_summary_Stage1 = spark.sql("""
+  WITH StandardAggregates AS (
+    SELECT
+      Std_NonStd,
+      CASE
+        WHEN (Account_Subtype IN ('Assets', 'Asset')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Increase in Assets'
+        WHEN (Account_Subtype IN ('Assets', 'Asset')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Decrease in Assets'
+        
+        WHEN (Account_Subtype IN ('Liabilities', 'Liability')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Liabilities'
+        WHEN (Account_Subtype IN ('Liabilities', 'Liability')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Liabilities'
+        
+        WHEN (Account_Subtype IN ('Expense', 'Expenses')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Increase in Expense'
+        WHEN (Account_Subtype IN ('Expense', 'Expenses')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Decrease in Expense'
+        
+        WHEN (Account_Subtype IN ('Revenue', 'Revenues')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Revenue'
+        WHEN (Account_Subtype IN ('Revenue', 'Revenues')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Revenue'
+        
+        WHEN (Account_Subtype = 'Equity') AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Equity'
+        WHEN (Account_Subtype = 'Equity') AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Equity'
+        
+        ELSE 'NA'
+      END AS `Financial Statement Effect`,
+      Quarter,
+      Amount_in_local_cur
+    FROM output_Exception6_1
+    WHERE 
+      (Account_Subtype IN ('Assets', 'Asset', 'Liabilities', 'Liability', 'Expense', 'Expenses', 'Revenue', 'Revenues', 'Equity', 'NA')) AND
+      (Amount_in_local_cur != 0)
+  )
+
+  SELECT
+    sa.Std_NonStd,
+    sa.`Financial Statement Effect`,
+    COUNT(*) AS `Total Nbr of Journal Entry Lines`,
+    COALESCE(SUM(CASE WHEN sa.Amount_in_local_cur > 0 THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Total Debit Amount`,
+        COALESCE(SUM(CASE WHEN sa.Amount_in_local_cur < 0 THEN -sa.Amount_in_local_cur ELSE 0 END), 0) AS `Total Credit Amount`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q1' THEN 1 ELSE 0 END), 0) AS `Q1_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q2' THEN 1 ELSE 0 END), 0) AS `Q2_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q3' THEN 1 ELSE 0 END), 0) AS `Q3_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q4' THEN 1 ELSE 0 END), 0) AS `Q4_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q1' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q1_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q2' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q2_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q3' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q3_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q4' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q4_Activity`
+
+  FROM StandardAggregates sa
+  GROUP BY sa.Std_NonStd, sa.`Financial Statement Effect`
+  ORDER BY sa.Std_NonStd DESC, sa.`Financial Statement Effect`
+""")
+
+
+// COMMAND ----------
+
+ex6_summary_Stage1.createOrReplaceTempView("ex6_summary_Stage1")
+
+// COMMAND ----------
+
+val ex6_summary_Stage2 = ex6_summary_Stage1
+  .withColumn("Total Debit Amount", ex6_summary_Stage1("Total Debit Amount").cast("double"))
+  .withColumn("Total Credit Amount", ex6_summary_Stage1("Total Credit Amount").cast("double"))
+
+// COMMAND ----------
+
+ex6_summary_Stage2.createOrReplaceTempView("ex6_summary_Stage2")
+
+// COMMAND ----------
+
+val standard_total_ex6 = spark.sql("""
+    SELECT 'Standard Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex6_summary_Stage2
+    WHERE Std_NonStd = 'Standard'
+""")
+// COMMAND ----------
+
+standard_total_ex6.createOrReplaceTempView("standard_total_ex6")
+
+// COMMAND ----------
+
+val non_standard_total_ex6 = spark.sql("""
+    SELECT 'Non-Standard Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex6_summary_Stage2
+    WHERE Std_NonStd = 'Non-Standard'
+""")
+
+// COMMAND ----------
+
+non_standard_total_ex6.createOrReplaceTempView("non_standard_total_ex6")
+
+// COMMAND ----------
+
+val combined_total_ex6 = spark.sql("""
+    SELECT 'Combined Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex6_summary_Stage2
+""")
+
+// COMMAND ----------
+
+combined_total_ex6.createOrReplaceTempView("combined_total_ex6")
+
+// COMMAND ----------
+
+val ex6_summary_Stage3 = spark.sql("""
+  SELECT * FROM ex6_summary_Stage2
+  UNION ALL
+  SELECT * FROM non_standard_total_ex6
+  UNION ALL
+  SELECT * FROM standard_total_ex6
+  ORDER BY Std_NonStd, `Financial Statement Effect` DESC
+""")
+
+// COMMAND ----------
+
+ex6_summary_Stage3.createOrReplaceTempView("ex6_summary_Stage3")
+
+// COMMAND ----------
+
+val ex6_summary_Stage4 = spark.sql("""
+  SELECT * FROM ex6_summary_Stage3
+  UNION ALL
+  SELECT * FROM combined_total_ex6
+""")
+
+// COMMAND ----------
+
+ex6_summary_Stage4.coalesce(1).write
+.format("csv")
+.option("header",true)
+//.mode("Overwrite")
+//.option("escape", "")
+//.option("quote", "")
+.save(output_path + "4_Closing_Entries_Annually")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC #  ===========================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 4 - (Closing Entries) [Exception 6] Quarterly
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-1
+
+// COMMAND ----------
+
+val Input_Exception6_Stage1 = spark.read
+.format("csv")
+.option("header",true)
+.option("delimiter",",")
+.load(file_path + "/JET_Summary_Inputs/ex_6_Quarterly.csv")
+
+// COMMAND ----------
+
+Input_Exception6_Stage1.count()
+
+// COMMAND ----------
+
+Input_Exception6_Stage1.createOrReplaceTempView("Input_Exception6_Stage1")
+
+// COMMAND ----------
+
+Input_Exception6_Stage1.show()
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-2
+
+// COMMAND ----------
+
+val Input_Exception6_Stage2 = spark.sql("""select Frequency,
+TO_DATE(CAST(UNIX_TIMESTAMP(Closing_Date, 'dd-MMM-yy') AS TIMESTAMP)) AS Closing_Date,
+INT(Closing_Entries_before), INT(Closing_Entries_after) from Input_Exception6_Stage1 where Frequency IS NOT NULL""")
+
+// COMMAND ----------
+
+Input_Exception6_Stage2.createOrReplaceTempView("Input_Exception6_Stage2")
+
+// COMMAND ----------
+
+Input_Exception6_Stage2.show()
+
+// COMMAND ----------
+
+spark.sql("""select Closing_Date, date_add(Closing_Date,Closing_Entries_after) as End_Date, 
+date_sub(Closing_Date,Closing_Entries_before) as Start_Date from Input_Exception6_Stage2""").show()
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-3
+
+// COMMAND ----------
+
+val Exception6 = spark.sql("""select a.G_L, a.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, a.Amount_in_local_cur, 
+a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name,
+a.Std_NonStd, a.Account_Subtype,Quarter,
+
+CASE WHEN 'Annually' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(Closing_Date,Closing_Entries_before) and date_add(Closing_Date,Closing_Entries_after) THEN 'Exception6' 
+
+WHEN 'Quarterly' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(Closing_Date,Closing_Entries_before) and date_add(Closing_Date,Closing_Entries_after) THEN 'Exception6' 
+
+WHEN 'Quarterly' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(add_months(Closing_Date,-3),Closing_Entries_before) and date_add(add_months(Closing_Date,-3),Closing_Entries_after) THEN 'Exception6' 
+
+WHEN 'Quarterly' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(add_months(Closing_Date,-6),Closing_Entries_before) and date_add(add_months(Closing_Date,-6),Closing_Entries_after) THEN 'Exception6' 
+
+WHEN 'Quarterly' = b.Frequency and TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) 
+between date_sub(add_months(Closing_Date,-9),Closing_Entries_before) and date_add(add_months(Closing_Date,-9),Closing_Entries_after) THEN 'Exception6'
+
+ELSE 'NO Exception' END AS Exception 
+
+from GL_withoutNull a LEFT JOIN Input_Exception6_Stage2 b ON 
+'Annually' = b.Frequency or
+'Quarterly' = b.Frequency
+""")
+
+// COMMAND ----------
+
+Exception6.createOrReplaceTempView("Exception6")
+
+// COMMAND ----------
+
+Exception6.count()
+
+// COMMAND ----------
+
+val output_Exception6 = spark.sql("""select G_L, FS_Line_Item, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date,
+Amount_in_local_cur, Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2, Document_Header_Text, Text,
+User_name, Std_NonStd, Exception, Account_Subtype,Quarter
+
+from Exception6 where Exception='Exception6'""")
+
+// COMMAND ----------
+
+output_Exception6.count()
+
+// COMMAND ----------
+
+output_Exception6.createOrReplaceTempView("output_Exception6")
+
+// COMMAND ----------
+
+val output_Exception6_1 = output_Exception6.withColumn("Amount_in_local_cur", round(col("Amount_in_local_cur"), 2))
+
+// COMMAND ----------
+
+output_Exception6_1.createOrReplaceTempView("output_Exception6_1")
+
+// COMMAND ----------
+
+val ex6_summary_Stage1 = spark.sql("""
+  WITH StandardAggregates AS (
+    SELECT
+      Std_NonStd,
+      CASE
+        WHEN (Account_Subtype IN ('Assets', 'Asset')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Increase in Assets'
+        WHEN (Account_Subtype IN ('Assets', 'Asset')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Decrease in Assets'
+        
+        WHEN (Account_Subtype IN ('Liabilities', 'Liability')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Liabilities'
+        WHEN (Account_Subtype IN ('Liabilities', 'Liability')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Liabilities'
+        
+        WHEN (Account_Subtype IN ('Expense', 'Expenses')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Increase in Expense'
+        WHEN (Account_Subtype IN ('Expense', 'Expenses')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Decrease in Expense'
+        
+        WHEN (Account_Subtype IN ('Revenue', 'Revenues')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Revenue'
+        WHEN (Account_Subtype IN ('Revenue', 'Revenues')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Revenue'
+        
+        WHEN (Account_Subtype = 'Equity') AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Equity'
+        WHEN (Account_Subtype = 'Equity') AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Equity'
+        
+        ELSE 'NA'
+      END AS `Financial Statement Effect`,
+      Quarter,
+      Amount_in_local_cur
+    FROM output_Exception6_1
+    WHERE 
+      (Account_Subtype IN ('Assets', 'Asset', 'Liabilities', 'Liability', 'Expense', 'Expenses', 'Revenue', 'Revenues', 'Equity', 'NA')) AND
+      (Amount_in_local_cur != 0)
+  )
+
+  SELECT
+    sa.Std_NonStd,
+    sa.`Financial Statement Effect`,
+    COUNT(*) AS `Total Nbr of Journal Entry Lines`,
+    COALESCE(SUM(CASE WHEN sa.Amount_in_local_cur > 0 THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Total Debit Amount`,
+        COALESCE(SUM(CASE WHEN sa.Amount_in_local_cur < 0 THEN -sa.Amount_in_local_cur ELSE 0 END), 0) AS `Total Credit Amount`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q1' THEN 1 ELSE 0 END), 0) AS `Q1_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q2' THEN 1 ELSE 0 END), 0) AS `Q2_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q3' THEN 1 ELSE 0 END), 0) AS `Q3_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q4' THEN 1 ELSE 0 END), 0) AS `Q4_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q1' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q1_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q2' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q2_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q3' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q3_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q4' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q4_Activity`
+
+  FROM StandardAggregates sa
+  GROUP BY sa.Std_NonStd, sa.`Financial Statement Effect`
+  ORDER BY sa.Std_NonStd DESC, sa.`Financial Statement Effect`
+""")
+
+
+// COMMAND ----------
+
+ex6_summary_Stage1.createOrReplaceTempView("ex6_summary_Stage1")
+
+// COMMAND ----------
+
+val ex6_summary_Stage2 = ex6_summary_Stage1
+  .withColumn("Total Debit Amount", ex6_summary_Stage1("Total Debit Amount").cast("double"))
+  .withColumn("Total Credit Amount", ex6_summary_Stage1("Total Credit Amount").cast("double"))
+
+// COMMAND ----------
+
+ex6_summary_Stage2.createOrReplaceTempView("ex6_summary_Stage2")
+
+// COMMAND ----------
+
+val standard_total_ex6 = spark.sql("""
+    SELECT 'Standard Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex6_summary_Stage2
+    WHERE Std_NonStd = 'Standard'
+""")
+
+// COMMAND ----------
+
+standard_total_ex6.createOrReplaceTempView("standard_total_ex6")
+
+// COMMAND ----------
+
+val non_standard_total_ex6 = spark.sql("""
+    SELECT 'Non-Standard Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex6_summary_Stage2
+    WHERE Std_NonStd = 'Non-Standard'
+""")
+
+// COMMAND ----------
+
+non_standard_total_ex6.createOrReplaceTempView("non_standard_total_ex6")
+
+// COMMAND ----------
+
+val combined_total_ex6 = spark.sql("""
+    SELECT 'Combined Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex6_summary_Stage2
+""")
+
+// COMMAND ----------
+
+combined_total_ex6.createOrReplaceTempView("combined_total_ex6")
+
+// COMMAND ----------
+
+val ex6_summary_Stage3 = spark.sql("""
+  SELECT * FROM ex6_summary_Stage2
+  UNION ALL
+  SELECT * FROM non_standard_total_ex6
+  UNION ALL
+  SELECT * FROM standard_total_ex6
+  ORDER BY Std_NonStd, `Financial Statement Effect` DESC
+""")
+
+// COMMAND ----------
+
+ex6_summary_Stage3.createOrReplaceTempView("ex6_summary_Stage3")
+
+// COMMAND ----------
+
+val ex6_summary_Stage4 = spark.sql("""
+  SELECT * FROM ex6_summary_Stage3
+  UNION ALL
+  SELECT * FROM combined_total_ex6
+""")
+
+// COMMAND ----------
+
+ex6_summary_Stage4.coalesce(1).write
+.format("csv")
+.option("header",true)
+.mode("Overwrite")
+//.option("escape", "")
+//.option("quote", "")
+.save(output_path + "4_Closing_Entries_Quarterly")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC #  ===========================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 5 - (Dates of Interest) [Exception 7]
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### 
+// MAGIC Holiday List
+
+// COMMAND ----------
+
+//Preparing calendar for dates between minimum and maximum Posting Date
+import java.sql.Date
+
+val startInput = GL_withoutNull.select(min(to_date($"Pstng_Date","dd-MMM-yy")).cast("String")).collect()(0).getString(0)
+val endInput = GL_withoutNull.select(max(to_date($"Pstng_Date","dd-MMM-yy")).cast("String")).collect()(0).getString(0)
+
+val startDate = Date.valueOf(startInput)
+val endDate = Date.valueOf(endInput)
+
+val dateSeq = spark.sqlContext.range(0, 1 + (endDate.getTime - startDate.getTime) / (24 * 3600 * 1000))
+  .selectExpr(s"date_add('$startDate', cast(id as int)) as calendar_date")
+
+dateSeq.createOrReplaceTempView("dateSeq")
+
+// COMMAND ----------
+
+val calendar = spark.sql("""Select date_format(calendar_date,"dd-MMM-yy") as calendar_date from dateSeq""")
+
+// COMMAND ----------
+
+calendar.createOrReplaceTempView("calendar")
+
+// COMMAND ----------
+
+// list of bank holidays
+val holidayList = spark.read
+.format("csv")
+.option("quote","\"")
+.option("escape","\"")
+.option("delimeter",",")
+.option("header",true)
+.load(file_path + "/JET_Summary_Inputs/Holiday_List_22_25.csv")
+
+// COMMAND ----------
+
+holidayList.createOrReplaceTempView("holidayList")
+
+// COMMAND ----------
+
+// Selecting unique list of bank holidays
+val holidayList_stg1 = spark.sql("""Select Date, Reason, 
+row_number() OVER (PARTITION BY(Date) ORDER BY(Reason)) AS rno FROM holidayList""").filter(col("rno")===1).drop("rno")
+
+// COMMAND ----------
+
+holidayList_stg1.createOrReplaceTempView("holidayList_stg1")
+
+// COMMAND ----------
+
+// joining holiday list with calendar
+val holidayList_stg2 = spark.sql("""SELECT a.calendar_date,b.Reason AS Holiday from calendar a 
+LEFT JOIN holidayList_stg1 b on a.calendar_date = b.Date""")
+
+// COMMAND ----------
+
+holidayList_stg2.createOrReplaceTempView("holidayList_stg2")
+
+// COMMAND ----------
+
+// identifying weekends
+val holidayList_stg3 = spark.sql("""SELECT calendar_date,holiday,date_format(to_date(calendar_date,"dd-MMM-yy"),'E') as day 
+FROM holidayList_stg2""")
+
+// COMMAND ----------
+
+holidayList_stg3.createOrReplaceTempView("holidayList_stg3")
+
+// COMMAND ----------
+
+// Prioritising weekend over bank holidays
+val holidayList_stg4 = spark.sql("""Select a.calendar_date,a.holiday,a.day, 
+case when (a.holiday is not null) then holiday
+when (a.day='Sat' or a.day = 'Sun') then 'Weekend'
+else 'NA' 
+end as Reason from holidayList_stg3 a""")
+
+// COMMAND ----------
+
+holidayList_stg4.createOrReplaceTempView("holidayList_stg4")
+
+// COMMAND ----------
+
+// Selecting the required dates
+val holidayList_stg5 = spark.sql("""Select * from holidayList_stg4 where Reason!='NA'""")
+
+// COMMAND ----------
+
+holidayList_stg5.createOrReplaceTempView("holidayList_stg5")
+
+// COMMAND ----------
+
+// Joining Calendar with GL_withoutNull to obtain entires
+val exception7_summary = spark.sql("""SELECT DATE_FORMAT(TO_DATE(a.Pstng_Date,"dd-MMM-yy"),"MM/dd/yyyy") AS `Date(MM/DD/YYYY)`, b.reason, a.Std_NonStd AS Journal_Entry_Type,
+CASE WHEN a.Amount_in_local_cur<0 then a.Amount_in_local_cur
+ELSE 0.0 
+END AS Credit,
+CASE WHEN a.Amount_in_local_cur>=0 then a.Amount_in_local_cur 
+ELSE 0.0
+END AS Debit, b.reason as Day
+from GL_withoutNull a inner join holidayList_stg5 b on to_date(a.Pstng_Date,"dd-MMM-yy")=to_date(b.calendar_date,"dd-MMM-yy")""")
+
+// COMMAND ----------
+
+exception7_summary.createOrReplaceTempView("exception7_summary")
+
+// COMMAND ----------
+
+// Formatting Output
+val exception_summary_output = spark.sql("""Select a.Journal_Entry_Type,a.Day,a.`Date(MM/DD/YYYY)`,
+count(*) as Nbr_of_Journal_Entries,sum(Credit) as Credit_Amount,sum(Debit) as Debit_Amount 
+FROM exception7_summary a 
+group by a.Journal_Entry_Type,a.`Date(MM/DD/YYYY)`,a.Day order by a.`Date(MM/DD/YYYY)`,a.Journal_Entry_Type""")
+
+// COMMAND ----------
+
+exception_summary_output.coalesce(1)
+.write
+.option("quote","\"")
+.option("escape","\"")
+.option("header",true)
+.mode("overwrite")
+.csv(output_path + "5_Dates_of_Interest")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =============================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 6 - (Rounding and Recurring Digits) [Exception 8]
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Round Numbers
+
+// COMMAND ----------
+
+val round_Stage1 = spark.sql("""select a.G_L, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, 
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr,a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, 
+a.Text, a.User_name, Std_NonStd,
+CASE 
+WHEN
+((RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),9) = '000000000')) then 1000000000
+when
+((RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),8) = '00000000')) then 100000000
+when
+((RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),7) = '0000000')) then 10000000
+when
+((RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),6) = '000000')) then 1000000
+when
+((RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),5) = '00000')) then 100000
+when
+((RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),4) = '0000')) then 10000
+when
+((RIGHT(ABS(CAST(a.Amount_in_local_cur AS LONG)),3) = '000')) then 1000
+
+ELSE 'NO Exception'
+END AS Exception
+from GL_withoutNull a 
+""")
+
+// COMMAND ----------
+
+round_Stage1.createOrReplaceTempView("round_Stage1")
+
+// COMMAND ----------
+
+val round_Stage2 = spark.sql("""select G_L, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date, 
+Amount_in_local_cur, Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2, Document_Header_Text, 
+Text, User_name, Exception, Std_NonStd,
+
+CASE WHEN double(Amount_in_local_cur) >= 0 then Amount_in_local_cur
+else 0
+END AS Debit,
+CASE WHEN double(Amount_in_local_cur) < 0 then Amount_in_local_cur
+else 0
+END AS Credit
+from round_Stage1 
+""")
+
+// COMMAND ----------
+
+round_Stage2.createOrReplaceTempView("round_Stage2")
+
+// COMMAND ----------
+
+val round_Stage3 = spark.sql("""select Exception, Std_NonStd,
+count(distinct(DocumentNo)) as distinct , count(*) as count, sum(Debit) as debit , sum(Credit) as credit
+from round_Stage2
+group by Exception, DocumentNo,Std_NonStd having Exception != 'NO Exception'""")
+
+// COMMAND ----------
+
+round_Stage3.createOrReplaceTempView("round_Stage3")
+
+// COMMAND ----------
+
+val round_Stage4 = spark.sql("""select Exception, Std_NonStd, sum(distinct) as DocumentNo_Count, 
+sum(count) as Line_Items, sum(Debit) as Debit, sum(Credit) as Credit
+from round_Stage3
+group by Exception,Std_NonStd""")
+
+// COMMAND ----------
+
+round_Stage4.coalesce(1).write
+.format("csv")
+.option("header",true)
+// .option("escape", "")
+// .option("quote", "")
+.save(output_path + "6_Amount_Analysis/Round")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Recurring Digits
+
+// COMMAND ----------
+
+val recur_Stage1 = spark.sql("""select a.G_L, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, 
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr,a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, 
+a.Text, a.User_name, Std_NonStd,
+CASE when
+((ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),9) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),9),1)) = 111111111)) then 9
+when
+((ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),8) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),8),1)) = 11111111)) then 8
+when
+((ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),7) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),7),1)) = 1111111)) then 7
+when
+((ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),6) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),6),1)) = 111111)) then 6
+when
+((ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),5) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),5),1)) = 11111)) then 5
+when
+((ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),4) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),4),1)) = 1111)) then 4
+when
+((ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),3) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),3),1)) = 111)) then 3
+WHEN
+((ABS(RIGHT(CAST(a.Amount_in_local_cur AS LONG),2) / RIGHT(RIGHT(CAST(a.Amount_in_local_cur AS LONG),2),1)) = 11)) then 2
+
+ELSE 'NO Exception'
+END AS Exception8
+from GL_withoutNull a 
+""")
+
+// COMMAND ----------
+
+recur_Stage1.createOrReplaceTempView("recur_Stage1")
+
+// COMMAND ----------
+
+val recur_Stage2 = spark.sql("""select G_L, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date, 
+Amount_in_local_cur, Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2, Document_Header_Text, 
+Text, User_name, Exception8, Std_NonStd,
+CASE WHEN double(Amount_in_local_cur) >= 0 then Amount_in_local_cur
+else 0
+END AS Debit,
+CASE WHEN double(Amount_in_local_cur) < 0 then Amount_in_local_cur
+else 0
+END AS Credit
+from recur_Stage1 
+""")
+
+// COMMAND ----------
+
+recur_Stage2.createOrReplaceTempView("recur_Stage2")
+
+// COMMAND ----------
+
+val recur_Stage3 = spark.sql("""select Exception8, Std_NonStd,
+count(distinct(DocumentNo)) as distinct , count(*) count, sum(Debit) as debit , sum(Credit) as credit
+from recur_Stage2
+group by Exception8, DocumentNo, Std_NonStd having Exception8 != 'NO Exception'""")
+
+// COMMAND ----------
+
+recur_Stage3.createOrReplaceTempView("recur_Stage3")
+
+// COMMAND ----------
+
+val recur_Stage4 = spark.sql("""select Exception8 as Exception,Std_NonStd, sum(distinct) as DocumentNo_Count,
+sum(count) as Line_Items, sum(Debit) as Debit, sum(Credit) as Credit
+from recur_Stage3
+group by Exception8, Std_NonStd""")
+
+// COMMAND ----------
+
+recur_Stage4.show(false)
+
+// COMMAND ----------
+
+recur_Stage4.coalesce(1).write
+.format("csv")
+.option("header",true)
+// .option("escape", "")
+// .option("quote", "")
+.save(output_path + "6_Amount_Analysis/Recurring")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =============================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 7 (Duplicate Entries) [Exceptin 9]
+
+// COMMAND ----------
+
+val Exception9_stage1_part1 = spark.sql("""select *, CONCAT(G_L,CAST(Amount_in_local_cur AS LONG)) AS ST1 from GL_withoutNull""")
+                              .withColumn("ID", monotonically_increasing_id())
+
+// COMMAND ----------
+
+Exception9_stage1_part1.createOrReplaceTempView("Exception9_stage1_part1")
+
+// COMMAND ----------
+
+val Exception9_stage1_part2 = spark.sql("""select * from Exception9_stage1_part1 order by DocumentNo, G_L, Amount_in_local_cur, ID""").repartition(1)
+
+// COMMAND ----------
+
+Exception9_stage1_part2.createOrReplaceTempView("Exception9_stage1_part2")
+
+// COMMAND ----------
+
+val Exception9_stage2_part1 = spark.sql("""select DocumentNo, array_join(sort_array(collect_list(ST1)), '_') AS Combo
+from Exception9_stage1_part2 group by DocumentNo
+""")
+
+// COMMAND ----------
+
+Exception9_stage2_part1.createOrReplaceTempView("Exception9_stage2_part1")
+
+// COMMAND ----------
+
+val Exception9_stage2_part2 = spark.sql("""select Combo, Count(*) AS Count 
+from Exception9_stage2_part1 group by Combo""")
+
+// COMMAND ----------
+
+Exception9_stage2_part2.createOrReplaceTempView("Exception9_stage2_part2")
+
+// COMMAND ----------
+
+val Exception9_stage2_part3 = spark.sql("""select *, ROW_NUMBER() OVER (ORDER BY Combo) AS ROWNUM 
+from Exception9_stage2_part2""")
+
+// COMMAND ----------
+
+Exception9_stage2_part3.createOrReplaceTempView("Exception9_stage2_part3")
+
+// COMMAND ----------
+
+val Exception9_stage3_part1 = spark.sql("""select * from Exception9_stage2_part2 
+where Count > 1""")
+
+// COMMAND ----------
+
+Exception9_stage3_part1.createOrReplaceTempView("Exception9_stage3_part1")
+
+// COMMAND ----------
+
+val Exception9_stage3_part2 = spark.sql("""select DocumentNo 
+from Exception9_stage2_part1 
+where exists(select Combo from Exception9_stage3_part1 where Exception9_stage3_part1.Combo = Exception9_stage2_part1.Combo)""")
+
+// COMMAND ----------
+
+Exception9_stage3_part2.createOrReplaceTempView("Exception9_stage3_part2")
+
+// COMMAND ----------
+
+val Exception9_stage3_part3 = spark.sql("""select * 
+from GL_withoutNull 
+where exists(select DocumentNo from Exception9_stage3_part2 where Exception9_stage3_part2.DocumentNo = GL_withoutNull.DocumentNo)""")
+
+// COMMAND ----------
+
+Exception9_stage3_part3.createOrReplaceTempView("Exception9_stage3_part3")
+
+// COMMAND ----------
+
+val Exception9_stage3_part4 = spark.sql("""select a.*, 'Exception9' AS Exception, b.Combo
+from Exception9_stage3_part3 a LEFT JOIN Exception9_stage2_part1 b ON a.DocumentNo = b.DocumentNo""")
+
+// COMMAND ----------
+
+Exception9_stage3_part4.createOrReplaceTempView("Exception9_stage3_part4")
+
+// COMMAND ----------
+
+val Exception9_stage3_part5 = spark.sql("""select a.G_L, a.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date,
+a.Amount_in_local_cur, a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text,
+a.Text, a.User_name, a.Std_NonStd, a.Exception,a.combo,b.count,
+CASE WHEN a.Amount_in_local_cur>=0 then a.Amount_in_local_cur 
+ELSE 
+0.0 END AS Debit_Amount,
+CASE WHEN a.Amount_in_local_cur<0 then a.Amount_in_local_cur
+ELSE
+0.0 END AS Credit_Amount
+from Exception9_stage3_part4 a LEFT JOIN Exception9_stage2_part3 b ON a.Combo = b.Combo
+""")
+
+// COMMAND ----------
+
+// Exception9_stage3_part5.coalesce(1).write.option("quote","\"").option("escape","\"").option("header",true).mode("overwrite").csv("Outputs/Exception9")
+
+// COMMAND ----------
+
+Exception9_stage3_part5.createOrReplaceTempView("Exception9_stage3_part5")
+
+// COMMAND ----------
+
+val Exception9_summary_stg1 = spark.sql("""SELECT Std_NonStd AS Journal_Entry_Type,count AS Number_of_Duplicates,
+count(distinct DocumentNo) as Nbr_of_Journal_Entries,count(*) AS Nbr_of_Journal_Entry_Lines,
+SUM(Debit_Amount) AS Sum_Debit_Amount,SUM(Credit_Amount) AS Sum_Credit_Amount 
+from Exception9_stage3_part5 
+group by Std_NonStd,count 
+order by Std_NonStd,count""")
+
+// COMMAND ----------
+
+Exception9_summary_stg1.coalesce(1)
+.write
+.option("header",true)
+.option("quote","\"")
+.option("escape","\"")
+.mode("overwrite")
+.csv(output_path + "7_Duplicate_Analysis")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =============================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 8- (Word Count) [Exception 10]
+
+// COMMAND ----------
+
+val summary8_stage1 = spark.read
+.format("csv")
+.option("header",true)
+.option("delimiter",",")
+.load(file_path+"/JET_Summary_Inputs/ex_10.csv").select(lower($"Text").as("Text")).distinct
+
+// COMMAND ----------
+
+summary8_stage1.createOrReplaceTempView("summary8_stage1")
+
+// COMMAND ----------
+
+val pattern = concat(lit("\\b"), summary8_stage1("Text"), lit("\\b"))
+
+// COMMAND ----------
+
+val summary8_stage2 = GL_withoutNull.join(summary8_stage1, regexp_replace(GL_withoutNull("Text"), pattern, lit("")) =!= GL_withoutNull("Text")).drop(GL_withoutNull("text"))
+
+// COMMAND ----------
+
+summary8_stage2.createOrReplaceTempView("summary8_stage2")
+
+// COMMAND ----------
+
+val summary8_stage3 = spark.sql("""select a.Text,a.Std_NonStd,count(distinct(a.DocumentNo)) as Total_Journal_Entries, count(*) AS Total_Journal_Lines, SUM(a.Amount_in_local_cur) AS Total_Net_Amount,
+SUM(CASE WHEN a.Amount_in_local_cur >= 0 THEN a.Amount_in_local_cur ELSE 0 END) AS Total_Debits,
+SUM(CASE WHEN a.Amount_in_local_cur < 0 THEN (a.Amount_in_local_cur * (-1)) ELSE 0 END) AS Total_Credits from summary8_stage2 a
+group by a.Text, a.Std_NonStd""")
+
+// COMMAND ----------
+
+summary8_stage3.createOrReplaceTempView("summary8_stage3")
+
+// COMMAND ----------
+
+val summary8_stage4= summary8_stage3.select($"Std_NonStd" as "Journal_Entry_Type",
+$"Text" as "Keyword",
+$"Total_Journal_Entries" as "Nbr_of_Journal_Entries", 
+$"Total_Journal_Lines" as "Nbr_of_Journal_Entry_Lines",
+$"Total_Debits" as "Sum_Debit_Amount",
+$"Total_Credits" as "Sum_Credit_Amount").orderBy("Std_NonStd","Keyword")
+
+// COMMAND ----------
+
+summary8_stage4.coalesce(1).write.option("quote","\"").option("escape","\"").option("header",true).mode("overwrite").csv(output_path + "8_Word_Count")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =============================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 9 - (Entries Posted after closing date for Quarter/Month/Half Year/Annual) [Exception-11 ] Annually
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-1
+
+// COMMAND ----------
+
+val Input_Exception11_Stage1 = spark.read
+.format("csv")
+.option("header",true)
+.option("delimiter",",")
+.load(file_path + "/JET_Summary_Inputs/ex_11_Annually.csv")
+
+// COMMAND ----------
+
+Input_Exception11_Stage1.createOrReplaceTempView("Input_Exception11_Stage1")
+
+// COMMAND ----------
+
+val Input_Exception11_Stage2 = spark.sql("""select STRING(Frequency),INT(Day),
+TO_DATE(CAST(UNIX_TIMESTAMP(Closing_Date, 'dd-MMM-yy') AS TIMESTAMP)) AS Closing_Date
+from Input_Exception11_Stage1 where Frequency IS NOT NULL""")
+
+// COMMAND ----------
+
+Input_Exception11_Stage2.createOrReplaceTempView("Input_Exception11_Stage2")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-2 Entry_Date
+
+// COMMAND ----------
+
+val Exception11 = spark.sql("""select a.G_L, a.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, a.Amount_in_local_cur, 
+a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name, a.Std_NonStd, a.Account_Subtype,Quarter,
+
+CASE
+    WHEN b.Frequency = 'Annually' 
+    AND TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day) THEN 'Exception11'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day) THEN 'Exception11'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -9))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= add_months(b.Closing_Date, -6))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(add_months(b.Closing_Date, -6), b.Day))
+    ) THEN 'Exception'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -6))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= add_months(b.Closing_Date, -3))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(add_months(b.Closing_Date, -3), b.Day))
+    ) THEN 'Exception'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -3))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= b.Closing_Date)
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day))
+    ) THEN 'Exception'
+    
+    ELSE 'NO Exception' 
+  END AS Exception
+
+  FROM GL_withoutNull a 
+  LEFT JOIN Input_Exception11_Stage2 b 
+  ON (b.Frequency = 'Annually' OR b.Frequency = 'Quarterly')
+""")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Pstng_Date
+
+// COMMAND ----------
+
+val Exception11 = spark.sql("""select a.G_L, a.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, a.Amount_in_local_cur, 
+a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name, a.Std_NonStd, a.Account_Subtype,Quarter,
+
+CASE
+    WHEN b.Frequency = 'Annually' 
+    AND TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day) THEN 'Exception11'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day) THEN 'Exception11'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -9))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= add_months(b.Closing_Date, -6))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(add_months(b.Closing_Date, -6), b.Day))
+    ) THEN 'Exception'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -6))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= add_months(b.Closing_Date, -3))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(add_months(b.Closing_Date, -3), b.Day))
+    ) THEN 'Exception'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -3))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= b.Closing_Date)
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day))
+    ) THEN 'Exception'
+    
+    ELSE 'NO Exception' 
+  END AS Exception
+
+  FROM GL_withoutNull a 
+  LEFT JOIN Input_Exception11_Stage2 b 
+  ON (b.Frequency = 'Annually' OR b.Frequency = 'Quarterly')
+""")
+
+// COMMAND ----------
+
+Exception11.createOrReplaceTempView("Exception11")
+
+// COMMAND ----------
+
+val output_Exception11 = spark.sql("""select G_L, FS_Line_Item, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date,
+Amount_in_local_cur, Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2, Document_Header_Text, Text,
+User_name, Std_NonStd, Account_Subtype, Quarter,Exception
+
+from Exception11 where Exception='Exception11'""")
+
+// COMMAND ----------
+
+output_Exception11.createOrReplaceTempView("output_Exception11")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Summary
+
+// COMMAND ----------
+
+val ex11_summary_Stage1 = spark.sql("""
+  WITH StandardAggregates AS (
+    SELECT
+      Std_NonStd,
+      CASE
+       WHEN (Account_Subtype IN ('Assets', 'Asset')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Increase in Assets'
+        WHEN (Account_Subtype IN ('Assets', 'Asset')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Decrease in Assets'
+        WHEN (Account_Subtype IN ('Liabilities', 'Liability')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Liabilities'
+        WHEN (Account_Subtype IN ('Liabilities', 'Liability')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Liabilities'
+        WHEN (Account_Subtype IN ('Expense', 'Expenses')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Increase in Expense'
+        WHEN (Account_Subtype IN ('Expense', 'Expenses')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Decrease in Expense'
+        WHEN (Account_Subtype IN ('Revenue', 'Revenues')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Revenue'
+        WHEN (Account_Subtype IN ('Revenue', 'Revenues')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Revenue'
+        WHEN (Account_Subtype = 'Equity') AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Equity'
+        WHEN (Account_Subtype = 'Equity') AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Equity'
+        ELSE 'NA'
+      END AS `Financial Statement Effect`,
+      Quarter,
+      Amount_in_local_cur
+    FROM output_Exception11
+    WHERE 
+      (Account_Subtype IN ('Assets', 'Asset', 'Liabilities', 'Liability', 'Expense', 'Expenses', 'Revenue', 'Revenues')) AND
+      (Amount_in_local_cur != 0)
+  )
+
+  SELECT
+    sa.Std_NonStd,
+    sa.`Financial Statement Effect`,
+    COUNT(*) AS `Total Nbr of Journal Entry Lines`,
+    
+        COALESCE(SUM(CASE WHEN sa.Amount_in_local_cur > 0 THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Total Debit Amount`,
+        COALESCE(SUM(CASE WHEN sa.Amount_in_local_cur < 0 THEN -sa.Amount_in_local_cur ELSE 0 END), 0) AS `Total Credit Amount`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q1' THEN 1 ELSE 0 END), 0) AS `Q1_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q2' THEN 1 ELSE 0 END), 0) AS `Q2_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q3' THEN 1 ELSE 0 END), 0) AS `Q3_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q4' THEN 1 ELSE 0 END), 0) AS `Q4_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q1' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q1_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q2' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q2_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q3' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q3_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q4' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q4_Activity`
+
+  FROM StandardAggregates sa
+  GROUP BY sa.Std_NonStd, sa.`Financial Statement Effect`
+  ORDER BY sa.Std_NonStd DESC, sa.`Financial Statement Effect`
+""")
+
+
+// COMMAND ----------
+
+ex11_summary_Stage1.createOrReplaceTempView("ex11_summary_Stage1")
+
+// COMMAND ----------
+
+val ex11_summary_Stage2 = ex11_summary_Stage1
+  .withColumn("Total Debit Amount", ex11_summary_Stage1("Total Debit Amount").cast("double"))
+  .withColumn("Total Credit Amount", ex11_summary_Stage1("Total Credit Amount").cast("double"))
+
+// COMMAND ----------
+
+ex11_summary_Stage2.createOrReplaceTempView("ex11_summary_Stage2")
+
+// COMMAND ----------
+
+val standard_total_ex11 = spark.sql("""
+    SELECT 'Standard Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex11_summary_Stage2
+    WHERE Std_NonStd = 'Standard'
+""")
+
+// COMMAND ----------
+
+standard_total_ex11.createOrReplaceTempView("standard_total_ex11")
+
+// COMMAND ----------
+
+val non_standard_total_ex11 = spark.sql("""
+    SELECT 'Non-Standard Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex11_summary_Stage2
+    WHERE Std_NonStd = 'Non-Standard'
+""")
+
+
+// COMMAND ----------
+
+non_standard_total_ex11.createOrReplaceTempView("non_standard_total_ex11")
+
+// COMMAND ----------
+
+val combined_total_ex11 = spark.sql("""
+    SELECT 'Combined Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex11_summary_Stage2
+""")
+
+// COMMAND ----------
+
+combined_total_ex11.createOrReplaceTempView("combined_total_ex11")
+
+// COMMAND ----------
+
+val ex11_summary_Stage3 = spark.sql("""
+  SELECT * FROM ex11_summary_Stage2
+  UNION ALL
+  SELECT * FROM non_standard_total_ex11
+  UNION ALL
+  SELECT * FROM standard_total_ex11
+  ORDER BY Std_NonStd, `Financial Statement Effect` DESC
+""")
+
+// COMMAND ----------
+
+ex11_summary_Stage3.createOrReplaceTempView("ex11_summary_Stage3")
+
+// COMMAND ----------
+
+val ex11_summary_Stage4 = spark.sql("""
+  SELECT * FROM ex11_summary_Stage3
+  UNION ALL
+  SELECT * FROM combined_total_ex11
+""")
+
+// COMMAND ----------
+
+ex11_summary_Stage4.coalesce(1).write
+.format("csv")
+.option("header",true)
+.mode("Overwrite")
+.save(output_path + "9_After_Closing_Entries_Annually(Entry_Date)")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =============================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 9 - (Entries Posted after closing date for Quarter/Month/Half Year/Annual) [Exception-11 ] Quarterly
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-1
+
+// COMMAND ----------
+
+val Input_Exception11_Stage1 = spark.read
+.format("csv")
+.option("header",true)
+.option("delimiter",",")
+.load(file_path + "/JET_Summary_Inputs/ex_11_Quarterly.csv")
+
+// COMMAND ----------
+
+Input_Exception11_Stage1.createOrReplaceTempView("Input_Exception11_Stage1")
+
+// COMMAND ----------
+
+val Input_Exception11_Stage2 = spark.sql("""select STRING(Frequency),INT(Day),
+TO_DATE(CAST(UNIX_TIMESTAMP(Closing_Date, 'dd-MMM-yy') AS TIMESTAMP)) AS Closing_Date
+from Input_Exception11_Stage1 where Frequency IS NOT NULL""")
+
+// COMMAND ----------
+
+Input_Exception11_Stage2.createOrReplaceTempView("Input_Exception11_Stage2")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Stage-2 Entry_Date
+
+// COMMAND ----------
+
+val Exception11 = spark.sql("""select a.G_L, a.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, a.Amount_in_local_cur, 
+a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name, a.Std_NonStd, a.Account_Subtype,Quarter,
+
+CASE
+    WHEN b.Frequency = 'Annually' 
+    AND TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day) THEN 'Exception11'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day) THEN 'Exception11'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -9))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= add_months(b.Closing_Date, -6))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(add_months(b.Closing_Date, -6), b.Day))
+    ) THEN 'Exception'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -6))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= add_months(b.Closing_Date, -3))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(add_months(b.Closing_Date, -3), b.Day))
+    ) THEN 'Exception'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -3))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= b.Closing_Date)
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day))
+    ) THEN 'Exception'
+    
+    ELSE 'NO Exception' 
+  END AS Exception
+
+  FROM GL_withoutNull a 
+  LEFT JOIN Input_Exception11_Stage2 b 
+  ON (b.Frequency = 'Annually' OR b.Frequency = 'Quarterly')
+""")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Pstng_Date
+
+// COMMAND ----------
+
+val Exception11 = spark.sql("""select a.G_L, a.FS_Line_Item, a.DocumentNo, a.Type, a.Entry_Date, a.Pstng_Date, a.Doc_Date, a.Amount_in_local_cur, 
+a.Lcurr, a.Amount_in_doc_curr, a.Curr, a.Amount_in_loc_curr_2, a.LCur2, a.Document_Header_Text, a.Text, a.User_name, a.Std_NonStd, a.Account_Subtype,Quarter,
+
+CASE
+    WHEN b.Frequency = 'Annually' 
+    AND TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day) THEN 'Exception11'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day) THEN 'Exception11'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -9))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= add_months(b.Closing_Date, -6))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(add_months(b.Closing_Date, -6), b.Day))
+    ) THEN 'Exception'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -6))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= add_months(b.Closing_Date, -3))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(add_months(b.Closing_Date, -3), b.Day))
+    ) THEN 'Exception'
+
+    WHEN b.Frequency = 'Quarterly' 
+    AND (
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) > add_months(b.Closing_Date, -3))
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Entry_Date, 'dd-MMM-yy') AS TIMESTAMP)) <= b.Closing_Date)
+      AND
+      (TO_DATE(CAST(UNIX_TIMESTAMP(a.Pstng_Date, 'dd-MMM-yy') AS TIMESTAMP)) > date_add(b.Closing_Date, b.Day))
+    ) THEN 'Exception'
+    
+    ELSE 'NO Exception' 
+  END AS Exception
+
+  FROM GL_withoutNull a 
+  LEFT JOIN Input_Exception11_Stage2 b 
+  ON (b.Frequency = 'Annually' OR b.Frequency = 'Quarterly')
+""")
+
+// COMMAND ----------
+
+Exception11.createOrReplaceTempView("Exception11")
+
+// COMMAND ----------
+
+val output_Exception11 = spark.sql("""select G_L, FS_Line_Item, DocumentNo, Type, Entry_Date, Pstng_Date, Doc_Date,
+Amount_in_local_cur, Lcurr, Amount_in_doc_curr, Curr, Amount_in_loc_curr_2, LCur2, Document_Header_Text, Text,
+User_name, Std_NonStd, Account_Subtype, Quarter,Exception
+
+from Exception11 where Exception='Exception11'""")
+
+// COMMAND ----------
+
+output_Exception11.createOrReplaceTempView("output_Exception11")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Summary
+
+// COMMAND ----------
+
+val ex11_summary_Stage1 = spark.sql("""
+  WITH StandardAggregates AS (
+    SELECT
+      Std_NonStd,
+      CASE
+       WHEN (Account_Subtype IN ('Assets', 'Asset')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Increase in Assets'
+        WHEN (Account_Subtype IN ('Assets', 'Asset')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Decrease in Assets'
+        WHEN (Account_Subtype IN ('Liabilities', 'Liability')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Liabilities'
+        WHEN (Account_Subtype IN ('Liabilities', 'Liability')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Liabilities'
+        WHEN (Account_Subtype IN ('Expense', 'Expenses')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Increase in Expense'
+        WHEN (Account_Subtype IN ('Expense', 'Expenses')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Decrease in Expense'
+        WHEN (Account_Subtype IN ('Revenue', 'Revenues')) AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Revenue'
+        WHEN (Account_Subtype IN ('Revenue', 'Revenues')) AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Revenue'
+        WHEN (Account_Subtype = 'Equity') AND (round(Amount_in_local_cur,2) > 0) THEN 'Decrease in Equity'
+        WHEN (Account_Subtype = 'Equity') AND (round(Amount_in_local_cur,2) < 0) THEN 'Increase in Equity'
+        ELSE 'NA'
+      END AS `Financial Statement Effect`,
+      Quarter,
+      Amount_in_local_cur
+    FROM output_Exception11
+    WHERE 
+      (Account_Subtype IN ('Assets', 'Asset', 'Liabilities', 'Liability', 'Expense', 'Expenses', 'Revenue', 'Revenues')) AND
+      (Amount_in_local_cur != 0)
+  )
+
+  SELECT
+    sa.Std_NonStd,
+    sa.`Financial Statement Effect`,
+    COUNT(*) AS `Total Nbr of Journal Entry Lines`,
+    
+        COALESCE(SUM(CASE WHEN sa.Amount_in_local_cur > 0 THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Total Debit Amount`,
+        COALESCE(SUM(CASE WHEN sa.Amount_in_local_cur < 0 THEN -sa.Amount_in_local_cur ELSE 0 END), 0) AS `Total Credit Amount`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q1' THEN 1 ELSE 0 END), 0) AS `Q1_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q2' THEN 1 ELSE 0 END), 0) AS `Q2_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q3' THEN 1 ELSE 0 END), 0) AS `Q3_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q4' THEN 1 ELSE 0 END), 0) AS `Q4_Nbr of Journal Entries`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q1' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q1_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q2' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q2_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q3' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q3_Activity`,
+        COALESCE(SUM(CASE WHEN sa.Quarter = 'Q4' THEN sa.Amount_in_local_cur ELSE 0 END), 0) AS `Q4_Activity`
+
+  FROM StandardAggregates sa
+  GROUP BY sa.Std_NonStd, sa.`Financial Statement Effect`
+  ORDER BY sa.Std_NonStd DESC, sa.`Financial Statement Effect`
+""")
+
+
+// COMMAND ----------
+
+ex11_summary_Stage1.createOrReplaceTempView("ex11_summary_Stage1")
+
+// COMMAND ----------
+
+val ex11_summary_Stage2 = ex11_summary_Stage1
+  .withColumn("Total Debit Amount", ex11_summary_Stage1("Total Debit Amount").cast("double"))
+  .withColumn("Total Credit Amount", ex11_summary_Stage1("Total Credit Amount").cast("double"))
+
+// COMMAND ----------
+
+ex11_summary_Stage2.createOrReplaceTempView("ex11_summary_Stage2")
+
+// COMMAND ----------
+
+val standard_total_ex11 = spark.sql("""
+    SELECT 'Standard Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex11_summary_Stage2
+    WHERE Std_NonStd = 'Standard'
+""")
+
+// COMMAND ----------
+
+standard_total_ex11.createOrReplaceTempView("standard_total_ex11")
+
+// COMMAND ----------
+
+val non_standard_total_ex11 = spark.sql("""
+    SELECT 'Non-Standard Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex11_summary_Stage2
+    WHERE Std_NonStd = 'Non-Standard'
+""")
+
+
+// COMMAND ----------
+
+non_standard_total_ex11.createOrReplaceTempView("non_standard_total_ex11")
+
+// COMMAND ----------
+
+val combined_total_ex11 = spark.sql("""
+    SELECT 'Combined Total' AS Std_NonStd, 
+           '' AS `Financial Statement Effect`,
+           COALESCE(SUM(`Total Nbr of Journal Entry Lines`), 0) AS Total_Nbr_of_Journal_Entry_Lines,
+           COALESCE(SUM(`Total Debit Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total Credit Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Q1_Nbr of Journal Entries`), 0) AS Q1_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q2_Nbr of Journal Entries`), 0) AS Q2_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q3_Nbr of Journal Entries`), 0) AS Q3_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Q4_Nbr of Journal Entries`), 0) AS Q4_Nbr_of_Journal_Entries,
+           COALESCE(SUM(Q1_Activity), 0) AS Q1_Activity,
+           COALESCE(SUM(Q2_Activity), 0) AS Q2_Activity,
+           COALESCE(SUM(Q3_Activity), 0) AS Q3_Activity,
+           COALESCE(SUM(Q4_Activity), 0) AS Q4_Activity
+    FROM ex11_summary_Stage2
+""")
+
+// COMMAND ----------
+
+combined_total_ex11.createOrReplaceTempView("combined_total_ex11")
+
+// COMMAND ----------
+
+val ex11_summary_Stage3 = spark.sql("""
+  SELECT * FROM ex11_summary_Stage2
+  UNION ALL
+  SELECT * FROM non_standard_total_ex11
+  UNION ALL
+  SELECT * FROM standard_total_ex11
+  ORDER BY Std_NonStd, `Financial Statement Effect` DESC
+""")
+
+// COMMAND ----------
+
+ex11_summary_Stage3.createOrReplaceTempView("ex11_summary_Stage3")
+
+// COMMAND ----------
+
+val ex11_summary_Stage4 = spark.sql("""
+  SELECT * FROM ex11_summary_Stage3
+  UNION ALL
+  SELECT * FROM combined_total_ex11
+""")
+
+// COMMAND ----------
+
+ex11_summary_Stage4.coalesce(1).write
+.format("csv")
+.option("header",true)
+.mode("Overwrite")
+.save(output_path + "9_After_Closing_Entries_Quarterly(Entry_Date)")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =============================================================
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ## Summary 10 - (Unrelated Accounts) [Exception -12] 
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC ### Exception-12 Logic
+
+// COMMAND ----------
+
+val GL_withoutNull_stage1 = spark.sql("""select *,
+
+CASE WHEN Amount_in_local_cur > 0 THEN 'Debit'
+WHEN Amount_in_local_cur < 0 THEN 'Credit' 
+END AS Debit_Credit,
+
+CASE WHEN Amount_in_local_cur > 0 THEN CONCAT(Account_Subtype,'-','Debit') 
+ELSE CONCAT(Account_Subtype,'-','Credit')  END AS DType
+from GL_withoutNull
+""")
+
+// COMMAND ----------
+
+GL_withoutNull_stage1.select($"Debit_Credit").distinct.show(false)
+
+// COMMAND ----------
+
+val debit_lines = GL_withoutNull_stage1.filter($"Debit_Credit"==="Debit")
+
+// COMMAND ----------
+
+val debit_lines_stg1 = debit_lines.groupBy("Std_Nonstd","DocumentNo","FS_line_Item").agg(sum($"Amount_in_local_cur").as("Debit_Amount"))
+
+// COMMAND ----------
+
+val credit_lines = GL_withoutNull_stage1.filter($"Debit_Credit"==="Credit").withColumnRenamed("FS_Line_Item","FS_Line_Item_2")
+
+// COMMAND ----------
+
+val credit_lines_stg1 = credit_lines.groupBy("Std_Nonstd","DocumentNo","FS_line_Item_2").agg(sum($"Amount_in_local_cur").as("Credit_Amount"))
+
+// COMMAND ----------
+
+val summary_10_stage1 = debit_lines_stg1.join(credit_lines_stg1,Seq("DocumentNo","Std_Nonstd"),"inner").filter($"FS_Line_Item"=!=$"FS_Line_Item_2")
+
+// COMMAND ----------
+
+val summary_10_stage2 = summary_10_stage1.groupBy("Std_Nonstd","FS_Line_Item","FS_Line_Item_2").agg(sum($"Debit_Amount").as("Debit_Amount"),sum($"Credit_Amount").as("Credit_Amount"),countDistinct("DocumentNo").as("No. of Journal Entries"))
+.withColumnRenamed("FS_Line_Item","Debit").withColumnRenamed("FS_Line_Item_2","Credit").orderBy("Std_Nonstd","Debit","Credit")
+.withColumnRenamed("Std_Nonstd","Std-Nstd")
+
+// COMMAND ----------
+
+summary_10_stage2.show(false)
+
+// COMMAND ----------
+
+summary_10_stage2.coalesce(1).write.option("header",true).mode("overwrite")
+.csv(output_path  + "10_Unrelated_Accounts")
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # =============================================================
+
+// COMMAND ----------
+
+// MAGIC %md
+// MAGIC # Population Statistics
+
+// COMMAND ----------
+
+val statistics = spark.sql("""SELECT *, CASE WHEN a.Amount_in_local_cur>=0 then a.Amount_in_local_cur 
+ELSE 
+0.0 END AS Debit_Amount,
+CASE WHEN a.Amount_in_local_cur<0 then a.Amount_in_local_cur
+ELSE
+0.0 END AS Credit_Amount from GL_withoutNull a""")
+.withColumn("Period",date_format(to_date($"Pstng_Date","dd-MMM-yy"),"MMM-yy"))
+
+// COMMAND ----------
+
+val std_non_std = statistics.groupBy("Std_NonStd").agg(sum($"Debit_Amount").as("Total_Debit_Amount"),
+sum($"Credit_Amount").as("Total_Credit_Amount"),
+sum($"Amount_in_local_cur").as("Total_Amount_in_local_cur"),
+countDistinct($"DocumentNo").as("Nbr_of_Journal_Entries"))
+
+// COMMAND ----------
+
+// std_non_std.show()
+
+// COMMAND ----------
+
+std_non_std.coalesce(1).write.option("quote","\"").option("escape","\"").option("header",true).mode("overwrite").csv(statistic_path + "Std_Non_Std")
+
+// COMMAND ----------
+
+val period_wise =  statistics.groupBy("Period","Std_NonStd", "Lcurr").agg(sum($"Debit_Amount").as("Total_Debit_Amount"),
+
+sum($"Credit_Amount").as("Total_Credit_Amount"),
+
+sum($"Amount_in_local_cur").as("Total_Amount_in_local_cur"),
+
+countDistinct($"DocumentNo").as("Nbr_of_Journal_Entries"))
+
+
+// COMMAND ----------
+
+// period_wise.show(false)
+
+// COMMAND ----------
+
+period_wise.coalesce(1).write.option("quote","\"").option("escape","\"").option("header",true).mode("overwrite").csv(statistic_path + "Period_Wise")
+
+// COMMAND ----------
+
+val quarterWindow = Window.partitionBy("Std_NonStd", "Quarter", "Lcurr").orderBy("Quarter")
+
+val dfWithQuarter_1 = statistics.groupBy("Period","Std_NonStd", "Lcurr","Quarter").agg(sum($"Debit_Amount").as("Total_Debit_Amount"),
+
+sum($"Credit_Amount").as("Total_Credit_Amount"),
+
+sum($"Amount_in_local_cur").as("Total_Amount_in_local_cur"),
+
+countDistinct($"DocumentNo").as("Nbr_of_Journal_Entries"))
+
+// COMMAND ----------
+
+val dfWithQuarter_2 = dfWithQuarter_1
+  .groupBy("Std_NonStd", "Quarter", "Lcurr")
+  .agg(
+      sum("Total_Debit_Amount").as("Total_Debit_Amount"),
+      sum("Total_Credit_Amount").as("Total_Credit_Amount"),
+    sum("Total_Amount_in_local_cur").as("Total_Amount_in_local_cur"),
+    sum("Nbr_of_Journal_Entries").as("Total_Nbr_of_Journal_Entries"),
+)
+
+// COMMAND ----------
+
+val final_quarter = dfWithQuarter_2
+  .withColumn("QuarterRank", row_number().over(quarterWindow))
+  .orderBy("QuarterRank")
+  .drop("QuarterRank")
+
+// COMMAND ----------
+
+// final_quarter.show(false)
+
+// COMMAND ----------
+
+final_quarter.createOrReplaceTempView("final_quarter")
+
+// COMMAND ----------
+
+val standard_total = spark.sql("""
+    SELECT 'Standard Total' AS Std_NonStd,
+    '' as Quarter,
+    Lcurr,
+        COALESCE(SUM(`Total_Debit_Amount`), 0) AS Total_Debit_Amount,
+        COALESCE(SUM(`Total_Credit_Amount`), 0) AS Total_Credit_Amount,
+        COALESCE(SUM(`Total_Nbr_of_Journal_Entries`), 0) AS Total_Nbr_of_Journal_Entries,
+        COALESCE(SUM(`Total_Amount_in_local_cur`), 0) AS Total_Amount_in_local_cur
+    FROM final_quarter
+    WHERE Std_NonStd = 'Standard'
+    group by Lcurr
+""")
+
+// COMMAND ----------
+
+standard_total.createOrReplaceTempView("standard_total")
+
+// COMMAND ----------
+
+val non_standard_total = spark.sql("""
+    SELECT 'Non-Standard Total' AS Std_NonStd, 
+        '' as Quarter,
+        Lcurr,
+           COALESCE(SUM(`Total_Debit_Amount`), 0) AS Total_Debit_Amount,
+           COALESCE(SUM(`Total_Credit_Amount`), 0) AS Total_Credit_Amount,
+           COALESCE(SUM(`Total_Nbr_of_Journal_Entries`), 0) AS Total_Nbr_of_Journal_Entries,
+           COALESCE(SUM(`Total_Amount_in_local_cur`), 0) AS Total_Amount_in_local_cur
+    FROM final_quarter
+    WHERE Std_NonStd = 'Non-Standard'
+    group by Lcurr
+""")
+
+// COMMAND ----------
+
+non_standard_total.createOrReplaceTempView("non_standard_total")
+
+// COMMAND ----------
+
+val finalSummary_1 = final_quarter.unionByName(non_standard_total).unionByName(standard_total)
+
+// COMMAND ----------
+
+finalSummary_1.createOrReplaceTempView("finalSummary_1")
+
+// COMMAND ----------
+
+val finalSummary = spark.sql(""" select * from finalSummary_1 order By Std_NonStd DESC """)
+
+// COMMAND ----------
+
+// finalSummary.show(false)
+
+// COMMAND ----------
+
+finalSummary.coalesce(1).write.option("quote","\"").option("escape","\"").option("header",true).mode("overwrite").csv(statistic_path+"Currency")
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+// COMMAND ----------
+
+
+
+
+Summary part-2
+Rh # Databricks notebook source
+# If you don't have libraries please install
+# !pip install xlwings
+# !pip install matplotlib
+# !pip install plotly
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Note:
+# MAGIC
+# MAGIC Code uses 'Summary' directory in your client folder. Make sure that Summary directory if exists, does not contain any other files.
+
+# COMMAND ----------
+
+import os
+
+# COMMAND ----------
+
+path =  "C:/Work/JET/Less than 10/2319391 - Jandia Engineering Private Limited/" #path to the directory containting TB and Population
+
+# COMMAND ----------
+
+templatePath = 'C:/Temp/Work - Templates/JET_Summary_Template.xlsm' #path to the template
+
+# COMMAND ----------
+
+newFileName = 'RequestNo_JET_Summary.xlsm' #name of the output file -> RequestNo_JET_Summary
+
+# COMMAND ----------
+
+summary_dir = path + 'Summary/'
+
+# COMMAND ----------
+
+os.makedirs(summary_dir, exist_ok=True)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Extract Population Statistics File
+
+# COMMAND ----------
+
+statistics_files = path + 'Outputs/Population_Statistics/'
+
+# COMMAND ----------
+
+for path_name, subdir, files in os.walk(statistics_files):
+    for p in subdir:
+        for i in os.listdir(statistics_files + p):
+            if(i.endswith('.csv')):
+                os.replace(statistics_files + p + "/" + i, summary_dir + p + ".csv")
+                print(i, "to", p + ".csv")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Extract Summary Files in 'Summary' dir
+# MAGIC
+# MAGIC Specify the dir containing the summary folders in summaries_path variable
+
+# COMMAND ----------
+
+summaries_path = path + 'Outputs/Summaries/'
+
+# COMMAND ----------
+
+for path_name, subdir, files in os.walk(summaries_path):
+    for p in subdir:
+        if(p=="6_Amount_Analysis"):
+            if os.path.isdir(summaries_path + p + '/Recurring')==True:
+                for i in os.listdir(summaries_path + p + '/Recurring'):
+                    if(i.endswith('.csv')):
+                        os.replace(summaries_path + p + "/Recurring/" + i, summary_dir + p + "_Recurring" + ".csv")
+                        print(i, "to", p + "_Recurring" + ".csv")
+            if os.path.isdir(summaries_path + p + '/Round')==True:
+                for i in os.listdir(summaries_path + p + '/Round'):
+                    if(i.endswith('.csv')):
+                        os.replace(summaries_path + p + "/Round/" + i, summary_dir + p + "_Round" + ".csv")
+                        print(i, "to", p + "_Round" + ".csv")
+            continue
+        else:
+            if os.path.isdir(summaries_path + p)==True:
+                for i in os.listdir(summaries_path + p):
+                    if(i.endswith('.csv')):
+                        os.replace(summaries_path + p + "/" + i, summary_dir + p + ".csv")
+                        print(i, "to", p + ".csv")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Post above step all Summary files should be ready in the `path + "/Summary"` dir
+
+# COMMAND ----------
+
+import xlwings as xw
+import pandas as pd
+from xlwings.constants import VAlign, HAlign
+import shutil
+
+# COMMAND ----------
+
+os.makedirs( path + 'Results/Summary/', exist_ok=True)
+newFilePath = path + 'Results/Summary/' + newFileName
+shutil.copyfile(templatePath,newFilePath)
+
+# COMMAND ----------
+
+wb = xw.Book(newFilePath)
+
+# COMMAND ----------
+
+def rgbToInt(rgb):
+    colorInt = rgb[0] + (rgb[1] * 256) + (rgb[2] * 256 * 256)
+    return colorInt
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Engagement Details
+
+# COMMAND ----------
+
+sheet = wb.sheets[0]
+
+# COMMAND ----------
+
+engagement_details = pd.read_csv(path + 'Engagement_Details.csv')
+
+# COMMAND ----------
+
+sheet['F6'].value = engagement_details.iloc[0,0]
+sheet['F7'].value = engagement_details.iloc[0,1]
+sheet['F8'].value = engagement_details.iloc[0,2]
+sheet['F9'].value = engagement_details.iloc[0,3]
+sheet['F10'].value = engagement_details.iloc[0,4]
+sheet['F11'].value = engagement_details.iloc[0,5]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 1
+
+# COMMAND ----------
+
+exception_summary_1 = pd.read_csv(path+"Summary/1_AccountWise_Analysis.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+exception_summary_1 = exception_summary_1.sort_values(['G_L'])
+
+# COMMAND ----------
+
+data_1 = exception_summary_1.to_numpy()
+
+# COMMAND ----------
+
+exp1_sheet = wb.sheets[1]
+
+# COMMAND ----------
+
+exp1_sheet['B13'].value = data_1
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp1_sheet.range("L13:R%s" % (data_1.shape[0] + 12)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_1 = exp1_sheet.range("B13:R%s" % (data_1.shape[0] + 12))
+
+# COMMAND ----------
+
+cells_1.api.Borders.Weight = 2
+cells_1.api.Borders.LineStyle=1
+cells_1.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp1_sheet.range("B11:G%s" % (data_1.shape[0] + 10)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 2
+
+# COMMAND ----------
+
+exception_summary_2 = pd.read_csv(path+"Summary/2_Large_Debits_to_Revenue.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+exception_summary_2 = exception_summary_2.sort_values(['Journal Entry Type'])
+
+# COMMAND ----------
+
+data_2 = exception_summary_2.to_numpy()
+
+# COMMAND ----------
+
+exp2_sheet = wb.sheets[2]
+
+# COMMAND ----------
+
+exp2_sheet['B13'].value = data_2
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp2_sheet.range("O13:R%s" % (data_2.shape[0] + 12)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_2 = exp2_sheet.range("B13:R%s" % (data_2.shape[0] + 12))
+
+# COMMAND ----------
+
+cells_2.api.Borders.Weight = 2
+cells_2.api.Borders.LineStyle=1
+cells_2.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp2_sheet.range("B11:J%s" % (data_2.shape[0] + 10)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 3
+
+# COMMAND ----------
+
+exception_summary_3 = pd.read_csv(path+"Summary/3_UserWise_Analysis.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+exception_summary_3 = exception_summary_3.sort_values(['Std_NonStd'])
+
+# COMMAND ----------
+
+data_3 = exception_summary_3.to_numpy()
+
+# COMMAND ----------
+
+exp3_sheet = wb.sheets[3]
+
+# COMMAND ----------
+
+exp3_sheet['B13'].value = data_3
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp3_sheet.range("E13:E%s" % (data_3.shape[0] + 12)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_3 = exp3_sheet.range("B13:I%s" % (data_3.shape[0] + 12))
+
+# COMMAND ----------
+
+cells_3.api.Borders.Weight = 2
+cells_3.api.Borders.LineStyle=1
+cells_3.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp3_sheet.range("B11:E%s" % (data_3.shape[0] + 10)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 4
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Annually
+
+# COMMAND ----------
+
+exception_summary_4_annually = pd.read_csv(path+"Summary/4_Closing_Entries_Annually.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+data_4_annually = exception_summary_4_annually.to_numpy()
+
+# COMMAND ----------
+
+exp4_sheet = wb.sheets[4]
+
+# COMMAND ----------
+
+exp4_sheet['B15'].value = data_4_annually
+
+# COMMAND ----------
+
+annual_data_rows = data_4_annually.shape[0]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp4_sheet.range("E15:F%s" % (annual_data_rows + 14)).number_format = '0.00'
+
+# COMMAND ----------
+
+exp4_sheet.range("K15:N%s" % (annual_data_rows + 14)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_4 = exp4_sheet.range("B15:N%s" % (annual_data_rows + 14))
+
+# COMMAND ----------
+
+cells_4.api.Borders.Weight = 2
+cells_4.api.Borders.LineStyle=1
+cells_4.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp4_sheet.range("B13:F%s" % (annual_data_rows + 12)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Quarter
+
+# COMMAND ----------
+
+quarterRange = exp4_sheet.range("B%s" % (15 + annual_data_rows + 5))
+columns = ['Journal Entry Type','Financial Statement Effect','Total Nbr of Journal Entry Lines','Total Debit Amount',
+           'Total Credit Amount','No of Journal Entries']
+subRange1 = 15 + annual_data_rows + 5
+exp4_sheet.range("B%s:F%s" % (subRange1,subRange1)).value = columns
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+exp4_sheet.range("B%s:B%s" % (subRange1,subRange1+1)).merge()
+exp4_sheet.range("B%s:B%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp4_sheet.range("B%s:B%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp4_sheet.range("C%s:C%s" % (subRange1,subRange1+1)).merge()
+exp4_sheet.range("C%s:C%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp4_sheet.range("C%s:C%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp4_sheet.range("D%s:D%s" % (subRange1,subRange1+1)).merge()
+exp4_sheet.range("D%s:D%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp4_sheet.range("D%s:D%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp4_sheet.range("E%s:E%s" % (subRange1,subRange1+1)).merge()
+exp4_sheet.range("E%s:E%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp4_sheet.range("E%s:E%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp4_sheet.range("F%s:F%s" % (subRange1,subRange1+1)).merge()
+exp4_sheet.range("F%s:F%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp4_sheet.range("F%s:F%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp4_sheet.range("G%s:J%s" % (subRange1,subRange1)).merge()
+exp4_sheet.range("G%s:J%s" % (subRange1,subRange1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp4_sheet.range("K%s:N%s" % (subRange1,subRange1)).merge()
+
+# COMMAND ----------
+
+quarters = ['Q1','Q2','Q3','Q4']
+exp4_sheet.range("G%s:J%s" % (subRange1+1,subRange1+1)).value = quarters
+exp4_sheet.range("K%s:N%s" % (subRange1+1,subRange1+1)).value = quarters
+exp4_sheet.range('K%s' % (subRange1)).value = "Activity"
+exp4_sheet.range('K%s:N%s' % (subRange1,subRange1)).merge()
+exp4_sheet.range('K%s:N%s' % (subRange1,subRange1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp4_sheet.range('G%s:N%s' % (subRange1+1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+
+# COMMAND ----------
+
+header_quarter = exp4_sheet.range("B%s:N%s" % (subRange1,subRange1+1))
+header_quarter.api.Borders.Weight = 2
+header_quarter.api.Borders.LineStyle=1
+header_quarter.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+blueBGHeader = (214, 220, 228)
+header_quarter.color = blueBGHeader
+
+# COMMAND ----------
+
+exp4_sheet.range('B%s' % (subRange1-1)).value = "Quarterly"
+headingRange = exp4_sheet.range('B%s:N%s' % (subRange1-1,subRange1-1))
+headingRange.font.bold = True
+headingRange.merge()
+headingRange.api.HorizontalAlignment = HAlign.xlHAlignLeft
+headingColor = (242,242,242)
+headingRange.color = headingColor
+
+# COMMAND ----------
+
+exception_summary_4_quarter = pd.read_csv(path+"Summary/4_Closing_Entries_Quarterly.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+data_4_quarter = exception_summary_4_quarter.to_numpy()
+
+# COMMAND ----------
+
+exp4_sheet['B%s' % (subRange1+2)].value = data_4_quarter
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+cells_4_quarter = exp4_sheet.range("B%s:N%s" % ((subRange1+2),(subRange1+1 + data_4_quarter.shape[0])))
+
+# COMMAND ----------
+
+exp4_sheet.range("E%s:F%s" % (subRange1+2, subRange1+1 + exception_summary_4_quarter.shape[0])).number_format = '0.00'
+
+# COMMAND ----------
+
+exp4_sheet.range("K%s:N%s" % (subRange1+2, subRange1+1 + exception_summary_4_quarter.shape[0])).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_4_quarter.api.Borders.Weight = 2
+cells_4_quarter.api.Borders.LineStyle=1
+cells_4_quarter.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+non_std_total_ind = exception_summary_4_annually[exception_summary_4_annually['Std_NonStd']=='Non-Standard Total'].index.values
+std_total_ind = exception_summary_4_annually[exception_summary_4_annually['Std_NonStd']=='Standard Total'].index.values
+combined_total_ind = exception_summary_4_annually[exception_summary_4_annually['Std_NonStd']=='Combined Total'].index.values
+
+# COMMAND ----------
+
+exp4_sheet.range('B%s:N%s' % ((15 + std_total_ind)[0],(15 + std_total_ind)[0])).font.bold = True
+exp4_sheet.range('B%s:N%s' % ((15 + non_std_total_ind)[0],(15 + non_std_total_ind)[0])).font.bold = True
+exp4_sheet.range('B%s:N%s' % ((15 + combined_total_ind)[0],(15 + combined_total_ind)[0])).font.bold = True
+
+# COMMAND ----------
+
+non_std_total_ind = exception_summary_4_quarter[exception_summary_4_quarter['Std_NonStd']=='Non-Standard Total'].index.values
+std_total_ind = exception_summary_4_quarter[exception_summary_4_quarter['Std_NonStd']=='Standard Total'].index.values
+combined_total_ind = exception_summary_4_quarter[exception_summary_4_quarter['Std_NonStd']=='Combined Total'].index.values
+
+# COMMAND ----------
+
+exp4_sheet.range('B%s:N%s' % ((subRange1+2 + std_total_ind)[0],(subRange1+2 + std_total_ind)[0])).font.bold = True
+exp4_sheet.range('B%s:N%s' % ((subRange1+2 + non_std_total_ind)[0],(subRange1+2 + non_std_total_ind)[0])).font.bold = True
+exp4_sheet.range('B%s:N%s' % ((subRange1+2 + combined_total_ind)[0],(subRange1+2 + combined_total_ind)[0])).font.bold = True
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 5
+
+# COMMAND ----------
+
+exception_summary_5 = pd.read_csv(path+"Summary/5_Dates_of_Interest.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+# exception_summary_5['Date(MM/DD/YYYY)'] = pd.to_datetime(exception_summary_5['Date(MM/DD/YYYY)'], format='%m/%d/%Y')
+# exception_summary_5['Date(MM/DD/YYYY)'] = exception_summary_5['Date(MM/DD/YYYY)'].dt.strftime('%d-%b-%y')
+# exception_summary_5
+
+# COMMAND ----------
+
+exception_summary_5 = exception_summary_5.sort_values(['Journal_Entry_Type','Date(MM/DD/YYYY)'])
+data_5 = exception_summary_5.to_numpy()
+
+# COMMAND ----------
+
+exp5_sheet = wb.sheets[5]
+
+# COMMAND ----------
+
+exp5_sheet['B12'].value = data_5
+
+# COMMAND ----------
+
+exp5_sheet['D12:D%s' % (data_5.shape[0] + 11) ].number_format = "dd-MMM-yy"
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp5_sheet.range("F12:G%s" % (data_5.shape[0] + 11)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_5 = exp5_sheet.range("B12:G%s" % (data_5.shape[0] + 11))
+
+# COMMAND ----------
+
+cells_5.api.Borders.Weight = 2
+cells_5.api.Borders.LineStyle=1
+cells_5.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp5_sheet.range("B11:G%s" % (data_5.shape[0] + 10)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 6
+
+# COMMAND ----------
+
+exception_summary_6_rec = pd.read_csv(path+"Summary/6_Amount_Analysis_Recurring.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+exception_summary_6_rec = exception_summary_6_rec.sort_values(['Std_NonStd','Exception'],ascending = [False, True])
+data_6_rec = exception_summary_6_rec.to_numpy()
+
+# COMMAND ----------
+
+exp6_sheet = wb.sheets[6]
+
+# COMMAND ----------
+
+exp6_sheet['B13'].value = data_6_rec
+
+# COMMAND ----------
+
+exception_summary_6_round = pd.read_csv(path+"Summary/6_Amount_Analysis_Round.csv")
+
+# COMMAND ----------
+
+exception_summary_6_round = exception_summary_6_round.sort_values(['Std_NonStd','Exception'],ascending = [False, True])
+data_6_round = exception_summary_6_round.to_numpy()
+
+# COMMAND ----------
+
+exp6_sheet['B25'].value = data_6_round
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp6_sheet.range("F13:G%s" % (data_6_rec.shape[0] + 12)).number_format = '0.00'
+
+# COMMAND ----------
+
+exp6_sheet.range("F25:G%s" % (data_6_round.shape[0] + 24)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_6 = exp6_sheet.range("B13:G%s" % (data_6_rec.shape[0] + 12))
+
+# COMMAND ----------
+
+cells_6.api.Borders.Weight = 2
+cells_6.api.Borders.LineStyle=1
+cells_6.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+cells_6 = exp6_sheet.range("B25:G%s" % (data_6_round.shape[0] + 24))
+
+# COMMAND ----------
+
+cells_6.api.Borders.Weight = 2
+cells_6.api.Borders.LineStyle=1
+cells_6.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp6_sheet.range("B12:G%s" % (data_6_rec.shape[0] + 11)).columns.autofit()
+
+# COMMAND ----------
+
+exp6_sheet.range("B24:G%s" % (data_6_round.shape[0] + 23)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 7
+
+# COMMAND ----------
+
+exception_summary_7 = pd.read_csv(path+"Summary/7_Duplicate_Analysis.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+exception_summary_7 = exception_summary_7.sort_values(['Journal_Entry_Type'])
+data_7 = exception_summary_7.to_numpy()
+
+# COMMAND ----------
+
+exp7_sheet = wb.sheets[7]
+
+# COMMAND ----------
+
+exp7_sheet['B12'].value = data_7
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp7_sheet.range("F12:G%s" % (data_7.shape[0] + 11)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_7 = exp7_sheet.range("B12:G%s" % (data_7.shape[0] + 11))
+
+# COMMAND ----------
+
+cells_7.api.Borders.Weight = 2
+cells_7.api.Borders.LineStyle=1
+cells_7.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp7_sheet.range("B11:G%s" % (data_7.shape[0] + 10)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 8
+
+# COMMAND ----------
+
+exception_summary_8 = pd.read_csv(path+"Summary/8_Word_Count.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+exception_summary_8
+
+# COMMAND ----------
+
+data_8 = exception_summary_8.to_numpy()
+
+# COMMAND ----------
+
+exp8_sheet = wb.sheets[8]
+
+# COMMAND ----------
+
+exp8_sheet['B12'].value = data_8
+
+# COMMAND ----------
+
+exp8_sheet.range("F12:G%s" % (data_8.shape[0] + 11)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_8 = exp8_sheet.range("B12:G%s" % (data_8.shape[0] + 11))
+
+# COMMAND ----------
+
+cells_8.api.Borders.Weight = 2
+cells_8.api.Borders.LineStyle=1
+cells_8.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp8_sheet.range("B11:G%s" % (data_8.shape[0] + 11)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 9
+
+# COMMAND ----------
+
+exception_summary_9_annually = pd.read_csv(path+"Summary/9_After_Closing_Entries_Annually(Entry_Date).csv", keep_default_na=False)
+
+# COMMAND ----------
+
+data_9_annually = exception_summary_9_annually.to_numpy()
+
+# COMMAND ----------
+
+exp9_sheet = wb.sheets[9]
+
+# COMMAND ----------
+
+exp9_sheet['B15'].value = data_9_annually
+
+# COMMAND ----------
+
+annual_data_9_row = data_9_annually.shape[0]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp9_sheet.range("E15:F%s" % (annual_data_9_row + 14)).number_format = '0.00'
+
+# COMMAND ----------
+
+exp9_sheet.range("K15:N%s" % (annual_data_9_row + 14)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_9 = exp9_sheet.range("B15:N%s" % (annual_data_9_row + 14))
+
+# COMMAND ----------
+
+cells_9.api.Borders.Weight = 2
+cells_9.api.Borders.LineStyle=1
+cells_9.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp9_sheet.range("B11:F%s" % (annual_data_9_row + 10)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Quarter
+
+# COMMAND ----------
+
+quarterRange = exp9_sheet.range("B%s" % (15 + annual_data_9_row + 5))
+columns = ['Journal Entry Type','Financial Statement Effect','Total Nbr of Journal Entry Lines','Total Debit Amount',
+           'Total Credit Amount','No of Journal Entries']
+subRange1 = 15 + annual_data_9_row + 5
+exp9_sheet.range("B%s:F%s" % (subRange1,subRange1)).value = columns
+
+# COMMAND ----------
+
+from xlwings.constants import VAlign, HAlign
+
+# COMMAND ----------
+
+exp9_sheet.range("B%s:B%s" % (subRange1,subRange1+1)).merge()
+exp9_sheet.range("B%s:B%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp9_sheet.range("B%s:B%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp9_sheet.range("C%s:C%s" % (subRange1,subRange1+1)).merge()
+exp9_sheet.range("C%s:C%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp9_sheet.range("C%s:C%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp9_sheet.range("D%s:D%s" % (subRange1,subRange1+1)).merge()
+exp9_sheet.range("D%s:D%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp9_sheet.range("D%s:D%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp9_sheet.range("E%s:E%s" % (subRange1,subRange1+1)).merge()
+exp9_sheet.range("E%s:E%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp9_sheet.range("E%s:E%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp9_sheet.range("F%s:F%s" % (subRange1,subRange1+1)).merge()
+exp9_sheet.range("F%s:F%s" % (subRange1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp9_sheet.range("F%s:F%s" % (subRange1,subRange1+1)).api.VerticalAlignment = VAlign.xlVAlignCenter
+exp9_sheet.range("G%s:J%s" % (subRange1,subRange1)).merge()
+exp9_sheet.range("G%s:J%s" % (subRange1,subRange1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp9_sheet.range("K%s:N%s" % (subRange1,subRange1)).merge()
+
+# COMMAND ----------
+
+quarters = ['Q1','Q2','Q3','Q4']
+exp9_sheet.range("G%s:J%s" % (subRange1+1,subRange1+1)).value = quarters
+exp9_sheet.range("K%s:N%s" % (subRange1+1,subRange1+1)).value = quarters
+exp9_sheet.range('K%s' % (subRange1)).value = "Activity"
+exp9_sheet.range('K%s:N%s' % (subRange1,subRange1)).merge()
+exp9_sheet.range('K%s:N%s' % (subRange1,subRange1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+exp9_sheet.range('G%s:N%s' % (subRange1+1,subRange1+1)).api.HorizontalAlignment = HAlign.xlHAlignCenter
+
+# COMMAND ----------
+
+header_quarter = exp9_sheet.range("B%s:N%s" % (subRange1,subRange1+1))
+header_quarter.api.Borders.Weight = 2
+header_quarter.api.Borders.LineStyle=1
+header_quarter.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+blueBGHeader = (214, 220, 228)
+header_quarter.color = blueBGHeader
+
+# COMMAND ----------
+
+exp9_sheet.range('B%s' % (subRange1-1)).value = "Quarterly"
+headingRange = exp9_sheet.range('B%s:N%s' % (subRange1-1,subRange1-1))
+headingRange.merge()
+headingRange.font.bold = True
+headingRange.api.HorizontalAlignment = HAlign.xlHAlignLeft
+headingColor = (242,242,242)
+headingRange.color = headingColor
+
+# COMMAND ----------
+
+exception_summary_9_quarter = pd.read_csv(path+"Summary/9_After_Closing_Entries_Quarterly(Entry_Date).csv", keep_default_na=False)
+
+# COMMAND ----------
+
+data_9_quarter = exception_summary_9_quarter.to_numpy()
+
+# COMMAND ----------
+
+exp9_sheet['B%s' % (subRange1+2)].value = data_9_quarter
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp9_sheet.range("E%s:F%s" % (subRange1+2, subRange1+1 + exception_summary_9_quarter.shape[0])).number_format = '0.00'
+
+# COMMAND ----------
+
+exp9_sheet.range("K%s:N%s" % (subRange1+2, subRange1+1 + exception_summary_9_quarter.shape[0])).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_9_quarter = exp9_sheet.range("B%s:N%s" % ((subRange1+2),(subRange1+1 + data_9_quarter.shape[0])))
+
+# COMMAND ----------
+
+cells_9_quarter.api.Borders.Weight = 2
+cells_9_quarter.api.Borders.LineStyle=1
+cells_9_quarter.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+non_std_total_ind = exception_summary_9_annually[exception_summary_9_annually['Std_NonStd']=='Non-Standard Total'].index.values
+std_total_ind = exception_summary_9_annually[exception_summary_9_annually['Std_NonStd']=='Standard Total'].index.values
+combined_total_ind = exception_summary_9_annually[exception_summary_9_annually['Std_NonStd']=='Combined Total'].index.values
+
+# COMMAND ----------
+
+exp9_sheet.range('B%s:N%s' % ((15 + std_total_ind)[0],(15 + std_total_ind)[0])).font.bold = True
+exp9_sheet.range('B%s:N%s' % ((15 + non_std_total_ind)[0],(15 + non_std_total_ind)[0])).font.bold = True
+exp9_sheet.range('B%s:N%s' % ((15 + combined_total_ind)[0],(15 + combined_total_ind)[0])).font.bold = True
+
+# COMMAND ----------
+
+non_std_total_ind = exception_summary_9_quarter[exception_summary_9_quarter['Std_NonStd']=='Non-Standard Total'].index.values
+std_total_ind = exception_summary_9_quarter[exception_summary_9_quarter['Std_NonStd']=='Standard Total'].index.values
+combined_total_ind = exception_summary_9_quarter[exception_summary_9_quarter['Std_NonStd']=='Combined Total'].index.values
+
+# COMMAND ----------
+
+exp9_sheet.range('B%s:N%s' % ((subRange1+2 + std_total_ind)[0],(subRange1+2 + std_total_ind)[0])).font.bold = True
+exp9_sheet.range('B%s:N%s' % ((subRange1+2 + non_std_total_ind)[0],(subRange1+2 + non_std_total_ind)[0])).font.bold = True
+exp9_sheet.range('B%s:N%s' % ((subRange1+2 + combined_total_ind)[0],(subRange1+2 + combined_total_ind)[0])).font.bold = True
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Exception 10
+
+# COMMAND ----------
+
+exception_summary_10 = pd.read_csv(path+"Summary/10_Unrelated_Accounts.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+exception_summary_10 = exception_summary_10.sort_values(['Std-Nstd'])
+data_10 = exception_summary_10.to_numpy()
+
+# COMMAND ----------
+
+exp10_sheet = wb.sheets[10]
+
+# COMMAND ----------
+
+exp10_sheet['B12'].value = data_10
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+exp10_sheet.range("E12:F%s" % (data_10.shape[0] + 11)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_10 = exp10_sheet.range("B12:G%s" % (data_10.shape[0] + 11))
+
+# COMMAND ----------
+
+cells_10.api.Borders.Weight = 2
+cells_10.api.Borders.LineStyle=1
+cells_10.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+exp10_sheet.range("B11:G%s" % (data_10.shape[0] + 12)).columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Population Statistics
+
+# COMMAND ----------
+
+import matplotlib.pyplot as plt
+import numpy as np
+import plotly.express as px
+
+# COMMAND ----------
+
+pop_stats_sheet = wb.sheets[11]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Period Wise Analysis
+
+# COMMAND ----------
+
+period_wise = pd.read_csv(path+"Summary/Period_Wise.csv")
+
+# COMMAND ----------
+
+period_wise['DateTime'] = pd.to_datetime(period_wise['Period'], format="%b-%y")
+
+# COMMAND ----------
+
+period_wise = period_wise.sort_values(['DateTime','Std_NonStd'])
+
+# COMMAND ----------
+
+period_wise = period_wise.drop(columns=['DateTime'])
+
+# COMMAND ----------
+
+period_data = period_wise.to_numpy()
+pop_stats_sheet['B61'].value = period_data
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+pop_stats_sheet.range("E61:G%s" % (period_data.shape[0] + 60)).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_10 = pop_stats_sheet.range("B61:H%s" % (period_data.shape[0] + 60))
+
+# COMMAND ----------
+
+cells_10.api.Borders.Weight = 2
+cells_10.api.Borders.LineStyle=1
+cells_10.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Graphs of Data
+
+# COMMAND ----------
+
+data1 = period_wise[['Period','Std_NonStd','Lcurr','Nbr_of_Journal_Entries','Total_Debit_Amount','Total_Credit_Amount']]
+
+# COMMAND ----------
+
+data1['Period'] = pd.to_datetime(data1['Period'], format = '%b-%y')
+data = data1.groupby(['Period','Std_NonStd']).agg({
+    'Nbr_of_Journal_Entries' : 'sum',
+    'Total_Debit_Amount' : 'sum',
+    'Total_Credit_Amount' : 'sum'
+}).reset_index()
+data = data.sort_values(by='Period')
+data['Period'] = data['Period'].dt.strftime('%b-%y')
+
+# COMMAND ----------
+
+size = len(data)
+
+# COMMAND ----------
+
+std_val_entries = [0]*size
+non_std_val_entries = [0]*size
+
+std_val_debit = [0]*size
+non_std_val_debit = [0]*size
+
+std_val_credit = [0]*size
+non_std_val_credit = [0]*size
+
+# COMMAND ----------
+
+for index, row in data.iterrows():
+    if row['Std_NonStd']=="Standard":
+        std_val_entries[index] = row['Nbr_of_Journal_Entries']
+        std_val_debit[index] = row['Total_Debit_Amount']
+        std_val_credit[index] = row['Total_Credit_Amount']
+    elif row['Std_NonStd']=="Non-Standard":
+        non_std_val_entries[index] = row['Nbr_of_Journal_Entries']
+        non_std_val_debit[index] = row['Total_Debit_Amount']
+        non_std_val_credit[index] = row['Total_Credit_Amount']
+
+# COMMAND ----------
+
+x_axis = data['Period']
+x_pos = np.arange(len(x_axis))
+
+# COMMAND ----------
+
+fig1 = plt.gcf()
+# plt.figure(figsize=(10, 6))
+plt.bar(x_pos - 0.2, std_val_entries, 0.4, label = 'Standard') 
+plt.bar(x_pos + 0.2, non_std_val_entries, 0.4, label = 'Non Standard') 
+plt.xticks(x_pos, x_axis,rotation=-90) 
+plt.ylabel("Months") 
+plt.ylabel("No of Journal Entries") 
+plt.title("No of Journal Entries by Month") 
+plt.legend() 
+plt.show() 
+plt.draw()
+
+# COMMAND ----------
+
+pop_stats_sheet.pictures.add(fig1, name='No of Journal Entries by Type', left=pop_stats_sheet.range('B32').left, top=pop_stats_sheet.range('B32').top)
+
+# COMMAND ----------
+
+fig2 = plt.gcf()
+plt.bar(x_pos - 0.2, std_val_debit, 0.4, label = 'Standard') 
+plt.bar(x_pos + 0.2, non_std_val_debit, 0.4, label = 'Non Standard') 
+  
+plt.xticks(x_pos, x_axis,rotation=-90) 
+plt.ylabel("Months") 
+plt.ylabel("Total Amount Credit") 
+plt.title("Total Debit Amount by Month") 
+plt.legend() 
+plt.show() 
+plt.draw()
+
+# COMMAND ----------
+
+pop_stats_sheet.pictures.add(fig2, name='Total Debit Amount by Month', left=pop_stats_sheet.range('B8').left, top=pop_stats_sheet.range('B8').top)
+
+# COMMAND ----------
+
+fig3 = plt.gcf()
+# plt.figure(figsize=(400, 400))
+plt.bar(x_pos - 0.2, std_val_credit, 0.4, label = 'Standard') 
+plt.bar(x_pos + 0.2, non_std_val_credit, 0.4, label = 'Non Standard') 
+  
+plt.xticks(x_pos, x_axis,rotation=-90) 
+plt.ticklabel_format(axis='y')
+plt.ylabel("Months") 
+plt.ylabel("Total Amount Credit") 
+plt.title("Total Amount Credit by Month") 
+plt.legend() 
+plt.show() 
+plt.draw()
+
+# COMMAND ----------
+
+pop_stats_sheet.pictures.add(fig3, name='Total Amount Credit by Month', left=pop_stats_sheet.range('H8').left, top=pop_stats_sheet.range('G8').top)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Standard Non-Standard
+
+# COMMAND ----------
+
+stdRowNo = 60 + period_data.shape[0] + 5
+stdDataRowNo =  stdRowNo + 60
+stdChartRowNo = stdRowNo + 5
+
+# COMMAND ----------
+
+pop_stats_sheet.range('B%s' % (stdRowNo)).value = "Standard - Non Standard Analysis"
+headingRange = pop_stats_sheet.range('B%s:H%s' % (stdRowNo,stdRowNo))
+headingRange.merge()
+headingRange.font.bold = True
+headingRange.api.HorizontalAlignment = HAlign.xlHAlignLeft
+headingColor = (242,242,242)
+headingRange.color = headingColor
+
+# COMMAND ----------
+
+columns = ['Std NonStd','Total Debit Amount', 'Total Credit Amount','Total Amount in Local Cur','No of Journal Entries']
+header_std_range = pop_stats_sheet.range('B%s:F%s' % (stdDataRowNo, stdDataRowNo))
+header_std_range.value = columns
+blueBGHeader = (214, 220, 228)
+header_std_range.color = blueBGHeader
+header_std_range.api.HorizontalAlignment = HAlign.xlHAlignCenter
+header_std_range.api.VerticalAlignment = VAlign.xlVAlignCenter
+header_std_range.api.RowHeight = 24
+header_std_range.api.Borders.Weight = 2
+header_std_range.api.Borders.LineStyle=1
+header_std_range.api.Borders.Color = rgbToInt((0, 0, 0))
+pop_stats_sheet.range("A:I").columns.autofit()
+
+# COMMAND ----------
+
+Std_Non_Std = pd.read_csv(path+"Summary/Std_Non_Std.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+Std_Non_Std
+
+# COMMAND ----------
+
+std_non_std_data = Std_Non_Std.to_numpy()
+pop_stats_sheet['B' + str(stdDataRowNo + 1)].value = std_non_std_data
+pop_stats_sheet.range("A:I").columns.autofit()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+pop_stats_sheet.range("C%s:E%s" % (stdDataRowNo+1,stdDataRowNo + Std_Non_Std.shape[0])).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_10 = pop_stats_sheet.range("B%s:F%s" % (stdDataRowNo+1,stdDataRowNo + Std_Non_Std.shape[0]))
+
+# COMMAND ----------
+
+cells_10.api.Borders.Weight = 2
+cells_10.api.Borders.LineStyle=1
+cells_10.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+categories = Std_Non_Std['Std_NonStd']
+entries = Std_Non_Std['Nbr_of_Journal_Entries']
+debit = Std_Non_Std['Total_Debit_Amount']
+credit = [abs(x) for x in Std_Non_Std['Total_Credit_Amount']]
+
+# COMMAND ----------
+
+fig4, ax = plt.subplots()
+ax.pie(entries,labels=categories,autopct='%1.1f%%')
+center_circle = plt.Circle((0,0),0.7,color='white')
+fig4.gca().add_artist(center_circle)
+plt.title("Ratio of Standard And Non Standard Entries") 
+
+ax.axis('equal')
+
+# COMMAND ----------
+
+pop_stats_sheet.pictures.add(fig4, name='Percentage of No of Journal Entries by Type', left=pop_stats_sheet.range('B%s' % (stdChartRowNo+30)).left, top=pop_stats_sheet.range('B%s' % (stdChartRowNo+30)).top)
+
+# COMMAND ----------
+
+fig5, ax = plt.subplots()
+ax.pie(debit,labels=categories,autopct='%1.1f%%')
+center_circle = plt.Circle((0,0),0.7,color='white')
+fig5.gca().add_artist(center_circle)
+plt.title("Standard And Non Standard Debit Amount Ratio") 
+
+ax.axis('equal')
+
+# COMMAND ----------
+
+pop_stats_sheet.pictures.add(fig5, name='Percentage of Total Debit Amount by Type', left=pop_stats_sheet.range('B%s' %(stdChartRowNo)).left, top=pop_stats_sheet.range('B%s' % (stdChartRowNo)).top)
+
+# COMMAND ----------
+
+fig6, ax = plt.subplots()
+ax.pie(credit,labels=categories,autopct='%1.1f%%')
+center_circle = plt.Circle((0,0),0.7,color='white')
+fig6.gca().add_artist(center_circle)
+plt.title("Standard And Non Standard Credit Amount Ratio") 
+
+ax.axis('equal')
+
+# COMMAND ----------
+
+pop_stats_sheet.pictures.add(fig6, name='Percentage of Total Credit Amount by Type', update=True, left=pop_stats_sheet.range('G%s' % (stdChartRowNo)).left, top=pop_stats_sheet.range('G%s' % (stdChartRowNo)).top)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Currency Analysis
+
+# COMMAND ----------
+
+currRowNo = stdDataRowNo + std_non_std_data.shape[0] + 5
+currDataRowNo =  currRowNo + 1
+
+# COMMAND ----------
+
+pop_stats_sheet.range('B%s' % (currRowNo)).value = "Currency Analysis"
+headingRange = pop_stats_sheet.range('B%s:H%s' % (currRowNo,currRowNo))
+headingRange.merge()
+headingRange.font.bold = True
+headingRange.api.HorizontalAlignment = HAlign.xlHAlignLeft
+headingColor = (242,242,242)
+headingRange.color = headingColor
+
+# COMMAND ----------
+
+columns = ['Std NonStd','Quarter', 'LCurr','Total Debit Amount', 'Total Credit Amount','Total Amount in Local Cur','No of Journal Entries']
+header_std_range = pop_stats_sheet.range('B%s:H%s' % (currDataRowNo, currDataRowNo))
+header_std_range.value = columns
+blueBGHeader = (214, 220, 228)
+header_std_range.color = blueBGHeader
+header_std_range.api.HorizontalAlignment = HAlign.xlHAlignCenter
+header_std_range.api.VerticalAlignment = VAlign.xlVAlignCenter
+header_std_range.api.RowHeight = 24
+header_std_range.api.Borders.Weight = 2
+header_std_range.api.Borders.LineStyle=1
+header_std_range.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+curr = pd.read_csv(path+"Summary/Currency.csv", keep_default_na=False)
+
+# COMMAND ----------
+
+curr = curr.sort_values(['Std_NonStd','Quarter'])
+curr_data = curr.to_numpy()
+pop_stats_sheet['B%s' % (currDataRowNo+1)].value = curr_data
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Styling of Table
+
+# COMMAND ----------
+
+non_std_total_ind = curr.shape[0] - curr[curr['Std_NonStd']=='Non-Standard Total'].index.values
+std_total_ind = curr.shape[0] - curr[curr['Std_NonStd']=='Standard Total'].index.values
+
+# COMMAND ----------
+
+if len(std_total_ind)>0:
+    pop_stats_sheet.range('B%s:H%s' % ((currDataRowNo + std_total_ind[0]),(currDataRowNo + std_total_ind[0]))).font.bold = True
+if len(non_std_total_ind)>0:
+    pop_stats_sheet.range('B%s:H%s' % ((currDataRowNo + non_std_total_ind[0]),(currDataRowNo + non_std_total_ind[0]))).font.bold = True
+
+# COMMAND ----------
+
+pop_stats_sheet.range("E%s:H%s" % (currDataRowNo+1, currDataRowNo + curr_data.shape[0])).number_format = '0.00'
+
+# COMMAND ----------
+
+cells_10 = pop_stats_sheet.range("B%s:H%s" % (currDataRowNo + 1, currDataRowNo + curr_data.shape[0]))
+
+# COMMAND ----------
+
+cells_10.api.Borders.Weight = 2
+cells_10.api.Borders.LineStyle=1
+cells_10.api.Borders.Color = rgbToInt((0, 0, 0))
+
+# COMMAND ----------
+
+pop_stats_sheet.range("A:I").columns.autofit()
+
+# COMMAND ----------
+
+wb.save()
+
+# COMMAND ----------

@@ -17,11 +17,8 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Jet Run output data (ephemeral test runs)
-runs/TEST*
-runs/JET-20260824-00*
-runs/JET-20260824-01*
-runs/JET-20260825-*
-runs/JET-20260824-TEST*
+runs/*
+!runs/.gitkeep
 
 # Environment and secrets
 .env

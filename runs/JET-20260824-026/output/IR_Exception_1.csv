@@ -1,7 +1,0 @@
-G_L,Description,Opening_Balance,Debit,Credit,Closing_Balance,Movement,Account_Subtype,FS_Line_Item
-1012,Zero Bal Others,0.0,160413148.0,160413148.0,0.0,0.0,Assets,Control Account
-1000001,Eq.Sh.Cap-Rs.10,-1172000000.0,0.0,0.0,-1172000000.0,0.0,Liabilities,Share Capital
-1081001,Preference Share Cap,0.0,0.0,0.0,0.0,0.0,Liabilities,Preference Share Capital
-1130001,Share Premium - Equi,0.0,0.0,0.0,0.0,0.0,Liabilities,Securities Premium
-1160001,Profit And Loss A/c,-32516305.0,0.0,0.0,-32516305.0,0.0,Liabilities,Retained Earnings
-51001000,Plant & Machinery,5484823145.0,0.0,0.0,5484823145.0,0.0,Assets,"Property, plant and equipment"

@@ -7,6 +7,7 @@ import { JetWorkflow } from './pages/Jet/JetWorkflow';
 import { SparkJetWorkflow } from './pages/SparkJet/SparkJetWorkflow';
 import { OmniaJetWorkflow } from './pages/OmniaJet/OmniaJetWorkflow';
 import { Navbar } from './components/layout/Navbar';
+import { Footer } from './components/layout/Footer';
 import { AuthGuard } from './components/layout/AuthGuard';
 
 /* ── Scroll-Reveal Observer ───────────────────────────────────── */
@@ -51,6 +52,9 @@ const pageVariants = {
 
 /* ── App Layout with animated page transitions ────────────────── */
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const isWorkflowPage = location.pathname.includes('/jet') || location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
@@ -65,6 +69,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {children}
         </motion.div>
       </main>
+      {!isWorkflowPage && <Footer />}
     </div>
   );
 };
@@ -106,7 +111,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <AppLayout>
-                <JetWorkflow />
+                <SparkJetWorkflow />
               </AppLayout>
             </AuthGuard>
           }
@@ -116,7 +121,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <AppLayout>
-                <JetWorkflow />
+                <OmniaJetWorkflow />
               </AppLayout>
             </AuthGuard>
           }

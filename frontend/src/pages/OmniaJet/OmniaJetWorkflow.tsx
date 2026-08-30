@@ -23,18 +23,18 @@ import {
 const STEPS: TimelineStep[] = [
   { id: 1, label: 'Ingest Datasets', sub: 'Upload files', icon: UploadCloud },
   { id: 2, label: 'Auto-Cleansing', sub: 'Validate rules', icon: Sparkles },
-  { id: 3, label: 'Data File Mapping', sub: 'Map columns', icon: Table },
-  { id: 4, label: 'Omnia Parameters', sub: 'Configure', icon: Settings },
-  { id: 5, label: 'Data Quality & Recon', sub: 'Running', icon: Activity },
+  { id: 3, label: 'Data File Mapping', sub: 'CDM Mapping', icon: Table },
+  { id: 4, label: 'Audit Parameters', sub: 'Golden Checks', icon: Settings },
+  { id: 5, label: 'Data Quality & Recon', sub: '20 DQC Engine', icon: Activity },
   { id: 6, label: 'Executive Results', sub: 'Review', icon: BarChart3 },
 ];
 
 const STEP_COPY: Record<number, { title: string; desc: string }> = {
-  1: { title: 'Upload Omnia Input Datasets', desc: 'Upload your multi-sheet workbook or separate CSV files for TB, Population and COA.' },
-  2: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Cleanse raw data and validate 16 mandatory audit schema rules from omnia_JET_user_input.txt.' },
+  1: { title: 'Upload Audit Datasets', desc: 'Upload your multi-sheet workbook or separate CSV files for TB, Population and COA.' },
+  2: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Cleanse raw data and validate 16 mandatory audit schema rules.' },
   3: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte CDM model across Trial Balance, General Ledger, and Chart of Accounts.' },
-  4: { title: 'Omnia Parameters & Golden Checks', desc: 'Define fiscal periods, currency handling, decimal formats and toggleable DQC rules.' },
-  5: { title: 'Data Quality & Reconciliation Engine', desc: 'Executing PySpark CDM preparation, currency reconciliation and 20 DQC golden checks.' },
+  4: { title: 'Audit Parameters & Golden Checks', desc: 'Define fiscal periods, currency handling, decimal formats and toggleable DQC rules.' },
+  5: { title: 'Data Quality & Reconciliation Engine', desc: 'Executing CDM preparation, currency reconciliation and 20 DQC golden checks.' },
   6: { title: 'Executive Results & Audit Workpapers', desc: 'Review account reconciliation, DQC golden matrix, control totals, and generated artifacts.' },
 };
 
@@ -601,7 +601,7 @@ export const OmniaJetWorkflow: React.FC = () => {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
         <RefreshCw size={32} className="spin-slow" style={{ margin: '0 auto 16px', color: 'var(--deloitte-teal)' }} />
-        Loading Omnia JET Execution Workspace...
+        Loading JET Execution Workspace...
       </div>
     );
   }
@@ -671,7 +671,7 @@ export const OmniaJetWorkflow: React.FC = () => {
           <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
           <button onClick={handleStartPipeline} disabled={executing} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
             <Play size={13} fill="#FFFFFF" />
-            {executing ? 'Executing Pipeline...' : 'Run Omnia JET Workflow'}
+            {executing ? 'Executing Pipeline...' : 'Run JET Workflow'}
           </button>
         </>
       );
@@ -704,13 +704,13 @@ export const OmniaJetWorkflow: React.FC = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
-                OMNIA JET Workflow
+                JET Workflow
               </h1>
               {runId && <span className="run-id-pill">{runId}</span>}
               {currentExecutionStatus && <StatusBadge status={currentExecutionStatus} size="sm" />}
             </div>
             <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '3px' }}>
-              Omnia Audit Data Cleansing & Reconciliation Pipeline
+              Journal Entry Testing & Reconciliation Pipeline
             </div>
           </div>
         </div>
@@ -852,7 +852,7 @@ export const OmniaJetWorkflow: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                   <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                    Omnia Parameters & Golden Checks Configuration
+                    Audit Parameters & Golden Checks Configuration
                   </h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
                     Define fiscal audit reporting periods, currency reconciliation modes, decimal formatting rules, and toggleable DQC checks.
@@ -1156,12 +1156,12 @@ export const OmniaJetWorkflow: React.FC = () => {
                     </div>
                     <div>
                       <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                        {isCompleted ? 'Data Quality & Financial Reconciliation Complete' : 'Executing Omnia Audit Reconciliation Pipeline'}
+                        {isCompleted ? 'Data Quality & Financial Reconciliation Complete' : 'Executing JET Reconciliation Pipeline'}
                       </h3>
                       <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
                         {isCompleted
                           ? 'All 6 reconciliation and data quality integrity stages finished with 100% data fidelity.'
-                          : (status?.currentStage ? status.currentStage.replace(/_/g, ' ') : 'Running PySpark CDM standardization and 20 DQC checks...')}
+                          : (status?.currentStage ? status.currentStage.replace(/_/g, ' ') : 'Running CDM standardization and 20 DQC checks...')}
                       </p>
                     </div>
                   </div>
@@ -1629,7 +1629,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                          Omnia Data Quality Checks (DQC 01a - 20) Golden Matrix
+                          Data Quality Checks (DQC 01a - 20) Golden Matrix
                         </h3>
                         <span style={{
                           fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '10px',
@@ -2165,7 +2165,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                     <div>
                       <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px' }}>
-                        Generated Omnia JET Audit Workpapers & Artifacts
+                        Generated JET Audit Workpapers & Artifacts
                       </h3>
                       <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
                         Download consolidated multi-tab Excel templates, clean master datasets, reconciliation extracts, and control totals.

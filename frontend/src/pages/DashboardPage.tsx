@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/authService';
 import { RunService } from '../services/runService';
-import { RunSummary, WorkflowType } from '../types';
+import { RunSummary } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, Layers, ArrowRight, Play, FileSpreadsheet, RefreshCw,
   CheckCircle2, Database, FileText, Activity, Search, Zap, FileCheck,
   Trash2, BarChart3, Shield, Cpu, TrendingUp, BookOpen, ExternalLink,
-  ChevronRight, Check, ShieldCheck, Scale, CheckSquare, Rocket,
-  UploadCloud, Table, Sliders, Plus
+  ChevronRight, ChevronLeft, Check, ShieldCheck, Scale, CheckSquare, Rocket,
+  UploadCloud, Table, Sliders, CheckCircle, History
 } from 'lucide-react';
 import { ConfirmModal } from '../components/common/ConfirmModal';
+import { InfiniteStageCarousel } from '../components/dashboard/InfiniteStageCarousel';
 
 /* ── Smooth One-Way Scroll-Reveal ── */
 const sectionReveal = {
@@ -52,7 +53,9 @@ export const DashboardPage: React.FC = () => {
     run: null,
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const [workflowFilter, setWorkflowFilter] = useState<'ALL' | 'SPARK_JET' | 'OMNIA_JET'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'COMPLETED' | 'RUNNING' | 'FAILED'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const fetchRuns = async () => {
     setLoading(true);
@@ -70,12 +73,16 @@ export const DashboardPage: React.FC = () => {
     fetchRuns();
   }, []);
 
-  const handleStartWorkflow = (workflow: WorkflowType = 'JET') => {
+  const handleStartWorkflow = () => {
     navigate('/jet');
   };
 
   const handleResumeRun = (run: RunSummary) => {
-    navigate(`/jet?runId=${run.runId}`);
+    if (run.workflow === 'OMNIA_JET') {
+      navigate(`/omnia-jet?runId=${run.runId}`);
+    } else {
+      navigate(`/spark-jet?runId=${run.runId}`);
+    }
   };
 
   const handleOpenDelete = (run: RunSummary) => {
@@ -97,15 +104,30 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleStatusFilterChange = (filter: 'ALL' | 'COMPLETED' | 'RUNNING' | 'FAILED') => {
+    setStatusFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+  };
+
   const filteredRuns = runs.filter(r => {
-    const matchFilter = workflowFilter === 'ALL' || r.workflow === workflowFilter;
+    const matchFilter = statusFilter === 'ALL' || r.status === statusFilter;
     const matchSearch = !searchQuery
       || r.runId.toLowerCase().includes(searchQuery.toLowerCase())
       || r.status.toLowerCase().includes(searchQuery.toLowerCase());
     return matchFilter && matchSearch;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredRuns.length / ITEMS_PER_PAGE));
+  const paginatedRuns = filteredRuns.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   const completedRuns = runs.filter(r => r.status === 'COMPLETED').length;
+  const runningRuns = runs.filter(r => r.status === 'RUNNING').length;
+  const failedRuns = runs.filter(r => r.status === 'FAILED').length;
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', background: '#FFFFFF', overflowX: 'hidden' }}>
@@ -114,9 +136,9 @@ export const DashboardPage: React.FC = () => {
           1. FULL-SCREEN EDITORIAL HERO SECTION (Seamless Spacing)
           ══════════════════════════════════════════════════════════ */}
       <motion.section
-        initial="hidden"
+        initial={false}
         whileInView="visible"
-        viewport={{ once: true, amount: 0.05 }}
+        viewport={{ once: true }}
         variants={sectionReveal}
         style={{
           width: '100%',
@@ -174,18 +196,18 @@ export const DashboardPage: React.FC = () => {
             </p>
 
             {/* Action Buttons with Depth */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '28px' }}>
               <motion.button
-                onClick={() => handleStartWorkflow('JET')}
+                onClick={() => handleStartWorkflow()}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '13px 30px',
+                  padding: '12px 24px',
                   borderRadius: '999px',
                   background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
                   color: '#FFFFFF',
-                  fontSize: '0.92rem',
+                  fontSize: '0.88rem',
                   fontWeight: 700,
                   letterSpacing: '0.015em',
                   border: 'none',
@@ -195,19 +217,19 @@ export const DashboardPage: React.FC = () => {
                 whileHover={{ scale: 1.02, transform: 'translateY(-1px)', boxShadow: '0 12px 28px -4px rgba(0, 118, 128, 0.45)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Rocket size={16} /> Launch JET Pipeline <ArrowRight size={15} />
+                <Rocket size={16} /> Launch JET Workflow <ArrowRight size={15} />
               </motion.button>
 
               <motion.button
                 onClick={() => {
-                  const sectionEl = document.getElementById('pipeline-methodology');
-                  if (sectionEl) sectionEl.scrollIntoView({ behavior: 'smooth' });
+                  const el = document.getElementById('execution-history-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '7px',
-                  padding: '13px 24px',
+                  padding: '12px 22px',
                   borderRadius: '999px',
                   background: '#FFFFFF',
                   color: '#334155',
@@ -220,7 +242,7 @@ export const DashboardPage: React.FC = () => {
                 whileHover={{ background: '#F8FAFC', borderColor: '#CBD5E1', transform: 'translateY(-1px)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                Explore 6-Phase Pipeline <ChevronRight size={15} />
+                View Audit Runs <ChevronRight size={15} />
               </motion.button>
             </div>
 
@@ -297,9 +319,9 @@ export const DashboardPage: React.FC = () => {
           2. FOUR FEATURE PILLARS — Exact Reference-Matched Design
           ══════════════════════════════════════════════════════════ */}
       <motion.section
-        initial="hidden"
+        initial={false}
         whileInView="visible"
-        viewport={{ once: true, amount: 0.05, margin: "0px 0px -40px 0px" }}
+        viewport={{ once: true }}
         variants={sectionReveal}
         style={{
           width: '100%',
@@ -656,413 +678,822 @@ export const DashboardPage: React.FC = () => {
       </motion.section>
 
       {/* ══════════════════════════════════════════════════════════
-          3. THE 6-PHASE JET TESTING PIPELINE ARCHITECTURE
-          ══════════════════════════════════════════════════════════ */}
+      3. UNIFIED 6-STAGE AUDIT TESTING LIFECYCLE SECTION
+      ══════════════════════════════════════════════════════════ */}
       <motion.section
-        id="pipeline-methodology"
-        initial="hidden"
+        initial={false}
         whileInView="visible"
-        viewport={{ once: true, amount: 0.08 }}
+        viewport={{ once: true }}
         variants={sectionReveal}
         style={{
           width: '100%',
           background: '#F8FAFC',
           borderBottom: '1px solid #E2E8F0',
-          padding: 'clamp(44px, 5.5vw, 68px) clamp(20px, 3.2vw, 52px)',
+          padding: 'clamp(36px, 4.5vw, 54px) clamp(20px, 3.2vw, 52px)',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ maxWidth: '1520px', margin: '0 auto' }}>
-          {/* Section Header Row */}
+        {/* Decorative Botanical Leaf Decor — Top Right Accent (Behind content) */}
+        <motion.img
+          initial={{ opacity: 0, scale: 0.9, rotate: -10 }}
+          whileInView={{ opacity: 0.85, scale: 1, rotate: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+          src="/decor/leaf_small_clean.png"
+          alt="Botanical Leaf Decoration"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: '-12px',
+            right: '18px',
+            width: '105px',
+            height: 'auto',
+            pointerEvents: 'none',
+            zIndex: 0,
+            filter: 'drop-shadow(0 6px 16px rgba(0, 118, 128, 0.08))',
+            transform: 'scaleX(-1) rotate(12deg)',
+          }}
+        />
+
+        {/* Decorative Botanical Leaf Decor — Bottom Left Accent (Strictly Behind Cards) */}
+        <motion.img
+          initial={{ opacity: 0, scale: 0.9, y: 15 }}
+          whileInView={{ opacity: 0.85, scale: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
+          src="/decor/leaf_left_clean.png"
+          alt="Botanical Leaf Decoration"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            bottom: '-8px',
+            left: '-10px',
+            width: '110px',
+            height: 'auto',
+            pointerEvents: 'none',
+            zIndex: 0,
+            filter: 'drop-shadow(0 6px 14px rgba(0, 118, 128, 0.07))',
+          }}
+        />
+
+        <div style={{ maxWidth: '1520px', margin: '0 auto', position: 'relative', zIndex: 10 }}>
+          {/* Section Header Row — Matching Section 2 Layout */}
           <div style={{
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '20px',
+            gap: '24px',
             marginBottom: '32px',
           }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <div style={{ maxWidth: '620px' }}>
+              {/* Pill Badge */}
+              <div style={{ marginBottom: '14px' }}>
                 <span style={{
-                  fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em',
-                  color: 'var(--deloitte-teal)', textTransform: 'uppercase',
-                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 14px',
+                  borderRadius: '999px',
+                  background: 'rgba(0, 163, 173, 0.10)',
+                  border: '1px solid rgba(0, 118, 128, 0.18)',
+                  color: '#007680',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.01em',
                 }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--deloitte-teal)' }} />
-                  Deloitte Testing Methodology
+                  <Sparkles size={14} />
+                  Universal intelligent workflow from upload to reconciliation
                 </span>
               </div>
-              <h2 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.035em', margin: 0, marginBottom: '6px' }}>
-                The 6-Phase Unified JET Pipeline
+
+              {/* 2-line Headline */}
+              <h2 style={{
+                fontSize: 'clamp(2.1rem, 3.3vw, 2.85rem)',
+                fontWeight: 800,
+                color: '#0F172A',
+                letterSpacing: '-0.04em',
+                lineHeight: 1.1,
+                margin: 0,
+              }}>
+                Unified 6-Stage Audit Testing.<br />
+                <span style={{ color: '#007680' }}>Continuous Lifecycle Stream.</span>
               </h2>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, maxWidth: '560px' }}>
-                End-to-end audit testing workflow. Drop any Excel workbook or CSV dataset—the engine automatically cleanses, verifies integrity, tests 12 parameter rules, and generates executive deliverables.
-              </p>
             </div>
 
-            <button
-              onClick={() => handleStartWorkflow('JET')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '11px 24px',
-                borderRadius: '999px',
-                background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
-                color: '#FFFFFF',
-                fontSize: '0.86rem',
-                fontWeight: 700,
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(0, 118, 128, 0.30)',
-              }}
-            >
-              <Rocket size={15} /> Launch JET Workspace <ArrowRight size={14} />
-            </button>
-          </div>
+            {/* Right Subtitle + Start Audit Execution Button */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '14px', maxWidth: '420px' }}>
+              <p style={{
+                fontSize: 'clamp(0.88rem, 1.05vw, 0.95rem)',
+                color: '#64748B',
+                lineHeight: 1.65,
+                fontWeight: 400,
+                margin: 0,
+              }}>
+                Simply upload your datasets. The intelligent orchestration engine auto-analyzes schemas, verifies mathematical integrity, and executes full testing seamlessly.
+              </p>
 
-          {/* 6-Phase Pipeline Cards Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-            gap: '16px',
-          }}>
-            {[
-              {
-                step: '01',
-                title: 'Data Ingest & Auto-Detection',
-                desc: 'Upload multi-sheet Excel workbooks or separate TB & GL CSVs with instant dataset classification.',
-                icon: <UploadCloud size={20} />,
-                accent: '#007680',
-                badge: 'Multi-Format',
-              },
-              {
-                step: '02',
-                title: 'Automated Data Cleansing',
-                desc: 'Standardizes date formats, numeric amounts, null handling, and trims whitespace automatically.',
-                icon: <Sparkles size={20} />,
-                accent: '#00A3AD',
-                badge: 'Zero-Touch',
-              },
-              {
-                step: '03',
-                title: 'Pre-Integrity & Mapping',
-                desc: 'Verifies Trial Balance control totals and maps source columns to canonical Deloitte schemas.',
-                icon: <Table size={20} />,
-                accent: '#2563EB',
-                badge: 'Canonical Match',
-              },
-              {
-                step: '04',
-                title: 'Integrity Testing (IR 1–4)',
-                desc: 'Control totals, account existence across datasets, document sequence gaps, and seldom accounts.',
-                icon: <Activity size={20} />,
-                accent: '#16A34A',
-                badge: '4 Core Tests',
-              },
-              {
-                step: '05',
-                title: 'Parameter Rules (Ex 1–12)',
-                desc: 'Executes 12 parameter exception tests including unusual accounts, round digits, keywords, and unrelated pairings.',
-                icon: <Sliders size={20} />,
-                accent: '#D97706',
-                badge: '12 Exceptions',
-              },
-              {
-                step: '06',
-                title: 'Executive Reconciliation',
-                desc: 'Audit KPI dashboards, interactive exception analytics, workpaper tie-outs, and one-click ZIP download.',
-                icon: <BarChart3 size={20} />,
-                accent: '#86BC25',
-                badge: 'Audit-Ready',
-              },
-            ].map((phase, idx) => (
-              <div
-                key={idx}
+              <motion.button
+                onClick={() => handleStartWorkflow()}
                 style={{
-                  background: '#FFFFFF',
-                  borderRadius: '16px',
-                  border: '1px solid var(--border-subtle)',
-                  padding: '22px 20px',
-                  boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  transition: 'all 0.25s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '11px 22px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                  color: '#FFFFFF',
+                  fontSize: '0.86rem',
+                  fontWeight: 700,
+                  border: 'none',
                   cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(0, 118, 128, 0.28)',
                 }}
-                onClick={() => handleStartWorkflow('JET')}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.borderColor = phase.accent;
-                  e.currentTarget.style.boxShadow = '0 12px 28px -6px rgba(15, 23, 42, 0.08)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                  e.currentTarget.style.boxShadow = '0 2px 10px rgba(15, 23, 42, 0.03)';
-                }}
+                whileHover={{ scale: 1.02, transform: 'translateY(-1px)' }}
+                whileTap={{ scale: 0.98 }}
               >
-                {/* Top color accent strip */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '3px',
-                  background: phase.accent,
-                }} />
-
-                {/* Top Row: Icon + Step Number */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '10px',
-                    background: `${phase.accent}14`,
-                    color: phase.accent,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    {phase.icon}
-                  </div>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 900, color: phase.accent, letterSpacing: '0.04em' }}>
-                    {phase.step}
-                  </span>
-                </div>
-
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, marginBottom: '6px', lineHeight: 1.3 }}>
-                  {phase.title}
-                </h3>
-
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, marginBottom: '16px', flex: 1 }}>
-                  {phase.desc}
-                </p>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                  <span style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    background: `${phase.accent}12`,
-                    color: phase.accent,
-                    letterSpacing: '0.02em',
-                  }}>
-                    {phase.badge}
-                  </span>
-                  <ArrowRight size={14} color="#94A3B8" />
-                </div>
-              </div>
-            ))}
+                <Rocket size={15} /> Start Audit Execution <ArrowRight size={14} />
+              </motion.button>
+            </div>
           </div>
+
+          {/* Infinite Horizontal Card Carousel Conveyor */}
+          <InfiniteStageCarousel
+            onLaunchWorkflow={() => handleStartWorkflow()}
+            onSelectStage={() => handleStartWorkflow()}
+          />
         </div>
       </motion.section>
 
       {/* ══════════════════════════════════════════════════════════
-          4. FULL-SCREEN EXECUTION HISTORY TABLE SECTION
-          ══════════════════════════════════════════════════════════ */}
+      4. FULL-SCREEN EXECUTION HISTORY TABLE SECTION
+      ══════════════════════════════════════════════════════════ */}
       <motion.section
-        initial="hidden"
+        id="execution-history-section"
+        initial={false}
         whileInView="visible"
-        viewport={{ once: true, amount: 0.08 }}
+        viewport={{ once: true }}
         variants={sectionReveal}
         style={{
           width: '100%',
-          background: '#FFFFFF',
-          padding: 'clamp(36px, 4.5vw, 54px) clamp(20px, 3.2vw, 52px) 72px',
+          background: 'linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%)',
+          padding: 'clamp(40px, 4.5vw, 60px) clamp(20px, 3.2vw, 52px) 80px',
         }}
       >
-        <div style={{ maxWidth: '1520px', margin: '0 auto' }}>
-          {/* Table Container Card */}
+        <div style={{ maxWidth: '1560px', margin: '0 auto' }}>
+          {/* Main Executive Card Container */}
           <div style={{
             background: '#FFFFFF',
             border: '1px solid #E2E8F0',
-            borderRadius: '16px',
+            borderRadius: '20px',
             overflow: 'hidden',
-            boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+            boxShadow: '0 12px 36px -4px rgba(15, 23, 42, 0.05), 0 2px 8px -2px rgba(0, 0, 0, 0.02)',
+            position: 'relative',
           }}>
-            {/* Header / Filter Toolbar */}
+            {/* Deloitte Signature Top Tricolor Accent Stripe */}
             <div style={{
-              padding: '18px 22px',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '3.5px',
+              background: 'linear-gradient(90deg, #007680 0%, #86BC25 50%, #2563EB 100%)',
+              zIndex: 10,
+            }} />
+
+            {/* ── Header / Filter Toolbar ── */}
+            <div style={{
+              padding: '20px 24px',
               borderBottom: '1px solid #E2E8F0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: '12px',
+              gap: '16px',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #FAFCFD 100%)',
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 118, 128, 0.08)',
+                    color: '#007680',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <History size={17} strokeWidth={2.4} />
+                  </div>
+                  
+                  <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.025em', margin: 0 }}>
                     Execution History &amp; Audit Runs
                   </h3>
-                  <span style={{
-                    fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px',
-                    background: 'var(--bg-secondary)', color: 'var(--text-muted)',
-                  }}>
-                    {runs.length} runs • {completedRuns} completed
-                  </span>
+
+                  {/* Dynamic Status Counter Badges */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      fontSize: '0.69rem',
+                      fontWeight: 800,
+                      padding: '2.5px 8px',
+                      borderRadius: '999px',
+                      background: 'rgba(0, 118, 128, 0.08)',
+                      color: '#007680',
+                      border: '1px solid rgba(0, 118, 128, 0.18)',
+                    }}>
+                      {runs.length} Total Runs
+                    </span>
+                    <span style={{
+                      fontSize: '0.69rem',
+                      fontWeight: 800,
+                      padding: '2.5px 8px',
+                      borderRadius: '999px',
+                      background: 'rgba(22, 163, 74, 0.08)',
+                      color: '#15803D',
+                      border: '1px solid rgba(22, 163, 74, 0.18)',
+                    }}>
+                      {completedRuns} Completed
+                    </span>
+                    {runningRuns > 0 && (
+                      <span style={{
+                        fontSize: '0.69rem',
+                        fontWeight: 800,
+                        padding: '2.5px 8px',
+                        borderRadius: '999px',
+                        background: 'rgba(2, 132, 199, 0.08)',
+                        color: '#0284C7',
+                        border: '1px solid rgba(2, 132, 199, 0.18)',
+                      }}>
+                        {runningRuns} Active
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>
-                  Filter and inspect previous JET audit execution runs.
+
+                <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '4px 0 0', fontWeight: 400 }}>
+                  Real-time audit log of Journal Entry Testing runs, DQC validations, and reconciliation workpapers.
                 </p>
               </div>
 
+              {/* Right Toolbar Controls: Tab Filter + Search Box + Refresh */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Status Filter Tab Pills */}
+                <div style={{
+                  display: 'flex',
+                  background: '#F1F5F9',
+                  borderRadius: '11px',
+                  padding: '3px',
+                  border: '1px solid #E2E8F0',
+                  position: 'relative',
+                }}>
+                  {[
+                    { id: 'ALL', label: 'All', count: runs.length },
+                    { id: 'COMPLETED', label: 'Completed', count: completedRuns },
+                    { id: 'RUNNING', label: 'Running', count: runningRuns },
+                    { id: 'FAILED', label: 'Failed', count: failedRuns },
+                  ].map(tab => {
+                    const isActive = statusFilter === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => handleStatusFilterChange(tab.id as any)}
+                        style={{
+                          position: 'relative',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '5px 12px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: isActive ? '#FFFFFF' : '#64748B',
+                          cursor: 'pointer',
+                          zIndex: 1,
+                          transition: 'color 0.2s ease',
+                        }}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeHistoryFilterTab"
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              borderRadius: '8px',
+                              background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                              boxShadow: '0 2px 8px rgba(0, 118, 128, 0.32)',
+                              zIndex: -1,
+                            }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                          />
+                        )}
+                        <span>{tab.label}</span>
+                        <span style={{
+                          fontSize: '0.64rem',
+                          fontWeight: 800,
+                          padding: '1px 5px',
+                          borderRadius: '999px',
+                          background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0,0,0,0.06)',
+                          color: isActive ? '#FFFFFF' : '#64748B',
+                        }}>
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Search Input */}
                 <div style={{ position: 'relative' }}>
-                  <Search size={13} color="#94A3B8" style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Search size={13} color="#94A3B8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type="text"
                     className="jet-input"
                     placeholder="Search runs..."
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    style={{ paddingLeft: '28px', paddingTop: '6px', paddingBottom: '6px', fontSize: '0.78rem', width: '180px' }}
+                    onChange={e => handleSearchChange(e.target.value)}
+                    style={{
+                      paddingLeft: '30px',
+                      paddingTop: '6px',
+                      paddingBottom: '6px',
+                      fontSize: '0.78rem',
+                      width: '180px',
+                      borderRadius: '9px',
+                      border: '1px solid #E2E8F0',
+                      background: '#FFFFFF',
+                      outline: 'none',
+                    }}
                   />
                 </div>
 
+                {/* Refresh Button */}
                 <button
                   onClick={fetchRuns}
                   className="btn-secondary"
-                  style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '0.78rem',
+                    borderRadius: '9px',
+                    border: '1px solid #E2E8F0',
+                    fontWeight: 600,
+                    color: '#334155',
+                    background: '#FFFFFF',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                  }}
                 >
                   <RefreshCw size={13} className={loading ? 'spin-slow' : ''} /> Refresh
-                </button>
-
-                <button
-                  onClick={() => handleStartWorkflow('JET')}
-                  className="btn-primary"
-                  style={{ padding: '6px 14px', fontSize: '0.78rem', gap: '5px' }}
-                >
-                  <Plus size={13} /> New Audit Run
                 </button>
               </div>
             </div>
 
-            {/* Table */}
-            <div style={{ overflowX: 'auto' }}>
-              <table className="jet-table">
-                <thead>
-                  <tr>
-                    <th>Run ID</th>
-                    <th>Testing Engine</th>
-                    <th>Status</th>
-                    <th>Started</th>
-                    <th>Progress</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                        <RefreshCw size={18} className="spin-slow" style={{ margin: '0 auto 8px' }} />
-                        <div>Loading runs...</div>
-                      </td>
+            {/* ── Table & Content Container (Anchored Headers & Seamless Switching) ── */}
+            <div style={{
+              position: 'relative',
+              background: '#FFFFFF',
+              overflow: 'hidden',
+            }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed', minWidth: '920px' }}>
+                  <thead>
+                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                      <th style={{ padding: '13px 20px', width: '22%', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Run ID &amp; Engagement</th>
+                      <th style={{ padding: '13px 20px', width: '26%', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Audit Pipeline</th>
+                      <th style={{ padding: '13px 18px', width: '12%', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Engine</th>
+                      <th style={{ padding: '13px 18px', width: '14%', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</th>
+                      <th style={{ padding: '13px 18px', width: '14%', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Date &amp; Runtime</th>
+                      <th style={{ padding: '13px 20px', width: '12%', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right' }}>Actions</th>
                     </tr>
-                  ) : filteredRuns.length > 0 ? (
-                    filteredRuns.map(run => (
-                      <tr key={run.runId}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  </thead>
+                  
+                  <tbody>
+                    <AnimatePresence mode="wait">
+                      {loading ? (
+                        <motion.tr
+                          key="loading-state"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '56px 20px', color: '#64748B' }}>
                             <div style={{
-                              width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
-                              background: run.status === 'COMPLETED' ? '#0D9488' : run.status === 'FAILED' ? '#E11D48' : run.status === 'RUNNING' ? '#0284C7' : '#94A3B8',
-                            }} />
-                            <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--deloitte-teal)' }}>
-                              {run.runId}
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '5px',
-                            fontSize: '0.74rem', fontWeight: 700, padding: '3px 9px', borderRadius: '999px',
-                            background: 'var(--deloitte-teal-light)',
-                            color: 'var(--deloitte-teal)',
-                            border: '1px solid rgba(0,118,128,0.22)',
-                          }}>
-                            <ShieldCheck size={11} /> JET Pipeline ({run.engine || 'PYTHON'})
-                          </span>
-                        </td>
-                        <td>
-                          <StatusBadge status={run.status} />
-                        </td>
-                        <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                          {run.startedAt || run.completedAt || run.createdAt ? (
-                            <div>
-                              <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                {new Date(run.startedAt || run.completedAt || run.createdAt!).toLocaleDateString()}
-                              </div>
-                              <div style={{ fontSize: '0.7rem' }}>
-                                {new Date(run.startedAt || run.completedAt || run.createdAt!).toLocaleTimeString()}
-                              </div>
+                              width: '38px',
+                              height: '38px',
+                              borderRadius: '10px',
+                              background: 'rgba(0, 118, 128, 0.08)',
+                              color: '#007680',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              margin: '0 auto 10px',
+                            }}>
+                              <RefreshCw size={18} className="spin-slow" />
                             </div>
-                          ) : '—'}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                            <div style={{ width: '60px', height: '5px', background: 'var(--bg-secondary)', borderRadius: '3px', overflow: 'hidden' }}>
-                              <div style={{
-                                width: `${run.progress}%`, height: '100%', borderRadius: '3px',
-                                background: run.status === 'COMPLETED'
-                                  ? 'linear-gradient(90deg, #0D9488, #34D399)'
-                                  : run.status === 'FAILED' ? '#E11D48'
-                                  : 'linear-gradient(90deg, #007680, #00A3AD)',
-                                transition: 'width 0.4s ease',
-                              }} />
+                            <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0F172A' }}>Loading Audit Runs...</div>
+                            <div style={{ fontSize: '0.76rem', color: '#64748B', marginTop: '2px' }}>Fetching execution status and workpaper outputs</div>
+                          </td>
+                        </motion.tr>
+                      ) : paginatedRuns.length > 0 ? (
+                        paginatedRuns.map((run, idx) => (
+                          <motion.tr
+                            key={run.runId}
+                            initial={{ opacity: 0, y: 3 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -3 }}
+                            transition={{ duration: 0.15, delay: idx * 0.02, ease: 'easeOut' }}
+                            style={{
+                              borderBottom: '1px solid #F1F5F9',
+                              transition: 'background 0.12s ease',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
+                          >
+                            {/* Run ID & Engagement */}
+                            <td style={{ padding: '14px 20px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{
+                                  width: '7px',
+                                  height: '7px',
+                                  borderRadius: '50%',
+                                  flexShrink: 0,
+                                  background: run.status === 'COMPLETED' ? '#16A34A' : run.status === 'FAILED' ? '#E11D48' : run.status === 'RUNNING' ? '#0284C7' : '#94A3B8',
+                                }} />
+                                <div>
+                                  <span style={{
+                                    fontWeight: 800,
+                                    fontFamily: 'var(--font-mono, monospace)',
+                                    fontSize: '0.81rem',
+                                    color: '#007680',
+                                    background: 'rgba(0, 118, 128, 0.07)',
+                                    padding: '2px 7px',
+                                    borderRadius: '5px',
+                                  }}>
+                                    {run.runId}
+                                  </span>
+                                  <div style={{ fontSize: '0.71rem', color: '#94A3B8', marginTop: '3px', fontWeight: 500 }}>
+                                    Deloitte JET Workpapers
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Audit Pipeline */}
+                            <td style={{ padding: '14px 20px' }}>
+                              <div>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  padding: '3px 9px',
+                                  borderRadius: '999px',
+                                  background: 'rgba(0, 118, 128, 0.07)',
+                                  color: '#007680',
+                                  border: '1px solid rgba(0, 118, 128, 0.16)',
+                                }}>
+                                  <ShieldCheck size={11} />
+                                  {run.workflow === 'OMNIA_JET' ? 'Omnia JET Multi-Sheet Pipeline' : 'Spark JET Enterprise Pipeline'}
+                                </span>
+                                <div style={{ fontSize: '0.71rem', color: '#64748B', marginTop: '3px' }}>
+                                  General Ledger &amp; Trial Balance Audit
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Engine */}
+                            <td style={{ padding: '14px 18px' }}>
+                              <div style={{ fontSize: '0.78rem', color: '#334155', fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>
+                                {run.engine || 'PYTHON'}
+                              </div>
+                              <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
+                                Core Runtime
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td style={{ padding: '14px 18px' }}>
+                              <StatusBadge status={run.status} />
+                              <div style={{ fontSize: '0.70rem', color: run.status === 'COMPLETED' ? '#15803D' : '#94A3B8', marginTop: '3px', fontWeight: 600 }}>
+                                {run.status === 'COMPLETED' ? 'Zero-Sum Verified' : run.status === 'RUNNING' ? 'In Progress' : 'Audit Logged'}
+                              </div>
+                            </td>
+
+                            {/* Date & Runtime */}
+                            <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                              {run.startedAt || run.completedAt || run.createdAt ? (
+                                <div>
+                                  <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.79rem' }}>
+                                    {new Date(run.startedAt || run.completedAt || run.createdAt!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  </div>
+                                  <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
+                                    {new Date(run.startedAt || run.completedAt || run.createdAt!).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                </div>
+                              ) : '—'}
+                            </td>
+
+                            {/* Actions */}
+                            <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                <button
+                                  onClick={() => handleResumeRun(run)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    padding: '6px 13px',
+                                    borderRadius: '7px',
+                                    background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                                    color: '#FFFFFF',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 700,
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 6px rgba(0, 118, 128, 0.20)',
+                                    transition: 'transform 0.12s ease',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                                >
+                                  {run.status === 'COMPLETED' ? <ExternalLink size={12} /> : <Play size={12} />}
+                                  {run.status === 'COMPLETED' ? 'View Suite' : 'Resume'}
+                                </button>
+
+                                <button
+                                  onClick={() => handleOpenDelete(run)}
+                                  disabled={deletingId === run.runId}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '7px',
+                                    background: '#FFFFFF',
+                                    border: '1px solid #E2E8F0',
+                                    color: '#94A3B8',
+                                    cursor: deletingId === run.runId ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.12s ease',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = '#FDA4AF';
+                                    e.currentTarget.style.color = '#E11D48';
+                                    e.currentTarget.style.background = '#FFF1F2';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = '#E2E8F0';
+                                    e.currentTarget.style.color = '#94A3B8';
+                                    e.currentTarget.style.background = '#FFFFFF';
+                                  }}
+                                  title="Delete run record"
+                                >
+                                  {deletingId === run.runId ? <RefreshCw size={11} className="spin-slow" /> : <Trash2 size={11} />}
+                                </button>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        ))
+                      ) : (
+                        /* ── Inline Centered Empty State inside Stable Table Frame ── */
+                        <motion.tr
+                          key={`empty-${statusFilter}-${searchQuery}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.18 }}
+                        >
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '44px 20px' }}>
+                            <div style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '12px',
+                              background: 'rgba(0, 118, 128, 0.08)',
+                              border: '1px solid rgba(0, 118, 128, 0.18)',
+                              color: '#007680',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              margin: '0 auto 10px',
+                            }}>
+                              <Activity size={20} strokeWidth={2.2} />
                             </div>
-                            <span style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                              {run.progress}%
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <button
-                              onClick={() => handleResumeRun(run)}
-                              className="btn-secondary"
-                              style={{ padding: '4px 10px', fontSize: '0.76rem', gap: '4px' }}
-                            >
-                              {run.status === 'COMPLETED' ? <ExternalLink size={11} /> : <Play size={11} />}
-                              {run.status === 'COMPLETED' ? 'View' : 'Resume'}
-                            </button>
-                            <button
-                              onClick={() => handleOpenDelete(run)}
-                              disabled={deletingId === run.runId}
-                              className="btn-secondary"
-                              style={{ padding: '4px 8px', color: 'var(--status-error)' }}
-                              title="Delete run"
-                            >
-                              {deletingId === run.runId ? <RefreshCw size={11} className="spin-slow" /> : <Trash2 size={11} />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '44px', color: 'var(--text-muted)' }}>
-                        <Activity size={26} color="var(--text-subtle)" style={{ margin: '0 auto 10px' }} />
-                        <div style={{ fontWeight: 700, fontSize: '0.94rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                          No Audit Runs Found
-                        </div>
-                        <p style={{ fontSize: '0.82rem', maxWidth: '340px', margin: '0 auto 16px' }}>
-                          {searchQuery ? 'No runs match your search.' : 'Launch a workflow above to create your first audit run.'}
-                        </p>
-                        {!searchQuery && (
-                          <button onClick={() => handleStartWorkflow('SPARK_JET')} className="btn-green" style={{ padding: '8px 18px', fontSize: '0.84rem' }}>
-                            <Layers size={13} /> Launch Spark JET
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+
+                            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0F172A', marginBottom: '3px', letterSpacing: '-0.015em' }}>
+                              {statusFilter === 'RUNNING'
+                                ? 'No Active Running Executions'
+                                : statusFilter === 'COMPLETED'
+                                  ? 'No Completed Audit Runs Found'
+                                  : statusFilter === 'FAILED'
+                                    ? 'No Failed Audit Runs'
+                                    : searchQuery
+                                      ? `No Executions Matching "${searchQuery}"`
+                                      : 'No Audit Runs Found'}
+                            </div>
+
+                            <p style={{ fontSize: '0.79rem', color: '#64748B', maxWidth: '380px', margin: '0 auto 14px', lineHeight: 1.5 }}>
+                              {statusFilter === 'RUNNING'
+                                ? 'There are currently no pipelines executing. Launch a new workflow to start testing.'
+                                : statusFilter !== 'ALL'
+                                  ? `There are no executions currently categorized as ${statusFilter.toLowerCase()}.`
+                                  : searchQuery
+                                    ? `No audit runs match "${searchQuery}". Try adjusting your keywords or clearing the search.`
+                                    : 'Execute your Trial Balance and General Ledger datasets to start generating audit workpapers.'}
+                            </p>
+
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                              {(statusFilter !== 'ALL' || searchQuery) && (
+                                <button
+                                  onClick={() => {
+                                    setStatusFilter('ALL');
+                                    setSearchQuery('');
+                                    setCurrentPage(1);
+                                  }}
+                                  style={{
+                                    padding: '6px 13px',
+                                    fontSize: '0.77rem',
+                                    fontWeight: 600,
+                                    borderRadius: '7px',
+                                    border: '1px solid #E2E8F0',
+                                    background: '#FFFFFF',
+                                    color: '#334155',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.12s ease',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = '#007680';
+                                    e.currentTarget.style.color = '#007680';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = '#E2E8F0';
+                                    e.currentTarget.style.color = '#334155';
+                                  }}
+                                >
+                                  Reset Filters
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => handleStartWorkflow()}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '6px 15px',
+                                  borderRadius: '7px',
+                                  background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                                  color: '#FFFFFF',
+                                  fontSize: '0.77rem',
+                                  fontWeight: 700,
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 8px rgba(0, 118, 128, 0.22)',
+                                  transition: 'transform 0.12s ease',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                              >
+                                <Rocket size={13} /> Launch JET Workflow <ArrowRight size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      )}
+                    </AnimatePresence>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ── Docked Bottom Footer Bar ── */}
+              <div style={{
+                height: '46px',
+                padding: '0 20px',
+                borderTop: '1px solid #F1F5F9',
+                background: '#FAFCFD',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px',
+              }}>
+                {filteredRuns.length > 0 ? (
+                  <>
+                    {/* Left: Result Counter */}
+                    <span style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 500 }}>
+                      Showing <strong style={{ color: '#0F172A' }}>{Math.min(filteredRuns.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</strong> to{' '}
+                      <strong style={{ color: '#0F172A' }}>{Math.min(filteredRuns.length, currentPage * ITEMS_PER_PAGE)}</strong> of{' '}
+                      <strong style={{ color: '#0F172A' }}>{filteredRuns.length}</strong> {filteredRuns.length === 1 ? 'run' : 'runs'}
+                    </span>
+
+                    {/* Center: Pagination Button Cluster */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #E2E8F0',
+                          background: currentPage === 1 ? '#F8FAFC' : '#FFFFFF',
+                          color: currentPage === 1 ? '#CBD5E1' : '#334155',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.12s ease',
+                        }}
+                      >
+                        <ChevronLeft size={13} /> Previous
+                      </button>
+
+                      {/* Page Numbers */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          style={{
+                            minWidth: '28px',
+                            height: '28px',
+                            padding: '0 5px',
+                            borderRadius: '6px',
+                            border: pageNum === currentPage ? '1px solid #007680' : '1px solid #E2E8F0',
+                            background: pageNum === currentPage ? 'linear-gradient(135deg, #007680 0%, #004D54 100%)' : '#FFFFFF',
+                            color: pageNum === currentPage ? '#FFFFFF' : '#475569',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.12s ease',
+                          }}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #E2E8F0',
+                          background: currentPage === totalPages ? '#F8FAFC' : '#FFFFFF',
+                          color: currentPage === totalPages ? '#CBD5E1' : '#334155',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.12s ease',
+                        }}
+                      >
+                        Next <ChevronRight size={13} />
+                      </button>
+                    </div>
+
+                    {/* Right Quick Jump Indicator */}
+                    <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600 }}>
+                      Page <strong style={{ color: '#007680' }}>{currentPage}</strong> of <strong style={{ color: '#0F172A' }}>{totalPages}</strong>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: '0.76rem', color: '#94A3B8', fontWeight: 500 }}>
+                      0 audit runs matching filter ({statusFilter.toLowerCase()})
+                    </span>
+                    
+                    <button
+                      onClick={() => {
+                        setStatusFilter('ALL');
+                        setSearchQuery('');
+                        setCurrentPage(1);
+                      }}
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: '#007680',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <span>View All Runs</span>
+                      <ArrowRight size={11} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

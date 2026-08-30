@@ -940,7 +940,7 @@ export const SparkJetWorkflow: React.FC = () => {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
         <RefreshCw size={32} className="spin-slow" style={{ margin: '0 auto 16px', color: 'var(--deloitte-teal)' }} />
-        Loading Spark JET Execution Workspace...
+        Loading JET Execution Workspace...
       </div>
     );
   }
@@ -1067,7 +1067,7 @@ export const SparkJetWorkflow: React.FC = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
-                SPARK JET Workflow
+                JET Workflow
               </h1>
               {runId && <span className="run-id-pill">{runId}</span>}
               {currentExecutionStatus && <StatusBadge status={currentExecutionStatus} size="sm" />}

@@ -2,6 +2,22 @@ export type WorkflowType = 'JET' | 'SPARK_JET' | 'OMNIA_JET';
 export type PipelineEngine = 'PYTHON' | 'PYSPARK' | 'SCALA_SPARK';
 export type RunStatus = 'CREATED' | 'UPLOADING' | 'DETECTED' | 'MAPPING' | 'CONFIGURED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'WARNING';
 
+export interface RoutingDiagnostic {
+  detectedProfile: 'CSV_DUAL_STREAM' | 'EXCEL_MULTISHEET' | 'HYBRID_INGESTION' | 'UNKNOWN';
+  inferredPipeline: 'SPARK_JET' | 'OMNIA_JET';
+  confidence: number;
+  reasoning: string;
+  detectedSheets?: string[];
+  detectedFilesSummary: {
+    tbFound: boolean;
+    glFound: boolean;
+    coaFound: boolean;
+    totalFiles: number;
+    totalSheets: number;
+  };
+  capabilities: string[];
+}
+
 export type DatasetClassification = 
   | 'TRIAL_BALANCE'
   | 'GENERAL_LEDGER'

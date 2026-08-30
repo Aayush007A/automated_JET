@@ -1,3 +1,0 @@
-G_L,FS_Line_Item,DocumentNo,Type,Entry_Date,Pstng_Date,Doc_Date,Amount_in_local_cur,Lcurr,Amount_in_doc_curr,Curr,Amount_in_loc_curr_2,LCur2,Document_Header_Text,Text,User_name,Exception
-41001400,NET SALES REVENUE,2000001001,AB,31-Dec-25,31-Dec-25,31-Dec-25,0.0,INR,0.0,INR,500000.0,,Auditor adjustment,adjustment entry to revenue,SBPATIL,Exception10
-3500001,Trade Payables,2000001001,AB,31-Dec-25,31-Dec-25,31-Dec-25,0.0,INR,0.0,INR,-500000.0,,Auditor adjustment,adjustment entry to trade payables,SBPATIL,Exception10

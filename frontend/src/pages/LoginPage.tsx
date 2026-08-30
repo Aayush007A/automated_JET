@@ -38,8 +38,8 @@ export const LoginPage: React.FC = () => {
   };
 
   const capabilities = [
-    { icon: Layers, label: 'SPARK JET', desc: 'TB/GL extraction & testing' },
-    { icon: FileSpreadsheet, label: 'OMNIA JET', desc: 'CDM workbook reconciliation' },
+    { icon: Layers, label: 'JET WORKFLOW', desc: 'TB/GL extraction & testing' },
+    { icon: FileSpreadsheet, label: 'JET WORKBOOK', desc: 'CDM workbook reconciliation' },
     { icon: CheckCircle2, label: '20 DQC Rules', desc: 'Automated quality checks' },
     { icon: Activity, label: 'Real-time Logs', desc: 'Live execution tracking' },
   ];
