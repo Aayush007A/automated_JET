@@ -1048,34 +1048,34 @@ export const SparkJetWorkflow: React.FC = () => {
   };
 
   return (
-    <div className="container" style={{ maxWidth: '1480px', margin: '0 auto', padding: '28px 32px 48px' }}>
+    <div className="container" style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px clamp(16px, 3vw, 36px) 48px' }}>
 
       <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".csv,.txt,.xlsx,.xls" onChange={handleImportFileSelected} />
 
       {/* Page Header: Left aligned, generous breathing room */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '18px', marginBottom: '26px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '18px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img
             src="/icons/clay_concept_1_shield.png"
             alt="JET Workflow"
             style={{
-              width: '46px',
-              height: '46px',
+              width: '42px',
+              height: '42px',
               objectFit: 'contain',
               display: 'block',
               flexShrink: 0,
-              filter: 'drop-shadow(0 5px 12px rgba(0, 118, 128, 0.20))',
+              filter: 'drop-shadow(0 4px 10px rgba(0, 118, 128, 0.18))',
             }}
           />
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.025em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '1.42rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
                 JET Workflow
               </h1>
               {runId && <span className="run-id-pill">{runId}</span>}
               {currentExecutionStatus && <StatusBadge status={currentExecutionStatus} size="sm" />}
             </div>
-            <div style={{ fontSize: '0.86rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '3px' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '2px', lineHeight: 1.3 }}>
               Journal Entry Testing & Integrity Analytics Pipeline
             </div>
           </div>
