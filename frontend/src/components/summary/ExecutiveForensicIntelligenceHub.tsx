@@ -57,6 +57,122 @@ function drawHubCanvasRoundRect(
   }
 }
 
+// Custom Chart.js Plugin for Population Risk Distribution Leader Line Callouts with Arrows & Badges
+const hubDoughnutCalloutPlugin = {
+  id: 'hubDoughnutCallout',
+  afterDatasetsDraw(chart: any) {
+    if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
+    if (chart.options?.plugins?.hubDoughnutCallout?.display === false) return;
+
+    const { ctx, data } = chart;
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data || !meta.data.length) return;
+
+    const dataset = data.datasets[0];
+    if (!dataset || !dataset.data) return;
+
+    const total = dataset.data.reduce((a: number, b: number) => a + (Number(b) || 0), 0);
+    if (total <= 0) return;
+
+    const bgColors = dataset.backgroundColor || [];
+
+    ctx.save();
+
+    meta.data.forEach((element: any, index: number) => {
+      const val = Number(dataset.data[index]) || 0;
+      if (val <= 0) return;
+
+      const { startAngle, endAngle, outerRadius, x: centerX, y: centerY } = element;
+      if (outerRadius < 20) return;
+
+      const angle = startAngle + (endAngle - startAngle) / 2;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const startX = centerX + cos * outerRadius;
+      const startY = centerY + sin * outerRadius;
+      const isRight = cos >= 0;
+
+      const rawLabel = (data.labels && data.labels[index]) ? String(data.labels[index]) : `Slice ${index + 1}`;
+      const pct = Math.round((val / total) * 100);
+      const pctStr = `${pct}%`;
+
+      const rawColor = Array.isArray(bgColors) ? (bgColors[index] || '#007680') : bgColors;
+      const sliceColor = typeof rawColor === 'string' ? rawColor : '#007680';
+
+      // Sizing
+      ctx.font = "700 10.5px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      const textWidth = ctx.measureText(rawLabel).width;
+      ctx.font = "800 10.5px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      const pctWidth = ctx.measureText(pctStr).width;
+
+      const pillPaddingX = 7;
+      const dotSize = 6;
+      const gap = 5;
+      const pillHeight = 22;
+      const pillWidth = pillPaddingX * 2 + dotSize + gap + textWidth + gap + pctWidth + 4;
+
+      const elbowDist = 20;
+      const elbowX = centerX + cos * (outerRadius + elbowDist);
+      const elbowY = centerY + sin * (outerRadius + elbowDist);
+
+      const pillX = isRight ? elbowX + 12 : elbowX - 12 - pillWidth;
+      const pillY = elbowY - pillHeight / 2;
+
+      // Draw subtle leader line with arrow
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(elbowX, elbowY);
+      ctx.lineTo(isRight ? pillX : pillX + pillWidth, elbowY);
+      ctx.strokeStyle = sliceColor;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Arrow point at slice edge
+      ctx.fillStyle = sliceColor;
+      ctx.beginPath();
+      ctx.arc(startX, startY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw Pill Container
+      ctx.fillStyle = '#FFFFFF';
+      ctx.shadowColor = 'rgba(15, 23, 42, 0.08)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 2;
+      drawHubCanvasRoundRect(ctx, pillX, pillY, pillWidth, pillHeight, 6);
+      ctx.fill();
+
+      ctx.shadowColor = 'transparent';
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1;
+      drawHubCanvasRoundRect(ctx, pillX, pillY, pillWidth, pillHeight, 6);
+      ctx.stroke();
+
+      // Colored Dot
+      const dotX = pillX + pillPaddingX + dotSize / 2;
+      const dotY = pillY + pillHeight / 2;
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, dotSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = sliceColor;
+      ctx.fill();
+
+      // Text Label
+      ctx.fillStyle = '#334155';
+      ctx.font = "700 10px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(rawLabel, dotX + dotSize / 2 + gap, dotY);
+
+      // Percentage Pill
+      const pctX = dotX + dotSize / 2 + gap + textWidth + gap;
+      ctx.fillStyle = sliceColor;
+      ctx.font = "800 10px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      ctx.fillText(pctStr, pctX, dotY);
+    });
+
+    ctx.restore();
+  }
+};
+
 // Register Chart.js Modules
 ChartJS.register(
   CategoryScale,
@@ -73,7 +189,8 @@ ChartJS.register(
   LineController,
   RadarController,
   ArcElement,
-  DoughnutController
+  DoughnutController,
+  hubDoughnutCalloutPlugin
 );
 
 interface ExecutiveForensicIntelligenceHubProps {
@@ -596,10 +713,10 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
   const donutChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
-    radius: '68%',
+    radius: '62%',
     cutout: '66%',
     layout: {
-      padding: { left: 55, right: 55, top: 18, bottom: 18 },
+      padding: { left: 80, right: 80, top: 16, bottom: 16 },
     },
     plugins: {
       legend: { display: false },
