@@ -1,18 +1,3 @@
-/**
- * VisualizationShowcase
- *
- * Premium Executive "Visualizations & Insights" showcase suite.
- * Features:
- *  - High-density, tooltipless Chart.js analytical engines with dynamic unwrapping animations
- *  - Staggered bar growth, line trace-out, and 360° radial donut sweep loading animations on every slide change
- *  - 67:33 expansive chart viewport ratio with zero empty dead space
- *  - Guaranteed 7-second automatic slideshow rotation
- *  - Dramatic chart reveal/unreveal animations (scale, blur wipe, slide & spring physics)
- *  - Integrated `<` and `>` chevron nav buttons right alongside the 12 category chips
- *  - Botanical decor: 3D potted plant on bottom-left, upside-down leaf sprig on top-right
- *  - Generous upper breathing room with clean, elegant executive typography
- */
-
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
@@ -53,6 +38,8 @@ import {
   Grid,
   TrendingDown,
   Sparkles,
+  Play,
+  Pause,
 } from 'lucide-react';
 
 // Register Chart.js Modules
@@ -71,6 +58,49 @@ ChartJS.register(
   BarController,
   LineController
 );
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ANIMATED COUNT-UP NUMBER COMPONENT
+───────────────────────────────────────────────────────────────────────── */
+
+const AnimatedNumber: React.FC<{
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+  animKey: number;
+}> = ({ value, prefix = '', suffix = '', decimals = 0, animKey }) => {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    let startTime: number | null = null;
+    const duration = 900;
+
+    const step = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      // easeOutQuart
+      const eased = 1 - Math.pow(1 - progress, 4);
+      setDisplay(value * eased);
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        setDisplay(value);
+      }
+    };
+
+    const frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [value, animKey]);
+
+  return (
+    <span>
+      {prefix}
+      {display.toFixed(decimals)}
+      {suffix}
+    </span>
+  );
+};
 
 /* ─────────────────────────────────────────────────────────────────────────
    12 ANALYTICAL CATEGORIES METADATA
@@ -432,7 +462,9 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
               <Doughnut key={`donut-01-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ fontSize: '0.58rem', color: '#64748B', fontWeight: 600 }}>Total Value</span>
-                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A' }}>$42.8M</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A' }}>
+                  <AnimatedNumber value={42.8} prefix="$" suffix="M" decimals={1} animKey={animKey} />
+                </span>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
@@ -520,7 +552,9 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
               <Doughnut key={`donut-03-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Admin/Temp</span>
-                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>17%</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
+                  <AnimatedNumber value={17} suffix="%" decimals={0} animKey={animKey} />
+                </span>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
@@ -558,7 +592,9 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
               <Doughnut key={`donut-04-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Exp Impact</span>
-                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>45%</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
+                  <AnimatedNumber value={45} suffix="%" decimals={0} animKey={animKey} />
+                </span>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
@@ -676,7 +712,9 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
               <Doughnut key={`donut-06-${animKey}`} data={roundDonutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Round Total</span>
-                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#007680' }}>928 Lines</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#007680' }}>
+                  <AnimatedNumber value={928} suffix=" Lines" decimals={0} animKey={animKey} />
+                </span>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
@@ -722,7 +760,9 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
               <Doughnut key={`donut-07-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Exposure</span>
-                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>$4.20M</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
+                  <AnimatedNumber value={4.20} prefix="$" suffix="M" decimals={2} animKey={animKey} />
+                </span>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
@@ -768,7 +808,9 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
               <Doughnut key={`donut-08-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>High Risk</span>
-                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>$6.98M</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
+                  <AnimatedNumber value={6.98} prefix="$" suffix="M" decimals={2} animKey={animKey} />
+                </span>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
@@ -855,7 +897,9 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
               <Doughnut key={`donut-10-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Anomalous</span>
-                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>$840k</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
+                  <AnimatedNumber value={840} prefix="$" suffix="k" decimals={0} animKey={animKey} />
+                </span>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
@@ -946,14 +990,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', height: '100%' }}>
             {[
-              { title: 'Manual Override', val: '14.8%', delta: '+3.6% delta', color: '#D97706', bg: '#FFFBEB' },
-              { title: 'Closing Rush', val: '40.2%', delta: '+25.7% Focus', color: '#E11D48', bg: '#FFF1F2' },
-              { title: 'Benford Fit', val: '96%', delta: 'Grade A', color: '#16A34A', bg: '#F0FDF4' },
-              { title: 'Off-Hours', val: '0.4%', delta: '-2.0% delta', color: '#007680', bg: '#E6F4F5' },
+              { title: 'Manual Override', numVal: 14.8, suffix: '%', delta: '+3.6% delta', color: '#D97706', bg: '#FFFBEB', decimals: 1 },
+              { title: 'Closing Rush', numVal: 40.2, suffix: '%', delta: '+25.7% Focus', color: '#E11D48', bg: '#FFF1F2', decimals: 1 },
+              { title: 'Benford Fit', numVal: 96, suffix: '%', delta: 'Grade A', color: '#16A34A', bg: '#F0FDF4', decimals: 0 },
+              { title: 'Off-Hours', numVal: 0.4, suffix: '%', delta: '-2.0% delta', color: '#007680', bg: '#E6F4F5', decimals: 1 },
             ].map((kpi, i) => (
               <div key={i} style={{ background: kpi.bg, borderRadius: '8px', padding: '8px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(0,0,0,0.05)' }}>
                 <span style={{ fontSize: '0.58rem', color: '#475569', fontWeight: 600 }}>{kpi.title}</span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{kpi.val}</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>
+                  <AnimatedNumber value={kpi.numVal} suffix={kpi.suffix} decimals={kpi.decimals} animKey={animKey} />
+                </span>
                 <span style={{ fontSize: '0.56rem', color: kpi.color, fontWeight: 700 }}>{kpi.delta}</span>
               </div>
             ))}
@@ -975,6 +1021,7 @@ export const VisualizationShowcase: React.FC = () => {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [animKey, setAnimKey] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
   const shouldReduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
@@ -1001,21 +1048,30 @@ export const VisualizationShowcase: React.FC = () => {
     setAnimKey((prev) => prev + 1);
   }, [total]);
 
-  // Guaranteed 7-second auto slideshow rotation
+  // 7-second auto slideshow rotation (respects isPlaying state)
   useEffect(() => {
+    if (!isPlaying) return;
     const timer = setInterval(() => {
       setDirection(1);
       setIndex((prev) => (prev + 1) % total);
       setAnimKey((prev) => prev + 1);
     }, 7000);
     return () => clearInterval(timer);
-  }, [total]);
+  }, [isPlaying, total]);
 
+  // Keyboard navigation & spacebar play/pause
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (sectionRef.current && document.activeElement && sectionRef.current.contains(document.activeElement)) {
-        if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
-        if (e.key === 'ArrowLeft')  { e.preventDefault(); goPrev(); }
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === ' ' && sectionRef.current && sectionRef.current.contains(document.activeElement)) {
+        e.preventDefault();
+        setIsPlaying((prev) => !prev);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -1148,15 +1204,28 @@ export const VisualizationShowcase: React.FC = () => {
             </h2>
           </div>
 
-          <p style={{
-            fontSize: '0.84rem',
-            color: '#64748B',
-            lineHeight: 1.5,
-            maxWidth: '400px',
-            margin: 0,
-          }}>
-            Explore real interactive visual workpapers generated across all 12 analytical categories, Trial Balance checkpoints, and forensic risk matrices.
-          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+            <p style={{
+              fontSize: '0.84rem',
+              color: '#64748B',
+              lineHeight: 1.5,
+              maxWidth: '400px',
+              margin: 0,
+              textAlign: 'right',
+            }}>
+              Explore real interactive visual workpapers generated across all 12 analytical categories, Trial Balance checkpoints, and forensic risk matrices.
+            </p>
+
+            {/* Keyboard Shortcuts Hint */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.62rem', color: '#94A3B8', fontWeight: 600 }}>
+              <span style={{ padding: '2px 5px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#475569' }}>←</span>
+              <span style={{ padding: '2px 5px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#475569' }}>→</span>
+              <span>Navigate</span>
+              <span style={{ color: '#CBD5E1' }}>•</span>
+              <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#475569' }}>Space</span>
+              <span>{isPlaying ? 'Pause' : 'Resume'}</span>
+            </div>
+          </div>
         </div>
 
         {/* ── 12-Category Scrollable Tab Strip with < and > Chevron Buttons ── */}
@@ -1466,7 +1535,7 @@ export const VisualizationShowcase: React.FC = () => {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════
-            MINIMALIST FOOTER: COUNTER & PROGRESS PILLS
+            MINIMALIST FOOTER: COUNTER, PLAY/PAUSE & PROGRESS PILLS
         ═══════════════════════════════════════════════════════════ */}
         <div style={{
           display: 'flex',
@@ -1488,26 +1557,55 @@ export const VisualizationShowcase: React.FC = () => {
             </span>
           </div>
 
-          {/* Right: Progress Indicator Bar (7-second rotation indicators) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            {CATEGORIES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => goTo(i)}
-                aria-label={`Go to category ${i + 1}`}
-                style={{
-                  width: i === index ? 22 : 6,
-                  height: 4,
-                  borderRadius: 999,
-                  border: 'none',
-                  padding: 0,
-                  backgroundColor: i === index ? '#007680' : '#CBD5E1',
-                  cursor: 'pointer',
-                  transition: 'all 0.25s ease',
-                  outline: 'none',
-                }}
-              />
-            ))}
+          {/* Center / Right: Play/Pause Toggle and Progress Indicator Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Play/Pause Control Button */}
+            <motion.button
+              onClick={() => setIsPlaying((prev) => !prev)}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                background: isPlaying ? '#E6F4F5' : '#FFFFFF',
+                border: `1px solid ${isPlaying ? '#99D5D9' : '#CBD5E1'}`,
+                color: isPlaying ? '#007680' : '#64748B',
+                fontSize: '0.66rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.16s ease',
+                outline: 'none',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+              }}
+            >
+              {isPlaying ? <Pause size={11} strokeWidth={2.5} /> : <Play size={11} strokeWidth={2.5} />}
+              <span>{isPlaying ? 'Auto-Advancing (7s)' : 'Paused'}</span>
+            </motion.button>
+
+            {/* Progress Indicator Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              {CATEGORIES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goTo(i)}
+                  aria-label={`Go to category ${i + 1}`}
+                  style={{
+                    width: i === index ? 22 : 6,
+                    height: 4,
+                    borderRadius: 999,
+                    border: 'none',
+                    padding: 0,
+                    backgroundColor: i === index ? '#007680' : '#CBD5E1',
+                    cursor: 'pointer',
+                    transition: 'all 0.25s ease',
+                    outline: 'none',
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
