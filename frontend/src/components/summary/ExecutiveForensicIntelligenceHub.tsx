@@ -663,49 +663,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
       doughnutCallout: false,
       hubDoughnutCallout: { display: true },
       tooltip: {
-        enabled: true,
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#E2E8F0',
-        borderWidth: 1,
-        padding: 12,
-        cornerRadius: 10,
-        boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06)',
-        titleFont: { family: 'Inter, sans-serif', size: 12, weight: '800' },
-        bodyFont: { family: 'Inter, sans-serif', size: 11, weight: '500' },
-        displayColors: true,
-        boxPadding: 4,
-        callbacks: {
-          title: (items: any[]) => {
-            const label = items[0].label || '';
-            return `${label}`;
-          },
-          label: (context: any) => {
-            const count = context.raw || 0;
-            const total = (riskSummary.critical || 2) + (riskSummary.moderate || 3) + Math.max(1, riskSummary.low);
-            const pct = ((count / total) * 100).toFixed(0);
-            return ` Population: ${count} transactions (${pct}%)`;
-          },
-          afterBody: (items: any[]) => {
-            const label = items[0].label || '';
-            if (label.includes('Critical')) {
-              return [
-                ' Exposure: $3.84M combined risk volume',
-                ' Action: Mandatory Partner / Senior Review',
-              ];
-            } else if (label.includes('Moderate')) {
-              return [
-                ' Exposure: $1.25M combined risk volume',
-                ' Action: Standard substantive audit sample',
-              ];
-            }
-            return [
-              ' Exposure: $450k low-risk volume',
-              ' Action: Verified against control totals',
-            ];
-          },
-        },
+        enabled: false,
       },
     },
   };
@@ -1076,26 +1034,6 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                   <span>Client <strong style={{ color: '#0F172A' }}>{engagementName}</strong></span>
                   <span>Materiality <strong style={{ color: '#0F172A' }}>{fmtCurr(materiality)}</strong></span>
                   <span>Population <strong style={{ color: '#0F172A' }}>{fmtNum(totalGlPopulation)}</strong></span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '5px 12px',
-                      borderRadius: '8px',
-                      background: '#F0FDF4',
-                      border: '1px solid #BBF7D0',
-                      color: '#166534',
-                      fontSize: '0.74rem',
-                      fontWeight: 750,
-                    }}
-                  >
-                    <ShieldCheck size={14} color="#16A34A" />
-                    <span>Audit-ready view</span>
-                  </div>
                 </div>
               </div>
 
