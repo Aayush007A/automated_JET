@@ -2899,7 +2899,7 @@ export const OmniaJetWorkflow: React.FC = () => {
         }}
       />
 
-      {/* 5-Second Auto-Dismissing Toast Notification */}
+      {/* 5-Second Auto-Dismissing Toast Notification (Light Theme) */}
       {toastMessage && (
         <div
           style={{
@@ -2907,23 +2907,35 @@ export const OmniaJetWorkflow: React.FC = () => {
             bottom: '24px',
             right: '24px',
             zIndex: 99999,
-            background: '#0F172A',
-            color: '#FFFFFF',
-            borderRadius: '12px',
-            padding: '12px 18px',
-            boxShadow: '0 12px 28px rgba(0,0,0,0.25)',
+            background: '#FFFFFF',
+            color: '#0F172A',
+            borderRadius: '14px',
+            padding: '14px 18px',
+            boxShadow: '0 16px 36px -4px rgba(15, 23, 42, 0.14), 0 4px 12px -2px rgba(15, 23, 42, 0.08)',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            maxWidth: '480px',
-            border: '1px solid #334155',
+            maxWidth: '520px',
+            border: '1.5px solid #CCFBF1',
             animation: 'fadeIn 0.25s ease-out',
           }}
         >
-          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#007680', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <CheckCircle2 size={16} color="#FFFFFF" />
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: '#F0FDF4',
+              border: '1px solid #BBF7D0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <CheckCircle2 size={16} color="#16A34A" />
           </div>
-          <span style={{ fontSize: '0.84rem', fontWeight: 650, lineHeight: 1.35 }}>
+          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0F172A', lineHeight: 1.35 }}>
             {toastMessage}
           </span>
           <button
@@ -2933,13 +2945,14 @@ export const OmniaJetWorkflow: React.FC = () => {
               border: 'none',
               color: '#94A3B8',
               cursor: 'pointer',
-              padding: '2px',
+              padding: '4px',
               marginLeft: 'auto',
               display: 'flex',
               alignItems: 'center',
+              borderRadius: '6px',
             }}
           >
-            <X size={14} />
+            <X size={15} />
           </button>
         </div>
       )}
