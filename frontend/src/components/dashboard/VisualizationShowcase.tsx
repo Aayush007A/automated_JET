@@ -1159,43 +1159,48 @@ export const VisualizationShowcase: React.FC = () => {
 
       <div style={{ maxWidth: '1440px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
 
-        {/* ── Section Header (Unified Typographic Hierarchy) ── */}
-        <div style={{ marginBottom: '24px', maxWidth: '820px' }}>
-          <div style={{ marginBottom: '10px' }}>
+        {/* ── Section Header (Exact Match to Image 1 Style & Arrangement) ── */}
+        <div style={{ marginBottom: '32px', maxWidth: '820px' }}>
+          {/* Pill Badge */}
+          <div style={{ marginBottom: '12px' }}>
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '4px 12px',
+              padding: '5px 14px',
               borderRadius: '999px',
               background: 'rgba(0, 163, 173, 0.10)',
               border: '1px solid rgba(0, 118, 128, 0.18)',
               color: '#007680',
-              fontSize: '0.74rem',
+              fontSize: '0.78rem',
               fontWeight: 700,
+              letterSpacing: '0.01em',
             }}>
-              <Sparkles size={13} />
+              <Sparkles size={14} />
               Client-Ready Visualizations &amp; Exception Analytics Showcase
             </span>
           </div>
 
+          {/* 2-line Headline */}
           <h2 style={{
-            fontSize: 'clamp(1.75rem, 2.5vw, 2.25rem)',
+            fontSize: 'clamp(2.1rem, 3.3vw, 2.85rem)',
             fontWeight: 800,
             color: '#0F172A',
-            letterSpacing: '-0.035em',
-            lineHeight: 1.18,
-            margin: '0 0 8px 0',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.15,
+            margin: '0 0 10px 0',
           }}>
-            Visualizations &amp; Insights.{' '}
+            Visualizations &amp; Insights.<br />
             <span style={{ color: '#007680' }}>Understand every audit category.</span>
           </h2>
 
+          {/* Subtitle Description */}
           <p style={{
-            fontSize: '0.88rem',
+            fontSize: 'clamp(0.88rem, 1.05vw, 0.95rem)',
             color: '#64748B',
-            lineHeight: 1.55,
+            lineHeight: 1.6,
             maxWidth: '680px',
+            fontWeight: 400,
             margin: 0,
           }}>
             Explore real interactive visual workpapers generated across all 12 analytical categories, Trial Balance checkpoints, and forensic risk matrices.
