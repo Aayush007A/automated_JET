@@ -701,15 +701,6 @@ export const OmniaJetWorkflow: React.FC = () => {
     };
   }, [omniaParams]);
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
-        <RefreshCw size={32} className="spin-slow" style={{ margin: '0 auto 16px', color: 'var(--deloitte-teal)' }} />
-        Loading JET Execution Workspace...
-      </div>
-    );
-  }
-
   const tbHeaders = useMemo(() => {
     if (!config) return [];
     if (config.datasetMap?.tbFileId) {
@@ -786,58 +777,14 @@ export const OmniaJetWorkflow: React.FC = () => {
     return tbHeaders;
   }, [config, tbHeaders]);
 
-  // Automatically auto-pick unmapped fields when headers are loaded or auto-cleansing completes
-  useEffect(() => {
-    if (!config || !runId) return;
-    let hasChanges = false;
-    const newMappings = { ...config.fieldMappings };
-
-    if (tbHeaders.length > 0 && newMappings.tb) {
-      newMappings.tb = newMappings.tb.map(m => {
-        if (!m.sourceField) {
-          const best = findBestMatchingSourceHeader(m.standardField, tbHeaders);
-          if (best) {
-            hasChanges = true;
-            return { ...m, sourceField: best, status: 'SUGGESTED' as any };
-          }
-        }
-        return m;
-      });
-    }
-
-    if (glHeaders.length > 0 && newMappings.gl) {
-      newMappings.gl = newMappings.gl.map(m => {
-        if (!m.sourceField) {
-          const best = findBestMatchingSourceHeader(m.standardField, glHeaders);
-          if (best) {
-            hasChanges = true;
-            return { ...m, sourceField: best, status: 'SUGGESTED' as any };
-          }
-        }
-        return m;
-      });
-    }
-
-    if (coaHeaders.length > 0 && newMappings.coa) {
-      newMappings.coa = newMappings.coa.map(m => {
-        if (!m.sourceField) {
-          const best = findBestMatchingSourceHeader(m.standardField, coaHeaders);
-          if (best) {
-            hasChanges = true;
-            return { ...m, sourceField: best, status: 'SUGGESTED' as any };
-          }
-        }
-        return m;
-      });
-    }
-
-    if (hasChanges) {
-      setConfig(prev => prev ? { ...prev, fieldMappings: newMappings } : null);
-      RunService.updateFieldMappings(runId, 'tb', newMappings.tb || []);
-      RunService.updateFieldMappings(runId, 'gl', newMappings.gl || []);
-      RunService.updateFieldMappings(runId, 'coa', newMappings.coa || []);
-    }
-  }, [tbHeaders, glHeaders, coaHeaders, runId]);
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
+        <RefreshCw size={32} className="spin-slow" style={{ margin: '0 auto 16px', color: 'var(--deloitte-teal)' }} />
+        Loading JET Execution Workspace...
+      </div>
+    );
+  }
 
   // Contextual "Continue / Back" actions rendered inside the timeline banner
   const renderTimelineActions = () => {

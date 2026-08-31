@@ -86,6 +86,7 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
   const [filterType, setFilterType] = useState<'ALL' | 'REQUIRED' | 'OPTIONAL' | 'UNMAPPED'>('ALL');
 
   const currentDataset = datasets.find((d) => d.key === activeTab) || datasets[0];
+  const hasAutoMappedRef = React.useRef<Record<string, boolean>>({});
 
   // Auto-pick unmapped columns when headers are detected
   const handleAutoMapCurrentDataset = () => {
@@ -100,14 +101,13 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
     });
   };
 
-  // Run auto-pick on mount or activeTab switch if unmapped fields exist
+  // Run auto-pick at most once per tab when source headers are first available
   useEffect(() => {
-    if (currentDataset && currentDataset.sourceHeaders && currentDataset.sourceHeaders.length > 0) {
-      const hasUnmapped = currentDataset.mappings.some(m => !m.sourceField);
-      if (hasUnmapped) {
-        handleAutoMapCurrentDataset();
-      }
-    }
+    if (!currentDataset || !currentDataset.sourceHeaders || currentDataset.sourceHeaders.length === 0) return;
+    if (hasAutoMappedRef.current[activeTab]) return;
+
+    hasAutoMappedRef.current[activeTab] = true;
+    handleAutoMapCurrentDataset();
   }, [activeTab, currentDataset?.sourceHeaders?.length]);
 
   const {
