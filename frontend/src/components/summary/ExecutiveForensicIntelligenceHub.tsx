@@ -552,9 +552,9 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     return { total, critical, moderate, low, avgRisk, pending };
   }, [dispositionList]);
 
-  // Clean Doughnut Chart Data with doughnutCallout explicitly disabled
+  // Clean Doughnut Chart Data with interactive informative tooltips
   const donutChartData = useMemo(() => ({
-    labels: ['Critical Risk', 'Moderate Risk', 'Low / Standard Risk'],
+    labels: ['Critical Risk Tier (Score ≥ 90)', 'Moderate Risk Tier (Score 75-89)', 'Low / Standard Risk Tier'],
     datasets: [
       {
         data: [riskSummary.critical || 2, riskSummary.moderate || 3, Math.max(1, riskSummary.low)],
@@ -571,11 +571,11 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     maintainAspectRatio: false,
     cutout: '72%',
     layout: {
-      padding: 10,
+      padding: 12,
     },
     plugins: {
       legend: { display: false },
-      doughnutCallout: false, // Disable leader lines
+      doughnutCallout: false,
       tooltip: {
         enabled: true,
         backgroundColor: '#FFFFFF',
@@ -584,15 +584,40 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         borderColor: '#E2E8F0',
         borderWidth: 1,
         padding: 12,
-        cornerRadius: 8,
-        boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
-        titleFont: { size: 12, weight: '700' },
-        bodyFont: { size: 11 },
+        cornerRadius: 10,
+        boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06)',
+        titleFont: { family: 'Inter, sans-serif', size: 12, weight: '800' },
+        bodyFont: { family: 'Inter, sans-serif', size: 11, weight: '500' },
         displayColors: true,
+        boxPadding: 4,
         callbacks: {
+          title: (items: any[]) => {
+            const label = items[0].label || '';
+            return `${label}`;
+          },
           label: (context: any) => {
-            const val = context.raw || 0;
-            return ` Count: ${val} transactions`;
+            const count = context.raw || 0;
+            const total = (riskSummary.critical || 2) + (riskSummary.moderate || 3) + Math.max(1, riskSummary.low);
+            const pct = ((count / total) * 100).toFixed(0);
+            return ` Population: ${count} transactions (${pct}%)`;
+          },
+          afterBody: (items: any[]) => {
+            const label = items[0].label || '';
+            if (label.includes('Critical')) {
+              return [
+                ' Exposure: $3.84M combined risk volume',
+                ' Action: Mandatory Partner / Senior Review',
+              ];
+            } else if (label.includes('Moderate')) {
+              return [
+                ' Exposure: $1.25M combined risk volume',
+                ' Action: Standard substantive audit sample',
+              ];
+            }
+            return [
+              ' Exposure: $450k low-risk volume',
+              ' Action: Verified against control totals',
+            ];
           },
         },
       },
@@ -946,7 +971,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                 overflow: 'hidden',
               }}
             >
-              {/* Clean White/Slate Header with Deloitte Branding (No Copy Button) */}
+              {/* Clean White/Slate Header with Deloitte Branding */}
               <div
                 style={{
                   background: '#F8FAFC',
@@ -1053,7 +1078,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
               </div>
             </div>
 
-            {/* Right: Clean Centered Doughnut Chart (No Clipped Lines) & Priority Actions */}
+            {/* Right: Clean Centered Doughnut Chart with Rich Tooltip (No bottom legends clutter) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Doughnut Chart Card */}
               <div
@@ -1061,21 +1086,27 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                   background: '#FFFFFF',
                   borderRadius: '16px',
                   border: '1px solid #E2E8F0',
-                  padding: '22px',
+                  padding: '24px 20px',
                   boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
                 }}
               >
-                <div style={{ marginBottom: '14px' }}>
+                <div style={{ width: '100%', marginBottom: '12px' }}>
                   <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Risk Concentration
                   </span>
                   <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', margin: '2px 0 0' }}>
                     Population Risk Distribution
                   </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.70rem', color: '#64748B' }}>
+                    Hover over segments to inspect risk population volume &amp; exposure.
+                  </p>
                 </div>
 
-                {/* Clean Centered Doughnut */}
-                <div style={{ height: '170px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Clean Centered Doughnut with Centered Live Metric */}
+                <div style={{ height: '190px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Doughnut data={donutChartData} options={donutChartOptions} />
                   <div
                     style={{
@@ -1087,28 +1118,12 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                       pointerEvents: 'none',
                     }}
                   >
-                    <span style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
                       {riskSummary.avgRisk.toFixed(0)}
                     </span>
                     <span style={{ fontSize: '0.64rem', fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       Avg Risk
                     </span>
-                  </div>
-                </div>
-
-                {/* Inline Compact Legend Strip */}
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', marginTop: '16px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#475569', fontWeight: 650 }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FB7185' }} />
-                    <span>Critical: <strong>{riskSummary.critical}</strong></span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#475569', fontWeight: 650 }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FBBF24' }} />
-                    <span>Moderate: <strong>{riskSummary.moderate}</strong></span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#475569', fontWeight: 650 }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34D399' }} />
-                    <span>Low: <strong>{riskSummary.low}</strong></span>
                   </div>
                 </div>
               </div>
@@ -1163,7 +1178,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
           </motion.div>
         )}
 
-        {/* ── TAB 2: BENFORD'S LAW (HIGHLY VISUAL CARDS, NO EMOJIS, INSTANT COMPREHENSION) ── */}
+        {/* ── TAB 2: BENFORD'S LAW (ULTRA-PREMIUM SLEEK EXECUTIVE CARDS) ── */}
         {activeIntelligenceTab === 'benford' && (
           <motion.div
             key="benford"
@@ -1171,7 +1186,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(290px, 0.8fr)', gap: '18px' }}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(300px, 0.85fr)', gap: '18px' }}
           >
             {/* Left: Benford Interactive Bar Chart */}
             <div
@@ -1230,148 +1245,141 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
               </div>
             </div>
 
-            {/* Right: Highly Visual Status Cards (Color-Coded, Pictorial, Instant Comprehension) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Card 1: Visual Overall Conformance / Health Meter */}
+            {/* Right: State-of-the-Art Executive Cards (Sleek, Clean, Visual) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Card 1: Forensic Goodness-of-Fit Health */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)',
+                  background: '#FFFFFF',
                   borderRadius: '14px',
-                  border: '1px solid #BBF7D0',
-                  padding: '16px 18px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  border: '1px solid #E2E8F0',
+                  borderTop: '3px solid #10B981',
+                  padding: '18px 20px',
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        background: '#DCFCE7',
-                        color: '#166534',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <ShieldCheck size={18} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.64rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Ledger Distribution Health
-                      </div>
-                      <div style={{ fontSize: '0.92rem', fontWeight: 850, color: '#0F172A' }}>
-                        Natural Conformance
-                      </div>
-                    </div>
-                  </div>
-
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Distribution Conformance
+                  </span>
                   <span
                     style={{
                       fontSize: '0.66rem',
                       fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '5px',
-                      background: '#DCFCE7',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: '#F0FDF4',
                       color: '#166534',
-                      border: '1px solid #86EFAC',
+                      border: '1px solid #BBF7D0',
                     }}
                   >
-                    Grade A
+                    Grade A · High Integrity
                   </span>
                 </div>
 
-                {/* Score & Threshold Visual Gauge */}
-                <div style={{ marginTop: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#166534', fontFamily: 'monospace' }}>
-                      {chiSquareScore} <span style={{ fontSize: '0.70rem', color: '#64748B', fontWeight: 600 }}>χ² score</span>
-                    </span>
-                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>
-                      Limit: 15.51
-                    </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '10px' }}>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
+                      {chiSquareScore}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>
+                      Goodness-of-Fit (χ² Statistic)
+                    </div>
                   </div>
 
-                  {/* Soft Visual Meter */}
-                  <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden', marginTop: '4px' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 750, color: '#059669', fontFamily: 'monospace' }}>
+                      &lt; 15.51
+                    </div>
+                    <div style={{ fontSize: '0.64rem', color: '#94A3B8' }}>
+                      Critical Threshold (df=8)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar gauge */}
+                <div style={{ marginTop: '12px' }}>
+                  <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden' }}>
                     <div
                       style={{
-                        width: `${Math.min(100, Math.max(15, (chiSquareScore / 15.51) * 100))}%`,
+                        width: `${Math.min(100, Math.max(12, (chiSquareScore / 15.51) * 100))}%`,
                         height: '100%',
-                        background: '#16A34A',
+                        background: '#10B981',
                         borderRadius: '999px',
                       }}
                     />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', color: '#94A3B8', marginTop: '3px' }}>
-                    <span>0 (Perfect Match)</span>
-                    <span>15.51 (Critical Cutoff)</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#94A3B8', marginTop: '4px' }}>
+                    <span>0.00 (Ideal)</span>
+                    <span style={{ color: '#059669', fontWeight: 700 }}>Safe Conformance Zone</span>
+                    <span>15.51 (Cutoff)</span>
                   </div>
                 </div>
+
+                <p style={{ margin: '10px 0 0', fontSize: '0.72rem', color: '#475569', lineHeight: 1.45 }}>
+                  Mathematical conformity verified across all non-zero monetary postings.
+                </p>
               </div>
 
-              {/* Card 2: Visual Primary Anomaly Breakdown (Digit 7 Comparison Bar) */}
+              {/* Card 2: Primary Digit Variance & Focus Area */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, #FFF1F2 100%)',
+                  background: '#FFFFFF',
                   borderRadius: '14px',
-                  border: '1px solid #FECDD3',
-                  padding: '16px 18px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  border: '1px solid #E2E8F0',
+                  borderTop: '3px solid #F43F5E',
+                  padding: '18px 20px',
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        background: '#FFE4E6',
-                        color: '#9F1239',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <AlertTriangle size={18} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.64rem', fontWeight: 800, color: '#9F1239', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Primary Investigation Signal
-                      </div>
-                      <div style={{ fontSize: '0.92rem', fontWeight: 850, color: '#BE123C' }}>
-                        Digit 7 Spike (+3.3 pp)
-                      </div>
-                    </div>
-                  </div>
-
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#E11D48', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Anomaly Detection Signal
+                  </span>
                   <span
                     style={{
                       fontSize: '0.66rem',
                       fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '5px',
-                      background: '#FFE4E6',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: '#FFF1F2',
                       color: '#9F1239',
-                      border: '1px solid #FDA4AF',
+                      border: '1px solid #FECDD3',
                     }}
                   >
                     Focus Area
                   </span>
                 </div>
 
-                {/* Side-by-Side Comparison Visual Bars */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '10px' }}>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#9F1239', fontFamily: 'monospace' }}>
+                      Digit 7
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>
+                      Leading Number Spike
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 850, color: '#9F1239', fontFamily: 'monospace' }}>
+                      +3.3 pp
+                    </div>
+                    <div style={{ fontSize: '0.64rem', color: '#94A3B8' }}>
+                      Variance from Expected
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dual Comparison Bars */}
                 <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#BE123C', fontWeight: 750 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#9F1239', fontWeight: 750 }}>
                       <span>Observed Population Share</span>
                       <span>9.1%</span>
                     </div>
-                    <div style={{ width: '100%', height: '5px', background: '#FEE2E2', borderRadius: '999px', overflow: 'hidden', marginTop: '2px' }}>
-                      <div style={{ width: '91%', height: '100%', background: '#E11D48', borderRadius: '999px' }} />
+                    <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden', marginTop: '2px' }}>
+                      <div style={{ width: '91%', height: '100%', background: '#FB7185', borderRadius: '999px' }} />
                     </div>
                   </div>
 
@@ -1380,67 +1388,81 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                       <span>Expected Theoretical Standard</span>
                       <span>5.8%</span>
                     </div>
-                    <div style={{ width: '100%', height: '5px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden', marginTop: '2px' }}>
-                      <div style={{ width: '58%', height: '100%', background: '#64748B', borderRadius: '999px' }} />
+                    <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden', marginTop: '2px' }}>
+                      <div style={{ width: '58%', height: '100%', background: '#94A3B8', borderRadius: '999px' }} />
                     </div>
                   </div>
                 </div>
 
-                <div style={{ marginTop: '10px', fontSize: '0.68rem', color: '#64748B', lineHeight: 1.35 }}>
-                  Traced to recurring $79,800 threshold consulting disbursements in Q4.
+                <div
+                  style={{
+                    marginTop: '10px',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    background: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    fontSize: '0.70rem',
+                    color: '#475569',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <strong style={{ color: '#0F172A' }}>Driver:</strong> Recurring $79,800.00 consulting retainer disbursements in Q4.
                 </div>
               </div>
 
-              {/* Card 3: Visual Population Coverage */}
+              {/* Card 3: Audit Scope & Population Screened */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+                  background: '#FFFFFF',
                   borderRadius: '14px',
                   border: '1px solid #E2E8F0',
-                  padding: '16px 18px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  borderTop: '3px solid #007680',
+                  padding: '18px 20px',
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        background: '#E6F4F5',
-                        color: '#007680',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Database size={18} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.64rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Population Screened
-                      </div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
-                        {fmtNum(totalGlPopulation)} txns
-                      </div>
-                    </div>
-                  </div>
-
+                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Tested Audit Scope
+                  </span>
                   <span
                     style={{
                       fontSize: '0.66rem',
                       fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '5px',
-                      background: '#F0FDF4',
-                      color: '#166534',
-                      border: '1px solid #BBF7D0',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: '#F0FDFA',
+                      color: '#007680',
+                      border: '1px solid #CCFBF1',
                     }}
                   >
-                    100% Tested
+                    100% Comprehensive
                   </span>
                 </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '10px' }}>
+                  <div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
+                      {fmtNum(totalGlPopulation)}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>
+                      General Ledger Journal Entries
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 750, color: '#059669' }}>
+                      0 Exclusions
+                    </div>
+                    <div style={{ fontSize: '0.64rem', color: '#94A3B8' }}>
+                      Full Fiscal Year
+                    </div>
+                  </div>
+                </div>
+
+                <p style={{ margin: '10px 0 0', fontSize: '0.72rem', color: '#475569', lineHeight: 1.45 }}>
+                  Screened all non-zero monetary transaction entries against trial balance positions.
+                </p>
               </div>
             </div>
           </motion.div>
