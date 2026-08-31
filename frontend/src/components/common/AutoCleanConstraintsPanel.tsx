@@ -416,50 +416,78 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
   return (
     <div style={{ width: '100%', paddingBottom: '24px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '20px' }}>
-        <div style={{ padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>TOTAL ROWS EVALUATED</span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)', marginTop: '4px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+        {/* Card 1: Total Rows Evaluated (Peach / Orange) */}
+        <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#FFF4EC', border: '1px solid #FFE7D6', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+            Total Evaluated Rows
+          </div>
+          <div style={{ fontSize: '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px' }}>
             {totalRows.toLocaleString()}
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            {isSpark ? `TB (${tbRowCount}) · Population (${glRowCount})` : `TB (${tbRowCount}) · GL (${glRowCount}) · COA (${coaRowCount})`}
-          </span>
-        </div>
-
-        <div style={{ padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
-            {isSpark ? 'CHECKPOINTS EVALUATED' : 'RULES EVALUATED'}
-          </span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#2563EB', marginTop: '4px' }}>
-            {constraints.length} Checks
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #FED7AA' }}>
+              ▲ 100%
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {isSpark ? `TB (${tbRowCount}) · GL (${glRowCount})` : `TB (${tbRowCount}) · GL (${glRowCount}) · COA (${coaRowCount})`}
+            </span>
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            {isSpark ? '8 TB · 5 Population Checkpoints' : '6 TB · 7 GL · 3 COA Constraints'}
-          </span>
         </div>
 
-        <div style={{ padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
-            {isSpark ? 'PASSED CHECKPOINTS' : 'PASSED CONSTRAINTS'}
-          </span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: failedCount === 0 ? '#059669' : '#D97706', marginTop: '4px' }}>
+        {/* Card 2: Checkpoints Evaluated (Light Green) */}
+        <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#F0F9ED', border: '1px solid #DCFCE7', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+            {isSpark ? 'Checkpoints Evaluated' : 'Rules Evaluated'}
+          </div>
+          <div style={{ fontSize: '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px' }}>
+            {constraints.length}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #BBF7D0' }}>
+              ▲ Active
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {isSpark ? '8 TB · 5 GL Checks' : '6 TB · 7 GL · 3 COA Rules'}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Passed Checkpoints (Soft Blue / Lavender) */}
+        <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#EDF2FE', border: '1px solid #DBEAFE', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+            {isSpark ? 'Passed Checkpoints' : 'Passed Constraints'}
+          </div>
+          <div style={{ fontSize: '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px' }}>
             {passedCount} / {constraints.length}
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            {failedCount === 0 ? '100% Mandatory Checks Met' : `${failedCount} Exceptions Detected`}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: failedCount === 0 ? '#16A34A' : '#D97706', border: '1px solid #BFDBFE' }}>
+              {failedCount === 0 ? '▲ 100% Passed' : `▼ ${failedCount} Flagged`}
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {failedCount === 0 ? 'Mandatory Checks Met' : 'Exceptions Found'}
+            </span>
+          </div>
         </div>
 
-        <div style={{ padding: '16px 18px', borderRadius: '10px', background: '#FFFFFF', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>DATA READINESS STATUS</span>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: allPassed ? '#059669' : '#DC2626', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {allPassed ? <CheckCircle2 size={18} color="#059669" /> : <AlertTriangle size={18} color="#DC2626" />}
-            {allPassed ? 'READY FOR MAPPING' : 'ACTION REQUIRED'}
+        {/* Card 4: Data Readiness Status (Soft Mint / Teal) */}
+        <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#EAF5F2', border: '1px solid #CCFBF1', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+            Data Readiness Status
           </div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-            {allPassed ? 'Step 3 (Data File Mapping) Unlocked' : 'Inspect or download failed constraint records'}
-          </span>
+          <div style={{ fontSize: '1.45rem', fontWeight: 850, color: allPassed ? '#007680' : '#DC2626', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {allPassed ? <CheckCircle2 size={20} color="#007680" /> : <AlertTriangle size={20} color="#DC2626" />}
+            <span>{allPassed ? 'READY' : 'ATTENTION'}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: allPassed ? '#007680' : '#DC2626', border: '1px solid #99F6E4' }}>
+              {allPassed ? '▲ Unlocked' : '▼ Action Required'}
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {allPassed ? 'Step 3 Unlocked' : 'Inspect Records'}
+            </span>
+          </div>
         </div>
       </div>
 

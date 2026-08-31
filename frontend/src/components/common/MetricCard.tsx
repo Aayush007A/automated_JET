@@ -7,7 +7,8 @@ interface MetricCardProps {
   badge?: string;
   subtitle?: string;
   icon?: React.ReactNode;
-  variant?: 'default' | 'success' | 'warning' | 'error' | 'teal' | 'info';
+  variant?: 'default' | 'peach' | 'orange' | 'green' | 'success' | 'blue' | 'lavender' | 'teal' | 'mint' | 'pink' | 'rose' | 'error' | 'warning' | 'info';
+  delta?: string;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -17,37 +18,54 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   subtitle,
   icon,
   variant = 'default',
+  delta,
 }) => {
-  let valueColor = 'var(--text-primary)';
-  let iconBg = 'var(--bg-secondary)';
-  let borderColor = 'var(--border-subtle)';
-  let badgeBg = 'var(--bg-secondary)';
-  let badgeColor = 'var(--text-secondary)';
+  // Pastel Theme Configuration matching Reference Card Design
+  let cardBg = '#FFF4EC';
+  let cardBorder = '#FFE7D6';
+  let valueColor = '#0F172A';
+  let labelColor = '#475569';
+  let pillBg = '#FFFFFF';
+  let pillBorder = '#FED7AA';
+  let pillColor = '#16A34A';
+  let defaultDelta = '▲ 100%';
 
-  if (variant === 'success') {
-    valueColor = '#007680';
-    iconBg = 'rgba(0, 118, 128, 0.06)';
-    borderColor = '#CCECEF';
-    badgeBg = '#E6F4F5';
-    badgeColor = '#007680';
+  if (variant === 'green' || variant === 'success') {
+    cardBg = '#F0F9ED';
+    cardBorder = '#DCFCE7';
+    pillBorder = '#BBF7D0';
+    pillColor = '#16A34A';
+    defaultDelta = '▲ Active';
+  } else if (variant === 'blue' || variant === 'lavender' || variant === 'info') {
+    cardBg = '#EDF2FE';
+    cardBorder = '#DBEAFE';
+    pillBorder = '#BFDBFE';
+    pillColor = '#007680';
+    defaultDelta = '▲ Tested';
+  } else if (variant === 'teal' || variant === 'mint') {
+    cardBg = '#EAF5F2';
+    cardBorder = '#CCFBF1';
+    pillBorder = '#99F6E4';
+    pillColor = '#007680';
+    defaultDelta = '▲ Screened';
+  } else if (variant === 'pink' || variant === 'rose' || variant === 'error') {
+    cardBg = '#FDF0F2';
+    cardBorder = '#FFE4E6';
+    pillBorder = '#FECDD3';
+    pillColor = '#9F1239';
+    defaultDelta = '▲ Cutoff';
   } else if (variant === 'warning') {
-    valueColor = '#D97706';
-    iconBg = 'rgba(217, 119, 6, 0.06)';
-    borderColor = '#FDE68A';
-    badgeBg = '#FEF3C7';
-    badgeColor = '#B45309';
-  } else if (variant === 'error') {
-    valueColor = '#DC2626';
-    iconBg = 'rgba(220, 38, 38, 0.06)';
-    borderColor = '#FECDD3';
-    badgeBg = '#FEE2E2';
-    badgeColor = '#991B1B';
-  } else if (variant === 'teal' || variant === 'info') {
-    valueColor = 'var(--deloitte-teal)';
-    iconBg = 'rgba(0, 118, 128, 0.06)';
-    borderColor = '#E2E8F0';
-    badgeBg = '#E6F4F5';
-    badgeColor = 'var(--deloitte-teal)';
+    cardBg = '#FEF9C3';
+    cardBorder = '#FEF08A';
+    pillBorder = '#FDE047';
+    pillColor = '#B45309';
+    defaultDelta = '▲ Flagged';
+  } else if (variant === 'peach' || variant === 'orange' || variant === 'default') {
+    cardBg = '#FFF4EC';
+    cardBorder = '#FFE7D6';
+    pillBorder = '#FED7AA';
+    pillColor = '#16A34A';
+    defaultDelta = '▲ 100%';
   }
 
   // Parse value string if it contains embedded status badges
@@ -71,41 +89,40 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   // Determine dynamic font size based on character length so it never wraps
   const valLength = displayValue.length;
-  let fontSize = '1.5rem';
+  let fontSize = '1.75rem';
   if (isCalculating) {
     fontSize = '0.98rem';
-  } else if (valLength > 12) {
-    fontSize = '1.15rem';
-  } else if (valLength > 8) {
-    fontSize = '1.28rem';
+  } else if (valLength > 14) {
+    fontSize = '1.20rem';
+  } else if (valLength > 10) {
+    fontSize = '1.40rem';
   }
+
+  const activeDelta = delta || (parsedBadge ? `▲ ${parsedBadge}` : defaultDelta);
 
   return (
     <div
-      className="jet-card"
       style={{
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        border: `1px solid ${borderColor}`,
+        border: `1px solid ${cardBorder}`,
         padding: '16px 18px',
-        backgroundColor: '#FFFFFF',
-        minHeight: '126px',
-        borderRadius: '14px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 12px -2px rgba(15, 23, 42, 0.03)',
+        backgroundColor: cardBg,
+        minHeight: '120px',
+        borderRadius: '16px',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
         position: 'relative',
         transition: 'transform 0.18s ease, box-shadow 0.18s ease',
       }}
     >
-      {/* Card Header: Label & Optional Icon */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+      {/* Card Header: Category Label & Optional Icon */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
         <span
           style={{
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
+            fontSize: '0.82rem',
+            fontWeight: 650,
+            color: labelColor,
             lineHeight: 1.2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -117,10 +134,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </span>
         {icon && (
           <div style={{
-            width: '28px',
-            height: '28px',
+            width: '26px',
+            height: '26px',
             borderRadius: '6px',
-            background: iconBg,
+            background: 'rgba(255, 255, 255, 0.7)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -131,7 +148,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         )}
       </div>
 
-      {/* Card Body: Main Metric Number + Clean Status Badge */}
+      {/* Card Body: Large Bold Metric Number */}
       <div style={{
         display: 'flex',
         alignItems: 'baseline',
@@ -143,9 +160,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <span
           style={{
             fontSize,
-            fontWeight: 800,
+            fontWeight: 850,
             color: isCalculating ? 'var(--deloitte-teal)' : valueColor,
-            fontFamily: 'var(--font-mono)',
+            fontFamily: 'monospace',
             lineHeight: 1.1,
             whiteSpace: 'nowrap',
             letterSpacing: '-0.02em',
@@ -157,43 +174,45 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           {isCalculating && <Loader2 size={15} className="spin" color="var(--deloitte-teal)" />}
           {displayValue}
         </span>
+      </div>
 
-        {parsedBadge && (
+      {/* Card Footer: Pill Badge + Subtitle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            background: pillBg,
+            padding: '2px 8px',
+            borderRadius: '999px',
+            fontSize: '0.68rem',
+            fontWeight: 750,
+            color: pillColor,
+            border: `1px solid ${pillBorder}`,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {activeDelta}
+        </span>
+
+        {subtitle && (
           <span
             style={{
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              padding: '2px 7px',
-              borderRadius: '6px',
-              background: badgeBg,
-              color: badgeColor,
-              whiteSpace: 'nowrap',
-              textTransform: 'capitalize',
+              fontSize: '0.72rem',
+              color: '#64748B',
+              fontWeight: 500,
               lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
+            title={subtitle}
           >
-            {parsedBadge}
+            {subtitle}
           </span>
         )}
       </div>
-
-      {/* Card Footer: Subtitle */}
-      {subtitle && (
-        <div
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-secondary)',
-            fontWeight: 500,
-            lineHeight: 1.2,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-          title={subtitle}
-        >
-          {subtitle}
-        </div>
-      )}
     </div>
   );
 };

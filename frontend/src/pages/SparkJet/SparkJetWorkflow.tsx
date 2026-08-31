@@ -1619,36 +1619,41 @@ export const SparkJetWorkflow: React.FC = () => {
         {currentStep === 4 && (
           <div className="fade-slide-in">
             {/* Top Metric Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '24px' }}>
               <MetricCard
                 label="TB Accounts"
                 value={executing ? 'In Progress...' : (status?.totalInputRows?.tb || 0)}
                 subtitle="Trial Balance Accounts"
-                variant="teal"
+                variant="peach"
+                delta="▲ Active"
               />
               <MetricCard
                 label="GL Population Lines"
                 value={executing ? 'In Progress...' : (status?.totalInputRows?.gl || 0)}
-                subtitle="Journal Entries"
-                variant="teal"
+                subtitle="General Ledger Entries"
+                variant="green"
+                delta="▲ 100%"
               />
               <MetricCard
                 label="Balanced Journals"
                 value={executing ? 'In Progress...' : (status?.glCheckpointsSummary?.balancedJournalsCount ?? (status?.totalInputRows?.gl || 0))}
                 subtitle="Net Balance = 0.0"
-                variant="success"
+                variant="blue"
+                delta="▲ In Balance"
               />
               <MetricCard
                 label="Unbalanced Journals"
                 value={executing ? 'In Progress...' : (status?.glCheckpointsSummary?.unbalancedJournalsCount || 0)}
                 subtitle="Net Balance ≠ 0.0"
-                variant={status?.glCheckpointsSummary?.unbalancedJournalsCount ? 'warning' : 'success'}
+                variant={status?.glCheckpointsSummary?.unbalancedJournalsCount ? 'pink' : 'green'}
+                delta={status?.glCheckpointsSummary?.unbalancedJournalsCount ? '▼ Variance' : '▲ 0 Errors'}
               />
               <MetricCard
                 label="Total IR Exceptions"
                 value={executing ? 'In Progress...' : (getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'))}
                 subtitle="Integrity Tests 1 - 3"
-                variant="warning"
+                variant="teal"
+                delta="▲ 3 Tests"
               />
             </div>
 

@@ -850,30 +850,38 @@ export const JetWorkflow: React.FC = () => {
           {/* Cleansing Metrics & Constraints Panel */}
           {autoCleanReport && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
                 <MetricCard
                   label="TB Rows Cleansed"
                   value={autoCleanReport.tbRowsCleaned?.toLocaleString() || '0'}
-                  variant="teal"
-                  icon={<CheckSquare size={18} />}
+                  variant="peach"
+                  delta="▲ 100%"
+                  subtitle="Trial Balance Cleaned"
+                  icon={<CheckSquare size={16} />}
                 />
                 <MetricCard
                   label="GL Rows Cleansed"
                   value={autoCleanReport.glRowsCleaned?.toLocaleString() || '0'}
-                  variant="success"
-                  icon={<Layers size={18} />}
+                  variant="green"
+                  delta="▲ Active"
+                  subtitle="General Ledger Cleaned"
+                  icon={<Layers size={16} />}
                 />
                 <MetricCard
                   label="Dates Normalized"
                   value={autoCleanReport.datesStandardized?.toLocaleString() || '0'}
-                  variant="teal"
-                  icon={<Calendar size={18} />}
+                  variant="blue"
+                  delta="▲ Standard"
+                  subtitle="ISO Calendar Formatted"
+                  icon={<Calendar size={16} />}
                 />
                 <MetricCard
                   label="Constraint Status"
                   value={autoCleanReport.constraintsPassed ? 'PASSED (100%)' : 'WARNINGS'}
-                  variant={autoCleanReport.constraintsPassed ? 'success' : 'warning'}
-                  icon={<ShieldCheck size={18} />}
+                  variant={autoCleanReport.constraintsPassed ? 'teal' : 'pink'}
+                  delta={autoCleanReport.constraintsPassed ? '▲ 100%' : '▼ Action'}
+                  subtitle="Mandatory Rules Met"
+                  icon={<ShieldCheck size={16} />}
                 />
               </div>
 

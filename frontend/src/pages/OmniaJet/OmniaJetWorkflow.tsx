@@ -1804,86 +1804,126 @@ export const OmniaJetWorkflow: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 4 Summary Stat Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                {/* 4 Pastel Summary Stat Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
                   <div
-                    className="jet-card"
                     onClick={() => setReconSubView('tb_start')}
                     style={{
-                      padding: '14px 16px',
+                      padding: '16px 18px',
+                      borderRadius: '16px',
                       cursor: 'pointer',
-                      border: reconSubView === 'tb_start' ? '1.5px solid #059669' : '1px solid var(--border-subtle)',
-                      background: reconSubView === 'tb_start' ? 'rgba(5, 150, 105, 0.06)' : '#FFFFFF',
-                      transition: 'all 0.15s ease'
+                      border: reconSubView === 'tb_start' ? '1.5px solid #EA580C' : '1px solid #FFE7D6',
+                      background: '#FFF4EC',
+                      boxShadow: reconSubView === 'tb_start' ? '0 4px 12px rgba(234, 88, 12, 0.15)' : '0 2px 6px rgba(0,0,0,0.02)',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '120px'
                     }}
                   >
-                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                       Total TB Beginning Balance
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0', fontFamily: 'var(--font-mono)', color: '#059669' }}>
-                      {status?.reconciliationSummary?.totalBeginningBalance?.toLocaleString()}
+                    <div style={{ fontSize: '1.80rem', fontWeight: 850, margin: '4px 0 6px', fontFamily: 'monospace', color: '#0F172A' }}>
+                      {status?.reconciliationSummary?.totalBeginningBalance?.toLocaleString() || '0.00'}
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>Click to view TB_Start.csv</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #FED7AA' }}>
+                        ▲ TB_Start
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Opening Matrix</span>
+                    </div>
                   </div>
 
                   <div
-                    className="jet-card"
                     onClick={() => setReconSubView('tb_end')}
                     style={{
-                      padding: '14px 16px',
+                      padding: '16px 18px',
+                      borderRadius: '16px',
                       cursor: 'pointer',
-                      border: reconSubView === 'tb_end' ? '1.5px solid #2563EB' : '1px solid var(--border-subtle)',
-                      background: reconSubView === 'tb_end' ? 'rgba(37, 99, 235, 0.06)' : '#FFFFFF',
-                      transition: 'all 0.15s ease'
+                      border: reconSubView === 'tb_end' ? '1.5px solid #16A34A' : '1px solid #DCFCE7',
+                      background: '#F0F9ED',
+                      boxShadow: reconSubView === 'tb_end' ? '0 4px 12px rgba(22, 163, 74, 0.15)' : '0 2px 6px rgba(0,0,0,0.02)',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '120px'
                     }}
                   >
-                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                       Total TB Ending Balance
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0', fontFamily: 'var(--font-mono)', color: '#2563EB' }}>
-                      {status?.reconciliationSummary?.totalEndingBalance?.toLocaleString()}
+                    <div style={{ fontSize: '1.80rem', fontWeight: 850, margin: '4px 0 6px', fontFamily: 'monospace', color: '#0F172A' }}>
+                      {status?.reconciliationSummary?.totalEndingBalance?.toLocaleString() || '0.00'}
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 700 }}>Click to view TB_End.csv</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #BBF7D0' }}>
+                        ▲ TB_End
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Closing Matrix</span>
+                    </div>
                   </div>
 
                   <div
-                    className="jet-card"
                     onClick={() => setReconSubView('matrix')}
                     style={{
-                      padding: '14px 16px',
+                      padding: '16px 18px',
+                      borderRadius: '16px',
                       cursor: 'pointer',
-                      border: reconSubView === 'matrix' ? '1.5px solid var(--deloitte-teal)' : '1px solid var(--border-subtle)',
-                      background: reconSubView === 'matrix' ? 'var(--deloitte-teal-light)' : '#FFFFFF',
-                      transition: 'all 0.15s ease'
+                      border: reconSubView === 'matrix' ? '1.5px solid #2563EB' : '1px solid #DBEAFE',
+                      background: '#EDF2FE',
+                      boxShadow: reconSubView === 'matrix' ? '0 4px 12px rgba(37, 99, 235, 0.15)' : '0 2px 6px rgba(0,0,0,0.02)',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '120px'
                     }}
                   >
-                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                       Total JE Net Activity
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0', fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)' }}>
-                      {status?.reconciliationSummary?.totalJEActivity?.toLocaleString()}
+                    <div style={{ fontSize: '1.80rem', fontWeight: 850, margin: '4px 0 6px', fontFamily: 'monospace', color: '#0F172A' }}>
+                      {status?.reconciliationSummary?.totalJEActivity?.toLocaleString() || '0.00'}
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--deloitte-teal)', fontWeight: 700 }}>Click to view Matrix</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#007680', border: '1px solid #BFDBFE' }}>
+                        ▲ Net Activity
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Full GL Matrix</span>
+                    </div>
                   </div>
 
                   <div
-                    className="jet-card"
                     onClick={() => setReconSubView('unreconciled')}
                     style={{
-                      padding: '14px 16px',
+                      padding: '16px 18px',
+                      borderRadius: '16px',
                       cursor: 'pointer',
-                      border: reconSubView === 'unreconciled' ? '1.5px solid var(--status-warning)' : '1px solid var(--border-subtle)',
-                      background: reconSubView === 'unreconciled' ? 'rgba(217, 119, 6, 0.06)' : '#FFFFFF',
-                      transition: 'all 0.15s ease'
+                      border: reconSubView === 'unreconciled' ? '1.5px solid #007680' : '1px solid #CCFBF1',
+                      background: '#EAF5F2',
+                      boxShadow: reconSubView === 'unreconciled' ? '0 4px 12px rgba(0, 118, 128, 0.15)' : '0 2px 6px rgba(0,0,0,0.02)',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '120px'
                     }}
                   >
-                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                       Total Net Variance
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '4px 0', fontFamily: 'var(--font-mono)', color: 'var(--status-warning)' }}>
-                      {status?.reconciliationSummary?.totalVariance?.toLocaleString()}
+                    <div style={{ fontSize: '1.80rem', fontWeight: 850, margin: '4px 0 6px', fontFamily: 'monospace', color: '#0F172A' }}>
+                      {status?.reconciliationSummary?.totalVariance?.toLocaleString() || '0.00'}
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--status-warning)', fontWeight: 700 }}>Click to view Unreconciled</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: (status?.reconciliationSummary?.totalVariance || 0) > 0 ? '#DC2626' : '#007680', border: '1px solid #99F6E4' }}>
+                        {(status?.reconciliationSummary?.totalVariance || 0) > 0 ? '▼ Flagged' : '▲ 0.00 Variance'}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Tolerance ≤ 1.0</span>
+                    </div>
                   </div>
                 </div>
 
