@@ -2,8 +2,12 @@
  * VisualizationShowcase
  *
  * Premium Executive "Visualizations & Insights" showcase suite.
- * Powered by high-density Chart.js interactive analytics engines for ALL 12 categories.
- * Compact executive layout (zero dead space), direction-aware transitions, and Deloitte design system styling.
+ * Features:
+ *  - High-density, tooltipless Chart.js analytical engines with maximum visual clarity
+ *  - 67:33 expansive chart viewport ratio with zero empty dead space
+ *  - Luxury botanical decor integration (realistic 3D potted plant & leaf elements)
+ *  - Choreographed scroll-reveal & slide transitions for an unforgettable experience
+ *  - Standardized Deloitte brand styling & light-theme perfection
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -289,33 +293,29 @@ const RISK_BADGES: Record<string, { color: string; bg: string; border: string }>
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   STANDARDIZED CHART.JS CONFIGURATION TOKENS
+   STANDARDIZED CHART.JS CONFIGURATION TOKENS (TOOLTIPS DISABLED)
 ───────────────────────────────────────────────────────────────────────── */
 
 const baseChartOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
-  animation: { duration: 600 },
+  animation: { duration: 550 },
   plugins: {
     legend: {
       display: false,
     },
     tooltip: {
-      backgroundColor: '#0F172A',
-      titleFont: { size: 10, weight: 'bold', family: "'Inter', sans-serif" },
-      bodyFont: { size: 10, family: "'Inter', sans-serif" },
-      padding: 6,
-      cornerRadius: 6,
+      enabled: false, // Tooltips disabled per user specification
     },
   },
   scales: {
     x: {
       grid: { color: '#F1F5F9' },
-      ticks: { color: '#64748B', font: { size: 9, family: "'Inter', sans-serif" } },
+      ticks: { color: '#64748B', font: { size: 9.5, family: "'Inter', sans-serif" } },
     },
     y: {
       grid: { color: '#F1F5F9' },
-      ticks: { color: '#64748B', font: { size: 9, family: "'Inter', sans-serif" } },
+      ticks: { color: '#64748B', font: { size: 9.5, family: "'Inter', sans-serif" } },
     },
   },
 };
@@ -323,8 +323,8 @@ const baseChartOptions: any = {
 const baseDoughnutOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
-  cutout: '65%',
-  animation: { duration: 600 },
+  cutout: '66%',
+  animation: { duration: 550 },
   plugins: {
     legend: {
       display: false,
@@ -332,27 +332,23 @@ const baseDoughnutOptions: any = {
     doughnutCallout: false,
     doughnutCalloutPlugin: false,
     tooltip: {
-      backgroundColor: '#0F172A',
-      titleFont: { size: 10, weight: 'bold', family: "'Inter', sans-serif" },
-      bodyFont: { size: 10, family: "'Inter', sans-serif" },
-      padding: 6,
-      cornerRadius: 6,
+      enabled: false, // Tooltips disabled per user specification
     },
   },
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   FULL-POWER CHART.JS VISUAL ENGINE (ALL 12 CATEGORIES)
+   FULL-POWER CHART.JS VISUAL ENGINE (EXPANSIVE VIEWPORT)
 ───────────────────────────────────────────────────────────────────────── */
 
 const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
   switch (categoryId) {
     case '01_account_wise': {
       const barData = {
-        labels: ['Cash', 'AR', 'Inventory', 'Accrued', 'Suspense', 'Revenue'],
+        labels: ['Cash & Equiv', 'Receivables', 'Inventories', 'Accrued Exp', 'Suspense', 'Revenue'],
         datasets: [
-          { label: 'Standard Lines', data: [1420, 2180, 1840, 940, 110, 45], backgroundColor: '#007680', borderRadius: 3 },
-          { label: 'Non-Standard Lines', data: [310, 540, 410, 280, 410, 650], backgroundColor: '#38BDF8', borderRadius: 3 },
+          { label: 'Standard Lines', data: [1420, 2180, 1840, 940, 110, 45], backgroundColor: '#007680', borderRadius: 4 },
+          { label: 'Non-Standard Lines', data: [310, 540, 410, 280, 410, 650], backgroundColor: '#38BDF8', borderRadius: 4 },
         ],
       };
       const donutData = {
@@ -365,31 +361,31 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Activity Distribution (Standard vs Non-Std)</span>
-              <div style={{ display: 'flex', gap: '6px', fontSize: '0.56rem', color: '#64748B', fontWeight: 600 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><span style={{ width: 6, height: 6, background: '#007680', borderRadius: 2 }} />Std</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><span style={{ width: 6, height: 6, background: '#38BDF8', borderRadius: 2 }} />Non-Std</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Activity Distribution (Standard vs Non-Std Lines)</span>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '0.60rem', color: '#64748B', fontWeight: 600 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><span style={{ width: 7, height: 7, background: '#007680', borderRadius: 2 }} />Standard</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><span style={{ width: 7, height: 7, background: '#38BDF8', borderRadius: 2 }} />Non-Standard</span>
               </div>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Debit Line Exposure</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Debit Line Exposure</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut data={donutData} options={baseDoughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Total</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0F172A' }}>$42.8M</span>
+                <span style={{ fontSize: '0.58rem', color: '#64748B', fontWeight: 600 }}>Total Value</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A' }}>$42.8M</span>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
-              <span style={{ color: '#007680' }}>● AR 40%</span>
-              <span style={{ color: '#0284C7' }}>● FG 28%</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
+              <span style={{ color: '#007680' }}>● Receivables 40%</span>
+              <span style={{ color: '#0284C7' }}>● Finished 28%</span>
               <span style={{ color: '#F59E0B' }}>● Cash 20%</span>
-              <span style={{ color: '#10B981' }}>● Accr 12%</span>
+              <span style={{ color: '#10B981' }}>● Accrued 12%</span>
             </div>
           </div>
         </div>
@@ -398,7 +394,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
 
     case '02_revenue_debits': {
       const lineData = {
-        labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'],
+        labels: ['P1', 'P2', 'P3 (Q1)', 'P4', 'P5', 'P6 (Q2)', 'P7', 'P8', 'P9 (Q3)', 'P10', 'P11', 'P12 (Q4)'],
         datasets: [{
           label: 'Revenue Debit Vol ($k)',
           data: [120, 140, 480, 110, 160, 520, 130, 150, 680, 140, 190, 940],
@@ -406,30 +402,30 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
           backgroundColor: 'rgba(225, 29, 72, 0.12)',
           fill: true,
           tension: 0.35,
-          pointRadius: 2.5,
+          pointRadius: 3,
           pointBackgroundColor: '#E11D48',
         }],
       };
       const barData = {
-        labels: ['Returns', 'Rebates', 'Discounts', 'Scrap Adj', 'Licensing'],
+        labels: ['Sales Returns', 'Volume Rebates', 'Discounts', 'Scrap Adj', 'Licensing'],
         datasets: [{
           label: 'Debit Total ($k)',
           data: [1420, 890, 640, 430, 280],
           backgroundColor: ['#E11D48', '#E11D48', '#D97706', '#0284C7', '#007680'],
-          borderRadius: 3,
+          borderRadius: 4,
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Revenue Debit Reversal Trajectory</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>Quarter Spikes</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Revenue Debit Reversal Trajectory</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>Quarter Cutoff Spikes</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Top Revenue Debit Accounts ($k)</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>Top Revenue Debit Accounts ($k)</span>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
         </div>
@@ -438,12 +434,12 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
 
     case '03_user_wise': {
       const barData = {
-        labels: ['BATCH_AUTO', 'ACC_1', 'SYS_ADMIN', 'TEMP_AUDIT', 'CONSULTANT'],
+        labels: ['USR_BATCH_AUTO', 'USR_ACCOUNTANT_1', 'USR_SYS_ADMIN', 'USR_TEMP_AUDIT', 'USR_CONSULTANT'],
         datasets: [{
           label: 'Monetary Sum ($M)',
           data: [42.8, 18.5, 9.46, 3.15, 1.28],
           backgroundColor: ['#007680', '#007680', '#E11D48', '#E11D48', '#F59E0B'],
-          borderRadius: 3,
+          borderRadius: 4,
         }],
       };
       const donutData = {
@@ -456,24 +452,24 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>User Posting Volume ($M)</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>Admin Outliers</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>User Posting Volume ($M)</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>Admin Superusers</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Posting Exposure by Role</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Posting Exposure by Role</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut data={donutData} options={baseDoughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Admin/Temp</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>17%</span>
+                <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Admin/Temp</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>17%</span>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
               <span style={{ color: '#007680' }}>● Auto 58%</span>
               <span style={{ color: '#0284C7' }}>● Ops 25%</span>
               <span style={{ color: '#E11D48' }}>● Admin 17%</span>
@@ -496,32 +492,32 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
       const barData = {
         labels: ['Day -1/0', 'Day +1/+3', 'Day +4/+7', 'Day +8+'],
         datasets: [
-          { label: 'Weak Description', data: [820, 510, 180, 90], backgroundColor: '#E11D48', borderRadius: 3 },
-          { label: 'Documented Closing', data: [3100, 1420, 620, 140], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 3 },
+          { label: 'Weak Description', data: [820, 510, 180, 90], backgroundColor: '#E11D48', borderRadius: 4 },
+          { label: 'Documented Closing', data: [3100, 1420, 620, 140], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 },
         ],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Financial Statement Effect</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '0.85fr 1.25fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Financial Statement Effect</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut data={donutData} options={baseDoughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Exp Impact</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>45%</span>
+                <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Exp Impact</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>45%</span>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
               <span style={{ color: '#E11D48' }}>● Exp 45%</span>
               <span style={{ color: '#007680' }}>● Asset 23%</span>
               <span style={{ color: '#0284C7' }}>● Liab 17%</span>
               <span style={{ color: '#F59E0B' }}>● Rev 10%</span>
             </div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Closing Entry Timing Profile</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>Cutoff Lag</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Closing Entry Timing Profile</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>Cutoff Lag</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
@@ -539,7 +535,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
             borderColor: '#007680',
             backgroundColor: 'rgba(0,118,128,0.08)',
             tension: 0.3,
-            pointRadius: 2,
+            pointRadius: 2.5,
           },
           {
             label: 'Weekend / Off-Hours (Flagged)',
@@ -547,7 +543,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
             borderColor: '#E11D48',
             backgroundColor: 'rgba(225,29,72,0.12)',
             tension: 0.3,
-            pointRadius: 2.5,
+            pointRadius: 3,
             fill: true,
           },
         ],
@@ -558,22 +554,22 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
           label: 'Total Entries',
           data: [4200, 4500, 4350, 4600, 4100, 94, 382],
           backgroundColor: ['#BAE6FD', '#BAE6FD', '#BAE6FD', '#BAE6FD', '#BAE6FD', '#F59E0B', '#E11D48'],
-          borderRadius: 3,
+          borderRadius: 4,
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>24-Hour Diurnal Velocity</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>Midnight Surge</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>24-Hour Diurnal Posting Velocity</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>Midnight Peak Spike</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Day of Week Volume</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>382 Sun Spike</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Day of Week Volume</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>382 Sunday Spike</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
@@ -591,14 +587,14 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
             data: [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6],
             borderColor: '#E11D48',
             borderWidth: 2,
-            pointRadius: 2,
+            pointRadius: 2.5,
           },
           {
             type: 'bar' as const,
             label: 'Actual Client (%)',
             data: [31.2, 16.9, 13.1, 9.2, 8.4, 6.1, 5.4, 5.0, 4.7],
             backgroundColor: '#007680',
-            borderRadius: 3,
+            borderRadius: 4,
           },
         ],
       };
@@ -612,24 +608,24 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Benford’s Law Conformance (Digits 1–9)</span>
-              <span style={{ fontSize: '0.56rem', color: '#16A34A', fontWeight: 700 }}>96% Fit (Grade A)</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Benford’s Law Conformance (Digits 1–9)</span>
+              <span style={{ fontSize: '0.60rem', color: '#16A34A', fontWeight: 700 }}>96% Conformity (Grade A)</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Chart type="bar" data={benfordData as any} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Round Dollar Density</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Round Dollar Density</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut data={roundDonutData} options={baseDoughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Round Total</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#007680' }}>928 Lines</span>
+                <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Round Total</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#007680' }}>928 Lines</span>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
               <span style={{ color: '#007680' }}>● $1k (45%)</span>
               <span style={{ color: '#0284C7' }}>● $10k (28%)</span>
               <span style={{ color: '#F59E0B' }}>● $50k (18%)</span>
@@ -644,8 +640,8 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
       const barData = {
         labels: ['<$10k', '$10k-$50k', '$50k-$100k', '$100k-$500k', '>$500k'],
         datasets: [
-          { label: 'Exact Match (Same Day)', data: [82, 34, 18, 6, 2], backgroundColor: '#E11D48', borderRadius: 3 },
-          { label: 'Near Match (48h Window)', data: [40, 18, 10, 3, 1], backgroundColor: '#F59E0B', borderRadius: 3 },
+          { label: 'Exact Match (Same Day)', data: [82, 34, 18, 6, 2], backgroundColor: '#E11D48', borderRadius: 4 },
+          { label: 'Near Match (48h Window)', data: [40, 18, 10, 3, 1], backgroundColor: '#F59E0B', borderRadius: 4 },
         ],
       };
       const donutData = {
@@ -658,24 +654,24 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Duplicate Clusters by Value Range</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>214 Pairs</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Duplicate Clusters by Value Range</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>214 Flagged Pairs</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Match Type Profile</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Match Type Profile</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut data={donutData} options={baseDoughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Exposure</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>$4.20M</span>
+                <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Exposure</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>$4.20M</span>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
               <span style={{ color: '#E11D48' }}>● Exact 66% (142 Pairs)</span>
               <span style={{ color: '#F59E0B' }}>● Near 34% (72 Pairs)</span>
             </div>
@@ -691,7 +687,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
           label: 'Flagged Entries',
           data: [210, 145, 82, 38, 4, 18, 7, 12],
           backgroundColor: ['#0284C7', '#007680', '#0284C7', '#E11D48', '#7C3AED', '#F59E0B', '#E11D48', '#F59E0B'],
-          borderRadius: 3,
+          borderRadius: 4,
         }],
       };
       const donutData = {
@@ -704,24 +700,24 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Monitored Keyword Frequency</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>High Risk: 7%</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Monitored Keyword Frequency</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>High Risk: 7% ($6.98M)</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Severity Stratification</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Severity Stratification</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut data={donutData} options={baseDoughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>High Risk</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>$6.98M</span>
+                <span style={{ fontSize: '0.58rem', color: '#64748B' }}>High Risk</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>$6.98M</span>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
               <span style={{ color: '#0284C7' }}>● Info 71%</span>
               <span style={{ color: '#F59E0B' }}>● Med 22%</span>
               <span style={{ color: '#E11D48' }}>● High 7%</span>
@@ -741,30 +737,30 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
           backgroundColor: 'rgba(225,29,72,0.12)',
           fill: true,
           tension: 0.3,
-          pointRadius: 2.5,
+          pointRadius: 3,
           pointBackgroundColor: '#E11D48',
         }],
       };
       const barData = {
-        labels: ['Tax Prov', 'Inventory', 'Bonuses', 'Legal Res', 'Bad Debt'],
+        labels: ['Tax Provisions', 'Inventory Val', 'Bonuses', 'Legal Reserves', 'Bad Debt'],
         datasets: [{
           label: 'Impact ($M)',
           data: [3.8, 2.9, 1.7, 0.9, 0.5],
           backgroundColor: ['#E11D48', '#D97706', '#007680', '#0284C7', '#64748B'],
-          borderRadius: 3,
+          borderRadius: 4,
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Post-Freeze Journal Timeline ($M)</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>98.7k Entries</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Post-Freeze Journal Timeline ($M)</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>98.7k Post-Close Lines</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Top Affected Accounts ($M)</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>Top Affected Accounts ($M)</span>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
         </div>
@@ -778,7 +774,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
           label: 'Flagged Entries',
           data: [128, 84, 52, 34, 18],
           backgroundColor: ['#E11D48', '#E11D48', '#D97706', '#0284C7', '#007680'],
-          borderRadius: 3,
+          borderRadius: 4,
         }],
       };
       const donutData = {
@@ -791,24 +787,24 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
         }],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Atypical Cross-Ledger Pairings</span>
-              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>128 Outliers</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Atypical Cross-Ledger Pairings</span>
+              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>128 Outliers</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Association Risk Profile</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Association Risk Profile</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut data={donutData} options={baseDoughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Anomalous</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>$840k</span>
+                <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Anomalous</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>$840k</span>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 600, marginTop: '2px' }}>
               <span style={{ color: '#E11D48' }}>● Atypical 28%</span>
               <span style={{ color: '#007680' }}>● Standard 72%</span>
             </div>
@@ -819,7 +815,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
 
     case '11_population_stats': {
       const lineData = {
-        labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'],
+        labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12 (Year-End)'],
         datasets: [{
           label: 'Total Amount ($M)',
           data: [4.2, 3.8, 4.8, 4.1, 4.3, 5.2, 4.4, 4.6, 6.1, 4.3, 4.1, 8.5],
@@ -827,30 +823,30 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
           backgroundColor: 'rgba(0, 118, 128, 0.12)',
           fill: true,
           tension: 0.35,
-          pointRadius: 2.5,
+          pointRadius: 3,
           pointBackgroundColor: '#007680',
         }],
       };
       const barData = {
         labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'],
         datasets: [
-          { label: 'Standard Entries', data: [3800, 3500, 4200, 3700, 3900, 4600, 4000, 4200, 5100, 3900, 3700, 6400], backgroundColor: '#007680', borderRadius: 2 },
-          { label: 'Non-Standard', data: [400, 420, 580, 410, 450, 610, 430, 450, 980, 420, 410, 2100], backgroundColor: '#38BDF8', borderRadius: 2 },
+          { label: 'Standard Entries', data: [3800, 3500, 4200, 3700, 3900, 4600, 4000, 4200, 5100, 3900, 3700, 6400], backgroundColor: '#007680', borderRadius: 3 },
+          { label: 'Non-Standard', data: [400, 420, 580, 410, 450, 610, 430, 450, 980, 420, 410, 2100], backgroundColor: '#38BDF8', borderRadius: 3 },
         ],
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Population Activity Trajectory ($M)</span>
-              <span style={{ fontSize: '0.56rem', color: '#007680', fontWeight: 700 }}>P12 Peak $8.5M</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Population Activity Trajectory ($M)</span>
+              <span style={{ fontSize: '0.60rem', color: '#007680', fontWeight: 700 }}>P12 Peak $8.5M</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Standard vs Non-Standard Volume</span>
-              <span style={{ fontSize: '0.56rem', color: '#0284C7', fontWeight: 700 }}>P12 Surge: +34%</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Standard vs Non-Standard Volume</span>
+              <span style={{ fontSize: '0.60rem', color: '#0284C7', fontWeight: 700 }}>P12 Surge: +34%</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
@@ -868,7 +864,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
             backgroundColor: 'rgba(0, 118, 128, 0.25)',
             borderColor: '#007680',
             pointBackgroundColor: '#007680',
-            pointRadius: 2.5,
+            pointRadius: 3,
             borderWidth: 2,
           },
           {
@@ -885,40 +881,43 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
       const radarOptions: any = {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 600 },
-        plugins: { legend: { display: false } },
+        animation: { duration: 550 },
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false }, // Disabled per user specification
+        },
         scales: {
           r: {
             grid: { color: '#F1F5F9' },
             angleLines: { color: '#E2E8F0' },
-            pointLabels: { color: '#475569', font: { size: 8.5, family: "'Inter', sans-serif" } },
+            pointLabels: { color: '#475569', font: { size: 9, family: "'Inter', sans-serif" } },
             ticks: { display: false },
           },
         },
       };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '10px', padding: '8px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px', padding: '10px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Accounting Behavior DNA Radar</span>
-              <div style={{ display: 'flex', gap: '8px', fontSize: '0.54rem', fontWeight: 600 }}>
-                <span style={{ color: '#007680' }}>● Client</span>
-                <span style={{ color: '#94A3B8' }}>-- Peer</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Accounting Behavior DNA Radar</span>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '0.58rem', fontWeight: 600 }}>
+                <span style={{ color: '#007680' }}>● Client DNA</span>
+                <span style={{ color: '#94A3B8' }}>-- Industry Peer</span>
               </div>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Radar data={radarData} options={radarOptions} /></div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', height: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', height: '100%' }}>
             {[
               { title: 'Manual Override', val: '14.8%', delta: '+3.6% delta', color: '#D97706', bg: '#FFFBEB' },
               { title: 'Closing Rush', val: '40.2%', delta: '+25.7% Focus', color: '#E11D48', bg: '#FFF1F2' },
               { title: 'Benford Fit', val: '96%', delta: 'Grade A', color: '#16A34A', bg: '#F0FDF4' },
               { title: 'Off-Hours', val: '0.4%', delta: '-2.0% delta', color: '#007680', bg: '#E6F4F5' },
             ].map((kpi, i) => (
-              <div key={i} style={{ background: kpi.bg, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(0,0,0,0.05)' }}>
-                <span style={{ fontSize: '0.54rem', color: '#475569', fontWeight: 600 }}>{kpi.title}</span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{kpi.val}</span>
-                <span style={{ fontSize: '0.52rem', color: kpi.color, fontWeight: 700 }}>{kpi.delta}</span>
+              <div key={i} style={{ background: kpi.bg, borderRadius: '8px', padding: '8px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(0,0,0,0.05)' }}>
+                <span style={{ fontSize: '0.58rem', color: '#475569', fontWeight: 600 }}>{kpi.title}</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{kpi.val}</span>
+                <span style={{ fontSize: '0.56rem', color: kpi.color, fontWeight: 700 }}>{kpi.delta}</span>
               </div>
             ))}
           </div>
@@ -997,20 +996,71 @@ export const VisualizationShowcase: React.FC = () => {
       id="visualizations-insights-showcase"
       aria-label="Visualizations and Insights showcase"
       tabIndex={-1}
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: 32, scale: 0.99 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       style={{
         width: '100%',
-        background: 'linear-gradient(180deg, #FFFFFF 0%, #F5FAF8 40%, #EDF7F5 100%)',
+        background: 'linear-gradient(180deg, #FFFFFF 0%, #F4FAF8 45%, #EBF6F4 100%)',
         borderBottom: '1px solid #E2E8F0',
-        padding: 'clamp(28px, 3.5vw, 42px) clamp(20px, 3.5vw, 48px)',
+        padding: 'clamp(32px, 3.8vw, 46px) clamp(20px, 3.5vw, 52px)',
         position: 'relative',
         overflow: 'hidden',
         outline: 'none',
       }}
     >
+      {/* ── BOTANICAL DECOR 1: Luxury Leaf Sprig (Floating Top-Left) ── */}
+      <motion.img
+        initial={{ opacity: 0, x: -30, rotate: -8 }}
+        whileInView={{ opacity: 0.85, x: 0, rotate: 0 }}
+        viewport={{ once: true }}
+        animate={{ y: [0, -6, 0] }}
+        transition={{
+          opacity: { duration: 0.8, ease: 'easeOut' },
+          y: { repeat: Infinity, duration: 6, ease: 'easeInOut' }
+        }}
+        src="/decor/leaf_left_clean.png"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: '-15px',
+          left: '-20px',
+          width: 'clamp(90px, 8vw, 135px)',
+          height: 'auto',
+          pointerEvents: 'none',
+          zIndex: 1,
+          filter: 'drop-shadow(0 6px 16px rgba(0, 118, 128, 0.08))',
+        }}
+      />
+
+      {/* ── BOTANICAL DECOR 2: 3D Potted Plant (Ground-Anchored Bottom-Right) ── */}
+      <motion.img
+        initial={{ opacity: 0, scale: 0.85, y: 25 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        viewport={{ once: true }}
+        animate={{ y: [0, -4, 0] }}
+        transition={{
+          opacity: { duration: 0.8, ease: 'easeOut', delay: 0.15 },
+          scale: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+          y: { repeat: Infinity, duration: 5.5, ease: 'easeInOut' }
+        }}
+        src="/decor/potted_plant_clean.png"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          bottom: '12px',
+          right: '18px',
+          width: 'clamp(85px, 7.5vw, 115px)',
+          height: 'auto',
+          pointerEvents: 'none',
+          zIndex: 1,
+          filter: 'drop-shadow(0 10px 22px rgba(15, 23, 42, 0.12))',
+        }}
+      />
+
       <div style={{ maxWidth: '1440px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
 
         {/* ── Section Header Row ── */}
@@ -1116,25 +1166,25 @@ export const VisualizationShowcase: React.FC = () => {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════
-            COMPACT FIXED STAGE (Height 340px)
+            EXPANSIVE 67:33 RATIO FIXED STAGE (Height 340px)
         ═══════════════════════════════════════════════════════════ */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '55fr 45fr',
-          gap: '18px',
+          gridTemplateColumns: '67fr 33fr', // Expansive width for charts, tight editorial panel
+          gap: '16px',
           alignItems: 'stretch',
           height: '340px',
         }}>
 
           {/* ────────────────────────────────────────────────────────
-              LEFT — High-Precision Visual Monitor Frame
+              LEFT — High-Precision Expansive Visual Monitor Frame
           ──────────────────────────────────────────────────────── */}
           <div style={{
             height: '100%',
             borderRadius: '14px',
             background: '#FFFFFF',
             border: '1px solid #E2E8F0',
-            boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.06)',
+            boxShadow: '0 10px 28px -4px rgba(15, 23, 42, 0.07)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -1144,7 +1194,7 @@ export const VisualizationShowcase: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '8px 12px',
+              padding: '8px 14px',
               background: '#F8FAFC',
               borderBottom: '1px solid #E2E8F0',
               flexShrink: 0,
@@ -1161,7 +1211,7 @@ export const VisualizationShowcase: React.FC = () => {
                 color: '#007680',
                 fontFamily: 'monospace',
                 background: '#E6F4F5',
-                padding: '2px 8px',
+                padding: '2px 9px',
                 borderRadius: '4px',
                 border: '1px solid #99D5D9',
               }}>
@@ -1173,16 +1223,16 @@ export const VisualizationShowcase: React.FC = () => {
               </span>
             </div>
 
-            {/* Live Chart Canvas Area */}
+            {/* Live Expansive Chart Canvas Area */}
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#F8FAFC' }}>
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={current.id}
                   custom={direction}
-                  initial={{ opacity: 0, x: direction * 25 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -direction * 25 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  initial={{ opacity: 0, x: direction * 25, scale: 0.98 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -direction * 25, scale: 0.98 }}
+                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                   style={{ width: '100%', height: '100%' }}
                 >
                   <FullChartEngine categoryId={current.id} />
@@ -1192,7 +1242,7 @@ export const VisualizationShowcase: React.FC = () => {
           </div>
 
           {/* ────────────────────────────────────────────────────────
-              RIGHT — Compact Editorial Insight Panel
+              RIGHT — Compact, Tight Editorial Insight Panel
           ──────────────────────────────────────────────────────── */}
           <div style={{
             height: '100%',
@@ -1243,7 +1293,7 @@ export const VisualizationShowcase: React.FC = () => {
 
                   {/* Title */}
                   <h3 style={{
-                    fontSize: '1.08rem',
+                    fontSize: '1.04rem',
                     fontWeight: 800,
                     color: '#0F172A',
                     letterSpacing: '-0.025em',
@@ -1264,7 +1314,7 @@ export const VisualizationShowcase: React.FC = () => {
                     <span style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       Visualization Blueprint:
                     </span>
-                    <p style={{ fontSize: '0.72rem', color: '#334155', lineHeight: 1.3, margin: '2px 0 0', fontWeight: 500 }}>
+                    <p style={{ fontSize: '0.70rem', color: '#334155', lineHeight: 1.3, margin: '2px 0 0', fontWeight: 500 }}>
                       {current.whatItShows}
                     </p>
                   </div>
@@ -1284,24 +1334,24 @@ export const VisualizationShowcase: React.FC = () => {
                         Key Audit Insight
                       </span>
                     </div>
-                    <p style={{ fontSize: '0.72rem', color: '#1E293B', lineHeight: 1.35, margin: 0, fontWeight: 500 }}>
+                    <p style={{ fontSize: '0.70rem', color: '#1E293B', lineHeight: 1.35, margin: 0, fontWeight: 500 }}>
                       {current.insight}
                     </p>
                   </div>
                 </div>
 
                 {/* Metadata Badges */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', paddingTop: '8px' }}>
-                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: '#F1F5F9', border: '1px solid #E2E8F0', fontSize: '0.62rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', paddingTop: '6px' }}>
+                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: '#F1F5F9', border: '1px solid #E2E8F0', fontSize: '0.60rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '3px' }}>
                     <Shield size={8} color="#64748B" />
                     <span>{current.analyticalMethod}</span>
                   </div>
 
-                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: riskStyle.bg, border: `1px solid ${riskStyle.border}`, fontSize: '0.62rem', fontWeight: 800, color: riskStyle.color, textTransform: 'uppercase' }}>
+                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: riskStyle.bg, border: `1px solid ${riskStyle.border}`, fontSize: '0.60rem', fontWeight: 800, color: riskStyle.color, textTransform: 'uppercase' }}>
                     {current.riskLevel} Risk
                   </div>
 
-                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: '#E6F4F5', border: '1px solid #99D5D9', fontSize: '0.62rem', fontWeight: 700, color: '#007680' }}>
+                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: '#E6F4F5', border: '1px solid #99D5D9', fontSize: '0.60rem', fontWeight: 700, color: '#007680' }}>
                     {current.metricLabel}: <strong>{current.metricValue}</strong>
                   </div>
                 </div>
