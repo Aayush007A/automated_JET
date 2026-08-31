@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/authService';
 import { RunService } from '../services/runService';
-import { RunSummary } from '../types';
+import { RunSummary, RunStatus } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -114,8 +114,16 @@ export const DashboardPage: React.FC = () => {
     setCurrentPage(1);
   };
 
+  // Terminal statuses — anything else is considered "In Progress"
+  const TERMINAL_STATUSES: RunStatus[] = ['COMPLETED', 'FAILED', 'WARNING'];
+
+  const isRunning = (r: RunSummary) => !TERMINAL_STATUSES.includes(r.status);
+
   const filteredRuns = runs.filter(r => {
-    const matchFilter = statusFilter === 'ALL' || r.status === statusFilter;
+    let matchFilter: boolean;
+    if (statusFilter === 'ALL') matchFilter = true;
+    else if (statusFilter === 'RUNNING') matchFilter = isRunning(r);
+    else matchFilter = r.status === statusFilter;
     const matchSearch = !searchQuery
       || r.runId.toLowerCase().includes(searchQuery.toLowerCase())
       || r.status.toLowerCase().includes(searchQuery.toLowerCase());
@@ -126,8 +134,8 @@ export const DashboardPage: React.FC = () => {
   const paginatedRuns = filteredRuns.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const completedRuns = runs.filter(r => r.status === 'COMPLETED').length;
-  const runningRuns = runs.filter(r => r.status === 'RUNNING').length;
-  const failedRuns = runs.filter(r => r.status === 'FAILED').length;
+  const runningRuns = runs.filter(r => isRunning(r)).length;
+  const failedRuns = runs.filter(r => r.status === 'FAILED' || r.status === 'WARNING').length;
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', background: '#FFFFFF', overflowX: 'hidden' }}>
@@ -844,7 +852,7 @@ export const DashboardPage: React.FC = () => {
         variants={sectionReveal}
         style={{
           width: '100%',
-          background: 'linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%)',
+          background: 'linear-gradient(160deg, #EFF8FA 0%, #F0F7FF 30%, #F5F9F5 60%, #FAFCFD 100%)',
           padding: 'clamp(40px, 4.5vw, 60px) clamp(20px, 3.2vw, 52px) 80px',
         }}
       >
@@ -1117,9 +1125,24 @@ export const DashboardPage: React.FC = () => {
                             style={{
                               borderBottom: '1px solid #F1F5F9',
                               transition: 'background 0.12s ease',
+                              background: run.status === 'COMPLETED'
+                                ? 'linear-gradient(90deg, rgba(22,163,74,0.025) 0%, transparent 60%)'
+                                : run.status === 'FAILED' || run.status === 'WARNING'
+                                  ? 'linear-gradient(90deg, rgba(225,29,72,0.025) 0%, transparent 60%)'
+                                  : isRunning(run)
+                                    ? 'linear-gradient(90deg, rgba(2,132,199,0.03) 0%, transparent 60%)'
+                                    : 'transparent',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#F0F9FF')}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = run.status === 'COMPLETED'
+                                ? 'linear-gradient(90deg, rgba(22,163,74,0.025) 0%, transparent 60%)'
+                                : run.status === 'FAILED' || run.status === 'WARNING'
+                                  ? 'linear-gradient(90deg, rgba(225,29,72,0.025) 0%, transparent 60%)'
+                                  : isRunning(run)
+                                    ? 'linear-gradient(90deg, rgba(2,132,199,0.03) 0%, transparent 60%)'
+                                    : 'transparent';
+                            }}
                           >
                             {/* Run ID & Engagement */}
                             <td style={{ padding: '9px 14px' }}>
@@ -1381,27 +1404,26 @@ export const DashboardPage: React.FC = () => {
 
               {/* ── Docked Bottom Footer Bar ── */}
               <div style={{
-                height: '46px',
+                height: '50px',
                 padding: '0 20px',
-                borderTop: '1px solid #F1F5F9',
-                background: '#FAFCFD',
-                display: 'flex',
+                borderTop: '1px solid #E8F0F8',
+                background: 'linear-gradient(180deg, #F8FAFC 0%, #F0F6FB 100%)',
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
                 gap: '10px',
               }}>
                 {filteredRuns.length > 0 ? (
                   <>
                     {/* Left: Result Counter */}
-                    <span style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 500 }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500 }}>
                       Showing <strong style={{ color: '#0F172A' }}>{Math.min(filteredRuns.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</strong> to{' '}
                       <strong style={{ color: '#0F172A' }}>{Math.min(filteredRuns.length, currentPage * ITEMS_PER_PAGE)}</strong> of{' '}
                       <strong style={{ color: '#0F172A' }}>{filteredRuns.length}</strong> {filteredRuns.length === 1 ? 'run' : 'runs'}
                     </span>
 
-                    {/* Center: Pagination Button Cluster */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {/* Center: Pagination Button Cluster — truly centered in grid */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
@@ -1414,10 +1436,11 @@ export const DashboardPage: React.FC = () => {
                           border: '1px solid #E2E8F0',
                           background: currentPage === 1 ? '#F8FAFC' : '#FFFFFF',
                           color: currentPage === 1 ? '#CBD5E1' : '#334155',
-                          fontSize: '0.75rem',
+                          fontSize: '0.74rem',
                           fontWeight: 600,
                           cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                           transition: 'all 0.12s ease',
+                          boxShadow: currentPage === 1 ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
                         }}
                       >
                         <ChevronLeft size={13} /> Previous
@@ -1436,10 +1459,11 @@ export const DashboardPage: React.FC = () => {
                             border: pageNum === currentPage ? '1px solid #007680' : '1px solid #E2E8F0',
                             background: pageNum === currentPage ? 'linear-gradient(135deg, #007680 0%, #004D54 100%)' : '#FFFFFF',
                             color: pageNum === currentPage ? '#FFFFFF' : '#475569',
-                            fontSize: '0.75rem',
+                            fontSize: '0.74rem',
                             fontWeight: 700,
                             cursor: 'pointer',
                             transition: 'all 0.12s ease',
+                            boxShadow: pageNum === currentPage ? '0 2px 6px rgba(0,118,128,0.28)' : '0 1px 2px rgba(0,0,0,0.04)',
                           }}
                         >
                           {pageNum}
@@ -1458,18 +1482,19 @@ export const DashboardPage: React.FC = () => {
                           border: '1px solid #E2E8F0',
                           background: currentPage === totalPages ? '#F8FAFC' : '#FFFFFF',
                           color: currentPage === totalPages ? '#CBD5E1' : '#334155',
-                          fontSize: '0.75rem',
+                          fontSize: '0.74rem',
                           fontWeight: 600,
                           cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                           transition: 'all 0.12s ease',
+                          boxShadow: currentPage === totalPages ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
                         }}
                       >
                         Next <ChevronRight size={13} />
                       </button>
                     </div>
 
-                    {/* Right Quick Jump Indicator */}
-                    <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600 }}>
+                    {/* Right: Page Indicator */}
+                    <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600, textAlign: 'right' }}>
                       Page <strong style={{ color: '#007680' }}>{currentPage}</strong> of <strong style={{ color: '#0F172A' }}>{totalPages}</strong>
                     </div>
                   </>
