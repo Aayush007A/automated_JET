@@ -28,8 +28,8 @@ import {
 
 const STEPS: TimelineStep[] = [
   { id: 1, label: 'Ingest Data', sub: 'Upload files', icon: UploadCloud },
-  { id: 2, label: 'Auto-Cleansing', sub: 'Validate rules', icon: Sparkles },
-  { id: 3, label: 'Data File Mapping', sub: 'Map columns', icon: Table },
+  { id: 2, label: 'Data File Mapping', sub: 'Map columns', icon: Table },
+  { id: 3, label: 'Auto-Cleansing', sub: 'Validate rules', icon: Sparkles },
   { id: 4, label: 'Integrity Tests', sub: 'IR 1-4', icon: Activity },
   { id: 5, label: 'Parameter Rules', sub: 'Ex 1-12', icon: Settings },
   { id: 6, label: 'Executive Results', sub: 'Review', icon: BarChart3 },
@@ -37,8 +37,8 @@ const STEPS: TimelineStep[] = [
 
 const STEP_COPY: Record<number, { title: string; desc: string }> = {
   1: { title: 'Upload Trial Balance & Population', desc: 'Upload TB and Population files or an all-in-one workbook, then preview any sheet instantly.' },
-  2: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Verify column types, auto-standardize dates and numeric values, and validate audit constraints.' },
-  3: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte canonical schema for Trial Balance and Population.' },
+  2: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte canonical schema for Trial Balance and Population.' },
+  3: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Verify column types, auto-standardize dates and numeric values, and validate audit constraints.' },
   4: { title: 'Integrity & Data Readiness Tests (IR 1-4)', desc: 'Execute and review core integrity checks (Control Totals, Gaps, Seldom Accounts).' },
   5: { title: 'Exception Testing Parameters (Ex 1-12)', desc: 'Configure risk thresholds, account lists, keywords, and unrelated financial statement pairings.' },
   6: { title: 'Executive Summary & Audit Deliverables', desc: 'Interactive visual analytics, exception distributions, and one-click ZIP download of all outputs.' },
@@ -1343,7 +1343,7 @@ export const SparkJetWorkflow: React.FC = () => {
     if (currentStep === 1) {
       return (
         <button onClick={() => { setCurrentStep(2); setMaxCompletedStep(prev => Math.max(prev, 1)); }} disabled={!isStep1Valid} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
-          Continue <ArrowRight size={13} />
+          Continue to Mapping <ArrowRight size={13} />
         </button>
       );
     }
@@ -1355,6 +1355,28 @@ export const SparkJetWorkflow: React.FC = () => {
           </button>
           <button
             onClick={() => { setCurrentStep(3); setMaxCompletedStep((prev) => Math.max(prev, 2)); }}
+            disabled={!hasRequiredMappings}
+            className="btn-primary"
+            style={{
+              padding: '6px 16px', fontSize: '0.82rem',
+              opacity: !hasRequiredMappings ? 0.45 : 1,
+              cursor: !hasRequiredMappings ? 'not-allowed' : 'pointer'
+            }}
+            title={!hasRequiredMappings ? 'Map all required fields in Trial Balance and Population to proceed' : 'Continue to Auto-Cleansing'}
+          >
+            Continue to Auto-Cleansing <ArrowRight size={13} />
+          </button>
+        </div>
+      );
+    }
+    if (currentStep === 3) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+            <ArrowLeft size={13} /> Back
+          </button>
+          <button
+            onClick={() => { setCurrentStep(4); setMaxCompletedStep((prev) => Math.max(prev, 3)); }}
             disabled={autoCleaning || !isConstraintsPassed}
             className="btn-primary"
             style={{
@@ -1362,25 +1384,11 @@ export const SparkJetWorkflow: React.FC = () => {
               opacity: autoCleaning || !isConstraintsPassed ? 0.45 : 1,
               cursor: autoCleaning || !isConstraintsPassed ? 'not-allowed' : 'pointer'
             }}
-            title={!isConstraintsPassed ? 'All required checkpoints must pass before proceeding' : 'Continue to Mapping'}
-          >
-            Continue to Mapping <ArrowRight size={13} />
-          </button>
-        </div>
-      );
-    }
-    if (currentStep === 3) {
-      return (
-        <>
-          <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button
-            onClick={() => { setCurrentStep(4); setMaxCompletedStep((prev) => Math.max(prev, 3)); }}
-            className="btn-primary"
-            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
+            title={!isConstraintsPassed ? 'All required checkpoints must pass before proceeding' : 'Continue to IR Testing'}
           >
             Continue to IR Testing <ArrowRight size={13} />
           </button>
-        </>
+        </div>
       );
     }
     if (currentStep === 4) {
@@ -1557,25 +1565,8 @@ export const SparkJetWorkflow: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 2: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
+        {/* STEP 2: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
         {currentStep === 2 && (
-          <div>
-            <AutoCleanConstraintsPanel
-              workflowType="SPARK_JET"
-              runId={runId || undefined}
-              autoCleanReport={autoCleanReport}
-              onReportUpdate={(rep) => setAutoCleanReport(rep)}
-              onPreviewFailedRows={handlePreviewArtifact}
-              tbRowCount={status?.totalInputRows?.tb || 22}
-              glRowCount={status?.totalInputRows?.gl || (status?.glCheckpointsSummary?.totalLines || 36)}
-              coaRowCount={0}
-              onProceed={() => setCurrentStep(3)}
-            />
-          </div>
-        )}
-
-        {/* STEP 3: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
-        {currentStep === 3 && (
           <div>
             <DataFileMappingWorkspace
               datasets={[
@@ -1599,8 +1590,25 @@ export const SparkJetWorkflow: React.FC = () => {
                 },
               ]}
               onProceed={() => {
-                setCurrentStep(4);
+                setCurrentStep(3);
               }}
+            />
+          </div>
+        )}
+
+        {/* STEP 3: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
+        {currentStep === 3 && (
+          <div>
+            <AutoCleanConstraintsPanel
+              workflowType="SPARK_JET"
+              runId={runId || undefined}
+              autoCleanReport={autoCleanReport}
+              onReportUpdate={(rep) => setAutoCleanReport(rep)}
+              onPreviewFailedRows={handlePreviewArtifact}
+              tbRowCount={status?.totalInputRows?.tb || 22}
+              glRowCount={status?.totalInputRows?.gl || (status?.glCheckpointsSummary?.totalLines || 36)}
+              coaRowCount={0}
+              onProceed={() => setCurrentStep(4)}
             />
           </div>
         )}

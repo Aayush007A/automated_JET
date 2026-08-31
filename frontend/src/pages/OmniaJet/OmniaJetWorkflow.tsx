@@ -24,8 +24,8 @@ import {
 
 const STEPS: TimelineStep[] = [
   { id: 1, label: 'Ingest Datasets', sub: 'Upload files', icon: UploadCloud },
-  { id: 2, label: 'Auto-Cleansing', sub: 'Validate rules', icon: Sparkles },
-  { id: 3, label: 'Data File Mapping', sub: 'CDM Mapping', icon: Table },
+  { id: 2, label: 'Data File Mapping', sub: 'CDM Mapping', icon: Table },
+  { id: 3, label: 'Auto-Cleansing', sub: 'Validate rules', icon: Sparkles },
   { id: 4, label: 'Audit Parameters', sub: 'Golden Checks', icon: Settings },
   { id: 5, label: 'Data Quality & Recon', sub: '20 DQC Engine', icon: Activity },
   { id: 6, label: 'Executive Results', sub: 'Review', icon: BarChart3 },
@@ -33,8 +33,8 @@ const STEPS: TimelineStep[] = [
 
 const STEP_COPY: Record<number, { title: string; desc: string }> = {
   1: { title: 'Upload Audit Datasets', desc: 'Upload your multi-sheet workbook or separate CSV files for TB, Population and COA.' },
-  2: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Cleanse raw data and validate 16 mandatory audit schema rules.' },
-  3: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte CDM model across Trial Balance, General Ledger, and Chart of Accounts.' },
+  2: { title: 'Data File Mapping', desc: 'Map columns to the standard Deloitte CDM model across Trial Balance, General Ledger, and Chart of Accounts.' },
+  3: { title: 'Automated Data Cleansing & Constraints Check', desc: 'Cleanse raw data and validate 16 mandatory audit schema rules.' },
   4: { title: 'Audit Parameters & Golden Checks', desc: 'Define fiscal periods, currency handling, decimal formats and toggleable DQC rules.' },
   5: { title: 'Data Quality & Reconciliation Engine', desc: 'Executing CDM preparation, currency reconciliation and 20 DQC golden checks.' },
   6: { title: 'Executive Results & Audit Workpapers', desc: 'Review account reconciliation, DQC golden matrix, control totals, and generated artifacts.' },
@@ -791,7 +791,7 @@ export const OmniaJetWorkflow: React.FC = () => {
     if (currentStep === 1) {
       return (
         <button onClick={() => { setCurrentStep(2); setMaxCompletedStep(prev => Math.max(prev, 1)); }} disabled={!isStep1Valid} className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.82rem' }}>
-          Continue to Auto-Cleansing <ArrowRight size={13} />
+          Continue to Mapping <ArrowRight size={13} />
         </button>
       );
     }
@@ -803,6 +803,28 @@ export const OmniaJetWorkflow: React.FC = () => {
           </button>
           <button
             onClick={() => { setCurrentStep(3); setMaxCompletedStep((prev) => Math.max(prev, 2)); }}
+            disabled={!hasRequiredMappings}
+            className="btn-primary"
+            style={{
+              padding: '6px 16px', fontSize: '0.82rem',
+              opacity: !hasRequiredMappings ? 0.45 : 1,
+              cursor: !hasRequiredMappings ? 'not-allowed' : 'pointer'
+            }}
+            title={!hasRequiredMappings ? 'Map all required fields in Trial Balance, GL, and Chart of Accounts to proceed' : 'Continue to Auto-Cleansing'}
+          >
+            Continue to Auto-Cleansing <ArrowRight size={13} />
+          </button>
+        </div>
+      );
+    }
+    if (currentStep === 3) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
+            <ArrowLeft size={13} /> Back
+          </button>
+          <button
+            onClick={() => { setCurrentStep(4); setMaxCompletedStep(prev => Math.max(prev, 3)); }}
             disabled={autoCleaning || !isConstraintsPassed}
             className="btn-primary"
             style={{
@@ -810,25 +832,11 @@ export const OmniaJetWorkflow: React.FC = () => {
               opacity: autoCleaning || !isConstraintsPassed ? 0.45 : 1,
               cursor: autoCleaning || !isConstraintsPassed ? 'not-allowed' : 'pointer'
             }}
-            title={!isConstraintsPassed ? 'All required data checks must pass before proceeding' : 'Continue to Mapping'}
-          >
-            Continue to Mapping <ArrowRight size={13} />
-          </button>
-        </div>
-      );
-    }
-    if (currentStep === 3) {
-      return (
-        <>
-          <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}><ArrowLeft size={13} /> Back</button>
-          <button
-            onClick={() => { setCurrentStep(4); setMaxCompletedStep(prev => Math.max(prev, 3)); }}
-            className="btn-primary"
-            style={{ padding: '6px 16px', fontSize: '0.82rem' }}
+            title={!isConstraintsPassed ? 'All required data checks must pass before proceeding' : 'Continue to Parameters'}
           >
             Continue to Parameters <ArrowRight size={13} />
           </button>
-        </>
+        </div>
       );
     }
     if (currentStep === 4) {
@@ -986,25 +994,8 @@ export const OmniaJetWorkflow: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 2: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
+        {/* STEP 2: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
         {currentStep === 2 && (
-          <div>
-            <AutoCleanConstraintsPanel
-              workflowType="OMNIA_JET"
-              runId={runId || undefined}
-              autoCleanReport={autoCleanReport}
-              onReportUpdate={(rep) => setAutoCleanReport(rep)}
-              onPreviewFailedRows={handlePreviewArtifact}
-              tbRowCount={dynamicTbCount || 22}
-              glRowCount={dynamicGlCount || 36}
-              coaRowCount={26}
-              onProceed={() => setCurrentStep(3)}
-            />
-          </div>
-        )}
-
-        {/* STEP 3: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
-        {currentStep === 3 && (
           <div>
             <DataFileMappingWorkspace
               datasets={[
@@ -1038,6 +1029,23 @@ export const OmniaJetWorkflow: React.FC = () => {
                   rowCount: 26,
                 },
               ]}
+              onProceed={() => setCurrentStep(3)}
+            />
+          </div>
+        )}
+
+        {/* STEP 3: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
+        {currentStep === 3 && (
+          <div>
+            <AutoCleanConstraintsPanel
+              workflowType="OMNIA_JET"
+              runId={runId || undefined}
+              autoCleanReport={autoCleanReport}
+              onReportUpdate={(rep) => setAutoCleanReport(rep)}
+              onPreviewFailedRows={handlePreviewArtifact}
+              tbRowCount={dynamicTbCount || 22}
+              glRowCount={dynamicGlCount || 36}
+              coaRowCount={26}
               onProceed={() => setCurrentStep(4)}
             />
           </div>
