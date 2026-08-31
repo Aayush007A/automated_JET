@@ -30,7 +30,90 @@ import {
 } from 'lucide-react';
 import { RunSummary, RunConfig } from '../../types';
 
-// Register Chart.js Modules
+// Custom Callout Plugin for Leader Lines & Arrow Labels on Doughnut
+const hubDoughnutCalloutPlugin = {
+  id: 'hubDoughnutCallout',
+  afterDatasetsDraw(chart: any) {
+    if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
+    if (chart.options?.plugins?.hubDoughnutCallout?.display === false) return;
+
+    const { ctx, data } = chart;
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data || !meta.data.length) return;
+
+    const dataset = data.datasets[0];
+    if (!dataset || !dataset.data) return;
+
+    const total = dataset.data.reduce((a: number, b: number) => a + (Number(b) || 0), 0);
+    if (total <= 0) return;
+
+    ctx.save();
+
+    meta.data.forEach((element: any, index: number) => {
+      const val = Number(dataset.data[index]) || 0;
+      if (val <= 0) return;
+
+      const { startAngle, endAngle, outerRadius, x: centerX, y: centerY } = element;
+      if (outerRadius < 20) return;
+
+      const angle = startAngle + (endAngle - startAngle) / 2;
+
+      // 1. Point on outer edge
+      const startX = centerX + Math.cos(angle) * outerRadius;
+      const startY = centerY + Math.sin(angle) * outerRadius;
+
+      // 2. Elbow point extending outward diagonally
+      const extDist = 18;
+      const elbowX = centerX + Math.cos(angle) * (outerRadius + extDist);
+      const elbowY = centerY + Math.sin(angle) * (outerRadius + extDist);
+
+      // 3. Horizontal segment
+      const isRight = Math.cos(angle) >= 0;
+      const horizLen = 20;
+      const endX = isRight ? elbowX + horizLen : elbowX - horizLen;
+      const endY = elbowY;
+
+      // 4. Draw polyline leader line
+      ctx.beginPath();
+      ctx.strokeStyle = '#94A3B8';
+      ctx.lineWidth = 1.5;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(elbowX, elbowY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+
+      // Anchor dot on slice edge
+      ctx.beginPath();
+      ctx.arc(startX, startY, 2.5, 0, 2 * Math.PI);
+      ctx.fillStyle = '#64748B';
+      ctx.fill();
+
+      // 5. Clean text label & percentage
+      const rawLabel = (data.labels && data.labels[index]) ? String(data.labels[index]) : `Tier ${index + 1}`;
+      const cleanTitle = rawLabel
+        .replace(/\s*\(.*?\)/g, '')
+        .replace(/\s*Tier/g, '')
+        .trim();
+
+      const pct = ((val / total) * 100).toFixed(0);
+      const displayText = `${cleanTitle} - ${pct}%`;
+
+      // 6. Draw typography label
+      ctx.font = "600 11px 'Inter', sans-serif";
+      ctx.fillStyle = '#1E293B';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = isRight ? 'left' : 'right';
+      const textX = isRight ? endX + 6 : endX - 6;
+      ctx.fillText(displayText, textX, endY);
+    });
+
+    ctx.restore();
+  }
+};
+
+// Register Chart.js Modules & Hub Callout Plugin
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -46,7 +129,8 @@ ChartJS.register(
   LineController,
   RadarController,
   ArcElement,
-  DoughnutController
+  DoughnutController,
+  hubDoughnutCalloutPlugin
 );
 
 interface ExecutiveForensicIntelligenceHubProps {
@@ -552,9 +636,9 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     return { total, critical, moderate, low, avgRisk, pending };
   }, [dispositionList]);
 
-  // Clean Doughnut Chart Data with interactive informative tooltips
+  // Clean Doughnut Chart Data with leader line callouts
   const donutChartData = useMemo(() => ({
-    labels: ['Critical Risk Tier (Score ≥ 90)', 'Moderate Risk Tier (Score 75-89)', 'Low / Standard Risk Tier'],
+    labels: ['Critical Risk', 'Moderate Risk', 'Low / Standard'],
     datasets: [
       {
         data: [riskSummary.critical || 2, riskSummary.moderate || 3, Math.max(1, riskSummary.low)],
@@ -569,13 +653,15 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
   const donutChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '72%',
+    radius: '68%',
+    cutout: '66%',
     layout: {
-      padding: 12,
+      padding: { left: 55, right: 55, top: 18, bottom: 18 },
     },
     plugins: {
       legend: { display: false },
       doughnutCallout: false,
+      hubDoughnutCallout: { display: true },
       tooltip: {
         enabled: true,
         backgroundColor: '#FFFFFF',
@@ -950,7 +1036,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         </div>
       </div>
 
-      {/* ── TAB 1: CFO EXECUTIVE MEMORANDUM & CLEAN DOUGHNUT ── */}
+      {/* ── TAB 1: CFO EXECUTIVE MEMORANDUM & CLEAN DOUGHNUT WITH LEADER ARROWS ── */}
       <AnimatePresence mode="wait">
         {activeIntelligenceTab === 'memo' && (
           <motion.div
@@ -959,7 +1045,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(280px, 0.85fr)', gap: '18px' }}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(290px, 0.85fr)', gap: '18px' }}
           >
             {/* Left Letterhead Card */}
             <div
@@ -1078,35 +1164,32 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
               </div>
             </div>
 
-            {/* Right: Clean Centered Doughnut Chart with Rich Tooltip (No bottom legends clutter) */}
+            {/* Right: Clean Centered Doughnut Chart with Leader Line Callout Arrows */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Doughnut Chart Card */}
+              {/* Doughnut Chart Card with Callout Arrows */}
               <div
                 style={{
                   background: '#FFFFFF',
                   borderRadius: '16px',
                   border: '1px solid #E2E8F0',
-                  padding: '24px 20px',
+                  padding: '24px 18px',
                   boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                 }}
               >
-                <div style={{ width: '100%', marginBottom: '12px' }}>
+                <div style={{ width: '100%', marginBottom: '6px' }}>
                   <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Risk Concentration
                   </span>
                   <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', margin: '2px 0 0' }}>
                     Population Risk Distribution
                   </h4>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.70rem', color: '#64748B' }}>
-                    Hover over segments to inspect risk population volume &amp; exposure.
-                  </p>
                 </div>
 
-                {/* Clean Centered Doughnut with Centered Live Metric */}
-                <div style={{ height: '190px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Sized Doughnut with Leader Lines & Centered Score */}
+                <div style={{ height: '230px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Doughnut data={donutChartData} options={donutChartOptions} />
                   <div
                     style={{
@@ -1178,7 +1261,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
           </motion.div>
         )}
 
-        {/* ── TAB 2: BENFORD'S LAW (ULTRA-PREMIUM SLEEK EXECUTIVE CARDS) ── */}
+        {/* ── TAB 2: BENFORD'S LAW (EXACT STYLING MATCH FOR 3 EXECUTIVE CARDS) ── */}
         {activeIntelligenceTab === 'benford' && (
           <motion.div
             key="benford"
@@ -1186,7 +1269,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(300px, 0.85fr)', gap: '18px' }}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.50fr) minmax(320px, 0.90fr)', gap: '18px' }}
           >
             {/* Left: Benford Interactive Bar Chart */}
             <div
@@ -1245,224 +1328,221 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
               </div>
             </div>
 
-            {/* Right: State-of-the-Art Executive Cards (Sleek, Clean, Visual) */}
+            {/* Right: 3 Masterfully Styled Executive Forensic Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Card 1: Forensic Goodness-of-Fit Health */}
+              {/* Card 1: Distribution Conformance */}
               <div
                 style={{
-                  background: '#FFFFFF',
-                  borderRadius: '14px',
-                  border: '1px solid #E2E8F0',
-                  borderTop: '3px solid #10B981',
+                  background: '#F4FBF7',
+                  borderRadius: '16px',
+                  border: '1px solid #D1FAE5',
                   padding: '18px 20px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Distribution Conformance
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#065F46', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    DISTRIBUTION CONFORMANCE
                   </span>
                   <span
                     style={{
-                      fontSize: '0.66rem',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      background: '#F0FDF4',
-                      color: '#166534',
-                      border: '1px solid #BBF7D0',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: '#ECFDF5',
+                      color: '#065F46',
+                      border: '1px solid #A7F3D0',
                     }}
                   >
-                    Grade A · High Integrity
+                    Within threshold
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace', lineHeight: 1 }}>
                       {chiSquareScore}
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>
-                      Goodness-of-Fit (χ² Statistic)
+                    <div style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
+                      Goodness-of-fit (χ²)
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 750, color: '#059669', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#059669', fontFamily: 'monospace' }}>
                       &lt; 15.51
                     </div>
-                    <div style={{ fontSize: '0.64rem', color: '#94A3B8' }}>
-                      Critical Threshold (df=8)
+                    <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
+                      Critical threshold · df=8
                     </div>
                   </div>
                 </div>
 
-                {/* Progress bar gauge */}
+                {/* Progress bar */}
                 <div style={{ marginTop: '12px' }}>
-                  <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden' }}>
                     <div
                       style={{
-                        width: `${Math.min(100, Math.max(12, (chiSquareScore / 15.51) * 100))}%`,
+                        width: `${Math.min(100, Math.max(15, (chiSquareScore / 15.51) * 100))}%`,
                         height: '100%',
                         background: '#10B981',
                         borderRadius: '999px',
                       }}
                     />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#94A3B8', marginTop: '4px' }}>
-                    <span>0.00 (Ideal)</span>
-                    <span style={{ color: '#059669', fontWeight: 700 }}>Safe Conformance Zone</span>
-                    <span>15.51 (Cutoff)</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', color: '#94A3B8', marginTop: '4px' }}>
+                    <span>0.00 ideal</span>
+                    <span style={{ color: '#059669', fontWeight: 750 }}>Safe zone</span>
+                    <span>15.51 cutoff</span>
                   </div>
                 </div>
 
-                <p style={{ margin: '10px 0 0', fontSize: '0.72rem', color: '#475569', lineHeight: 1.45 }}>
-                  Mathematical conformity verified across all non-zero monetary postings.
+                <p style={{ margin: '12px 0 0', fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
+                  The population follows the expected first-digit pattern closely. Any isolated digit deviation should be treated as an investigation signal, not a fraud conclusion.
                 </p>
               </div>
 
-              {/* Card 2: Primary Digit Variance & Focus Area */}
+              {/* Card 2: Primary Investigation Signal */}
               <div
                 style={{
-                  background: '#FFFFFF',
-                  borderRadius: '14px',
-                  border: '1px solid #E2E8F0',
-                  borderTop: '3px solid #F43F5E',
+                  background: '#FFF7F8',
+                  borderRadius: '16px',
+                  border: '1px solid #FEE2E2',
                   padding: '18px 20px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#E11D48', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Anomaly Detection Signal
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#9F1239', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    PRIMARY INVESTIGATION SIGNAL
                   </span>
                   <span
                     style={{
-                      fontSize: '0.66rem',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      borderRadius: '8px',
                       background: '#FFF1F2',
                       color: '#9F1239',
                       border: '1px solid #FECDD3',
                     }}
                   >
-                    Focus Area
+                    Digit 7 focus
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#9F1239', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '2.0rem', fontWeight: 900, color: '#881337', fontFamily: 'monospace', lineHeight: 1 }}>
                       Digit 7
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>
-                      Leading Number Spike
+                    <div style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
+                      Leading-digit concentration
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 850, color: '#9F1239', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '1.30rem', fontWeight: 900, color: '#9F1239', fontFamily: 'monospace' }}>
                       +3.3 pp
                     </div>
-                    <div style={{ fontSize: '0.64rem', color: '#94A3B8' }}>
-                      Variance from Expected
+                    <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
+                      vs expected 5.8%
                     </div>
                   </div>
                 </div>
 
-                {/* Dual Comparison Bars */}
-                <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#9F1239', fontWeight: 750 }}>
-                      <span>Observed Population Share</span>
-                      <span>9.1%</span>
+                {/* Dual Observed vs Expected Sub-boxes */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
+                  <div style={{ background: '#FFFFFF', borderRadius: '10px', border: '1px solid #FEE2E2', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#9F1239', textTransform: 'uppercase' }}>
+                      OBSERVED
                     </div>
-                    <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden', marginTop: '2px' }}>
-                      <div style={{ width: '91%', height: '100%', background: '#FB7185', borderRadius: '999px' }} />
+                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#881337', fontFamily: 'monospace', marginTop: '2px' }}>
+                      9.1%
                     </div>
                   </div>
 
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#64748B', fontWeight: 650 }}>
-                      <span>Expected Theoretical Standard</span>
-                      <span>5.8%</span>
+                  <div style={{ background: '#FFFFFF', borderRadius: '10px', border: '1px solid #FEE2E2', padding: '10px 14px' }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>
+                      EXPECTED
                     </div>
-                    <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden', marginTop: '2px' }}>
-                      <div style={{ width: '58%', height: '100%', background: '#94A3B8', borderRadius: '999px' }} />
+                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#334155', fontFamily: 'monospace', marginTop: '2px' }}>
+                      5.8%
                     </div>
                   </div>
                 </div>
 
+                {/* Bottom driver callout */}
                 <div
                   style={{
+                    background: '#FFFFFF',
+                    borderRadius: '8px',
+                    border: '1px solid #FEE2E2',
+                    padding: '8px 12px',
                     marginTop: '10px',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    background: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                    fontSize: '0.70rem',
+                    fontSize: '0.76rem',
                     color: '#475569',
-                    lineHeight: 1.4,
+                    lineHeight: 1.45,
                   }}
                 >
-                  <strong style={{ color: '#0F172A' }}>Driver:</strong> Recurring $79,800.00 consulting retainer disbursements in Q4.
+                  <strong style={{ color: '#0F172A' }}>Observed driver:</strong> recurring $79,800 consulting retainer disbursements in Q4.
                 </div>
               </div>
 
-              {/* Card 3: Audit Scope & Population Screened */}
+              {/* Card 3: Tested Audit Scope */}
               <div
                 style={{
-                  background: '#FFFFFF',
-                  borderRadius: '14px',
-                  border: '1px solid #E2E8F0',
-                  borderTop: '3px solid #007680',
+                  background: '#F4FAFB',
+                  borderRadius: '16px',
+                  border: '1px solid #E0F2FE',
                   padding: '18px 20px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Tested Audit Scope
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369A1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    TESTED AUDIT SCOPE
                   </span>
                   <span
                     style={{
-                      fontSize: '0.66rem',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      background: '#F0FDFA',
-                      color: '#007680',
-                      border: '1px solid #CCFBF1',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: '#F0F9FF',
+                      color: '#0369A1',
+                      border: '1px solid #BAE6FD',
                     }}
                   >
                     100% Comprehensive
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace', lineHeight: 1 }}>
                       {fmtNum(totalGlPopulation)}
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>
-                      General Ledger Journal Entries
+                    <div style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
+                      General Ledger journal entries
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 750, color: '#059669' }}>
-                      0 Exclusions
+                    <div style={{ fontSize: '1.10rem', fontWeight: 900, color: '#059669' }}>
+                      0 exclusions
                     </div>
-                    <div style={{ fontSize: '0.64rem', color: '#94A3B8' }}>
-                      Full Fiscal Year
+                    <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
+                      Full fiscal-year screen
                     </div>
                   </div>
                 </div>
 
-                <p style={{ margin: '10px 0 0', fontSize: '0.72rem', color: '#475569', lineHeight: 1.45 }}>
-                  Screened all non-zero monetary transaction entries against trial balance positions.
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '0.76rem', color: '#475569' }}>
+                  <CheckCircle2 size={15} color="#059669" />
+                  <span>Non-zero monetary entries screened against trial balance positions.</span>
+                </div>
               </div>
             </div>
           </motion.div>
