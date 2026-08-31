@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { InfiniteStageCarousel } from '../components/dashboard/InfiniteStageCarousel';
-import { AnalyticsShowcaseSection } from '../components/dashboard/AnalyticsShowcaseSection';
+import { VisualizationShowcase } from '../components/dashboard/VisualizationShowcase';
 
 /* ── Smooth One-Way Scroll-Reveal ── */
 const sectionReveal = {
@@ -843,9 +843,16 @@ export const DashboardPage: React.FC = () => {
       </motion.section>
 
       {/* ══════════════════════════════════════════════════════════
-      4. ANALYTICS VISUALIZATION SHOWCASE SECTION
+      4. VISUALIZATIONS & INSIGHTS SHOWCASE SECTION
       ══════════════════════════════════════════════════════════ */}
-      <AnalyticsShowcaseSection />
+      <motion.div
+        initial={false}
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={sectionReveal}
+      >
+        <VisualizationShowcase />
+      </motion.div>
 
       {/* ══════════════════════════════════════════════════════════
       5. FULL-SCREEN EXECUTION HISTORY TABLE SECTION
