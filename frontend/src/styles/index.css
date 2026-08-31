@@ -319,136 +319,17 @@ a:hover {
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* ── SKELETON SHIMMER SYSTEM ── */
-@keyframes shimmerAnim {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.skeleton-shimmer {
-  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
-  background-size: 200% 100%;
-  animation: shimmerAnim 1.6s infinite ease-in-out;
-  border-radius: 8px;
-}
-
-/* ── SLIDE-OVER INSPECTION DRAWER ── */
-@keyframes drawerSlideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0.5;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes backdropFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(4px);
-  z-index: 999;
-  display: flex;
-  justify-content: flex-end;
-  animation: backdropFadeIn 0.22s ease-out forwards;
-}
-
-.drawer-panel {
-  width: 100%;
-  max-width: 680px;
-  height: 100vh;
-  background: #FFFFFF;
-  box-shadow: -8px 0 32px rgba(15, 23, 42, 0.16), -2px 0 8px rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
-  animation: drawerSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  z-index: 1000;
-  border-left: 1px solid #E2E8F0;
-}
-
-/* ── GLOBAL AUDITOR COMMAND PALETTE (CTRL+K) ── */
-.cmd-palette-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(6px);
-  z-index: 1050;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 14vh;
-  animation: backdropFadeIn 0.18s ease-out forwards;
-}
-
-.cmd-palette-modal {
-  width: 100%;
-  max-width: 580px;
-  background: #FFFFFF;
-  border-radius: 16px;
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 118, 128, 0.1);
-  overflow: hidden;
-  animation: smoothScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.cmd-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  color: #334155;
-  font-size: 0.84rem;
-  font-weight: 600;
-}
-
-.cmd-item:hover,
-.cmd-item.active {
-  background: #F0FDFA;
-  color: #007680;
-  transform: translateX(2px);
-}
-
-/* ── STATUS GLOW PULSE ── */
-@keyframes statusGlow {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(0, 118, 128, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 0 5px rgba(0, 118, 128, 0);
-  }
-}
-
-.status-pulse {
-  animation: statusGlow 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-}
-
-/* ── MICRO-ELEVATION CARDS ── */
-.elevated-card {
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 6px 16px -2px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.elevated-card:hover {
+.smooth-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06), 0 12px 28px -4px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  box-shadow: var(--shadow-card-hover);
+}
+
+.smooth-row {
+  transition: background-color 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.smooth-row:hover {
+  background-color: #F8FAFC !important;
 }
 
 /* Buttons */
