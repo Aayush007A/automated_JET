@@ -1164,53 +1164,44 @@ export const VisualizationShowcase: React.FC = () => {
 
       <div style={{ maxWidth: '1440px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
 
-        {/* ── Section Header Row (Generous Breathing Room) ── */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '20px',
-          marginBottom: '28px',
-        }}>
-          <div>
-            <div style={{ marginBottom: '12px' }}>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 12px',
-                borderRadius: '999px',
-                background: 'rgba(0, 163, 173, 0.10)',
-                border: '1px solid rgba(0, 118, 128, 0.18)',
-                color: '#007680',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-              }}>
-                <Sparkles size={13} />
-                Client-Ready Visualizations &amp; Exception Analytics Showcase
-              </span>
-            </div>
-            <h2 style={{
-              fontSize: 'clamp(1.75rem, 2.5vw, 2.25rem)',
-              fontWeight: 800,
-              color: '#0F172A',
-              letterSpacing: '-0.035em',
-              lineHeight: 1.15,
-              margin: 0,
+        {/* ── Section Header (Unified Typographic Hierarchy) ── */}
+        <div style={{ marginBottom: '24px', maxWidth: '820px' }}>
+          <div style={{ marginBottom: '10px' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '999px',
+              background: 'rgba(0, 163, 173, 0.10)',
+              border: '1px solid rgba(0, 118, 128, 0.18)',
+              color: '#007680',
+              fontSize: '0.74rem',
+              fontWeight: 700,
             }}>
-              Visualizations &amp; Insights.{' '}
-              <span style={{ color: '#007680' }}>Understand every audit category.</span>
-            </h2>
+              <Sparkles size={13} />
+              Client-Ready Visualizations &amp; Exception Analytics Showcase
+            </span>
           </div>
 
+          <h2 style={{
+            fontSize: 'clamp(1.75rem, 2.5vw, 2.25rem)',
+            fontWeight: 800,
+            color: '#0F172A',
+            letterSpacing: '-0.035em',
+            lineHeight: 1.18,
+            margin: '0 0 8px 0',
+          }}>
+            Visualizations &amp; Insights.{' '}
+            <span style={{ color: '#007680' }}>Understand every audit category.</span>
+          </h2>
+
           <p style={{
-            fontSize: '0.84rem',
+            fontSize: '0.88rem',
             color: '#64748B',
-            lineHeight: 1.5,
-            maxWidth: '400px',
+            lineHeight: 1.55,
+            maxWidth: '680px',
             margin: 0,
-            textAlign: 'right',
           }}>
             Explore real interactive visual workpapers generated across all 12 analytical categories, Trial Balance checkpoints, and forensic risk matrices.
           </p>

@@ -441,59 +441,49 @@ export const DashboardPage: React.FC = () => {
         />
 
         <div style={{ maxWidth: '1520px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          {/* Section Header Row — Balanced 2-Column Alignment */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '24px',
-            marginBottom: '38px',
-          }}>
-            <div style={{ maxWidth: '620px' }}>
-              {/* Pill badge */}
-              <div style={{ marginBottom: '14px' }}>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '5px 14px',
-                  borderRadius: '999px',
-                  background: 'rgba(0, 163, 173, 0.10)',
-                  border: '1px solid rgba(0, 118, 128, 0.18)',
-                  color: '#007680',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.01em',
-                }}>
-                  <ShieldCheck size={14} />
-                  Powerful audit capabilities built for accuracy and assurance
-                </span>
-              </div>
-
-              {/* 2-line Headline */}
-              <h2 style={{
-                fontSize: 'clamp(2.1rem, 3.3vw, 2.85rem)',
-                fontWeight: 800,
-                color: '#0F172A',
-                letterSpacing: '-0.04em',
-                lineHeight: 1.1,
-                margin: 0,
+          {/* Section Header (Unified Typographic Hierarchy) */}
+          <div style={{ marginBottom: '32px', maxWidth: '820px' }}>
+            {/* Pill badge */}
+            <div style={{ marginBottom: '12px' }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 14px',
+                borderRadius: '999px',
+                background: 'rgba(0, 163, 173, 0.10)',
+                border: '1px solid rgba(0, 118, 128, 0.18)',
+                color: '#007680',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                letterSpacing: '0.01em',
               }}>
-                Built for audit excellence.<br />
-                <span style={{ color: '#007680' }}>Engineered for confidence.</span>
-              </h2>
+                <ShieldCheck size={14} />
+                Powerful audit capabilities built for accuracy and assurance
+              </span>
             </div>
 
-            {/* Right Subtitle Description — Cleanly Positioned alongside the header */}
+            {/* Headline */}
+            <h2 style={{
+              fontSize: 'clamp(2.1rem, 3.3vw, 2.85rem)',
+              fontWeight: 800,
+              color: '#0F172A',
+              letterSpacing: '-0.04em',
+              lineHeight: 1.15,
+              margin: '0 0 10px 0',
+            }}>
+              Built for audit excellence.{' '}
+              <span style={{ color: '#007680' }}>Engineered for confidence.</span>
+            </h2>
+
+            {/* Subtitle Description */}
             <p style={{
               fontSize: 'clamp(0.88rem, 1.05vw, 0.95rem)',
               color: '#64748B',
-              lineHeight: 1.65,
-              maxWidth: '380px',
+              lineHeight: 1.6,
+              maxWidth: '650px',
               fontWeight: 400,
               margin: 0,
-              paddingBottom: '4px',
             }}>
               Comprehensive automated testing suite covering trial balance validation, account reconciliation, and exception management.
             </p>
@@ -754,18 +744,18 @@ export const DashboardPage: React.FC = () => {
         />
 
         <div style={{ maxWidth: '1520px', margin: '0 auto', position: 'relative', zIndex: 10 }}>
-          {/* Section Header Row — Matching Section 2 Layout */}
+          {/* Section Header Row — Unified Typographic Hierarchy */}
           <div style={{
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '24px',
+            gap: '20px',
             marginBottom: '32px',
           }}>
-            <div style={{ maxWidth: '620px' }}>
+            <div style={{ maxWidth: '780px' }}>
               {/* Pill Badge */}
-              <div style={{ marginBottom: '14px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -784,54 +774,55 @@ export const DashboardPage: React.FC = () => {
                 </span>
               </div>
 
-              {/* 2-line Headline */}
+              {/* Headline */}
               <h2 style={{
                 fontSize: 'clamp(2.1rem, 3.3vw, 2.85rem)',
                 fontWeight: 800,
                 color: '#0F172A',
                 letterSpacing: '-0.04em',
-                lineHeight: 1.1,
-                margin: 0,
+                lineHeight: 1.15,
+                margin: '0 0 10px 0',
               }}>
-                Unified 6-Stage Audit Testing.<br />
+                Unified 6-Stage Audit Testing.{' '}
                 <span style={{ color: '#007680' }}>Continuous Lifecycle Stream.</span>
               </h2>
-            </div>
 
-            {/* Right Subtitle + Start Audit Execution Button */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '14px', maxWidth: '420px' }}>
+              {/* Subtitle Description */}
               <p style={{
                 fontSize: 'clamp(0.88rem, 1.05vw, 0.95rem)',
                 color: '#64748B',
-                lineHeight: 1.65,
+                lineHeight: 1.6,
+                maxWidth: '680px',
                 fontWeight: 400,
                 margin: 0,
               }}>
                 Simply upload your datasets. The intelligent orchestration engine auto-analyzes schemas, verifies mathematical integrity, and executes full testing seamlessly.
               </p>
-
-              <motion.button
-                onClick={() => handleStartWorkflow()}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '11px 22px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
-                  color: '#FFFFFF',
-                  fontSize: '0.86rem',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(0, 118, 128, 0.28)',
-                }}
-                whileHover={{ scale: 1.02, transform: 'translateY(-1px)' }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Rocket size={15} /> Start Audit Execution <ArrowRight size={14} />
-              </motion.button>
             </div>
+
+            {/* Start Audit Execution Button */}
+            <motion.button
+              onClick={() => handleStartWorkflow()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 24px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                color: '#FFFFFF',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(0, 118, 128, 0.28)',
+                flexShrink: 0,
+              }}
+              whileHover={{ scale: 1.02, transform: 'translateY(-1px)' }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Rocket size={15} /> Start Audit Execution <ArrowRight size={14} />
+            </motion.button>
           </div>
 
           {/* Infinite Horizontal Card Carousel Conveyor */}
@@ -845,8 +836,14 @@ export const DashboardPage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════
       4. VISUALIZATIONS & INSIGHTS SHOWCASE SECTION
       ══════════════════════════════════════════════════════════ */}
-      <VisualizationShowcase />
-
+      <motion.div
+        initial={false}
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={sectionReveal}
+      >
+        <VisualizationShowcase />
+      </motion.div>
 
       {/* ══════════════════════════════════════════════════════════
       5. FULL-SCREEN EXECUTION HISTORY TABLE SECTION
