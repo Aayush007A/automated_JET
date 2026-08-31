@@ -142,8 +142,9 @@ const hubDoughnutCalloutPlugin = {
       const pillHeight = 24;
       const pillWidth = pillPaddingX * 2 + dotSize + dotMargin + textWidth + gap + pctBadgeWidth;
 
-      const extDist = 18;
-      const elbowY = centerY + Math.sin(angle) * (outerRadius + extDist);
+      // Radial extension distance from slice perimeter
+      const radialExt = 22;
+      const elbowY = centerY + Math.sin(angle) * (outerRadius + radialExt);
 
       items.push({
         index,
@@ -184,26 +185,24 @@ const hubDoughnutCalloutPlugin = {
     adjustSideY(leftItems);
     adjustSideY(rightItems);
 
-    // Draw all items
+    // Draw all items outside the doughnut
     items.forEach((item) => {
       ctx.globalAlpha = 1;
 
       const { startX, startY, angle, isRight, outerRadius, centerX, centerY, adjustedY, sliceColor, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth } = item;
 
       // 1. Leader Line Geometry
-      const extDist = 18;
-      const elbowX = centerX + Math.cos(angle) * (outerRadius + extDist);
+      const radialExt = 20;
+      const elbowX = centerX + Math.cos(angle) * (outerRadius + radialExt);
       const elbowY = adjustedY;
 
-      const horizMargin = 14;
-      const endX = isRight
-        ? Math.min((chartArea?.right || 400) - pillWidth - 4, elbowX + horizMargin)
-        : Math.max((chartArea?.left || 0) + pillWidth + 4, elbowX - horizMargin);
+      const horizLen = 18;
+      const endX = isRight ? elbowX + horizLen : elbowX - horizLen;
       const endY = elbowY;
 
       // Connector Line with subtle slice color
       ctx.beginPath();
-      ctx.strokeStyle = '#94A3B8';
+      ctx.strokeStyle = sliceColor;
       ctx.lineWidth = 1.25;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -215,15 +214,30 @@ const hubDoughnutCalloutPlugin = {
 
       // Perimeter Anchor Dot
       ctx.beginPath();
-      ctx.arc(startX, startY, 2.5, 0, 2 * Math.PI);
+      ctx.arc(startX, startY, 3, 0, 2 * Math.PI);
       ctx.fillStyle = sliceColor;
       ctx.fill();
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = '#FFFFFF';
       ctx.stroke();
 
-      // 2. Floating Pill Card Badge
-      const pillX = isRight ? endX + 4 : endX - pillWidth - 4;
+      // Visible Arrow Pointer Tip at end of leader line pointing at the pill badge
+      ctx.beginPath();
+      if (isRight) {
+        ctx.moveTo(endX + 4, endY);
+        ctx.lineTo(endX - 3, endY - 3.5);
+        ctx.lineTo(endX - 3, endY + 3.5);
+      } else {
+        ctx.moveTo(endX - 4, endY);
+        ctx.lineTo(endX + 3, endY - 3.5);
+        ctx.lineTo(endX + 3, endY + 3.5);
+      }
+      ctx.closePath();
+      ctx.fillStyle = sliceColor;
+      ctx.fill();
+
+      // 2. Floating Pill Card Badge - Placed outside the arrow with 6px clear gap
+      const pillX = isRight ? endX + 6 : endX - pillWidth - 6;
       const pillY = endY - pillHeight / 2;
 
       // Card Drop Shadow

@@ -67,7 +67,7 @@ function drawCanvasRoundRect(
   }
 }
 
-// Custom Chart.js Plugin for Ultra-Crisp Floating Pill Badges & Smooth Slice Connectors
+// Custom Chart.js Plugin for Ultra-Crisp Floating Pill Badges & Visible Arrow Connectors
 const doughnutCalloutPlugin = {
   id: 'doughnutCallout',
   afterDatasetsDraw(chart: any) {
@@ -157,8 +157,9 @@ const doughnutCalloutPlugin = {
       const pillHeight = 24;
       const pillWidth = pillPaddingX * 2 + dotSize + dotMargin + textWidth + gap + pctBadgeWidth;
 
-      const extDist = 18;
-      const elbowY = centerY + Math.sin(angle) * (outerRadius + extDist);
+      // Radial extension distance from slice perimeter
+      const radialExt = 22;
+      const elbowY = centerY + Math.sin(angle) * (outerRadius + radialExt);
 
       items.push({
         index,
@@ -200,27 +201,25 @@ const doughnutCalloutPlugin = {
     adjustSideY(leftItems);
     adjustSideY(rightItems);
 
-    // Draw all items
+    // Draw all callout arrows & floating pill badges outside the doughnut
     items.forEach((item) => {
       const alpha = item.isSelected ? 1 : 0.25;
       ctx.globalAlpha = alpha;
 
       const { startX, startY, angle, isRight, outerRadius, centerX, centerY, adjustedY, sliceColor, isSelected, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth } = item;
 
-      // 1. Leader Line Geometry
-      const extDist = isSelected && selectedIndex !== null ? 22 : 18;
-      const elbowX = centerX + Math.cos(angle) * (outerRadius + extDist);
+      // 1. Leader Line Geometry - Extending clearly outside the doughnut
+      const radialExt = isSelected && selectedIndex !== null ? 24 : 20;
+      const elbowX = centerX + Math.cos(angle) * (outerRadius + radialExt);
       const elbowY = adjustedY;
 
-      const horizMargin = 14;
-      const endX = isRight
-        ? Math.min((chartArea?.right || 400) - pillWidth - 4, elbowX + horizMargin)
-        : Math.max((chartArea?.left || 0) + pillWidth + 4, elbowX - horizMargin);
+      const horizLen = 18;
+      const endX = isRight ? elbowX + horizLen : elbowX - horizLen;
       const endY = elbowY;
 
-      // Connector Line with subtle slice color
+      // Smooth Connector Line
       ctx.beginPath();
-      ctx.strokeStyle = isSelected && selectedIndex !== null ? sliceColor : '#94A3B8';
+      ctx.strokeStyle = sliceColor;
       ctx.lineWidth = isSelected && selectedIndex !== null ? 1.75 : 1.25;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -230,17 +229,32 @@ const doughnutCalloutPlugin = {
       ctx.lineTo(endX, endY);
       ctx.stroke();
 
-      // Perimeter Anchor Dot
+      // Perimeter Anchor Ring on slice edge
       ctx.beginPath();
-      ctx.arc(startX, startY, isSelected && selectedIndex !== null ? 3.5 : 2.5, 0, 2 * Math.PI);
+      ctx.arc(startX, startY, 3, 0, 2 * Math.PI);
       ctx.fillStyle = sliceColor;
       ctx.fill();
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = '#FFFFFF';
       ctx.stroke();
 
-      // 2. Floating Pill Card Badge
-      const pillX = isRight ? endX + 4 : endX - pillWidth - 4;
+      // Visible Arrow Pointer Tip at end of leader line pointing at the pill badge
+      ctx.beginPath();
+      if (isRight) {
+        ctx.moveTo(endX + 4, endY);
+        ctx.lineTo(endX - 3, endY - 3.5);
+        ctx.lineTo(endX - 3, endY + 3.5);
+      } else {
+        ctx.moveTo(endX - 4, endY);
+        ctx.lineTo(endX + 3, endY - 3.5);
+        ctx.lineTo(endX + 3, endY + 3.5);
+      }
+      ctx.closePath();
+      ctx.fillStyle = sliceColor;
+      ctx.fill();
+
+      // 2. Floating Pill Card Badge - Placed outside the arrow with 6px clear gap
+      const pillX = isRight ? endX + 6 : endX - pillWidth - 6;
       const pillY = endY - pillHeight / 2;
 
       // Card Drop Shadow
@@ -254,7 +268,7 @@ const doughnutCalloutPlugin = {
       ctx.fillStyle = '#FFFFFF';
       ctx.fill();
 
-      // Reset Shadow
+      // Reset Shadow for crisp borders & typography
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
@@ -265,7 +279,7 @@ const doughnutCalloutPlugin = {
       ctx.strokeStyle = isSelected && selectedIndex !== null ? sliceColor : '#E2E8F0';
       ctx.stroke();
 
-      // Colored Dot inside Pill
+      // Colored Indicator Dot inside Pill
       const pillPaddingX = 8;
       const dotSize = 6;
       const dotMargin = 6;
@@ -615,13 +629,13 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
   const pieChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '48%',
+    cutout: '56%',
     layout: {
       padding: {
-        top: 22,
-        bottom: 22,
-        left: 105,
-        right: 105,
+        top: 26,
+        bottom: 26,
+        left: 140,
+        right: 140,
       },
     },
     animation: {
