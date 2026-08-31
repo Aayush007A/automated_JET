@@ -323,12 +323,14 @@ const baseChartOptions: any = {
 const baseDoughnutOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
-  cutout: '62%',
+  cutout: '65%',
   animation: { duration: 600 },
   plugins: {
     legend: {
       display: false,
     },
+    doughnutCallout: false,
+    doughnutCalloutPlugin: false,
     tooltip: {
       backgroundColor: '#0F172A',
       titleFont: { size: 10, weight: 'bold', family: "'Inter', sans-serif" },

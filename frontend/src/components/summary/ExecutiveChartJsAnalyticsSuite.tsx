@@ -73,6 +73,7 @@ const doughnutCalloutPlugin = {
   afterDatasetsDraw(chart: any) {
     if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
     if (chart.options?.plugins?.doughnutCallout === false || chart.options?.plugins?.doughnutCallout?.display === false) return;
+    if (chart.width < 320) return; // Prevent callout collisions on compact/showcase widgets
 
     const { ctx, data, chartArea } = chart;
     const meta = chart.getDatasetMeta(0);
