@@ -100,6 +100,7 @@ const doughnutCalloutPlugin = {
       angle: number;
       cos: number;
       sin: number;
+      isRight: boolean;
       outerRadius: number;
       centerX: number;
       centerY: number;
@@ -108,7 +109,6 @@ const doughnutCalloutPlugin = {
       pillHeight: number;
       textWidth: number;
       pctWidth: number;
-      sector: 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT' | 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM_LEFT' | 'BOTTOM_RIGHT';
       targetPillY: number;
     }
 
@@ -126,6 +126,7 @@ const doughnutCalloutPlugin = {
       const sin = Math.sin(angle);
       const startX = centerX + cos * outerRadius;
       const startY = centerY + sin * outerRadius;
+      const isRight = cos >= 0;
 
       const rawLabel = (data.labels && data.labels[index]) ? String(data.labels[index]) : `Item ${index + 1}`;
       // Clean title: extract concise base category name before parentheses or square brackets
@@ -157,18 +158,6 @@ const doughnutCalloutPlugin = {
       const pillHeight = 24;
       const pillWidth = pillPaddingX * 2 + dotSize + dotMargin + textWidth + gap + pctBadgeWidth;
 
-      // Classify sector based on natural slice angle
-      let sector: CalloutItem['sector'];
-      if (sin < -0.75) {
-        sector = 'TOP';
-      } else if (sin > 0.75) {
-        sector = 'BOTTOM';
-      } else if (cos >= 0) {
-        sector = sin < 0 ? 'TOP_RIGHT' : 'BOTTOM_RIGHT';
-      } else {
-        sector = sin < 0 ? 'TOP_LEFT' : 'BOTTOM_LEFT';
-      }
-
       const radialDist = isSelected && selectedIndex !== null ? 22 : 18;
       const initialPillY = centerY + sin * (outerRadius + radialDist) - pillHeight / 2;
 
@@ -183,6 +172,7 @@ const doughnutCalloutPlugin = {
         angle,
         cos,
         sin,
+        isRight,
         outerRadius,
         centerX,
         centerY,
@@ -191,7 +181,6 @@ const doughnutCalloutPlugin = {
         pillHeight,
         textWidth,
         pctWidth,
-        sector,
         targetPillY: initialPillY,
       });
     });
@@ -199,11 +188,11 @@ const doughnutCalloutPlugin = {
     const cWidth = chart.width || 420;
     const cHeight = chart.height || 340;
 
-    // Anti-collision vertical separation for right-side and left-side sectors
-    const rightItems = items.filter(it => it.sector === 'TOP_RIGHT' || it.sector === 'BOTTOM_RIGHT').sort((a, b) => a.sin - b.sin);
-    const leftItems = items.filter(it => it.sector === 'TOP_LEFT' || it.sector === 'BOTTOM_LEFT').sort((a, b) => a.sin - b.sin);
+    // Anti-collision vertical separation for right-side and left-side lists
+    const rightItems = items.filter(it => it.isRight).sort((a, b) => a.sin - b.sin);
+    const leftItems = items.filter(it => !it.isRight).sort((a, b) => a.sin - b.sin);
 
-    const minGap = 28;
+    const minGap = 30;
     for (let i = 1; i < rightItems.length; i++) {
       const prev = rightItems[i - 1];
       const curr = rightItems[i];
@@ -211,6 +200,15 @@ const doughnutCalloutPlugin = {
         curr.targetPillY = prev.targetPillY + minGap;
       }
     }
+    if (rightItems.length > 0) {
+      const last = rightItems[rightItems.length - 1];
+      const maxBottom = cHeight - 12 - last.pillHeight;
+      if (last.targetPillY > maxBottom) {
+        const shift = last.targetPillY - maxBottom;
+        rightItems.forEach(it => { it.targetPillY -= shift; });
+      }
+    }
+
     for (let i = 1; i < leftItems.length; i++) {
       const prev = leftItems[i - 1];
       const curr = leftItems[i];
@@ -218,80 +216,44 @@ const doughnutCalloutPlugin = {
         curr.targetPillY = prev.targetPillY + minGap;
       }
     }
+    if (leftItems.length > 0) {
+      const last = leftItems[leftItems.length - 1];
+      const maxBottom = cHeight - 12 - last.pillHeight;
+      if (last.targetPillY > maxBottom) {
+        const shift = last.targetPillY - maxBottom;
+        leftItems.forEach(it => { it.targetPillY -= shift; });
+      }
+    }
 
-    // Draw all items with natural 8-sector routing
+    // Draw all items
     items.forEach((item) => {
       const alpha = item.isSelected ? 1 : 0.25;
       ctx.globalAlpha = alpha;
 
-      const { startX, startY, cos, sin, outerRadius, centerX, centerY, sliceColor, isSelected, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth, sector, targetPillY } = item;
-
-      let pillX: number;
-      let pillY: number;
-      let lineEndX: number;
-      let lineEndY: number;
-      let arrowTipX: number;
-      let arrowTipY: number;
-      let elbowX: number;
-      let elbowY: number;
-      let isStraight = false;
+      const { startX, startY, cos, sin, isRight, outerRadius, centerX, centerY, sliceColor, isSelected, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth, targetPillY } = item;
 
       const radialDist = isSelected && selectedIndex !== null ? 22 : 18;
+      const elbowX = centerX + cos * (outerRadius + radialDist);
 
-      if (sector === 'TOP') {
-        // Floats directly above the slice at top center
-        pillX = centerX + cos * (outerRadius + radialDist) - pillWidth / 2;
-        pillY = centerY + sin * (outerRadius + radialDist) - pillHeight - 6;
-        pillX = Math.max(10, Math.min(cWidth - pillWidth - 10, pillX));
-        pillY = Math.max(8, pillY);
+      let pillX: number;
+      let pillY = Math.max(10, Math.min(cHeight - pillHeight - 10, targetPillY));
+      const endY = pillY + pillHeight / 2;
 
-        elbowX = startX;
-        elbowY = pillY + pillHeight + 5;
-        lineEndX = startX;
-        lineEndY = pillY + pillHeight + 5;
-        arrowTipX = startX;
-        arrowTipY = pillY + pillHeight + 1;
-        isStraight = true;
-      } else if (sector === 'BOTTOM') {
-        // Floats directly below the slice at bottom center
-        pillX = centerX + cos * (outerRadius + radialDist) - pillWidth / 2;
-        pillY = centerY + sin * (outerRadius + radialDist) + 6;
-        pillX = Math.max(10, Math.min(cWidth - pillWidth - 10, pillX));
-        pillY = Math.min(cHeight - pillHeight - 8, pillY);
+      let lineEndX: number;
+      let arrowTipX: number;
 
-        elbowX = startX;
-        elbowY = pillY - 5;
-        lineEndX = startX;
-        lineEndY = pillY - 5;
-        arrowTipX = startX;
-        arrowTipY = pillY - 1;
-        isStraight = true;
-      } else if (sector === 'TOP_RIGHT' || sector === 'BOTTOM_RIGHT') {
-        // Right side: radial extension then horizontal to left edge of pill
-        elbowX = centerX + cos * (outerRadius + radialDist);
-        elbowY = centerY + sin * (outerRadius + radialDist);
-
-        const preferredPillX = Math.max((chartArea?.right || 280) + 16, elbowX + 14);
+      if (isRight) {
+        // Position pill on right side
+        const preferredPillX = Math.max((chartArea?.right || 280) + 24, elbowX + 16);
         pillX = Math.min(cWidth - pillWidth - 10, preferredPillX);
-        pillY = Math.max(8, Math.min(cHeight - pillHeight - 8, targetPillY));
-
-        lineEndX = pillX - 6;
-        lineEndY = pillY + pillHeight / 2;
-        arrowTipX = pillX - 1;
-        arrowTipY = lineEndY;
+        arrowTipX = pillX - 2;
+        lineEndX = pillX - 8;
       } else {
-        // Left side: radial extension then horizontal to right edge of pill
-        elbowX = centerX + cos * (outerRadius + radialDist);
-        elbowY = centerY + sin * (outerRadius + radialDist);
-
-        const preferredPillX = Math.min((chartArea?.left || 140) - pillWidth - 16, elbowX - pillWidth - 14);
+        // Position pill on left side
+        const preferredPillX = Math.min((chartArea?.left || 140) - pillWidth - 24, elbowX - pillWidth - 16);
         pillX = Math.max(10, preferredPillX);
-        pillY = Math.max(8, Math.min(cHeight - pillHeight - 8, targetPillY));
-
-        lineEndX = pillX + pillWidth + 6;
-        lineEndY = pillY + pillHeight / 2;
-        arrowTipX = pillX + pillWidth + 1;
-        arrowTipY = lineEndY;
+        arrowTipX = pillX + pillWidth + 2;
+        lineEndX = pillX + pillWidth + 8;
       }
 
       // 1. Draw smooth connector line
@@ -302,10 +264,8 @@ const doughnutCalloutPlugin = {
       ctx.lineJoin = 'round';
 
       ctx.moveTo(startX, startY);
-      if (!isStraight) {
-        ctx.lineTo(elbowX, elbowY);
-      }
-      ctx.lineTo(lineEndX, lineEndY);
+      ctx.lineTo(elbowX, endY);
+      ctx.lineTo(lineEndX, endY);
       ctx.stroke();
 
       // 2. Perimeter Anchor Ring on slice edge
@@ -317,28 +277,18 @@ const doughnutCalloutPlugin = {
       ctx.strokeStyle = '#FFFFFF';
       ctx.stroke();
 
-      // 3. Directional Arrowhead Tip pointing directly into the pill badge
+      // 3. Directional Arrowhead Tip (clearly visible 6x8px triangle pointing into the pill)
       ctx.beginPath();
-      if (sector === 'TOP') {
-        // Pointing UP into bottom of pill
-        ctx.moveTo(arrowTipX, arrowTipY);
-        ctx.lineTo(arrowTipX - 3.5, arrowTipY + 5);
-        ctx.lineTo(arrowTipX + 3.5, arrowTipY + 5);
-      } else if (sector === 'BOTTOM') {
-        // Pointing DOWN into top of pill
-        ctx.moveTo(arrowTipX, arrowTipY);
-        ctx.lineTo(arrowTipX - 3.5, arrowTipY - 5);
-        ctx.lineTo(arrowTipX + 3.5, arrowTipY - 5);
-      } else if (sector === 'TOP_RIGHT' || sector === 'BOTTOM_RIGHT') {
-        // Pointing RIGHT into left of pill
-        ctx.moveTo(arrowTipX, arrowTipY);
-        ctx.lineTo(arrowTipX - 5, arrowTipY - 3.5);
-        ctx.lineTo(arrowTipX - 5, arrowTipY + 3.5);
+      if (isRight) {
+        // Pointing RIGHT -> into left edge of pill
+        ctx.moveTo(arrowTipX, endY);
+        ctx.lineTo(arrowTipX - 6, endY - 4);
+        ctx.lineTo(arrowTipX - 6, endY + 4);
       } else {
-        // Pointing LEFT into right of pill
-        ctx.moveTo(arrowTipX, arrowTipY);
-        ctx.lineTo(arrowTipX + 5, arrowTipY - 3.5);
-        ctx.lineTo(arrowTipX + 5, arrowTipY + 3.5);
+        // Pointing LEFT <- into right edge of pill
+        ctx.moveTo(arrowTipX, endY);
+        ctx.lineTo(arrowTipX + 6, endY - 4);
+        ctx.lineTo(arrowTipX + 6, endY + 4);
       }
       ctx.closePath();
       ctx.fillStyle = sliceColor;
