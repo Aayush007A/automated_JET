@@ -67,7 +67,7 @@ function drawCanvasRoundRect(
   }
 }
 
-// Custom Chart.js Plugin for Ultra-Crisp Floating Pill Badges & Visible Arrow Connectors
+// Custom Chart.js Plugin for Natural 8-Sector Radial Callout Badges & Direct Connectors
 const doughnutCalloutPlugin = {
   id: 'doughnutCallout',
   afterDatasetsDraw(chart: any) {
@@ -98,17 +98,18 @@ const doughnutCalloutPlugin = {
       startX: number;
       startY: number;
       angle: number;
-      isRight: boolean;
+      cos: number;
+      sin: number;
       outerRadius: number;
       centerX: number;
       centerY: number;
       isSelected: boolean;
-      initialElbowY: number;
-      adjustedY: number;
       pillWidth: number;
       pillHeight: number;
       textWidth: number;
       pctWidth: number;
+      sector: 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT' | 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM_LEFT' | 'BOTTOM_RIGHT';
+      targetPillY: number;
     }
 
     const items: CalloutItem[] = [];
@@ -118,19 +119,18 @@ const doughnutCalloutPlugin = {
       if (val <= 0) return;
 
       const { startAngle, endAngle, outerRadius, x: centerX, y: centerY } = element;
-      if (outerRadius < 20 || (endAngle - startAngle) < 0.04) return;
+      if (outerRadius < 20 || (endAngle - startAngle) < 0.03) return;
 
       const angle = startAngle + (endAngle - startAngle) / 2;
-      const startX = centerX + Math.cos(angle) * outerRadius;
-      const startY = centerY + Math.sin(angle) * outerRadius;
-      const isRight = Math.cos(angle) >= 0;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const startX = centerX + cos * outerRadius;
+      const startY = centerY + sin * outerRadius;
 
       const rawLabel = (data.labels && data.labels[index]) ? String(data.labels[index]) : `Item ${index + 1}`;
-      const cleanTitle = rawLabel
-        .replace(/\s*\(\d+(\.\d+)?%\)/g, '')
-        .replace(/\s*-\s*\d+(\.\d+)?%/g, '')
-        .replace(/\[.*?\]/g, '')
-        .trim();
+      // Clean title: extract concise base category name before parentheses or square brackets
+      let cleanTitle = rawLabel.split('(')[0].split('[')[0].replace(/["']/g, '').trim();
+      if (!cleanTitle) cleanTitle = rawLabel.trim();
 
       const pct = ((val / total) * 100).toFixed(0);
       const pctStr = `${pct}%`;
@@ -157,9 +157,20 @@ const doughnutCalloutPlugin = {
       const pillHeight = 24;
       const pillWidth = pillPaddingX * 2 + dotSize + dotMargin + textWidth + gap + pctBadgeWidth;
 
-      // Radial extension distance from slice perimeter
-      const radialExt = 22;
-      const elbowY = centerY + Math.sin(angle) * (outerRadius + radialExt);
+      // Classify sector based on natural slice angle
+      let sector: CalloutItem['sector'];
+      if (sin < -0.75) {
+        sector = 'TOP';
+      } else if (sin > 0.75) {
+        sector = 'BOTTOM';
+      } else if (cos >= 0) {
+        sector = sin < 0 ? 'TOP_RIGHT' : 'BOTTOM_RIGHT';
+      } else {
+        sector = sin < 0 ? 'TOP_LEFT' : 'BOTTOM_LEFT';
+      }
+
+      const radialDist = isSelected && selectedIndex !== null ? 22 : 18;
+      const initialPillY = centerY + sin * (outerRadius + radialDist) - pillHeight / 2;
 
       items.push({
         index,
@@ -170,75 +181,120 @@ const doughnutCalloutPlugin = {
         startX,
         startY,
         angle,
-        isRight,
+        cos,
+        sin,
         outerRadius,
         centerX,
         centerY,
         isSelected,
-        initialElbowY: elbowY,
-        adjustedY: elbowY,
         pillWidth,
         pillHeight,
         textWidth,
         pctWidth,
+        sector,
+        targetPillY: initialPillY,
       });
     });
 
-    // Anti-collision vertical spacing for left and right sides
-    const leftItems = items.filter(it => !it.isRight).sort((a, b) => a.initialElbowY - b.initialElbowY);
-    const rightItems = items.filter(it => it.isRight).sort((a, b) => a.initialElbowY - b.initialElbowY);
+    const cWidth = chart.width || 420;
+    const cHeight = chart.height || 340;
+
+    // Anti-collision vertical separation for right-side and left-side sectors
+    const rightItems = items.filter(it => it.sector === 'TOP_RIGHT' || it.sector === 'BOTTOM_RIGHT').sort((a, b) => a.sin - b.sin);
+    const leftItems = items.filter(it => it.sector === 'TOP_LEFT' || it.sector === 'BOTTOM_LEFT').sort((a, b) => a.sin - b.sin);
 
     const minGap = 28;
-    const adjustSideY = (sideList: CalloutItem[]) => {
-      for (let i = 1; i < sideList.length; i++) {
-        const prev = sideList[i - 1];
-        const curr = sideList[i];
-        if (curr.adjustedY - prev.adjustedY < minGap) {
-          curr.adjustedY = prev.adjustedY + minGap;
-        }
+    for (let i = 1; i < rightItems.length; i++) {
+      const prev = rightItems[i - 1];
+      const curr = rightItems[i];
+      if (curr.targetPillY - prev.targetPillY < minGap) {
+        curr.targetPillY = prev.targetPillY + minGap;
       }
-    };
-    adjustSideY(leftItems);
-    adjustSideY(rightItems);
+    }
+    for (let i = 1; i < leftItems.length; i++) {
+      const prev = leftItems[i - 1];
+      const curr = leftItems[i];
+      if (curr.targetPillY - prev.targetPillY < minGap) {
+        curr.targetPillY = prev.targetPillY + minGap;
+      }
+    }
 
-    // Draw all callout arrows & floating pill badges outside the doughnut
+    // Draw all items with natural 8-sector routing
     items.forEach((item) => {
       const alpha = item.isSelected ? 1 : 0.25;
       ctx.globalAlpha = alpha;
 
-      const { startX, startY, angle, isRight, outerRadius, centerX, centerY, adjustedY, sliceColor, isSelected, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth } = item;
-
-      // 1. Calculate Pill Placement with Canvas Boundary Clamping (Zero text clipping)
-      const cWidth = chart.width || 420;
-      const cHeight = chart.height || 340;
-
-      const radialExt = isSelected && selectedIndex !== null ? 22 : 18;
-      const elbowX = centerX + Math.cos(angle) * (outerRadius + radialExt);
+      const { startX, startY, cos, sin, outerRadius, centerX, centerY, sliceColor, isSelected, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth, sector, targetPillY } = item;
 
       let pillX: number;
-      let endX: number;
+      let pillY: number;
+      let lineEndX: number;
+      let lineEndY: number;
       let arrowTipX: number;
+      let arrowTipY: number;
+      let elbowX: number;
+      let elbowY: number;
+      let isStraight = false;
 
-      if (isRight) {
-        // Place pill to the right, clamped within right canvas edge
-        const preferredPillX = Math.max((chartArea?.right || 300) + 24, elbowX + 14);
+      const radialDist = isSelected && selectedIndex !== null ? 22 : 18;
+
+      if (sector === 'TOP') {
+        // Floats directly above the slice at top center
+        pillX = centerX + cos * (outerRadius + radialDist) - pillWidth / 2;
+        pillY = centerY + sin * (outerRadius + radialDist) - pillHeight - 6;
+        pillX = Math.max(10, Math.min(cWidth - pillWidth - 10, pillX));
+        pillY = Math.max(8, pillY);
+
+        elbowX = startX;
+        elbowY = pillY + pillHeight + 5;
+        lineEndX = startX;
+        lineEndY = pillY + pillHeight + 5;
+        arrowTipX = startX;
+        arrowTipY = pillY + pillHeight + 1;
+        isStraight = true;
+      } else if (sector === 'BOTTOM') {
+        // Floats directly below the slice at bottom center
+        pillX = centerX + cos * (outerRadius + radialDist) - pillWidth / 2;
+        pillY = centerY + sin * (outerRadius + radialDist) + 6;
+        pillX = Math.max(10, Math.min(cWidth - pillWidth - 10, pillX));
+        pillY = Math.min(cHeight - pillHeight - 8, pillY);
+
+        elbowX = startX;
+        elbowY = pillY - 5;
+        lineEndX = startX;
+        lineEndY = pillY - 5;
+        arrowTipX = startX;
+        arrowTipY = pillY - 1;
+        isStraight = true;
+      } else if (sector === 'TOP_RIGHT' || sector === 'BOTTOM_RIGHT') {
+        // Right side: radial extension then horizontal to left edge of pill
+        elbowX = centerX + cos * (outerRadius + radialDist);
+        elbowY = centerY + sin * (outerRadius + radialDist);
+
+        const preferredPillX = Math.max((chartArea?.right || 280) + 16, elbowX + 14);
         pillX = Math.min(cWidth - pillWidth - 10, preferredPillX);
-        endX = pillX - 6;
+        pillY = Math.max(8, Math.min(cHeight - pillHeight - 8, targetPillY));
+
+        lineEndX = pillX - 6;
+        lineEndY = pillY + pillHeight / 2;
         arrowTipX = pillX - 1;
+        arrowTipY = lineEndY;
       } else {
-        // Place pill to the left, clamped within left canvas edge
-        const preferredPillX = Math.min((chartArea?.left || 120) - pillWidth - 24, elbowX - pillWidth - 14);
+        // Left side: radial extension then horizontal to right edge of pill
+        elbowX = centerX + cos * (outerRadius + radialDist);
+        elbowY = centerY + sin * (outerRadius + radialDist);
+
+        const preferredPillX = Math.min((chartArea?.left || 140) - pillWidth - 16, elbowX - pillWidth - 14);
         pillX = Math.max(10, preferredPillX);
-        endX = pillX + pillWidth + 6;
+        pillY = Math.max(8, Math.min(cHeight - pillHeight - 8, targetPillY));
+
+        lineEndX = pillX + pillWidth + 6;
+        lineEndY = pillY + pillHeight / 2;
         arrowTipX = pillX + pillWidth + 1;
+        arrowTipY = lineEndY;
       }
 
-      let pillY = adjustedY - pillHeight / 2;
-      if (pillY < 8) pillY = 8;
-      if (pillY + pillHeight > cHeight - 8) pillY = cHeight - pillHeight - 8;
-      const endY = pillY + pillHeight / 2;
-
-      // 2. Smooth Connector Line
+      // 1. Draw smooth connector line
       ctx.beginPath();
       ctx.strokeStyle = sliceColor;
       ctx.lineWidth = isSelected && selectedIndex !== null ? 1.75 : 1.25;
@@ -246,11 +302,13 @@ const doughnutCalloutPlugin = {
       ctx.lineJoin = 'round';
 
       ctx.moveTo(startX, startY);
-      ctx.lineTo(elbowX, adjustedY);
-      ctx.lineTo(endX, endY);
+      if (!isStraight) {
+        ctx.lineTo(elbowX, elbowY);
+      }
+      ctx.lineTo(lineEndX, lineEndY);
       ctx.stroke();
 
-      // 3. Perimeter Anchor Ring on slice edge
+      // 2. Perimeter Anchor Ring on slice edge
       ctx.beginPath();
       ctx.arc(startX, startY, 3, 0, 2 * Math.PI);
       ctx.fillStyle = sliceColor;
@@ -259,45 +317,53 @@ const doughnutCalloutPlugin = {
       ctx.strokeStyle = '#FFFFFF';
       ctx.stroke();
 
-      // 4. Directional Arrowhead Tip pointing directly into the pill badge edge
+      // 3. Directional Arrowhead Tip pointing directly into the pill badge
       ctx.beginPath();
-      if (isRight) {
-        ctx.moveTo(arrowTipX, endY);
-        ctx.lineTo(arrowTipX - 5, endY - 3.5);
-        ctx.lineTo(arrowTipX - 5, endY + 3.5);
+      if (sector === 'TOP') {
+        // Pointing UP into bottom of pill
+        ctx.moveTo(arrowTipX, arrowTipY);
+        ctx.lineTo(arrowTipX - 3.5, arrowTipY + 5);
+        ctx.lineTo(arrowTipX + 3.5, arrowTipY + 5);
+      } else if (sector === 'BOTTOM') {
+        // Pointing DOWN into top of pill
+        ctx.moveTo(arrowTipX, arrowTipY);
+        ctx.lineTo(arrowTipX - 3.5, arrowTipY - 5);
+        ctx.lineTo(arrowTipX + 3.5, arrowTipY - 5);
+      } else if (sector === 'TOP_RIGHT' || sector === 'BOTTOM_RIGHT') {
+        // Pointing RIGHT into left of pill
+        ctx.moveTo(arrowTipX, arrowTipY);
+        ctx.lineTo(arrowTipX - 5, arrowTipY - 3.5);
+        ctx.lineTo(arrowTipX - 5, arrowTipY + 3.5);
       } else {
-        ctx.moveTo(arrowTipX, endY);
-        ctx.lineTo(arrowTipX + 5, endY - 3.5);
-        ctx.lineTo(arrowTipX + 5, endY + 3.5);
+        // Pointing LEFT into right of pill
+        ctx.moveTo(arrowTipX, arrowTipY);
+        ctx.lineTo(arrowTipX + 5, arrowTipY - 3.5);
+        ctx.lineTo(arrowTipX + 5, arrowTipY + 3.5);
       }
       ctx.closePath();
       ctx.fillStyle = sliceColor;
       ctx.fill();
 
-      // 5. Floating Pill Card Badge - 100% inside container boundaries
-      // Card Drop Shadow
+      // 4. Floating Pill Card Badge
       ctx.shadowColor = 'rgba(15, 23, 42, 0.08)';
       ctx.shadowBlur = 8;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 2;
 
-      // Card Background
       drawCanvasRoundRect(ctx, pillX, pillY, pillWidth, pillHeight, 6);
       ctx.fillStyle = '#FFFFFF';
       ctx.fill();
 
-      // Reset Shadow for crisp borders & typography
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
 
-      // Card Border
       ctx.lineWidth = isSelected && selectedIndex !== null ? 1.5 : 1;
       ctx.strokeStyle = isSelected && selectedIndex !== null ? sliceColor : '#E2E8F0';
       ctx.stroke();
 
-      // Colored Indicator Dot inside Pill
+      // Colored Dot inside Pill
       const pillPaddingX = 8;
       const dotSize = 6;
       const dotMargin = 6;
@@ -647,13 +713,13 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
   const pieChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '52%',
+    cutout: '58%',
     layout: {
       padding: {
-        top: 24,
-        bottom: 24,
-        left: 175,
-        right: 175,
+        top: 36,
+        bottom: 36,
+        left: 155,
+        right: 155,
       },
     },
     animation: {
