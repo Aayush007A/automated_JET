@@ -422,7 +422,7 @@ const radarOptions: any = {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   FULL-POWER CHART.JS VISUAL ENGINE (WITH STAGGERED UNWRAPPING KEYS)
+   FULL-POWER CHART.JS VISUAL ENGINE (WITH CONTINUOUS ANIMATED BEACONS & WAVES)
 ───────────────────────────────────────────────────────────────────────── */
 
 const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ categoryId, animKey }) => {
@@ -446,7 +446,7 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
       };
       return (
         <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Activity Distribution (Standard vs Non-Std Lines)</span>
               <div style={{ display: 'flex', gap: '8px', fontSize: '0.60rem', color: '#64748B', fontWeight: 600 }}>
@@ -456,11 +456,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar key={`bar-01-${animKey}`} data={barData} options={barOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Debit Line Exposure</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut key={`donut-01-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <motion.div
+                  animate={{ scale: [0.9, 1.12, 0.9], opacity: [0.2, 0.5, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+                  style={{ position: 'absolute', width: 62, height: 62, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,118,128,0.22) 0%, transparent 70%)' }}
+                />
                 <span style={{ fontSize: '0.58rem', color: '#64748B', fontWeight: 600 }}>Total Value</span>
                 <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A' }}>
                   <AnimatedNumber value={42.8} prefix="$" suffix="M" decimals={1} animKey={animKey} />
@@ -503,10 +508,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
       };
       return (
         <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Revenue Debit Reversal Trajectory</span>
-              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>Quarter Cutoff Spikes</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ position: 'relative', display: 'flex', width: 6, height: 6 }}>
+                  <motion.span animate={{ scale: [1, 2.4, 1], opacity: [0.9, 0, 0.9] }} transition={{ repeat: Infinity, duration: 1.6 }} style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#E11D48' }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#E11D48' }} />
+                </span>
+                <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 800 }}>Quarter Cutoff Spikes</span>
+              </div>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Line key={`line-02-${animKey}`} data={lineData} options={lineOptions} /></div>
           </div>
@@ -546,11 +557,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar key={`bar-03-${animKey}`} data={barData} options={barOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Posting Exposure by Role</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut key={`donut-03-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <motion.div
+                  animate={{ scale: [0.9, 1.12, 0.9], opacity: [0.2, 0.5, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+                  style={{ position: 'absolute', width: 62, height: 62, borderRadius: '50%', background: 'radial-gradient(circle, rgba(225,29,72,0.22) 0%, transparent 70%)' }}
+                />
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Admin/Temp</span>
                 <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
                   <AnimatedNumber value={17} suffix="%" decimals={0} animKey={animKey} />
@@ -586,11 +602,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
       };
       return (
         <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '0.85fr 1.25fr', gap: '12px', padding: '10px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Financial Statement Effect</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut key={`donut-04-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <motion.div
+                  animate={{ scale: [0.9, 1.12, 0.9], opacity: [0.2, 0.5, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+                  style={{ position: 'absolute', width: 62, height: 62, borderRadius: '50%', background: 'radial-gradient(circle, rgba(225,29,72,0.22) 0%, transparent 70%)' }}
+                />
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Exp Impact</span>
                 <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
                   <AnimatedNumber value={45} suffix="%" decimals={0} animKey={animKey} />
@@ -649,10 +670,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
       };
       return (
         <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.25fr 0.85fr', gap: '12px', padding: '10px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>24-Hour Diurnal Posting Velocity</span>
-              <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 700 }}>Midnight Peak Spike</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ position: 'relative', display: 'flex', width: 6, height: 6 }}>
+                  <motion.span animate={{ scale: [1, 2.4, 1], opacity: [0.9, 0, 0.9] }} transition={{ repeat: Infinity, duration: 1.6 }} style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#E11D48' }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#E11D48' }} />
+                </span>
+                <span style={{ fontSize: '0.60rem', color: '#E11D48', fontWeight: 800 }}>Midnight Peak Spike</span>
+              </div>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Line key={`line-05-${animKey}`} data={lineData} options={lineOptions} /></div>
           </div>
@@ -706,11 +733,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Chart key={`mixed-06-${animKey}`} type="bar" data={benfordData as any} options={barOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Round Dollar Density</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut key={`donut-06-${animKey}`} data={roundDonutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <motion.div
+                  animate={{ scale: [0.9, 1.12, 0.9], opacity: [0.2, 0.5, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+                  style={{ position: 'absolute', width: 62, height: 62, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,118,128,0.22) 0%, transparent 70%)' }}
+                />
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Round Total</span>
                 <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#007680' }}>
                   <AnimatedNumber value={928} suffix=" Lines" decimals={0} animKey={animKey} />
@@ -754,11 +786,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar key={`bar-07-${animKey}`} data={barData} options={barOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Match Type Profile</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut key={`donut-07-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <motion.div
+                  animate={{ scale: [0.9, 1.12, 0.9], opacity: [0.2, 0.5, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+                  style={{ position: 'absolute', width: 62, height: 62, borderRadius: '50%', background: 'radial-gradient(circle, rgba(225,29,72,0.22) 0%, transparent 70%)' }}
+                />
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Exposure</span>
                 <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
                   <AnimatedNumber value={4.20} prefix="$" suffix="M" decimals={2} animKey={animKey} />
@@ -802,11 +839,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar key={`bar-08-${animKey}`} data={barData} options={barOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Severity Stratification</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut key={`donut-08-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <motion.div
+                  animate={{ scale: [0.9, 1.12, 0.9], opacity: [0.2, 0.5, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+                  style={{ position: 'absolute', width: 62, height: 62, borderRadius: '50%', background: 'radial-gradient(circle, rgba(225,29,72,0.22) 0%, transparent 70%)' }}
+                />
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>High Risk</span>
                 <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
                   <AnimatedNumber value={6.98} prefix="$" suffix="M" decimals={2} animKey={animKey} />
@@ -891,11 +933,16 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Bar key={`bar-10-${animKey}`} data={barData} options={barOptions} /></div>
           </div>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Association Risk Profile</span>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Doughnut key={`donut-10-${animKey}`} data={donutData} options={doughnutOptions} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <motion.div
+                  animate={{ scale: [0.9, 1.12, 0.9], opacity: [0.2, 0.5, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+                  style={{ position: 'absolute', width: 62, height: 62, borderRadius: '50%', background: 'radial-gradient(circle, rgba(225,29,72,0.22) 0%, transparent 70%)' }}
+                />
                 <span style={{ fontSize: '0.58rem', color: '#64748B' }}>Anomalous</span>
                 <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#E11D48' }}>
                   <AnimatedNumber value={840} prefix="$" suffix="k" decimals={0} animKey={animKey} />
@@ -937,7 +984,13 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
           <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Population Activity Trajectory ($M)</span>
-              <span style={{ fontSize: '0.60rem', color: '#007680', fontWeight: 700 }}>P12 Peak $8.5M</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ position: 'relative', display: 'flex', width: 6, height: 6 }}>
+                  <motion.span animate={{ scale: [1, 2.4, 1], opacity: [0.9, 0, 0.9] }} transition={{ repeat: Infinity, duration: 1.6 }} style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#007680' }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#007680' }} />
+                </span>
+                <span style={{ fontSize: '0.60rem', color: '#007680', fontWeight: 800 }}>P12 Peak $8.5M</span>
+              </div>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}><Line key={`line-11-${animKey}`} data={lineData} options={lineOptions} /></div>
           </div>
@@ -978,15 +1031,30 @@ const FullChartEngine: React.FC<{ categoryId: string; animKey: number }> = ({ ca
       };
       return (
         <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px', padding: '10px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '10px', padding: '10px 14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px', position: 'relative', zIndex: 3 }}>
               <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Accounting Behavior DNA Radar</span>
               <div style={{ display: 'flex', gap: '8px', fontSize: '0.58rem', fontWeight: 600 }}>
                 <span style={{ color: '#007680' }}>● Client DNA</span>
                 <span style={{ color: '#94A3B8' }}>-- Industry Peer</span>
               </div>
             </div>
-            <div style={{ flex: 1, minHeight: 0 }}><Radar key={`radar-12-${animKey}`} data={radarData} options={radarOptions} /></div>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Radar key={`radar-12-${animKey}`} data={radarData} options={radarOptions} />
+              {/* Continuous 360° Rotating Radar Scanner Beam */}
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 4.5, ease: 'linear' }}
+                  style={{
+                    width: '150px',
+                    height: '150px',
+                    borderRadius: '50%',
+                    background: 'conic-gradient(from 0deg, rgba(0, 118, 128, 0.22) 0deg, rgba(0, 163, 173, 0.04) 45deg, transparent 75deg, transparent 360deg)',
+                  }}
+                />
+              </div>
+            </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', height: '100%' }}>
             {[
@@ -1352,10 +1420,21 @@ export const VisualizationShowcase: React.FC = () => {
               borderBottom: '1px solid #E2E8F0',
               flexShrink: 0,
             }}>
-              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FC5756' }} />
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FDBC40' }} />
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34C84A' }} />
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FC5756' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FDBC40' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34C84A' }} />
+                </div>
+
+                {/* Live Stream Heartbeat Indicator */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.58rem', color: '#007680', fontWeight: 800, fontFamily: 'monospace' }}>
+                  <span style={{ position: 'relative', display: 'flex', width: 6, height: 6 }}>
+                    <motion.span animate={{ scale: [1, 2.4], opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: 'easeOut' }} style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#10B981' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+                  </span>
+                  <span>LIVE AUDIT STREAM</span>
+                </div>
               </div>
 
               <div style={{
@@ -1376,8 +1455,25 @@ export const VisualizationShowcase: React.FC = () => {
               </span>
             </div>
 
-            {/* Live Expansive Chart Canvas Area with Dramatic Reveal/Unreveal */}
+            {/* Live Expansive Chart Canvas Area with Cyber Laser Scanner & Dramatic Reveal */}
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#F8FAFC' }}>
+              {/* Continuous Ambient Laser Scan Sweep */}
+              <motion.div
+                animate={{ y: ['-10%', '110%'] }}
+                transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '2px',
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(0, 163, 173, 0.2) 20%, #007680 50%, rgba(0, 163, 173, 0.2) 80%, transparent 100%)',
+                  boxShadow: '0 0 10px 2px rgba(0, 163, 173, 0.25)',
+                  pointerEvents: 'none',
+                  zIndex: 10,
+                }}
+              />
+
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={current.id}
