@@ -1047,7 +1047,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
             transition={{ duration: 0.2 }}
             style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(290px, 0.85fr)', gap: '18px' }}
           >
-            {/* Left Letterhead Card */}
+            {/* Left Letterhead Card - Exact Reference Style */}
             <div
               style={{
                 background: '#FFFFFF',
@@ -1055,108 +1055,148 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                 border: '1px solid #E2E8F0',
                 boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
                 overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              {/* Clean White/Slate Header with Deloitte Branding */}
+              {/* Top Boardroom Briefing Header with Subtle Organic Glow */}
               <div
                 style={{
-                  background: '#F8FAFC',
-                  borderBottom: '1px solid #E2E8F0',
-                  padding: '20px 24px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '12px',
+                  background: 'radial-gradient(circle at top right, rgba(204, 251, 241, 0.45) 0%, rgba(240, 253, 250, 0.25) 45%, #FFFFFF 80%)',
+                  padding: '24px 28px 18px',
                 }}
               >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span
-                      style={{
-                        background: '#007680',
-                        color: '#FFFFFF',
-                        fontSize: '0.66rem',
-                        fontWeight: 800,
-                        letterSpacing: '0.08em',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                      }}
-                    >
-                      DELOITTE AUDIT &amp; ASSURANCE
-                    </span>
-                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600 }}>
-                      Boardroom Briefing Memorandum
-                    </span>
-                  </div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: '4px 0', letterSpacing: '-0.02em' }}>
-                    Executive Findings &amp; Risk Insights
-                  </h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.74rem', color: '#64748B', marginTop: '4px' }}>
-                    <span>Client: <strong style={{ color: '#0F172A' }}>{engagementName}</strong></span>
-                    <span>Materiality: <strong style={{ color: '#0F172A' }}>{fmtCurr(materiality)}</strong></span>
-                    <span>Population: <strong style={{ color: '#0F172A' }}>{fmtNum(totalGlPopulation)}</strong></span>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  BOARDROOM BRIEFING
+                </div>
+                <h2 style={{ fontSize: '1.55rem', fontWeight: 850, color: '#0F172A', margin: '4px 0 8px 0', letterSpacing: '-0.02em' }}>
+                  Executive Findings Memorandum
+                </h2>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '0.80rem', color: '#64748B' }}>
+                  <span>Client <strong style={{ color: '#0F172A' }}>{engagementName}</strong></span>
+                  <span>Materiality <strong style={{ color: '#0F172A' }}>{fmtCurr(materiality)}</strong></span>
+                  <span>Population <strong style={{ color: '#0F172A' }}>{fmtNum(totalGlPopulation)}</strong></span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      background: '#F0FDF4',
+                      border: '1px solid #BBF7D0',
+                      color: '#166534',
+                      fontSize: '0.74rem',
+                      fontWeight: 750,
+                    }}
+                  >
+                    <ShieldCheck size={14} color="#16A34A" />
+                    <span>Audit-ready view</span>
                   </div>
                 </div>
               </div>
 
-              {/* 4 Soft Metric Strips */}
+              {/* 4 Distinct Rounded Metric Pill Cards */}
               <div
                 style={{
+                  padding: '4px 28px 18px',
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                  gap: '1px',
-                  background: '#E2E8F0',
-                  borderBottom: '1px solid #E2E8F0',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '12px',
                 }}
               >
-                {[
-                  { label: 'Reconciliation', val: '100.0%', sub: 'TB ↔ GL Reconciled', tone: '#059669', bg: '#F0FDF4' },
-                  { label: 'Benford Grade', val: `Grade A (${chiSquareScore})`, sub: 'Critical Limit 15.51', tone: '#007680', bg: '#F2F9F9' },
-                  { label: 'Critical Risk', val: `${riskSummary.critical} Items`, sub: 'Score ≥ 90/100', tone: '#BE123C', bg: '#FFF1F2' },
-                  { label: 'Open Actions', val: `${riskSummary.pending} Triage`, sub: 'Inquiry & Review', tone: '#D97706', bg: '#FFFBEB' },
-                ].map((item, idx) => (
-                  <div key={idx} style={{ background: '#FFFFFF', padding: '14px 18px' }}>
-                    <div style={{ fontSize: '0.64rem', fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      {item.label}
-                    </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 850, color: item.tone, margin: '3px 0' }}>
-                      {item.val}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>{item.sub}</div>
+                {/* 1. Reconciliation */}
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px 16px' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    RECONCILIATION
                   </div>
-                ))}
+                  <div style={{ fontSize: '1.50rem', fontWeight: 900, color: '#059669', fontFamily: 'monospace', margin: '4px 0 2px' }}>
+                    100.0%
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                    TB ↔ GL
+                  </div>
+                </div>
+
+                {/* 2. Benford */}
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px 16px' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    BENFORD
+                  </div>
+                  <div style={{ fontSize: '1.50rem', fontWeight: 900, color: '#007680', fontFamily: 'monospace', margin: '4px 0 2px' }}>
+                    {chiSquareScore}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                    χ² statistic
+                  </div>
+                </div>
+
+                {/* 3. High-Risk */}
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px 16px' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    HIGH-RISK
+                  </div>
+                  <div style={{ fontSize: '1.50rem', fontWeight: 900, color: '#E11D48', fontFamily: 'monospace', margin: '4px 0 2px' }}>
+                    {riskSummary.critical}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                    score ≥ 90
+                  </div>
+                </div>
+
+                {/* 4. Open Triage */}
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px 16px' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    OPEN TRIAGE
+                  </div>
+                  <div style={{ fontSize: '1.50rem', fontWeight: 900, color: '#D97706', fontFamily: 'monospace', margin: '4px 0 2px' }}>
+                    {riskSummary.pending}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                    needs review
+                  </div>
+                </div>
               </div>
 
-              {/* 4 Numbered Findings Narrative */}
-              <div style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* 4 Numbered Findings Narrative (Clean Left Accent Line & Dot Indicator) */}
+              <div style={{ padding: '0 28px 24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 {[
                   {
-                    title: '1. Population Completeness & General Ledger Integrity',
+                    title: '1. Population Integrity & Reconciliation',
                     color: '#007680',
-                    text: `Deloitte Automated JET performed 100% mathematical reconciliation across all ${fmtNum(totalGlPopulation)} general ledger transactions against the trial balance opening and closing positions ($0.00 net variance).`,
+                    dotColor: '#007680',
+                    text: 'Deloitte’s automated JET engine performed full automated mathematical reconciliation across the tested journal population and the Trial Balance opening and closing positions.',
                   },
                   {
-                    title: "2. Benford's Law Natural Distribution & Digital Irregularities",
+                    title: '2. Benford Distribution & Digital Irregularities',
                     color: '#0284C7',
-                    text: `First-digit logarithmic frequencies conform closely to Benford's law (χ² = ${chiSquareScore}). Digit 7 exhibits an isolated +3.3 pp concentration peak, attributable to manual consulting retainers ($79,800.00) in Q4.`,
+                    dotColor: '#0284C7',
+                    text: `First-digit frequencies conform closely to the expected Benford distribution (χ² = ${chiSquareScore}); the current forensic view highlights Digit 7 as the primary deviation signal.`,
                   },
                   {
-                    title: '3. Multi-Vector Risk Correlation & Anomaly Identification',
-                    color: '#BE123C',
-                    text: 'A composite risk scoring model flagged 5 high-priority transactions combining post-closing dates, superuser privileges, and revenue debit adjustments. Client inquiry initiated for Document #2500009100 ($2.50M suspense adjustment).',
+                    title: '3. High-Risk Multi-Vector Anomalies',
+                    color: '#E11D48',
+                    dotColor: '#E11D48',
+                    text: 'A composite risk view combines timing, amount, user privilege, account behavior and other available signals to isolate transactions that warrant focused auditor review.',
                   },
                   {
-                    title: '4. Internal Control Recommendations for Management',
+                    title: '4. Management Response & Control Focus',
                     color: '#64748B',
-                    text: '1. Restrict IT service account direct posting access in ERP. 2. Enforce automated hard-close lockouts at 23:59 on fiscal cutoff date to eliminate backdated adjustments.',
+                    dotColor: '#64748B',
+                    text: 'Use the risk and control views to prioritize inquiry, strengthen segregation of duties, and focus period-end control remediation where supported by the engagement evidence.',
                   },
                 ].map((sec, idx) => (
-                  <div key={idx} style={{ borderLeft: `3px solid ${sec.color}`, paddingLeft: '14px' }}>
-                    <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0' }}>
-                      {sec.title}
-                    </h4>
-                    <p style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.55, margin: 0 }}>
+                  <div key={idx} style={{ borderLeft: `3px solid ${sec.color}`, paddingLeft: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ fontSize: '0.90rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                        {sec.title}
+                      </h4>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: sec.dotColor }} />
+                    </div>
+                    <p style={{ fontSize: '0.80rem', color: '#475569', lineHeight: 1.55, margin: '4px 0 0' }}>
                       {sec.text}
                     </p>
                   </div>
