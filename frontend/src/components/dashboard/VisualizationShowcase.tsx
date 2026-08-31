@@ -2,12 +2,29 @@
  * VisualizationShowcase
  *
  * Premium Executive "Visualizations & Insights" showcase suite.
- * Built with dedicated, native vector-rendered interactive charts for ALL 12 categories.
- * Compact executive proportions, direction-aware animations, and Deloitte design system standards.
+ * Powered by high-density Chart.js interactive analytics engines for ALL 12 categories.
+ * Compact executive layout (zero dead space), direction-aware transitions, and Deloitte design system styling.
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
+  RadialLinearScale,
+  Filler,
+  ArcElement,
+  BarController,
+  LineController,
+} from 'chart.js';
+import { Chart, Bar, Line, Doughnut, Radar } from 'react-chartjs-2';
 import {
   ChevronLeft,
   ChevronRight,
@@ -31,8 +48,25 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+// Register Chart.js Modules
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
+  RadialLinearScale,
+  Filler,
+  ArcElement,
+  BarController,
+  LineController
+);
+
 /* ─────────────────────────────────────────────────────────────────────────
-   12 ANALYTICAL CATEGORIES DATA
+   12 ANALYTICAL CATEGORIES METADATA
 ───────────────────────────────────────────────────────────────────────── */
 
 export interface VisualizationCategory {
@@ -255,525 +289,624 @@ const RISK_BADGES: Record<string, { color: string; bg: string; border: string }>
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   CUSTOM VECTOR CHART PRESENTATION ENGINES (ALL 12 CATEGORIES)
+   STANDARDIZED CHART.JS CONFIGURATION TOKENS
 ───────────────────────────────────────────────────────────────────────── */
 
-const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => {
+const baseChartOptions: any = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 600 },
+  plugins: {
+    legend: {
+      display: false,
+    },
+    tooltip: {
+      backgroundColor: '#0F172A',
+      titleFont: { size: 10, weight: 'bold', family: "'Inter', sans-serif" },
+      bodyFont: { size: 10, family: "'Inter', sans-serif" },
+      padding: 6,
+      cornerRadius: 6,
+    },
+  },
+  scales: {
+    x: {
+      grid: { color: '#F1F5F9' },
+      ticks: { color: '#64748B', font: { size: 9, family: "'Inter', sans-serif" } },
+    },
+    y: {
+      grid: { color: '#F1F5F9' },
+      ticks: { color: '#64748B', font: { size: 9, family: "'Inter', sans-serif" } },
+    },
+  },
+};
+
+const baseDoughnutOptions: any = {
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: '62%',
+  animation: { duration: 600 },
+  plugins: {
+    legend: {
+      display: false,
+    },
+    tooltip: {
+      backgroundColor: '#0F172A',
+      titleFont: { size: 10, weight: 'bold', family: "'Inter', sans-serif" },
+      bodyFont: { size: 10, family: "'Inter', sans-serif" },
+      padding: 6,
+      cornerRadius: 6,
+    },
+  },
+};
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FULL-POWER CHART.JS VISUAL ENGINE (ALL 12 CATEGORIES)
+───────────────────────────────────────────────────────────────────────── */
+
+const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
   switch (categoryId) {
-    case '01_account_wise':
+    case '01_account_wise': {
+      const barData = {
+        labels: ['Cash', 'AR', 'Inventory', 'Accrued', 'Suspense', 'Revenue'],
+        datasets: [
+          { label: 'Standard Lines', data: [1420, 2180, 1840, 940, 110, 45], backgroundColor: '#007680', borderRadius: 3 },
+          { label: 'Non-Standard Lines', data: [310, 540, 410, 280, 410, 650], backgroundColor: '#38BDF8', borderRadius: 3 },
+        ],
+      };
+      const donutData = {
+        labels: ['Trade Receivables (40%)', 'Finished Goods (28%)', 'Cash Holdings (20%)', 'Accrued Liabilities (12%)'],
+        datasets: [{
+          data: [40, 28, 20, 12],
+          backgroundColor: ['#007680', '#0284C7', '#F59E0B', '#10B981'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        }],
+      };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          {/* Left: Bar Chart */}
-          <div style={{ flex: 1.1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Account Activity Distribution</span>
-              <div style={{ display: 'flex', gap: '6px', fontSize: '0.58rem', color: '#64748B', fontWeight: 600 }}>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Activity Distribution (Standard vs Non-Std)</span>
+              <div style={{ display: 'flex', gap: '6px', fontSize: '0.56rem', color: '#64748B', fontWeight: 600 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><span style={{ width: 6, height: 6, background: '#007680', borderRadius: 2 }} />Std</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><span style={{ width: 6, height: 6, background: '#38BDF8', borderRadius: 2 }} />Non-Std</span>
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '6px', paddingTop: '8px' }}>
-              {[
-                { label: 'Cash', std: 65, non: 15 },
-                { label: 'AR', std: 95, non: 28 },
-                { label: 'Inv', std: 80, non: 20 },
-                { label: 'Accrued', std: 45, non: 12 },
-                { label: 'Susp', std: 10, non: 22 },
-                { label: 'Rev', std: 8, non: 32 },
-              ].map((bar, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', height: '100%', justifyContent: 'flex-end' }}>
-                  <div style={{ width: '100%', display: 'flex', gap: '2px', alignItems: 'flex-end', height: '80%' }}>
-                    <motion.div initial={{ height: 0 }} animate={{ height: `${bar.std}%` }} transition={{ duration: 0.4, delay: i * 0.04 }} style={{ flex: 1, background: '#007680', borderRadius: '2px 2px 0 0' }} />
-                    <motion.div initial={{ height: 0 }} animate={{ height: `${bar.non}%` }} transition={{ duration: 0.4, delay: i * 0.04 + 0.08 }} style={{ flex: 1, background: '#38BDF8', borderRadius: '2px 2px 0 0' }} />
-                  </div>
-                  <span style={{ fontSize: '0.55rem', color: '#64748B' }}>{bar.label}</span>
-                </div>
-              ))}
-            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
-
-          {/* Right: Donut Chart with Callouts */}
-          <div style={{ flex: 0.9, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Debit Line Exposure</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              <svg width="100" height="100" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="36" fill="transparent" stroke="#E2E8F0" strokeWidth="15" />
-                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#007680" strokeWidth="15" strokeDasharray="90 226" strokeDashoffset="0" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 0.5 }} />
-                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#0284C7" strokeWidth="15" strokeDasharray="63 226" strokeDashoffset="-90" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -90 }} transition={{ duration: 0.5, delay: 0.1 }} />
-                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#F59E0B" strokeWidth="15" strokeDasharray="45 226" strokeDashoffset="-153" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -153 }} transition={{ duration: 0.5, delay: 0.2 }} />
-                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#10B981" strokeWidth="15" strokeDasharray="27 226" strokeDashoffset="-198" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -198 }} transition={{ duration: 0.5, delay: 0.3 }} />
-              </svg>
-              <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.58rem', color: '#64748B', fontWeight: 600 }}>Total</span>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0F172A' }}>100%</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Debit Line Exposure</span>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Doughnut data={donutData} options={baseDoughnutOptions} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Total</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0F172A' }}>$42.8M</span>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.55rem', fontWeight: 600 }}>
-              <span style={{ color: '#007680' }}>● Receiv 40%</span>
-              <span style={{ color: '#0284C7' }}>● Finished 28%</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+              <span style={{ color: '#007680' }}>● AR 40%</span>
+              <span style={{ color: '#0284C7' }}>● FG 28%</span>
               <span style={{ color: '#F59E0B' }}>● Cash 20%</span>
-              <span style={{ color: '#10B981' }}>● Accrued 12%</span>
+              <span style={{ color: '#10B981' }}>● Accr 12%</span>
             </div>
           </div>
         </div>
       );
+    }
 
-    case '02_revenue_debits':
+    case '02_revenue_debits': {
+      const lineData = {
+        labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'],
+        datasets: [{
+          label: 'Revenue Debit Vol ($k)',
+          data: [120, 140, 480, 110, 160, 520, 130, 150, 680, 140, 190, 940],
+          borderColor: '#E11D48',
+          backgroundColor: 'rgba(225, 29, 72, 0.12)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 2.5,
+          pointBackgroundColor: '#E11D48',
+        }],
+      };
+      const barData = {
+        labels: ['Returns', 'Rebates', 'Discounts', 'Scrap Adj', 'Licensing'],
+        datasets: [{
+          label: 'Debit Total ($k)',
+          data: [1420, 890, 640, 430, 280],
+          backgroundColor: ['#E11D48', '#E11D48', '#D97706', '#0284C7', '#007680'],
+          borderRadius: 3,
+        }],
+      };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          <div style={{ flex: 1.2, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Top Revenue Debit Postings</span>
-              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>Cutoff: $250k</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Revenue Debit Reversal Trajectory</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>Quarter Spikes</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, justifyContent: 'center' }}>
-              {[
-                { acc: '4010 - Sales Revenue (Commercial)', amt: '$1,420,000', pct: 95, col: '#E11D48' },
-                { acc: '4020 - Service Contracts', amt: '$890,000', pct: 68, col: '#E11D48' },
-                { acc: '4050 - Subscription Revenue', amt: '$430,000', pct: 40, col: '#D97706' },
-                { acc: '4090 - Product Licensing', amt: '$280,000', pct: 28, col: '#007680' },
-              ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', color: '#334155', fontWeight: 600 }}>
-                    <span>{item.acc}</span>
-                    <span style={{ fontWeight: 800, color: item.col }}>{item.amt}</span>
-                  </div>
-                  <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }} transition={{ duration: 0.5, delay: i * 0.08 }} style={{ height: '100%', background: item.col, borderRadius: '3px' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ flex: 0.8, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Quarter-End Timing</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, justifyContent: 'center' }}>
-              <div style={{ padding: '6px', borderRadius: '6px', background: '#FFF1F2', border: '1px solid #FECDD3', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.58rem', color: '#64748B', display: 'block' }}>Within 5 Days of Close</span>
-                <span style={{ fontSize: '0.90rem', fontWeight: 900, color: '#E11D48' }}>92.4% Volume</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Top Revenue Debit Accounts ($k)</span>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
+          </div>
+        </div>
+      );
+    }
+
+    case '03_user_wise': {
+      const barData = {
+        labels: ['BATCH_AUTO', 'ACC_1', 'SYS_ADMIN', 'TEMP_AUDIT', 'CONSULTANT'],
+        datasets: [{
+          label: 'Monetary Sum ($M)',
+          data: [42.8, 18.5, 9.46, 3.15, 1.28],
+          backgroundColor: ['#007680', '#007680', '#E11D48', '#E11D48', '#F59E0B'],
+          borderRadius: 3,
+        }],
+      };
+      const donutData = {
+        labels: ['Automated Feeds (58%)', 'Standard Operations (25%)', 'Admin/Temp Risk (17%)'],
+        datasets: [{
+          data: [58, 25, 17],
+          backgroundColor: ['#007680', '#38BDF8', '#E11D48'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        }],
+      };
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>User Posting Volume ($M)</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>Admin Outliers</span>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
+          </div>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Posting Exposure by Role</span>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Doughnut data={donutData} options={baseDoughnutOptions} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Admin/Temp</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>17%</span>
               </div>
-              <div style={{ padding: '6px', borderRadius: '6px', background: '#F0F9FF', border: '1px solid #BAE6FD', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.58rem', color: '#64748B', display: 'block' }}>Mandatory Confirmation</span>
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0284C7' }}>18 Sample Vouchers</span>
-              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+              <span style={{ color: '#007680' }}>● Auto 58%</span>
+              <span style={{ color: '#0284C7' }}>● Ops 25%</span>
+              <span style={{ color: '#E11D48' }}>● Admin 17%</span>
             </div>
           </div>
         </div>
       );
+    }
 
-    case '03_user_wise':
+    case '04_closing_entries': {
+      const donutData = {
+        labels: ['Increase Expense (45%)', 'Increase Assets (23%)', 'Decrease Liab (17%)', 'Decrease Rev (10%)', 'Equity Adj (5%)'],
+        datasets: [{
+          data: [45, 23, 17, 10, 5],
+          backgroundColor: ['#E11D48', '#007680', '#0284C7', '#F59E0B', '#7C3AED'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        }],
+      };
+      const barData = {
+        labels: ['Day -1/0', 'Day +1/+3', 'Day +4/+7', 'Day +8+'],
+        datasets: [
+          { label: 'Weak Description', data: [820, 510, 180, 90], backgroundColor: '#E11D48', borderRadius: 3 },
+          { label: 'Documented Closing', data: [3100, 1420, 620, 140], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 3 },
+        ],
+      };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>User Posting Value ($)</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '6px', paddingTop: '8px' }}>
-              {[
-                { u: 'BATCH_AUTO', amt: '$42.8M', h: 90, color: '#007680' },
-                { u: 'ACC_1', amt: '$18.5M', h: 48, color: '#0284C7' },
-                { u: 'SYS_ADMIN', amt: '$9.4M', h: 28, color: '#E11D48' },
-                { u: 'TEMP_AUDIT', amt: '$3.1M', h: 14, color: '#F59E0B' },
-              ].map((user, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '3px' }}>
-                  <motion.div initial={{ height: 0 }} animate={{ height: `${user.h}%` }} transition={{ duration: 0.4, delay: i * 0.05 }} style={{ width: '100%', background: user.color, borderRadius: '3px 3px 0 0' }} />
-                  <span style={{ fontSize: '0.52rem', color: '#64748B', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '38px' }}>{user.u}</span>
-                </div>
-              ))}
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Financial Statement Effect</span>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Doughnut data={donutData} options={baseDoughnutOptions} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Exp Impact</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>45%</span>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+              <span style={{ color: '#E11D48' }}>● Exp 45%</span>
+              <span style={{ color: '#007680' }}>● Asset 23%</span>
+              <span style={{ color: '#0284C7' }}>● Liab 17%</span>
+              <span style={{ color: '#F59E0B' }}>● Rev 10%</span>
             </div>
           </div>
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>User Risk Profile</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', justifyContent: 'center', flex: 1 }}>
-              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#FFF1F2', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#E11D48' }}>
-                <span>Admin / Temp</span><span>17% ($12.6M)</span>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Closing Entry Timing Profile</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>Cutoff Lag</span>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
+          </div>
+        </div>
+      );
+    }
+
+    case '05_dates_interest': {
+      const lineData = {
+        labels: ['8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM', '12 AM', '2 AM', '4 AM'],
+        datasets: [
+          {
+            label: 'Normal Business Day',
+            data: [45, 120, 180, 220, 190, 80, 30, 15, 5, 2, 1],
+            borderColor: '#007680',
+            backgroundColor: 'rgba(0,118,128,0.08)',
+            tension: 0.3,
+            pointRadius: 2,
+          },
+          {
+            label: 'Weekend / Off-Hours (Flagged)',
+            data: [2, 5, 10, 15, 25, 60, 140, 280, 382, 120, 45],
+            borderColor: '#E11D48',
+            backgroundColor: 'rgba(225,29,72,0.12)',
+            tension: 0.3,
+            pointRadius: 2.5,
+            fill: true,
+          },
+        ],
+      };
+      const barData = {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+          label: 'Total Entries',
+          data: [4200, 4500, 4350, 4600, 4100, 94, 382],
+          backgroundColor: ['#BAE6FD', '#BAE6FD', '#BAE6FD', '#BAE6FD', '#BAE6FD', '#F59E0B', '#E11D48'],
+          borderRadius: 3,
+        }],
+      };
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>24-Hour Diurnal Velocity</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>Midnight Surge</span>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={baseChartOptions} /></div>
+          </div>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Day of Week Volume</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>382 Sun Spike</span>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
+          </div>
+        </div>
+      );
+    }
+
+    case '06_amount_analysis': {
+      const benfordData = {
+        labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+        datasets: [
+          {
+            type: 'line' as const,
+            label: 'Expected Benford (%)',
+            data: [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6],
+            borderColor: '#E11D48',
+            borderWidth: 2,
+            pointRadius: 2,
+          },
+          {
+            type: 'bar' as const,
+            label: 'Actual Client (%)',
+            data: [31.2, 16.9, 13.1, 9.2, 8.4, 6.1, 5.4, 5.0, 4.7],
+            backgroundColor: '#007680',
+            borderRadius: 3,
+          },
+        ],
+      };
+      const roundDonutData = {
+        labels: ['$1k Multiples (45%)', '$10k Multiples (28%)', '$50k Multiples (18%)', '$100k+ Exact (9%)'],
+        datasets: [{
+          data: [45, 28, 18, 9],
+          backgroundColor: ['#007680', '#0284C7', '#F59E0B', '#E11D48'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        }],
+      };
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Benford’s Law Conformance (Digits 1–9)</span>
+              <span style={{ fontSize: '0.56rem', color: '#16A34A', fontWeight: 700 }}>96% Fit (Grade A)</span>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Chart type="bar" data={benfordData as any} options={baseChartOptions} /></div>
+          </div>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Round Dollar Density</span>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Doughnut data={roundDonutData} options={baseDoughnutOptions} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Round Total</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#007680' }}>928 Lines</span>
               </div>
-              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#F0F9FF', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#0284C7' }}>
-                <span>Standard Ops</span><span>25% ($18.5M)</span>
-              </div>
-              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#E6F4F5', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#007680' }}>
-                <span>Automated Feeds</span><span>58% ($42.8M)</span>
-              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+              <span style={{ color: '#007680' }}>● $1k (45%)</span>
+              <span style={{ color: '#0284C7' }}>● $10k (28%)</span>
+              <span style={{ color: '#F59E0B' }}>● $50k (18%)</span>
+              <span style={{ color: '#E11D48' }}>● $100k (9%)</span>
             </div>
           </div>
         </div>
       );
+    }
 
-    case '04_closing_entries':
+    case '07_duplicate_entries': {
+      const barData = {
+        labels: ['<$10k', '$10k-$50k', '$50k-$100k', '$100k-$500k', '>$500k'],
+        datasets: [
+          { label: 'Exact Match (Same Day)', data: [82, 34, 18, 6, 2], backgroundColor: '#E11D48', borderRadius: 3 },
+          { label: 'Near Match (48h Window)', data: [40, 18, 10, 3, 1], backgroundColor: '#F59E0B', borderRadius: 3 },
+        ],
+      };
+      const donutData = {
+        labels: ['Exact Match (66%)', 'Near Match 48h (34%)'],
+        datasets: [{
+          data: [66, 34],
+          backgroundColor: ['#E11D48', '#F59E0B'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        }],
+      };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          <div style={{ flex: 1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Financial Statement Effect</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, justifyContent: 'center' }}>
-              {[
-                { name: 'Increase in Expense', pct: '45%', color: '#E11D48', bg: '#FFF1F2' },
-                { name: 'Increase in Assets', pct: '23%', color: '#007680', bg: '#E6F4F5' },
-                { name: 'Decrease in Liab', pct: '17%', color: '#0284C7', bg: '#F0F9FF' },
-                { name: 'Decrease in Revenue', pct: '10%', color: '#F59E0B', bg: '#FFFBEB' },
-              ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 6px', borderRadius: '4px', background: item.bg, fontSize: '0.58rem', fontWeight: 700, color: item.color }}>
-                  <span>{item.name}</span>
-                  <span>{item.pct}</span>
-                </div>
-              ))}
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Duplicate Clusters by Value Range</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>214 Pairs</span>
             </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
-          <div style={{ flex: 1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Post-Cutoff Timing Profile</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '5px', paddingTop: '8px' }}>
-              {[
-                { d: 'Day -1/0', val: 95, col: '#E11D48' },
-                { d: 'Day +1/+3', val: 45, col: '#F59E0B' },
-                { d: 'Day +4/+7', val: 20, col: '#0284C7' },
-                { d: 'Day +8+', val: 10, col: '#007680' },
-              ].map((bar, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '3px' }}>
-                  <motion.div initial={{ height: 0 }} animate={{ height: `${bar.val}%` }} transition={{ duration: 0.4, delay: i * 0.05 }} style={{ width: '100%', background: bar.col, borderRadius: '2px 2px 0 0' }} />
-                  <span style={{ fontSize: '0.52rem', color: '#64748B' }}>{bar.d}</span>
-                </div>
-              ))}
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Match Type Profile</span>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Doughnut data={donutData} options={baseDoughnutOptions} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Exposure</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>$4.20M</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+              <span style={{ color: '#E11D48' }}>● Exact 66% (142 Pairs)</span>
+              <span style={{ color: '#F59E0B' }}>● Near 34% (72 Pairs)</span>
             </div>
           </div>
         </div>
       );
+    }
 
-    case '05_dates_interest':
+    case '08_word_count': {
+      const barData = {
+        labels: ['Manual', 'Adjust', 'Reclass', 'Override', 'Fraud', 'Suspense', 'Plug', 'Reserve'],
+        datasets: [{
+          label: 'Flagged Entries',
+          data: [210, 145, 82, 38, 4, 18, 7, 12],
+          backgroundColor: ['#0284C7', '#007680', '#0284C7', '#E11D48', '#7C3AED', '#F59E0B', '#E11D48', '#F59E0B'],
+          borderRadius: 3,
+        }],
+      };
+      const donutData = {
+        labels: ['Informational (71%)', 'Medium Risk (22%)', 'High Risk (7%)'],
+        datasets: [{
+          data: [71, 22, 7],
+          backgroundColor: ['#0284C7', '#F59E0B', '#E11D48'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        }],
+      };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          {/* Left: Weekday vs Weekend Heatmap Grid */}
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Calendar Posting Density</span>
-              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>Spike: 382 Lines</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Monitored Keyword Frequency</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>High Risk: 7%</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', padding: '6px 0', flex: 1, alignItems: 'center' }}>
-              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                  <span style={{ fontSize: '0.54rem', fontWeight: 700, color: i >= 5 ? '#E11D48' : '#64748B' }}>{d}</span>
-                  <div style={{ width: '100%', height: '24px', borderRadius: '3px', background: i === 6 ? '#E11D48' : i === 5 ? '#F59E0B' : '#E6F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '0.50rem', fontWeight: 800, color: i >= 5 ? '#FFFFFF' : '#007680' }}>
-                      {i === 6 ? '382' : i === 5 ? '94' : '22'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <span style={{ fontSize: '0.54rem', color: '#64748B', textAlign: 'center' }}>Sunday Midnight / Holiday Concentration Flagged</span>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
-
-          {/* Right: Off-Hours Velocity Curve */}
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Hourly Posting Velocity</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="100%" height="70" viewBox="0 0 160 70">
-                <path d="M 10 55 Q 40 50 60 58 T 90 20 T 130 52 T 150 15" fill="none" stroke="#E11D48" strokeWidth="2" />
-                <circle cx="150" cy="15" r="3" fill="#E11D48" />
-                <circle cx="90" cy="20" r="3" fill="#007680" />
-              </svg>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Severity Stratification</span>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Doughnut data={donutData} options={baseDoughnutOptions} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>High Risk</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>$6.98M</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', color: '#94A3B8' }}>
-              <span>8 AM</span><span>12 PM</span><span>6 PM</span><span style={{ color: '#E11D48', fontWeight: 700 }}>12 AM (Peak)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+              <span style={{ color: '#0284C7' }}>● Info 71%</span>
+              <span style={{ color: '#F59E0B' }}>● Med 22%</span>
+              <span style={{ color: '#E11D48' }}>● High 7%</span>
             </div>
           </div>
         </div>
       );
+    }
 
-    case '06_amount_analysis':
+    case '09_post_closing': {
+      const lineData = {
+        labels: ['Day 0', 'Day +3', 'Day +7', 'Day +10', 'Day +14', 'Day +21', 'Day +30'],
+        datasets: [{
+          label: 'Cumulative Late Postings ($M)',
+          data: [0, 1.2, 2.8, 4.1, 7.8, 8.9, 9.8],
+          borderColor: '#E11D48',
+          backgroundColor: 'rgba(225,29,72,0.12)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2.5,
+          pointBackgroundColor: '#E11D48',
+        }],
+      };
+      const barData = {
+        labels: ['Tax Prov', 'Inventory', 'Bonuses', 'Legal Res', 'Bad Debt'],
+        datasets: [{
+          label: 'Impact ($M)',
+          data: [3.8, 2.9, 1.7, 0.9, 0.5],
+          backgroundColor: ['#E11D48', '#D97706', '#007680', '#0284C7', '#64748B'],
+          borderRadius: 3,
+        }],
+      };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          {/* Left: Benford's Law 1-9 Curve */}
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Benford’s Law (Digits 1–9)</span>
-              <span style={{ fontSize: '0.58rem', color: '#16A34A', fontWeight: 700 }}>96% Grade A</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Post-Freeze Journal Timeline ($M)</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>98.7k Entries</span>
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '4px', paddingTop: '6px' }}>
-              {[
-                { d: '1', ben: 30.1, act: 31.2 }, { d: '2', ben: 17.6, act: 16.9 },
-                { d: '3', ben: 12.5, act: 13.1 }, { d: '4', ben: 9.7, act: 9.2 },
-                { d: '5', ben: 7.9, act: 8.4 }, { d: '6', ben: 6.7, act: 6.1 },
-                { d: '7', ben: 5.8, act: 5.4 }, { d: '8', ben: 5.1, act: 5.0 },
-                { d: '9', ben: 4.6, act: 4.7 },
-              ].map((item, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '2px' }}>
-                  <motion.div initial={{ height: 0 }} animate={{ height: `${item.act * 2.5}%` }} transition={{ duration: 0.35, delay: i * 0.03 }} style={{ width: '100%', background: '#007680', borderRadius: '2px 2px 0 0' }} />
-                  <span style={{ fontSize: '0.52rem', color: '#64748B' }}>{item.d}</span>
-                </div>
-              ))}
-            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={baseChartOptions} /></div>
           </div>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Top Affected Accounts ($M)</span>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
+          </div>
+        </div>
+      );
+    }
 
-          {/* Right: Round Dollar Multiples */}
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Round Multiples Density</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, justifyContent: 'center' }}>
-              {[
-                { label: '$1,000 Multiples', count: '412 Lines', col: '#007680', bg: '#E6F4F5' },
-                { label: '$10,000 Multiples', count: '184 Lines', col: '#0284C7', bg: '#F0F9FF' },
-                { label: '$50,000 Multiples', count: '62 Lines', col: '#F59E0B', bg: '#FFFBEB' },
-                { label: '$100,000+ Threshold', count: '19 Lines', col: '#E11D48', bg: '#FFF1F2' },
-              ].map((r, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 6px', borderRadius: '4px', background: r.bg, fontSize: '0.58rem', fontWeight: 700, color: r.col }}>
-                  <span>{r.label}</span>
-                  <span>{r.count}</span>
-                </div>
-              ))}
+    case '10_unrelated_accounts': {
+      const barData = {
+        labels: ['Cash ↔ Equity', 'Rev ↔ Fixed Asset', 'OPEX ↔ Clearing', 'Accrued ↔ Intang', 'Tax ↔ Debt'],
+        datasets: [{
+          label: 'Flagged Entries',
+          data: [128, 84, 52, 34, 18],
+          backgroundColor: ['#E11D48', '#E11D48', '#D97706', '#0284C7', '#007680'],
+          borderRadius: 3,
+        }],
+      };
+      const donutData = {
+        labels: ['High Risk Atypical (28%)', 'Operational Intercompany (72%)'],
+        datasets: [{
+          data: [28, 72],
+          backgroundColor: ['#E11D48', '#007680'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        }],
+      };
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Atypical Cross-Ledger Pairings</span>
+              <span style={{ fontSize: '0.56rem', color: '#E11D48', fontWeight: 700 }}>128 Outliers</span>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
+          </div>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>Association Risk Profile</span>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Doughnut data={donutData} options={baseDoughnutOptions} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '0.55rem', color: '#64748B' }}>Anomalous</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#E11D48' }}>$840k</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', fontWeight: 600, marginTop: '2px' }}>
+              <span style={{ color: '#E11D48' }}>● Atypical 28%</span>
+              <span style={{ color: '#007680' }}>● Standard 72%</span>
             </div>
           </div>
         </div>
       );
+    }
 
-    case '07_duplicate_entries':
+    case '11_population_stats': {
+      const lineData = {
+        labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'],
+        datasets: [{
+          label: 'Total Amount ($M)',
+          data: [4.2, 3.8, 4.8, 4.1, 4.3, 5.2, 4.4, 4.6, 6.1, 4.3, 4.1, 8.5],
+          borderColor: '#007680',
+          backgroundColor: 'rgba(0, 118, 128, 0.12)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 2.5,
+          pointBackgroundColor: '#007680',
+        }],
+      };
+      const barData = {
+        labels: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'],
+        datasets: [
+          { label: 'Standard Entries', data: [3800, 3500, 4200, 3700, 3900, 4600, 4000, 4200, 5100, 3900, 3700, 6400], backgroundColor: '#007680', borderRadius: 2 },
+          { label: 'Non-Standard', data: [400, 420, 580, 410, 450, 610, 430, 450, 980, 420, 410, 2100], backgroundColor: '#38BDF8', borderRadius: 2 },
+        ],
+      };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          {/* Left: Duplicate Match Breakdown */}
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Duplicate Clusters Match</span>
-              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>214 Flagged Pairs</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Population Activity Trajectory ($M)</span>
+              <span style={{ fontSize: '0.56rem', color: '#007680', fontWeight: 700 }}>P12 Peak $8.5M</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, justifyContent: 'center' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
-                  <span>Exact Match (Amount + Acct + Date)</span>
-                  <span style={{ color: '#E11D48' }}>142 Pairs (66%)</span>
-                </div>
-                <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
-                  <motion.div initial={{ width: 0 }} animate={{ width: '66%' }} transition={{ duration: 0.5 }} style={{ height: '100%', background: '#E11D48' }} />
-                </div>
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
-                  <span>Near Match (Within 48h Window)</span>
-                  <span style={{ color: '#D97706' }}>72 Pairs (34%)</span>
-                </div>
-                <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
-                  <motion.div initial={{ width: 0 }} animate={{ width: '34%' }} transition={{ duration: 0.5, delay: 0.1 }} style={{ height: '100%', background: '#D97706' }} />
-                </div>
-              </div>
-            </div>
-            <span style={{ fontSize: '0.54rem', color: '#64748B', borderTop: '1px solid #F1F5F9', paddingTop: '4px' }}>
-              Potential double-count exposure: <strong>$4.20M</strong>
-            </span>
+            <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={baseChartOptions} /></div>
           </div>
-
-          {/* Right: Time Window Distribution */}
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Repetition Time Window</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, justifyContent: 'center' }}>
-              <div style={{ padding: '5px', borderRadius: '4px', background: '#FFF1F2', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.54rem', color: '#64748B', display: 'block' }}>Same Day Reposting</span>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#E11D48' }}>65% Concentration</span>
-              </div>
-              <div style={{ padding: '5px', borderRadius: '4px', background: '#F0F9FF', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.54rem', color: '#64748B', display: 'block' }}>Subledger Retry Batch</span>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0284C7' }}>25% Lag Window</span>
-              </div>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Standard vs Non-Standard Volume</span>
+              <span style={{ fontSize: '0.56rem', color: '#0284C7', fontWeight: 700 }}>P12 Surge: +34%</span>
             </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={baseChartOptions} /></div>
           </div>
         </div>
       );
+    }
 
-    case '08_word_count':
+    case '12_forensic_radar': {
+      const radarData = {
+        labels: ['Manual Ratio', 'Weekend/Off-Hours', 'Round Dollar', 'Closing Rush', 'Author Concen', 'Benford Fit'],
+        datasets: [
+          {
+            label: 'Client Risk DNA',
+            data: [78, 42, 65, 92, 85, 96],
+            backgroundColor: 'rgba(0, 118, 128, 0.25)',
+            borderColor: '#007680',
+            pointBackgroundColor: '#007680',
+            pointRadius: 2.5,
+            borderWidth: 2,
+          },
+          {
+            label: 'Peer Median',
+            data: [50, 48, 52, 45, 55, 97],
+            backgroundColor: 'rgba(148, 163, 184, 0.10)',
+            borderColor: '#94A3B8',
+            borderDash: [3, 3],
+            pointRadius: 2,
+            borderWidth: 1.5,
+          },
+        ],
+      };
+      const radarOptions: any = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600 },
+        plugins: { legend: { display: false } },
+        scales: {
+          r: {
+            grid: { color: '#F1F5F9' },
+            angleLines: { color: '#E2E8F0' },
+            pointLabels: { color: '#475569', font: { size: 8.5, family: "'Inter', sans-serif" } },
+            ticks: { display: false },
+          },
+        },
+      };
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Monitored Keyword Frequency</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '5px', paddingTop: '8px' }}>
-              {[
-                { kw: 'Manual', count: 210, col: '#0284C7' },
-                { kw: 'Adjust', count: 145, col: '#007680' },
-                { kw: 'Override', count: 38, col: '#E11D48' },
-                { kw: 'Suspense', count: 18, col: '#F59E0B' },
-                { kw: 'Plug', count: 7, col: '#E11D48' },
-                { kw: 'Fraud', count: 4, col: '#7C3AED' },
-              ].map((item, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '3px' }}>
-                  <motion.div initial={{ height: 0 }} animate={{ height: `${Math.min(95, (item.count / 210) * 90 + 10)}%` }} transition={{ duration: 0.4, delay: i * 0.04 }} style={{ width: '100%', background: item.col, borderRadius: '2px 2px 0 0' }} />
-                  <span style={{ fontSize: '0.50rem', color: '#64748B', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '34px' }}>{item.kw}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Severity Stratification</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, justifyContent: 'center' }}>
-              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#FFF1F2', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#E11D48' }}>
-                <span>High Risk (Fraud/Plug)</span><span>7% ($6.98M)</span>
-              </div>
-              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#FFFBEB', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#D97706' }}>
-                <span>Medium (Suspense)</span><span>22% ($2.18M)</span>
-              </div>
-              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#F0F9FF', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#0284C7' }}>
-                <span>Informational</span><span>71% ($16.4M)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-
-    case '09_post_closing':
-      return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          {/* Left: Timeline Curve post freeze */}
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Post-Freeze Journal Timeline</span>
-              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>98.7k Entries</span>
-            </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="100%" height="70" viewBox="0 0 180 70">
-                <motion.path d="M 10 60 Q 40 55 70 58 T 100 20 T 140 45 T 175 10" fill="none" stroke="#E11D48" strokeWidth="2.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6 }} />
-                <circle cx="100" cy="20" r="3.5" fill="#E11D48" />
-                <circle cx="175" cy="10" r="3.5" fill="#E11D48" />
-              </svg>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', color: '#94A3B8' }}>
-              <span>Freeze Date</span><span>Day +7</span><span style={{ color: '#E11D48', fontWeight: 700 }}>Day +14 (Audit Spike)</span><span>Day +30</span>
-            </div>
-          </div>
-
-          {/* Right: Post-closing Account Distribution */}
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Late Adjustment Impact</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, justifyContent: 'center' }}>
-              {[
-                { acc: 'Tax Provisions', amt: '$3.8M', col: '#E11D48', bg: '#FFF1F2' },
-                { acc: 'Inventory Valuation', amt: '$2.9M', col: '#D97706', bg: '#FFFBEB' },
-                { acc: 'Accrued Bonuses', amt: '$1.7M', col: '#007680', bg: '#E6F4F5' },
-              ].map((row, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 6px', borderRadius: '4px', background: row.bg, fontSize: '0.58rem', fontWeight: 700, color: row.col }}>
-                  <span>{row.acc}</span>
-                  <span>{row.amt}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-
-    case '10_unrelated_accounts':
-      return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          {/* Left: 4x4 Heatmap Matrix */}
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Cross-Ledger Pairing Matrix</span>
-              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>128 Outliers</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '3px', flex: 1, padding: '4px 0', alignItems: 'center' }}>
-              {[
-                { label: 'Asset/Liab', alert: false, col: '#E6F4F5' },
-                { label: 'Asset/Rev', alert: false, col: '#F0F9FF' },
-                { label: 'Asset/Eq', alert: true, col: '#FFF1F2' },
-                { label: 'Liab/Exp', alert: false, col: '#E6F4F5' },
-                { label: 'Rev/Exp', alert: false, col: '#F0F9FF' },
-                { label: 'Cash/Eq', alert: true, col: '#FFE4E6' },
-                { label: 'Liab/Eq', alert: false, col: '#F8FAFC' },
-                { label: 'Susp/Rev', alert: true, col: '#FEF3C7' },
-              ].map((cell, i) => (
-                <div key={i} style={{ background: cell.col, borderRadius: '4px', padding: '4px 2px', textAlign: 'center', border: cell.alert ? '1px solid #FECDD3' : '1px solid transparent' }}>
-                  <span style={{ fontSize: '0.52rem', fontWeight: 700, color: cell.alert ? '#E11D48' : '#475569', display: 'block' }}>{cell.label}</span>
-                </div>
-              ))}
-            </div>
-            <span style={{ fontSize: '0.54rem', color: '#64748B', textAlign: 'center' }}>Atypical pairings bridging disparate COA branches</span>
-          </div>
-
-          {/* Right: Outlier Detail Card */}
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Primary Anomaly Focus</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, justifyContent: 'center' }}>
-              <div style={{ padding: '6px', borderRadius: '5px', background: '#FFF1F2', border: '1px solid #FECDD3' }}>
-                <span style={{ fontSize: '0.54rem', color: '#64748B', display: 'block' }}>Direct Cash ↔ Non-Operating Equity</span>
-                <span style={{ fontSize: '0.80rem', fontWeight: 900, color: '#E11D48' }}>128 Postings ($840k)</span>
-              </div>
-              <div style={{ padding: '5px', borderRadius: '5px', background: '#E6F4F5', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#007680' }}>Mandatory Ledger Audit Flag</span>
+        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '10px', padding: '8px' }}>
+          <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F172A' }}>Accounting Behavior DNA Radar</span>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '0.54rem', fontWeight: 600 }}>
+                <span style={{ color: '#007680' }}>● Client</span>
+                <span style={{ color: '#94A3B8' }}>-- Peer</span>
               </div>
             </div>
+            <div style={{ flex: 1, minHeight: 0 }}><Radar data={radarData} options={radarOptions} /></div>
           </div>
-        </div>
-      );
-
-    case '11_population_stats':
-      return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          {/* Left: Activity Trajectory Line */}
-          <div style={{ flex: 1.1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Activity Trajectory (P1–P12)</span>
-              <span style={{ fontSize: '0.58rem', color: '#007680', fontWeight: 700 }}>Local Currency ($)</span>
-            </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="100%" height="75" viewBox="0 0 240 75" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#007680" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#007680" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <motion.path d="M 10 50 Q 35 55 55 40 T 100 42 T 140 28 T 180 44 T 210 18 T 235 5" fill="none" stroke="#007680" strokeWidth="2.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.7 }} />
-                <path d="M 10 50 Q 35 55 55 40 T 100 42 T 140 28 T 180 44 T 210 18 T 235 5 L 235 70 L 10 70 Z" fill="url(#lineGrad)" />
-                <circle cx="235" cy="5" r="3.5" fill="#007680" />
-                <circle cx="140" cy="28" r="3" fill="#007680" />
-              </svg>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', color: '#94A3B8' }}>
-              <span>P1</span><span>P3</span><span>P6</span><span>P9</span><span>P12 (Spike: $8.5M)</span>
-            </div>
-          </div>
-
-          {/* Right: Monthly Volume Bars */}
-          <div style={{ flex: 0.9, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Monthly Volume Profile</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '4px', paddingTop: '8px' }}>
-              {[
-                { p: 'P1', val: 45 }, { p: 'P3', val: 52 }, { p: 'P6', val: 68 },
-                { p: 'P9', val: 78 }, { p: 'P11', val: 60 }, { p: 'P12', val: 95 }
-              ].map((m, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '2px' }}>
-                  <motion.div initial={{ height: 0 }} animate={{ height: `${m.val}%` }} transition={{ duration: 0.4, delay: i * 0.04 }} style={{ width: '100%', background: i === 5 ? '#007680' : '#0284C7', borderRadius: '2px 2px 0 0' }} />
-                  <span style={{ fontSize: '0.52rem', color: '#64748B' }}>{m.p}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', color: '#64748B', fontWeight: 600, borderTop: '1px solid #F1F5F9', paddingTop: '3px' }}>
-              <span>Standard: 88%</span>
-              <span style={{ color: '#007680' }}>P12: +34%</span>
-            </div>
-          </div>
-        </div>
-      );
-
-    case '12_forensic_radar':
-      return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
-          {/* Left: 6-Axis Radar */}
-          <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Behavior Vector Radar</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              <svg width="120" height="100" viewBox="0 0 120 100">
-                <polygon points="60,10 100,30 100,70 60,90 20,70 20,30" fill="none" stroke="#E2E8F0" strokeWidth="1" />
-                <polygon points="60,25 85,38 85,62 60,75 35,62 35,38" fill="none" stroke="#F1F5F9" strokeWidth="1" />
-                <polygon points="60,28 88,40 82,65 60,72 38,62 40,38" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="3 3" />
-                <motion.polygon
-                  points="60,15 95,35 88,68 60,86 28,66 32,32"
-                  fill="rgba(0,118,128,0.22)"
-                  stroke="#007680"
-                  strokeWidth="2"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                />
-              </svg>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', fontSize: '0.54rem', fontWeight: 600 }}>
-              <span style={{ color: '#007680' }}>● Client DNA</span>
-              <span style={{ color: '#94A3B8' }}>-- Peer Median</span>
-            </div>
-          </div>
-
-          {/* Right: Vector KPI Cards */}
-          <div style={{ flex: 1, height: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', height: '100%' }}>
             {[
               { title: 'Manual Override', val: '14.8%', delta: '+3.6% delta', color: '#D97706', bg: '#FFFBEB' },
               { title: 'Closing Rush', val: '40.2%', delta: '+25.7% Focus', color: '#E11D48', bg: '#FFF1F2' },
@@ -789,6 +922,7 @@ const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => 
           </div>
         </div>
       );
+    }
 
     default:
       return null;
@@ -877,14 +1011,14 @@ export const VisualizationShowcase: React.FC = () => {
     >
       <div style={{ maxWidth: '1440px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
 
-        {/* ── Section Header Row (Compact & High Impact) ── */}
+        {/* ── Section Header Row ── */}
         <div style={{
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '16px',
-          marginBottom: '18px',
+          marginBottom: '16px',
         }}>
           <div>
             <div style={{ marginBottom: '6px' }}>
@@ -928,7 +1062,7 @@ export const VisualizationShowcase: React.FC = () => {
           </p>
         </div>
 
-        {/* ── 12-Category Scrollable Tab Strip (Compact & Crisp) ── */}
+        {/* ── 12-Category Scrollable Tab Strip ── */}
         <div
           ref={tabListRef}
           role="tablist"
@@ -1049,7 +1183,7 @@ export const VisualizationShowcase: React.FC = () => {
                   transition={{ duration: 0.25, ease: 'easeOut' }}
                   style={{ width: '100%', height: '100%' }}
                 >
-                  <VectorChartCanvas categoryId={current.id} />
+                  <FullChartEngine categoryId={current.id} />
                 </motion.div>
               </AnimatePresence>
             </div>
