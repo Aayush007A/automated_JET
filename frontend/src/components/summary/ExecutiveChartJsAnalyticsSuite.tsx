@@ -895,14 +895,25 @@ const Sheet00EngagementDetails: React.FC<{
 }> = ({ fmtNum, fmtCurr, totalGlRows, totalTbRows, options, pieOptions, config, status, quarterFilter = 'ALL' }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
-  const p = (config as any)?.parameters || {};
-  const engName = p.engagementName || (config as any)?.engagementName || 'Tangerine Skies Pvt Ltd - JET Audit';
-  const sDate = p.startDate || '01-Apr-2025';
-  const eDate = p.endDate || '31-Mar-2026';
-  const fyEnd = p.financialYearEnd || '31-Mar';
-  const engCode = status?.runId || (config as any)?.runId || '4538076-JET-2026';
-  const currCode = p.currencyCode || 'USD';
-  const matThreshold = p.materiality ? fmtCurr(p.materiality) : '$500,000.00';
+  const sp = (config?.sparkParameters || {}) as Record<string, any>;
+  const op = (config?.omniaParameters || {}) as Record<string, any>;
+  const p = ((config as any)?.parameters || {}) as Record<string, any>;
+
+  const engName = sp.engagementName || op.engagementName || (config as any)?.engagementName || p.engagementName || 'Tangerine Skies Pvt Ltd - JET Audit';
+  const sDate = sp.startDate || op.testingPeriodStart || p.startDate || '01-Apr-2025';
+  const eDate = sp.endDate || op.testingPeriodEnd || p.endDate || '31-Mar-2026';
+  const fyEnd = sp.financialYearEnd || op.fiscalYearEnd || p.financialYearEnd || '31-Dec';
+  const engCode = status?.runId || config?.runId || (config as any)?.runId || '4538076-JET-2026';
+  const currCode = sp.currencyCode || op.entityCurrencyCode || p.currencyCode || 'USD';
+  const materialityNum = typeof sp.materiality === 'number'
+    ? sp.materiality
+    : typeof op.materialityThreshold === 'number'
+      ? op.materialityThreshold
+      : typeof p.materiality === 'number'
+        ? p.materiality
+        : 500000;
+  const matThreshold = new Intl.NumberFormat('en-US', { style: 'currency', currency: currCode, minimumFractionDigits: 2 }).format(materialityNum);
+  const classification = sp.classification || op.classification || 'Tier 1 Key Audit Engagement';
 
   const mappedScopeAccounts = Math.round(totalTbRows * 0.48);
   const popTotal = totalGlRows + totalTbRows + mappedScopeAccounts;
@@ -913,9 +924,9 @@ const Sheet00EngagementDetails: React.FC<{
   const baseColors = ['#007680', '#38BDF8', '#FBBF24'];
   const popDoughnutData = useMemo(() => ({
     labels: [
-      `General Ledger Rows (${glShare}%)`,
-      `Trial Balance Accounts (${tbShare}%)`,
-      `Mapped Scope Accounts (${scopeShare}%)`
+      'General Ledger Rows',
+      'Trial Balance Accounts',
+      'Mapped Scope Accounts'
     ],
     datasets: [{
       data: [totalGlRows, totalTbRows, mappedScopeAccounts],
@@ -923,7 +934,7 @@ const Sheet00EngagementDetails: React.FC<{
       borderWidth: 2,
       borderColor: '#FFFFFF',
     }]
-  }), [totalGlRows, totalTbRows, mappedScopeAccounts, glShare, tbShare, scopeShare, selectedIdx]);
+  }), [totalGlRows, totalTbRows, mappedScopeAccounts, selectedIdx]);
 
   const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx, setSelectedIdx), [pieOptions, selectedIdx]);
 
@@ -1069,11 +1080,7 @@ const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: 
     const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
     const baseAmounts = [28940000, 19820500, 14280900, 8420100].map(v => Math.round(v * qMult));
     const totalExp = baseAmounts.reduce((a, b) => a + b, 0);
-    const catNames = rawCategories;
-    const labels = catNames.map((name, i) => {
-      const pct = totalExp > 0 ? ((baseAmounts[i] / totalExp) * 100).toFixed(1) : '0';
-      return `${name} (${pct}%)`;
-    });
+    const labels = rawCategories;
     const baseColors = ['#007680', '#38BDF8', '#FBBF24', '#34D399'];
     return {
       labels,
@@ -1557,11 +1564,11 @@ const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; option
     const baseColors = ['#007680', '#38BDF8', '#EF4444', '#FBBF24', '#8B5CF6'];
     return {
       labels: [
-        `Increase in Assets (${p1}%)`,
-        `Decrease in Liab (${p2}%)`,
-        `Increase in Exp [Risk] (${p3}%)`,
-        `Decrease in Rev (${p4}%)`,
-        `Equity Adj (${p5}%)`
+        'Increase in Assets',
+        'Decrease in Liab',
+        'Increase in Exp [Risk]',
+        'Decrease in Rev',
+        'Equity Adj'
       ],
       datasets: [{
         data: [v1, v2, v3, v4, v5],

@@ -630,23 +630,16 @@ export const SparkJetWorkflow: React.FC = () => {
       if (data.config) {
         const sp = (data.config.sparkParameters || {}) as Record<string, any>;
         const op = (data.config.omniaParameters || {}) as Record<string, any>;
-        if (sp.engagementName || sp.financialYearEnd || sp.startDate || sp.materiality || sp.currencyCode) {
-          setEngagementAuditParams({
-            engagementName: sp.engagementName || '',
-            startDate: sp.startDate || op.testingPeriodStart || '',
-            endDate: sp.endDate || op.testingPeriodEnd || '',
-            financialYearEnd: sp.financialYearEnd || op.fiscalYearEnd || '',
-            engagementRunId: targetRunId,
-            operatingCurrency: sp.currencyCode || op.entityCurrencyCode || '',
-            overallMateriality: sp.materiality !== undefined ? sp.materiality : '',
-            engagementClassification: sp.classification || '',
-          });
-        } else {
-          setEngagementAuditParams((prev) => ({
-            ...prev,
-            engagementRunId: targetRunId,
-          }));
-        }
+        setEngagementAuditParams((prev) => ({
+          engagementName: sp.engagementName || prev.engagementName || '',
+          startDate: sp.startDate || op.testingPeriodStart || prev.startDate || '',
+          endDate: sp.endDate || op.testingPeriodEnd || prev.endDate || '',
+          financialYearEnd: sp.financialYearEnd || op.fiscalYearEnd || prev.financialYearEnd || '',
+          engagementRunId: targetRunId,
+          operatingCurrency: sp.currencyCode || op.entityCurrencyCode || prev.operatingCurrency || '',
+          overallMateriality: sp.materiality !== undefined ? sp.materiality : (prev.overallMateriality !== '' ? prev.overallMateriality : ''),
+          engagementClassification: sp.classification || prev.engagementClassification || '',
+        }));
       }
 
       // Restore autoCleanReport so clean status never resets on page revisit
@@ -843,6 +836,36 @@ export const SparkJetWorkflow: React.FC = () => {
         activeRunId = res.runId;
         navigate(`/spark-jet?runId=${activeRunId}`, { replace: true });
       }
+
+      // Persist user-configured engagement parameters immediately into backend config
+      if (
+        engagementAuditParams.engagementName ||
+        engagementAuditParams.overallMateriality ||
+        engagementAuditParams.operatingCurrency ||
+        engagementAuditParams.startDate ||
+        engagementAuditParams.endDate ||
+        engagementAuditParams.financialYearEnd
+      ) {
+        try {
+          await RunService.updateConfig(activeRunId, {
+            sparkParameters: {
+              ...sparkParams,
+              engagementName: engagementAuditParams.engagementName || sparkParams.engagementName,
+              startDate: engagementAuditParams.startDate,
+              endDate: engagementAuditParams.endDate,
+              financialYearEnd: engagementAuditParams.financialYearEnd,
+              currencyCode: engagementAuditParams.operatingCurrency || sparkParams.currencyCode || 'USD',
+              materiality:
+                typeof engagementAuditParams.overallMateriality === 'number'
+                  ? engagementAuditParams.overallMateriality
+                  : parseFloat(String(engagementAuditParams.overallMateriality).replace(/[^0-9.-]+/g, '')) || sparkParams.materiality || 500000,
+            },
+          });
+        } catch (e) {
+          console.error('Failed to sync engagement parameters on upload:', e);
+        }
+      }
+
       await RunService.uploadFiles(activeRunId, files, 'SPARK_JET');
       await loadRun(activeRunId);
     } catch (err) {
@@ -3018,8 +3041,25 @@ export const SparkJetWorkflow: React.FC = () => {
                 <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                   Total Population Rows
                 </div>
-                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
-                  {executing || status?.status === 'RUNNING' ? 'In Progress...' : new Intl.NumberFormat('en-US').format(status?.glCheckpointsSummary?.totalLines || (status?.totalInputRows?.gl || 0))}
+                <div style={{
+                  fontSize: (executing || status?.status === 'RUNNING') ? '1.05rem' : '1.75rem',
+                  fontWeight: 850,
+                  color: (executing || status?.status === 'RUNNING') ? '#007680' : '#0F172A',
+                  fontFamily: (executing || status?.status === 'RUNNING') ? 'inherit' : 'monospace',
+                  margin: '4px 0 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minHeight: '36px',
+                }}>
+                  {executing || status?.status === 'RUNNING' ? (
+                    <>
+                      <Loader2 size={15} className="spin-slow" style={{ color: '#007680' }} />
+                      <span>In Progress...</span>
+                    </>
+                  ) : (
+                    new Intl.NumberFormat('en-US').format(status?.glCheckpointsSummary?.totalLines || (status?.totalInputRows?.gl || 0))
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #FED7AA' }}>
@@ -3034,8 +3074,25 @@ export const SparkJetWorkflow: React.FC = () => {
                 <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                   TB Accounts
                 </div>
-                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
-                  {executing || status?.status === 'RUNNING' ? 'In Progress...' : new Intl.NumberFormat('en-US').format(status?.totalInputRows?.tb || 0)}
+                <div style={{
+                  fontSize: (executing || status?.status === 'RUNNING') ? '1.05rem' : '1.75rem',
+                  fontWeight: 850,
+                  color: (executing || status?.status === 'RUNNING') ? '#007680' : '#0F172A',
+                  fontFamily: (executing || status?.status === 'RUNNING') ? 'inherit' : 'monospace',
+                  margin: '4px 0 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minHeight: '36px',
+                }}>
+                  {executing || status?.status === 'RUNNING' ? (
+                    <>
+                      <Loader2 size={15} className="spin-slow" style={{ color: '#007680' }} />
+                      <span>In Progress...</span>
+                    </>
+                  ) : (
+                    new Intl.NumberFormat('en-US').format(status?.totalInputRows?.tb || 0)
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #BBF7D0' }}>
@@ -3050,8 +3107,25 @@ export const SparkJetWorkflow: React.FC = () => {
                 <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                   IR Exceptions
                 </div>
-                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
-                  {executing || status?.status === 'RUNNING' ? 'In Progress...' : new Intl.NumberFormat('en-US').format(getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'))}
+                <div style={{
+                  fontSize: (executing || status?.status === 'RUNNING') ? '1.05rem' : '1.75rem',
+                  fontWeight: 850,
+                  color: (executing || status?.status === 'RUNNING') ? '#007680' : '#0F172A',
+                  fontFamily: (executing || status?.status === 'RUNNING') ? 'inherit' : 'monospace',
+                  margin: '4px 0 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minHeight: '36px',
+                }}>
+                  {executing || status?.status === 'RUNNING' ? (
+                    <>
+                      <Loader2 size={15} className="spin-slow" style={{ color: '#007680' }} />
+                      <span>In Progress...</span>
+                    </>
+                  ) : (
+                    new Intl.NumberFormat('en-US').format(getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'))
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#007680', border: '1px solid #BFDBFE' }}>
@@ -3066,8 +3140,25 @@ export const SparkJetWorkflow: React.FC = () => {
                 <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                   Parameter Exceptions
                 </div>
-                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
-                  {executing || status?.status === 'RUNNING' ? 'In Progress...' : new Intl.NumberFormat('en-US').format([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reduce((acc, num) => acc + getExceptionCount(num, `Ex${num}`), 0))}
+                <div style={{
+                  fontSize: (executing || status?.status === 'RUNNING') ? '1.05rem' : '1.75rem',
+                  fontWeight: 850,
+                  color: (executing || status?.status === 'RUNNING') ? '#007680' : '#0F172A',
+                  fontFamily: (executing || status?.status === 'RUNNING') ? 'inherit' : 'monospace',
+                  margin: '4px 0 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minHeight: '36px',
+                }}>
+                  {executing || status?.status === 'RUNNING' ? (
+                    <>
+                      <Loader2 size={15} className="spin-slow" style={{ color: '#007680' }} />
+                      <span>In Progress...</span>
+                    </>
+                  ) : (
+                    new Intl.NumberFormat('en-US').format([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reduce((acc, num) => acc + getExceptionCount(num, `Ex${num}`), 0))
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#007680', border: '1px solid #99F6E4' }}>
@@ -3082,7 +3173,7 @@ export const SparkJetWorkflow: React.FC = () => {
                 <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
                   Audit Materiality
                 </div>
-                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                <div style={{ fontSize: '1.75rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px', minHeight: '36px', display: 'flex', alignItems: 'center' }}>
                   {new Intl.NumberFormat('en-US', { style: 'currency', currency: config?.sparkParameters?.currencyCode || 'USD', maximumFractionDigits: 0 }).format(typeof config?.sparkParameters?.materiality === 'number' ? config.sparkParameters.materiality : 500000)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>

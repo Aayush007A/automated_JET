@@ -107,6 +107,7 @@ export interface SparkJetParameters {
 }
 
 export interface OmniaJetParameters {
+  engagementName?: string;
   fiscalYear: number;
   fiscalYearEnd: string;
   periodEndDateFormat?: string;
@@ -115,6 +116,7 @@ export interface OmniaJetParameters {
   currency: 'Entity Currency' | 'Group Currency' | 'Both';
   entityCurrencyCode?: string;
   groupCurrencyCode?: string;
+  materiality?: number;
   excludeZeroLines?: boolean;
   decimalSeparator?: 'Period' | 'Comma' | 'None';
   isStandardFormula?: string;

@@ -279,23 +279,16 @@ export const OmniaJetWorkflow: React.FC = () => {
       if (data.config) {
         const sp = (data.config.sparkParameters || {}) as Record<string, any>;
         const op = (data.config.omniaParameters || {}) as Record<string, any>;
-        if (sp.engagementName || op.fiscalYearEnd || sp.startDate || sp.materiality || op.entityCurrencyCode) {
-          setEngagementAuditParams({
-            engagementName: sp.engagementName || '',
-            startDate: sp.startDate || op.testingPeriodStart || '',
-            endDate: sp.endDate || op.testingPeriodEnd || '',
-            financialYearEnd: sp.financialYearEnd || op.fiscalYearEnd || '',
-            engagementRunId: targetRunId,
-            operatingCurrency: sp.currencyCode || op.entityCurrencyCode || '',
-            overallMateriality: sp.materiality !== undefined ? sp.materiality : '',
-            engagementClassification: sp.classification || '',
-          });
-        } else {
-          setEngagementAuditParams((prev) => ({
-            ...prev,
-            engagementRunId: targetRunId,
-          }));
-        }
+        setEngagementAuditParams((prev) => ({
+          engagementName: sp.engagementName || op.engagementName || prev.engagementName || '',
+          startDate: sp.startDate || op.testingPeriodStart || prev.startDate || '',
+          endDate: sp.endDate || op.testingPeriodEnd || prev.endDate || '',
+          financialYearEnd: sp.financialYearEnd || op.fiscalYearEnd || prev.financialYearEnd || '',
+          engagementRunId: targetRunId,
+          operatingCurrency: sp.currencyCode || op.entityCurrencyCode || prev.operatingCurrency || '',
+          overallMateriality: sp.materiality !== undefined ? sp.materiality : (op.materialityThreshold !== undefined ? op.materialityThreshold : (prev.overallMateriality !== '' ? prev.overallMateriality : '')),
+          engagementClassification: sp.classification || op.classification || prev.engagementClassification || '',
+        }));
       }
 
       // Restore autoCleanReport so clean status never resets on page revisit
@@ -432,6 +425,48 @@ export const OmniaJetWorkflow: React.FC = () => {
         activeRunId = res.runId;
         navigate(`/omnia-jet?runId=${activeRunId}`, { replace: true });
       }
+
+      // Persist user-configured engagement parameters immediately into backend config
+      if (
+        engagementAuditParams.engagementName ||
+        engagementAuditParams.overallMateriality ||
+        engagementAuditParams.operatingCurrency ||
+        engagementAuditParams.startDate ||
+        engagementAuditParams.endDate ||
+        engagementAuditParams.financialYearEnd
+      ) {
+        try {
+          await RunService.updateConfig(activeRunId, {
+            omniaParameters: {
+              ...omniaParams,
+              fiscalYear: 2026,
+              currency: 'Entity Currency',
+              fiscalYearEnd: engagementAuditParams.financialYearEnd,
+              testingPeriodStart: engagementAuditParams.startDate,
+              testingPeriodEnd: engagementAuditParams.endDate,
+              entityCurrencyCode: engagementAuditParams.operatingCurrency || 'USD',
+              materiality:
+                typeof engagementAuditParams.overallMateriality === 'number'
+                  ? engagementAuditParams.overallMateriality
+                  : parseFloat(String(engagementAuditParams.overallMateriality).replace(/[^0-9.-]+/g, '')) || 500000,
+            },
+            sparkParameters: {
+              engagementName: engagementAuditParams.engagementName,
+              startDate: engagementAuditParams.startDate,
+              endDate: engagementAuditParams.endDate,
+              financialYearEnd: engagementAuditParams.financialYearEnd,
+              currencyCode: engagementAuditParams.operatingCurrency || 'USD',
+              materiality:
+                typeof engagementAuditParams.overallMateriality === 'number'
+                  ? engagementAuditParams.overallMateriality
+                  : parseFloat(String(engagementAuditParams.overallMateriality).replace(/[^0-9.-]+/g, '')) || 500000,
+            },
+          });
+        } catch (e) {
+          console.error('Failed to sync engagement parameters on upload in OmniaJet:', e);
+        }
+      }
+
       const res = await RunService.uploadFiles(activeRunId, files, 'OMNIA_JET');
       setConfig((prev) => prev ? { ...prev, files: res.files, datasetMap: res.datasetMap, fieldMappings: res.fieldMappings } : null);
       await loadRun(activeRunId);

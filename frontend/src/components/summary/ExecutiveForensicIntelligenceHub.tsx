@@ -62,7 +62,7 @@ const hubDoughnutCalloutPlugin = {
   id: 'hubDoughnutCallout',
   afterDatasetsDraw(chart: any) {
     if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
-    if (chart.options?.plugins?.hubDoughnutCallout?.display === false) return;
+    if (!chart.options?.plugins?.hubDoughnutCallout || chart.options?.plugins?.hubDoughnutCallout?.display !== true) return;
 
     const { ctx, data } = chart;
     const meta = chart.getDatasetMeta(0);
