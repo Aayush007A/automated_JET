@@ -334,11 +334,12 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   const isSpark = workflowType === 'SPARK_JET';
   const defaultList = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
 
-  // Start as PENDING so we don't flash "PASSED" before API returns
-  const [isRunningClean, setIsRunningClean] = useState(!autoCleanReport);
+  // Start with a brief evaluation sequence so the user sees live calculation in progress
+  const [isEvaluating, setIsEvaluating] = useState(true);
+  const [isRunningClean, setIsRunningClean] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'TB' | 'GL' | 'COA' | 'FAILED'>('ALL');
   const [constraints, setConstraints] = useState<SchemaConstraintItem[]>(
-    autoCleanReport ? defaultList : defaultList.map(c => ({ ...c, status: 'PENDING' }))
+    defaultList.map(c => ({ ...c, status: 'PENDING' }))
   );
   const [localReport, setLocalReport] = useState<any>(autoCleanReport);
 
@@ -363,15 +364,24 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
   useEffect(() => {
     const list = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
-    setConstraints(list);
     setActiveFilter('ALL');
-    if (autoCleanReport) {
-      setLocalReport(autoCleanReport);
-      applyReportToConstraints(autoCleanReport);
-    } else if (runId) {
-      handleRunCleansing();
-    }
-  }, [workflowType, runId, autoCleanReport]);
+    setIsEvaluating(true);
+
+    const timer = setTimeout(() => {
+      setIsEvaluating(false);
+      if (autoCleanReport) {
+        setLocalReport(autoCleanReport);
+        applyReportToConstraints(autoCleanReport);
+      } else {
+        setConstraints(list);
+        if (runId) {
+          handleRunCleansing();
+        }
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [workflowType, runId]);
 
   const totalRows = isSpark ? tbRowCount + glRowCount : tbRowCount + glRowCount + coaRowCount;
 
@@ -380,8 +390,9 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
       setIsRunningClean(true);
       setTimeout(() => {
         setIsRunningClean(false);
+        setIsEvaluating(false);
         setConstraints(isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS);
-      }, 700);
+      }, 1200);
       return;
     }
 
@@ -399,8 +410,11 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
       console.error(err);
     } finally {
       setIsRunningClean(false);
+      setIsEvaluating(false);
     }
   };
+
+  const isCalculating = isEvaluating || isRunningClean;
 
   const filteredConstraints = constraints.filter((c) => {
     if (activeFilter === 'FAILED') return c.status !== 'PASSED' || (c.failedRowsCount !== undefined && c.failedRowsCount > 0);
@@ -412,22 +426,30 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
   const passedCount = constraints.filter((c) => c.status === 'PASSED' && (!c.failedRowsCount || c.failedRowsCount === 0)).length;
   const failedCount = constraints.filter((c) => c.status !== 'PASSED' || (c.failedRowsCount !== undefined && c.failedRowsCount > 0)).length;
-  const allPassed = failedCount === 0;
+  const allPassed = failedCount === 0 && !isCalculating;
 
   return (
     <div style={{ width: '100%', paddingBottom: '24px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+      {/* 4 Pastel Summary Cards per row on 100% zoom standard screen */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '20px' }}>
         {/* Card 1: Total Rows Evaluated (Peach / Orange) */}
         <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#FFF4EC', border: '1px solid #FFE7D6', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
           <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
             Total Evaluated Rows
           </div>
-          <div style={{ fontSize: '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px' }}>
-            {totalRows.toLocaleString()}
+          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isCalculating ? (
+              <>
+                <Loader2 size={18} className="spin" color="var(--deloitte-teal)" />
+                <span style={{ color: 'var(--deloitte-teal)', fontSize: '1.20rem' }}>Calculating...</span>
+              </>
+            ) : (
+              totalRows.toLocaleString()
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #FED7AA' }}>
-              ▲ 100%
+              {isCalculating ? '▲ Evaluating' : '▲ 100%'}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {isSpark ? `TB (${tbRowCount}) · GL (${glRowCount})` : `TB (${tbRowCount}) · GL (${glRowCount}) · COA (${coaRowCount})`}
@@ -440,12 +462,19 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
             {isSpark ? 'Checkpoints Evaluated' : 'Rules Evaluated'}
           </div>
-          <div style={{ fontSize: '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px' }}>
-            {constraints.length}
+          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isCalculating ? (
+              <>
+                <Loader2 size={18} className="spin" color="#2563EB" />
+                <span style={{ color: '#2563EB', fontSize: '1.20rem' }}>Processing...</span>
+              </>
+            ) : (
+              constraints.length
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #BBF7D0' }}>
-              ▲ Active
+              {isCalculating ? '▲ Scanning' : '▲ Active'}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {isSpark ? '8 TB · 5 GL Checks' : '6 TB · 7 GL · 3 COA Rules'}
@@ -458,15 +487,22 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
             {isSpark ? 'Passed Checkpoints' : 'Passed Constraints'}
           </div>
-          <div style={{ fontSize: '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px' }}>
-            {passedCount} / {constraints.length}
+          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isCalculating ? (
+              <>
+                <Loader2 size={18} className="spin" color="#059669" />
+                <span style={{ color: '#059669', fontSize: '1.20rem' }}>Validating...</span>
+              </>
+            ) : (
+              `${passedCount} / ${constraints.length}`
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: failedCount === 0 ? '#16A34A' : '#D97706', border: '1px solid #BFDBFE' }}>
-              {failedCount === 0 ? '▲ 100% Passed' : `▼ ${failedCount} Flagged`}
+              {isCalculating ? '▲ Testing' : failedCount === 0 ? '▲ 100% Passed' : `▼ ${failedCount} Flagged`}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {failedCount === 0 ? 'Mandatory Checks Met' : 'Exceptions Found'}
+              {isCalculating ? 'Auditing records...' : failedCount === 0 ? 'Mandatory Checks Met' : 'Exceptions Found'}
             </span>
           </div>
         </div>
@@ -476,16 +512,30 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
             Data Readiness Status
           </div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 850, color: allPassed ? '#007680' : '#DC2626', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {allPassed ? <CheckCircle2 size={20} color="#007680" /> : <AlertTriangle size={20} color="#DC2626" />}
-            <span>{allPassed ? 'READY' : 'ATTENTION'}</span>
+          <div style={{ fontSize: isCalculating ? '1.20rem' : '1.45rem', fontWeight: 850, color: isCalculating ? 'var(--deloitte-teal)' : allPassed ? '#007680' : '#DC2626', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isCalculating ? (
+              <>
+                <Loader2 size={18} className="spin" color="var(--deloitte-teal)" />
+                <span>IN PROGRESS</span>
+              </>
+            ) : allPassed ? (
+              <>
+                <CheckCircle2 size={20} color="#007680" />
+                <span>READY</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle size={20} color="#DC2626" />
+                <span>ATTENTION</span>
+              </>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: allPassed ? '#007680' : '#DC2626', border: '1px solid #99F6E4' }}>
-              {allPassed ? '▲ Unlocked' : '▼ Action Required'}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: isCalculating ? 'var(--deloitte-teal)' : allPassed ? '#007680' : '#DC2626', border: '1px solid #99F6E4' }}>
+              {isCalculating ? '▲ Verifying' : allPassed ? '▲ Unlocked' : '▼ Action Required'}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {allPassed ? 'Step 3 Unlocked' : 'Inspect Records'}
+              {isCalculating ? 'Running schema checks' : allPassed ? 'Step 3 Unlocked' : 'Inspect Records'}
             </span>
           </div>
         </div>
