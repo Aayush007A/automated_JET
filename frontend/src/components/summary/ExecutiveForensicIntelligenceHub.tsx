@@ -83,7 +83,7 @@ interface SoxAssertionRecord {
   signedBy?: string;
 }
 
-// ── CUSTOM STYLED DISPOSITION DROPDOWN COMPONENT ──
+// ── CUSTOM STYLED DISPOSITION DROPDOWN COMPONENT (NO WRAPPING) ──
 const DISPOSITION_CONFIG: Record<DispositionRecord['disposition'], { label: string; bg: string; text: string; border: string; dot: string }> = {
   PENDING: { label: 'Pending Review', bg: '#FEF3C7', text: '#92400E', border: '#FDE68A', dot: '#D97706' },
   INVESTIGATED_VALID: { label: 'Investigated - Valid', bg: '#DCFCE7', text: '#166534', border: '#BBF7D0', dot: '#16A34A' },
@@ -113,7 +113,7 @@ const CustomDispositionSelect: React.FC<CustomDispositionSelectProps> = ({ value
   }, []);
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={ref} style={{ position: 'relative', display: 'inline-block', whiteSpace: 'nowrap' }}>
       <button
         type="button"
         onClick={(e) => {
@@ -124,7 +124,7 @@ const CustomDispositionSelect: React.FC<CustomDispositionSelectProps> = ({ value
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
-          padding: '4px 10px',
+          padding: '5px 10px',
           borderRadius: '8px',
           background: current.bg,
           color: current.text,
@@ -132,13 +132,14 @@ const CustomDispositionSelect: React.FC<CustomDispositionSelectProps> = ({ value
           fontSize: '0.72rem',
           fontWeight: 700,
           cursor: 'pointer',
+          whiteSpace: 'nowrap',
           transition: 'all 0.15s ease',
           outline: 'none',
         }}
       >
-        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: current.dot }} />
-        <span>{current.label}</span>
-        <ChevronDown size={12} style={{ opacity: 0.7, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: current.dot, flexShrink: 0 }} />
+        <span style={{ whiteSpace: 'nowrap' }}>{current.label}</span>
+        <ChevronDown size={12} style={{ opacity: 0.7, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease', flexShrink: 0 }} />
       </button>
 
       <AnimatePresence>
@@ -152,13 +153,13 @@ const CustomDispositionSelect: React.FC<CustomDispositionSelectProps> = ({ value
               position: 'absolute',
               top: 'calc(100% + 4px)',
               right: 0,
-              zIndex: 50,
+              zIndex: 60,
               background: '#FFFFFF',
               borderRadius: '10px',
               border: '1px solid #E2E8F0',
               boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06)',
               padding: '4px',
-              minWidth: '175px',
+              minWidth: '185px',
             }}
           >
             {(Object.keys(DISPOSITION_CONFIG) as DispositionRecord['disposition'][]).map((key) => {
@@ -187,6 +188,7 @@ const CustomDispositionSelect: React.FC<CustomDispositionSelectProps> = ({ value
                     fontSize: '0.72rem',
                     fontWeight: isSelected ? 750 : 600,
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                     textAlign: 'left',
                     transition: 'background 0.12s ease',
                   }}
@@ -198,7 +200,7 @@ const CustomDispositionSelect: React.FC<CustomDispositionSelectProps> = ({ value
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.dot }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.dot, flexShrink: 0 }} />
                     <span>{item.label}</span>
                   </div>
                   {isSelected && <Check size={12} color={item.text} />}
@@ -379,7 +381,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     ],
   }), [benfordActual, benfordTheoretical, selectedBenfordDigit]);
 
-  // LIGHT-THEMED ADVANCED TOOLTIP WITH COMPLETE TABLE EVIDENCE
+  // LIGHT-THEMED ADVANCED TOOLTIP (NO EMOJIS, CLEAN BULLETS)
   const benfordChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
@@ -409,7 +411,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         callbacks: {
           title: (items: any[]) => {
             const digit = items[0].dataIndex + 1;
-            return `Forensic Digit #${digit} Population Profile`;
+            return `Forensic Digit #${digit} Profile`;
           },
           label: (item: any) => {
             const digit = item.dataIndex + 1;
@@ -418,9 +420,9 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
             const diff = (actual - expected).toFixed(1);
             const count = Math.round((actual / 100) * totalGlPopulation);
             return [
-              `• Observed Share: ${actual.toFixed(1)}% (${fmtNum(count)} records)`,
-              `• Theoretical Standard: ${expected.toFixed(1)}%`,
-              `• Variance: ${Number(diff) > 0 ? '+' : ''}${diff} percentage points`,
+              `Observed Share: ${actual.toFixed(1)}% (${fmtNum(count)} records)`,
+              `Theoretical Standard: ${expected.toFixed(1)}%`,
+              `Variance: ${Number(diff) > 0 ? '+' : ''}${diff} percentage points`,
             ];
           },
           afterBody: (items: any[]) => {
@@ -428,13 +430,13 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
             if (digit === 7) {
               return [
                 '',
-                '⚠️ Audit Focus Signal (+3.3 pp):',
-                'Concentrated monetary pattern detected. Driven by recurring $79,800 threshold consulting disbursements in Q4.',
+                'Audit Focus Signal (+3.3 pp):',
+                'Concentrated monetary pattern detected. Corresponds to recurring $79,800 threshold consulting disbursements in Q4.',
               ];
             }
             return [
               '',
-              '✓ Natural Distribution: Conforms within normal expected variance threshold.',
+              'Natural Distribution: Conforms within normal expected variance threshold.',
             ];
           },
         },
@@ -552,17 +554,16 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     return { total, critical, moderate, low, avgRisk, pending };
   }, [dispositionList]);
 
-  // Advanced Animated Donut Chart Data
+  // Clean Doughnut Chart Data (No External Clipped Callouts)
   const donutChartData = useMemo(() => ({
     labels: ['Critical Risk (Score ≥ 90)', 'Moderate Risk (Score 75-89)', 'Low / Standard Risk'],
     datasets: [
       {
-        data: [riskSummary.critical || 2, riskSummary.moderate || 3, riskSummary.low || 1],
+        data: [riskSummary.critical || 2, riskSummary.moderate || 3, Math.max(1, riskSummary.low)],
         backgroundColor: ['#FB7185', '#FBBF24', '#34D399'], // Soft Rose, Soft Amber, Soft Emerald
         hoverBackgroundColor: ['#F43F5E', '#F59E0B', '#10B981'],
-        borderWidth: 3,
+        borderWidth: 2,
         borderColor: '#FFFFFF',
-        borderRadius: 6,
       },
     ],
   }), [riskSummary]);
@@ -570,15 +571,11 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
   const donutChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '78%',
-    animation: {
-      animateRotate: true,
-      animateScale: true,
-      duration: 1200,
-    },
+    cutout: '74%',
     plugins: {
       legend: { display: false },
       tooltip: {
+        enabled: true,
         backgroundColor: '#FFFFFF',
         titleColor: '#0F172A',
         bodyColor: '#334155',
@@ -589,12 +586,12 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
         titleFont: { size: 12, weight: '700' },
         bodyFont: { size: 11 },
+        displayColors: true,
       },
     },
   };
 
   // ── 3. PILLAR 4: DYNAMIC CLIENT ACCOUNTING DNA DATA ──
-  // Calculated from actual run counts & status
   const clientDnaCalculated = useMemo(() => {
     const total = totalGlPopulation;
     const ex6 = status?.parameterSummary?.Ex6_Closing_Entries || (status as any)?.exceptionCounts?.Ex6_Closing_Entries || 24;
@@ -602,8 +599,8 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     const ex8 = status?.parameterSummary?.Ex8_Round_Amounts || (status as any)?.exceptionCounts?.Ex8_Round_Amounts || 32;
     const ex4 = status?.parameterSummary?.Ex4_Few_Postings_Users || (status as any)?.exceptionCounts?.Ex4_Few_Postings_Users || 12;
 
-    const manualPct = 14.8; // Ratio of manual override journals
-    const weekendPct = parseFloat(((ex7 / total) * 100 * 12).toFixed(1)); // normalized annual rate
+    const manualPct = 14.8;
+    const weekendPct = parseFloat(((ex7 / total) * 100 * 12).toFixed(1));
     const roundPct = parseFloat(((ex8 / total) * 100 * 5).toFixed(1));
     const closingPct = parseFloat(((ex6 / total) * 100 * 15).toFixed(1));
     const superuserPct = 58.0;
@@ -976,7 +973,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
         </div>
       </div>
 
-      {/* ── TAB 1: CFO EXECUTIVE MEMORANDUM & ANIMATED DONUT ── */}
+      {/* ── TAB 1: CFO EXECUTIVE MEMORANDUM & CLEAN DOUGHNUT ── */}
       <AnimatePresence mode="wait">
         {activeIntelligenceTab === 'memo' && (
           <motion.div
@@ -997,7 +994,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                 overflow: 'hidden',
               }}
             >
-              {/* Clean White/Slate Header with Deloitte Branding (No harsh black text) */}
+              {/* Clean White/Slate Header with Deloitte Branding */}
               <div
                 style={{
                   background: '#F8FAFC',
@@ -1127,19 +1124,19 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
               </div>
             </div>
 
-            {/* Right: Advanced Animated Donut & Priority Actions */}
+            {/* Right: Clean Centered Doughnut Chart (No Clipped Lines) & Actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Advanced Animated Donut Chart */}
+              {/* Doughnut Chart Card */}
               <div
                 style={{
                   background: '#FFFFFF',
                   borderRadius: '16px',
                   border: '1px solid #E2E8F0',
-                  padding: '20px',
+                  padding: '22px',
                   boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
                 }}
               >
-                <div style={{ marginBottom: '14px' }}>
+                <div style={{ marginBottom: '16px' }}>
                   <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Risk Concentration
                   </span>
@@ -1148,8 +1145,8 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   </h4>
                 </div>
 
-                {/* Animated Donut with Centered Live Metric */}
-                <div style={{ height: '190px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Clean Centered Doughnut (Ample padding for tooltips, zero cutoffs) */}
+                <div style={{ height: '180px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Doughnut data={donutChartData} options={donutChartOptions} />
                   <div
                     style={{
@@ -1170,31 +1167,20 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   </div>
                 </div>
 
-                {/* Soft Curated Donut Legend */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '14px' }}>
-                  {[
-                    { label: 'Critical', val: riskSummary.critical, bg: '#FFF1F2', text: '#9F1239', dot: '#FB7185' },
-                    { label: 'Moderate', val: riskSummary.moderate, bg: '#FFFBEB', text: '#92400E', dot: '#FBBF24' },
-                    { label: 'Low', val: riskSummary.low, bg: '#F0FDF4', text: '#166534', dot: '#34D399' },
-                  ].map((item, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        background: item.bg,
-                        borderRadius: '8px',
-                        padding: '8px 6px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '0.64rem', fontWeight: 750, color: item.text }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.dot }} />
-                        <span>{item.label}</span>
-                      </div>
-                      <div style={{ fontSize: '0.98rem', fontWeight: 850, color: item.text, marginTop: '2px' }}>
-                        {item.val}
-                      </div>
-                    </div>
-                  ))}
+                {/* Inline Compact Legend Strip */}
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#475569', fontWeight: 650 }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FB7185' }} />
+                    <span>Critical: <strong>{riskSummary.critical}</strong></span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#475569', fontWeight: 650 }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FBBF24' }} />
+                    <span>Moderate: <strong>{riskSummary.moderate}</strong></span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#475569', fontWeight: 650 }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34D399' }} />
+                    <span>Low: <strong>{riskSummary.low}</strong></span>
+                  </div>
                 </div>
               </div>
 
@@ -1248,7 +1234,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
           </motion.div>
         )}
 
-        {/* ── TAB 2: BENFORD'S LAW (LIGHT TOOLTIP, TABLE REMOVED) ── */}
+        {/* ── TAB 2: BENFORD'S LAW (NO EMOJIS, CLEAN FORMULA RENDERING, LIGHT TOOLTIP) ── */}
         {activeIntelligenceTab === 'benford' && (
           <motion.div
             key="benford"
@@ -1315,7 +1301,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
               </div>
             </div>
 
-            {/* Right: Forensic KPI Cards & Key Findings */}
+            {/* Right: Forensic KPI Cards & Key Findings (Clean Plain Text Formulas - No Raw $ LaTeX) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div
                 style={{
@@ -1332,7 +1318,9 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                 <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0F172A', margin: '4px 0', fontFamily: 'monospace' }}>
                   {chiSquareScore} <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 750 }}>(Grade A)</span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Critical Limit ($\alpha=0.05, df=8$): 15.51</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 550 }}>
+                  Critical Threshold (α = 0.05, df = 8): 15.51
+                </div>
                 <div
                   style={{
                     marginTop: '10px',
@@ -1343,9 +1331,13 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                     color: '#166534',
                     fontSize: '0.74rem',
                     lineHeight: 1.45,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  ✓ Conforms with natural distribution. Overall ledger exhibits high mathematical integrity.
+                  <Check size={14} color="#16A34A" />
+                  <span>Conforms with natural distribution. Overall ledger exhibits high mathematical integrity.</span>
                 </div>
               </div>
 
@@ -1393,7 +1385,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
           </motion.div>
         )}
 
-        {/* ── TAB 3: AUDITOR TRIAGE (COMPACT SEARCH, SIMPLE CHIPS, CUSTOM DROPDOWNS, EVIDENCE BUTTON) ── */}
+        {/* ── TAB 3: AUDITOR TRIAGE (NO TEXT WRAPPING, COMPACT TOOLBAR, CUSTOM DROPDOWN, INSPECT ACTION) ── */}
         {activeIntelligenceTab === 'risk_scoring' && (
           <motion.div
             key="risk"
@@ -1403,7 +1395,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
             transition={{ duration: 0.2 }}
             style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
           >
-            {/* Compact Toolbar (No oversized search bar) */}
+            {/* Compact Toolbar */}
             <div
               style={{
                 background: '#FFFFFF',
@@ -1448,14 +1440,14 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   />
                 </div>
 
-                <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap' }}>
                   Showing <strong>{filteredDispositions.length}</strong> flagged entries
                 </span>
               </div>
 
-              {/* Disposition Filter Pill Segment */}
+              {/* Disposition Filter */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.70rem', fontWeight: 750, color: '#64748B', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '0.70rem', fontWeight: 750, color: '#64748B', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   Filter:
                 </span>
                 <select
@@ -1471,6 +1463,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                     color: '#1E293B',
                     outline: 'none',
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <option value="ALL">All Dispositions</option>
@@ -1484,7 +1477,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
 
             {/* Table & Slide-Out Layout */}
             <div style={{ display: 'grid', gridTemplateColumns: selectedRiskTransaction ? 'minmax(0, 1.6fr) minmax(320px, 0.85fr)' : '1fr', gap: '14px', alignItems: 'start' }}>
-              {/* Clean Table */}
+              {/* Clean Table with Fixed Widths & No Text Wrapping */}
               <div
                 style={{
                   background: '#FFFFFF',
@@ -1495,17 +1488,17 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                 }}
               >
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+                  <table style={{ width: '100%', minWidth: '940px', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
                     <thead>
-                      <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left', color: '#475569', fontWeight: 700 }}>
-                        <th style={{ padding: '11px 14px' }}>Risk</th>
-                        <th style={{ padding: '11px 12px' }}>Document #</th>
-                        <th style={{ padding: '11px 12px' }}>Date &amp; Author</th>
-                        <th style={{ padding: '11px 12px' }}>Account</th>
-                        <th style={{ padding: '11px 12px', textAlign: 'right' }}>Amount</th>
-                        <th style={{ padding: '11px 12px' }}>Risk Drivers</th>
-                        <th style={{ padding: '11px 14px' }}>Disposition</th>
-                        <th style={{ padding: '11px 14px', textAlign: 'center' }}>Action</th>
+                      <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left', color: '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        <th style={{ padding: '11px 14px', width: '60px' }}>Risk</th>
+                        <th style={{ padding: '11px 12px', width: '110px' }}>Document #</th>
+                        <th style={{ padding: '11px 12px', width: '150px' }}>Date &amp; Author</th>
+                        <th style={{ padding: '11px 12px', width: '180px' }}>Account</th>
+                        <th style={{ padding: '11px 12px', textAlign: 'right', width: '120px' }}>Amount</th>
+                        <th style={{ padding: '11px 12px', minWidth: '220px' }}>Risk Drivers</th>
+                        <th style={{ padding: '11px 14px', width: '170px' }}>Disposition</th>
+                        <th style={{ padding: '11px 14px', textAlign: 'center', width: '90px' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1518,7 +1511,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                             transition: 'background 0.12s ease',
                           }}
                         >
-                          <td style={{ padding: '12px 14px' }}>
+                          <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                             <span
                               style={{
                                 display: 'inline-block',
@@ -1535,18 +1528,18 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                               {row.riskScore}
                             </span>
                           </td>
-                          <td style={{ padding: '12px 12px', fontWeight: 750, fontFamily: 'monospace', color: '#007680' }}>
+                          <td style={{ padding: '12px 12px', fontWeight: 750, fontFamily: 'monospace', color: '#007680', whiteSpace: 'nowrap' }}>
                             {row.docNo}
                           </td>
-                          <td style={{ padding: '12px 12px' }}>
+                          <td style={{ padding: '12px 12px', whiteSpace: 'nowrap' }}>
                             <div style={{ fontWeight: 650, color: '#0F172A' }}>{row.user}</div>
                             <div style={{ fontSize: '0.68rem', color: '#64748B' }}>{row.date}</div>
                           </td>
-                          <td style={{ padding: '12px 12px' }}>
+                          <td style={{ padding: '12px 12px', whiteSpace: 'nowrap' }}>
                             <div style={{ fontWeight: 650, color: '#0F172A' }}>{row.account}</div>
                             <div style={{ fontSize: '0.68rem', color: '#64748B' }}>{row.accountName}</div>
                           </td>
-                          <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: row.amount > materiality ? '#BE123C' : '#0F172A' }}>
+                          <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: row.amount > materiality ? '#BE123C' : '#0F172A', whiteSpace: 'nowrap' }}>
                             {fmtCurr(row.amount)}
                           </td>
                           <td style={{ padding: '12px 12px' }}>
@@ -1563,6 +1556,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                                     padding: '2px 6px',
                                     borderRadius: '4px',
                                     border: '1px solid #E2E8F0',
+                                    whiteSpace: 'nowrap',
                                   }}
                                 >
                                   {driver}
@@ -1570,14 +1564,14 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                               ))}
                             </div>
                           </td>
-                          <td style={{ padding: '12px 14px' }}>
+                          <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                             {/* Custom Colored Dropdown */}
                             <CustomDispositionSelect
                               value={row.disposition}
                               onChange={(newDisp) => handleUpdateDisposition(row.id, newDisp)}
                             />
                           </td>
-                          <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                          <td style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                             <button
                               type="button"
                               onClick={() => setSelectedRiskTransaction(row)}
@@ -1593,6 +1587,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                                 fontSize: '0.70rem',
                                 fontWeight: 750,
                                 cursor: 'pointer',
+                                whiteSpace: 'nowrap',
                                 transition: 'all 0.15s ease',
                               }}
                             >
@@ -1733,7 +1728,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
           </motion.div>
         )}
 
-        {/* ── TAB 4: CLIENT ACCOUNTING DNA (CALCULATED FROM RUN DATA, SOFT BALANCED COLORS) ── */}
+        {/* ── TAB 4: CLIENT ACCOUNTING DNA (RICH CARD DESIGN RESTORED + SPREAD BADGES) ── */}
         {activeIntelligenceTab === 'dna_benchmark' && (
           <motion.div
             key="dna"
@@ -1778,7 +1773,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '5px',
-                    padding: '5px 10px',
+                    padding: '6px 12px',
                     borderRadius: '8px',
                     background: '#F8FAFC',
                     border: '1px solid #CBD5E1',
@@ -1789,7 +1784,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   }}
                 >
                   <Info size={13} color="#007680" />
-                  <span>How Numbers Are Calculated</span>
+                  <span>Calculation Formulas</span>
                 </button>
 
                 <select
@@ -1826,26 +1821,27 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   background: '#F8FAFC',
                   borderRadius: '12px',
                   border: '1px solid #E2E8F0',
-                  padding: '14px 18px',
+                  padding: '16px 20px',
                   fontSize: '0.74rem',
                   color: '#475569',
                 }}
               >
-                <div style={{ fontWeight: 800, color: '#0F172A', marginBottom: '6px' }}>
-                  📐 Mathematical Calculation Methodology for Client DNA:
+                <div style={{ fontWeight: 800, color: '#0F172A', marginBottom: '8px' }}>
+                  Mathematical Calculation Methodology for Client DNA Vectors:
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '8px' }}>
                   {clientDnaCalculated.map((m, mi) => (
-                    <div key={mi} style={{ background: '#FFFFFF', padding: '8px 10px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
-                      <strong style={{ color: '#007680' }}>{m.label}:</strong> {m.formula}
+                    <div key={mi} style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                      <div style={{ fontWeight: 750, color: '#007680', marginBottom: '2px' }}>{m.label}</div>
+                      <div style={{ fontSize: '0.70rem', color: '#64748B', fontFamily: 'monospace' }}>{m.formula}</div>
                     </div>
                   ))}
                 </div>
               </motion.div>
             )}
 
-            {/* Radar & Realistic Balanced Percentile Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(360px, 1.2fr)', gap: '16px' }}>
+            {/* Radar & Restored Rich Card Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(360px, 1.25fr)', gap: '16px' }}>
               {/* Radar Chart */}
               <div
                 style={{
@@ -1863,7 +1859,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                     Accounting Behavior Vector Comparison
                   </h4>
                   <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
-                    Teal: Client DNA | Grey Dash: {sectorBenchmarks[selectedSector].name}
+                    Teal: Client Profile | Grey Dash: {sectorBenchmarks[selectedSector].name}
                   </div>
                 </div>
 
@@ -1872,13 +1868,15 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                 </div>
               </div>
 
-              {/* Realistic & Balanced Status Cards (Not all red!) */}
+              {/* Restored Rich, Detailed Cards with Spread Badges & Icons */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {clientDnaCalculated.map((metric, idx) => {
                   const benchmarkVal = sectorBenchmarks[selectedSector].benchmark[idx];
                   const percentile = sectorBenchmarks[selectedSector].percentiles[idx];
+                  const delta = Number((metric.client - benchmarkVal).toFixed(1));
+                  const Icon = [FileText, Clock, DollarSign, Calendar, UserCheck, BarChart3][idx] || Activity;
 
-                  // Realistic Status Configuration (Soft, non-aggressive colors)
+                  // Status badge and colors
                   let statusBadge = { label: 'In-Line with Peers', bg: '#F0FDF4', text: '#166534', border: '#BBF7D0', bar: '#34D399' };
                   if (metric.statusType === 'FAVORABLE') {
                     statusBadge = { label: 'Favorable (Grade A)', bg: '#F0FDF4', text: '#166534', border: '#BBF7D0', bar: '#34D399' };
@@ -1891,24 +1889,44 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   }
 
                   return (
-                    <div
+                    <motion.div
                       key={idx}
+                      whileHover={{ y: -2 }}
                       style={{
                         background: '#FFFFFF',
                         borderRadius: '12px',
                         border: '1px solid #E2E8F0',
-                        padding: '12px 14px',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        padding: '13px 14px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '0.74rem', fontWeight: 750, color: '#0F172A', lineHeight: 1.3 }}>
-                            {metric.label}
-                          </span>
+                        {/* Top: Icon + Title + Spread Badge */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '7px',
+                                background: '#E6F4F5',
+                                color: '#007680',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Icon size={13} />
+                            </div>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.25 }}>
+                              {metric.label}
+                            </span>
+                          </div>
+
                           <span
                             style={{
                               fontSize: '0.62rem',
@@ -1925,35 +1943,42 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '6px' }}>
-                          <span style={{ fontSize: '1.25rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace' }}>
+                        {/* Mid: Primary Client Value + Benchmark + Delta */}
+                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                          <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'monospace', color: '#0F172A' }}>
                             {metric.client}{metric.unit}
                           </span>
-                          <span style={{ fontSize: '0.66rem', color: '#64748B' }}>
-                            (Peer: {benchmarkVal}{metric.unit})
+                          <span style={{ fontSize: '0.64rem', color: '#94A3B8' }}>client</span>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px', fontSize: '0.66rem', color: '#64748B' }}>
+                          <span>Peer: {benchmarkVal}{metric.unit}</span>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 750, color: delta > 0 ? (metric.statusType === 'ATTENTION' ? '#BE123C' : '#007680') : '#059669' }}>
+                            {delta > 0 ? `+${delta}` : delta}{metric.unit} delta
                           </span>
                         </div>
                       </div>
 
-                      <div style={{ marginTop: '10px' }}>
-                        {/* Soft Progress Bar */}
-                        <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              width: `${Math.min(100, Math.max(10, percentile))}%`,
-                              height: '100%',
-                              background: statusBadge.bar,
-                              borderRadius: '999px',
-                            }}
+                      {/* Bottom: Progress Bar + Description + Percentile */}
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ height: '5px', borderRadius: '999px', background: '#F1F5F9', overflow: 'hidden' }}>
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(100, Math.max(10, percentile))}%` }}
+                            transition={{ duration: 0.5, delay: idx * 0.04 }}
+                            style={{ height: '100%', background: statusBadge.bar, borderRadius: '999px' }}
                           />
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#94A3B8', marginTop: '3px' }}>
-                          <span>0%</span>
-                          <span>{percentile}th Percentile</span>
-                          <span>100%</span>
+
+                        <div style={{ marginTop: '6px', fontSize: '0.64rem', lineHeight: 1.35, color: '#64748B' }}>
+                          {metric.desc}
+                        </div>
+
+                        <div style={{ marginTop: '5px', paddingTop: '5px', borderTop: '1px solid #F1F5F9', fontSize: '0.62rem', fontWeight: 750, color: statusBadge.text }}>
+                          {percentile}th percentile · {metric.statusType === 'NORMAL' || metric.statusType === 'FAVORABLE' ? 'In-line with peer baseline' : 'Variance observed'}
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
