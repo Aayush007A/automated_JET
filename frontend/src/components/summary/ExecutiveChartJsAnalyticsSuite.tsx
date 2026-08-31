@@ -45,6 +45,7 @@ const doughnutCalloutPlugin = {
   id: 'doughnutCallout',
   afterDatasetsDraw(chart: any) {
     if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
+    if (chart.options?.plugins?.doughnutCallout === false || chart.options?.plugins?.doughnutCallout?.display === false) return;
 
     const { ctx, data } = chart;
     const meta = chart.getDatasetMeta(0);

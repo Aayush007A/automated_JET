@@ -21,12 +21,12 @@ import {
 import { Chart, Radar, Doughnut } from 'react-chartjs-2';
 import {
   ShieldAlert, Sparkles, Scale, AlertTriangle, CheckCircle2,
-  FileText, Copy, Download, Search, Filter, Eye, ChevronRight,
+  FileText, Search, Filter, Eye, ChevronRight,
   TrendingUp, Clock, UserCheck, Lock, Activity, ArrowUpRight,
   HelpCircle, Check, X, RefreshCw, BarChart3, Building, Mail,
   Calendar, DollarSign, Tag, CheckSquare, Hash, Layers, ShieldCheck, Database,
   Building2, Dna, Cpu, AlertCircle, Briefcase, Award, CheckCheck,
-  Share2, ArrowRight, ChevronDown, Info, SlidersHorizontal
+  ChevronDown, Info, SlidersHorizontal, ArrowDownRight
 } from 'lucide-react';
 import { RunSummary, RunConfig } from '../../types';
 
@@ -222,8 +222,6 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
   const [activeIntelligenceTab, setActiveIntelligenceTab] = useState<'memo' | 'benford' | 'risk_scoring' | 'dna_benchmark' | 'sox_coso'>('memo');
   const [selectedBenfordDigit, setSelectedBenfordDigit] = useState<number | null>(null);
   const [selectedRiskTransaction, setSelectedRiskTransaction] = useState<DispositionRecord | null>(null);
-  const [copiedMemo, setCopiedMemo] = useState(false);
-  const [copiedSoxMemo, setCopiedSoxMemo] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [dispositionFilter, setDispositionFilter] = useState<string>('ALL');
   const [showMethodologyModal, setShowMethodologyModal] = useState(false);
@@ -381,7 +379,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     ],
   }), [benfordActual, benfordTheoretical, selectedBenfordDigit]);
 
-  // LIGHT-THEMED ADVANCED TOOLTIP (NO EMOJIS, CLEAN BULLETS)
+  // LIGHT-THEMED ADVANCED TOOLTIP (NO EMOJIS, HIGH-CONTRAST)
   const benfordChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
@@ -554,15 +552,15 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     return { total, critical, moderate, low, avgRisk, pending };
   }, [dispositionList]);
 
-  // Clean Doughnut Chart Data (No External Clipped Callouts)
+  // Clean Doughnut Chart Data with doughnutCallout explicitly disabled
   const donutChartData = useMemo(() => ({
-    labels: ['Critical Risk (Score ≥ 90)', 'Moderate Risk (Score 75-89)', 'Low / Standard Risk'],
+    labels: ['Critical Risk', 'Moderate Risk', 'Low / Standard Risk'],
     datasets: [
       {
         data: [riskSummary.critical || 2, riskSummary.moderate || 3, Math.max(1, riskSummary.low)],
         backgroundColor: ['#FB7185', '#FBBF24', '#34D399'], // Soft Rose, Soft Amber, Soft Emerald
         hoverBackgroundColor: ['#F43F5E', '#F59E0B', '#10B981'],
-        borderWidth: 2,
+        borderWidth: 3,
         borderColor: '#FFFFFF',
       },
     ],
@@ -571,9 +569,13 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
   const donutChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '74%',
+    cutout: '72%',
+    layout: {
+      padding: 10,
+    },
     plugins: {
       legend: { display: false },
+      doughnutCallout: false, // Disable leader lines
       tooltip: {
         enabled: true,
         backgroundColor: '#FFFFFF',
@@ -581,12 +583,18 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         bodyColor: '#334155',
         borderColor: '#E2E8F0',
         borderWidth: 1,
-        padding: 10,
+        padding: 12,
         cornerRadius: 8,
         boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
         titleFont: { size: 12, weight: '700' },
         bodyFont: { size: 11 },
         displayColors: true,
+        callbacks: {
+          label: (context: any) => {
+            const val = context.raw || 0;
+            return ` Count: ${val} transactions`;
+          },
+        },
       },
     },
   };
@@ -701,9 +709,9 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         {
           label: `${engagementName.split(' - ')[0]} (Client DNA)`,
           data: clientDnaCalculated.map(m => m.client),
-          backgroundColor: 'rgba(0, 118, 128, 0.18)',
+          backgroundColor: 'rgba(0, 118, 128, 0.20)',
           borderColor: '#007680',
-          borderWidth: 2,
+          borderWidth: 2.2,
           pointBackgroundColor: '#007680',
           pointBorderColor: '#FFFFFF',
           pointRadius: 4,
@@ -723,16 +731,23 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     };
   }, [selectedSector, clientDnaCalculated, engagementName]);
 
+  // BOTTOM-CENTERED LEGEND & OPTIMAL FIT RADAR OPTIONS
   const dnaRadarOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: { top: 10, bottom: 10, left: 10, right: 10 },
+    },
     plugins: {
       legend: {
-        position: 'top',
+        position: 'bottom',
+        align: 'center',
         labels: {
           font: { family: 'Inter, sans-serif', size: 11, weight: '600' },
           color: '#475569',
           usePointStyle: true,
+          padding: 16,
+          boxWidth: 8,
         },
       },
       tooltip: {
@@ -750,7 +765,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         angleLines: { color: '#F1F5F9' },
         grid: { color: '#F1F5F9' },
         pointLabels: {
-          font: { family: 'Inter, sans-serif', size: 10.5, weight: '700' },
+          font: { family: 'Inter, sans-serif', size: 11, weight: '700' },
           color: '#334155',
         },
         ticks: { display: false },
@@ -795,69 +810,6 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     const totalExposure = soxAssertions.reduce((acc, a) => acc + a.dollarAtRisk, 0);
     return { matWeakness, sigDef, opDef, effective, totalExposure };
   }, [soxAssertions]);
-
-  const copySoxMemoToClipboard = () => {
-    const memoText = `
-DELOITTE AUDIT & ASSURANCE | SOX 404 & COSO INTERNAL CONTROL DEFICIENCY MEMORANDUM
-Engagement: ${engagementName}
-Materiality Benchmark: ${fmtCurr(materiality)}
-Evaluation Date: ${new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
-PCAOB AS 2201 Control Standard Assessment:
-
-OVERALL CONTROL ENVIRONMENT SUMMARY:
-- Material Weaknesses: ${soxSummaryStats.matWeakness}
-- Significant Deficiencies: ${soxSummaryStats.sigDef}
-- Operational Control Deviations: ${soxSummaryStats.opDef}
-- Effective Control Assertions: ${soxSummaryStats.effective}
-- Aggregate Flagged Dollar Exposure: ${fmtCurr(soxSummaryStats.totalExposure)}
-
-COSO 2013 ASSERTION ASSESSMENTS:
-${soxAssertions.map(a => `
-[${a.assertion.toUpperCase()}]
-Severity: ${a.severity.replace('_', ' ')}
-Flagged JET Exceptions: ${a.flaggedCount} entries (${fmtCurr(a.dollarAtRisk)})
-Mapped Tests: ${a.mappedJetTests.join(', ')}
-Management Remediation: ${a.remediationPlan}
-Sign-off: ${a.signedOff ? `Signed off by ${a.signedBy}` : 'PENDING REVIEW'}
-`).join('\n')}
-
-CONFIDENTIAL AUDIT COMMITTEE WORKPAPER
-    `.trim();
-
-    navigator.clipboard.writeText(memoText);
-    setCopiedSoxMemo(true);
-    setTimeout(() => setCopiedSoxMemo(false), 2500);
-  };
-
-  const copyMemoToClipboard = () => {
-    const memoText = `
-DELOITTE AUDIT & ASSURANCE | JET EXECUTIVE FINDINGS & CFO BRIEFING MEMO
-Engagement: ${engagementName}
-Evaluation Period: FY2026 | Materiality: ${fmtCurr(materiality)}
-Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)} Records)
-
-1. EXECUTIVE SUMMARY & RECONCILIATION INTEGRITY
-- Total Ledger Records Tested: ${fmtNum(totalGlPopulation)} journal entries ($1.84B Gross Volume).
-- Trial Balance to GL Reconciliation: 100% Mathematically Reconciled ($0.00 Net Variance).
-- High-Risk Anomalies Requiring Management Review: 5 Critical Records.
-
-2. FORENSIC FIRST-DIGIT ANALYSIS (BENFORD'S LAW)
-- Overall Population Conformance Grade: Grade A (Chi-Square: ${chiSquareScore}, Critical Threshold: 15.51).
-- Key Area of Interest: Digit 7 shows an anomalous +3.3% concentration spike, driven by recurring $79,800 threshold transactions.
-
-3. MULTI-VECTOR RISK CORRELATION
-- Identified 5 transaction vectors combining post-closing adjustments, superuser privileges, and revenue debits.
-- Management inquiry initiated for Document #2500009100 ($2.50M suspense adjustment).
-
-4. AUDIT COMMITTEE & INTERNAL CONTROLS RECOMMENDATION
-- Strengthen segregation of duties on IT administrative posting accounts.
-- Enforce strict hard period-end cutoff lockout in SAP ERP.
-    `.trim();
-
-    navigator.clipboard.writeText(memoText);
-    setCopiedMemo(true);
-    setTimeout(() => setCopiedMemo(false), 2500);
-  };
 
   const intelligenceTabs = [
     { id: 'memo' as const, label: 'CFO Executive Memo', icon: FileText },
@@ -994,7 +946,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                 overflow: 'hidden',
               }}
             >
-              {/* Clean White/Slate Header with Deloitte Branding */}
+              {/* Clean White/Slate Header with Deloitte Branding (No Copy Button) */}
               <div
                 style={{
                   background: '#F8FAFC',
@@ -1035,29 +987,6 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                     <span>Population: <strong style={{ color: '#0F172A' }}>{fmtNum(totalGlPopulation)}</strong></span>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={copyMemoToClipboard}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    background: copiedMemo ? '#DCFCE7' : '#FFFFFF',
-                    color: copiedMemo ? '#166534' : '#007680',
-                    border: copiedMemo ? '1px solid #86EFAC' : '1px solid #CBD5E1',
-                    fontSize: '0.74rem',
-                    fontWeight: 750,
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {copiedMemo ? <Check size={14} /> : <Copy size={14} />}
-                  <span>{copiedMemo ? 'Copied' : 'Copy Executive Brief'}</span>
-                </button>
               </div>
 
               {/* 4 Soft Metric Strips */}
@@ -1124,7 +1053,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
               </div>
             </div>
 
-            {/* Right: Clean Centered Doughnut Chart (No Clipped Lines) & Actions */}
+            {/* Right: Clean Centered Doughnut Chart (No Clipped Lines) & Priority Actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Doughnut Chart Card */}
               <div
@@ -1136,7 +1065,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
                 }}
               >
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '14px' }}>
                   <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Risk Concentration
                   </span>
@@ -1145,8 +1074,8 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   </h4>
                 </div>
 
-                {/* Clean Centered Doughnut (Ample padding for tooltips, zero cutoffs) */}
-                <div style={{ height: '180px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Clean Centered Doughnut */}
+                <div style={{ height: '170px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Doughnut data={donutChartData} options={donutChartOptions} />
                   <div
                     style={{
@@ -1168,7 +1097,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                 </div>
 
                 {/* Inline Compact Legend Strip */}
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', marginTop: '16px', flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#475569', fontWeight: 650 }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FB7185' }} />
                     <span>Critical: <strong>{riskSummary.critical}</strong></span>
@@ -1234,7 +1163,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
           </motion.div>
         )}
 
-        {/* ── TAB 2: BENFORD'S LAW (NO EMOJIS, CLEAN FORMULA RENDERING, LIGHT TOOLTIP) ── */}
+        {/* ── TAB 2: BENFORD'S LAW (HIGHLY VISUAL CARDS, NO EMOJIS, INSTANT COMPREHENSION) ── */}
         {activeIntelligenceTab === 'benford' && (
           <motion.div
             key="benford"
@@ -1242,7 +1171,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(280px, 0.75fr)', gap: '18px' }}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(290px, 0.8fr)', gap: '18px' }}
           >
             {/* Left: Benford Interactive Bar Chart */}
             <div
@@ -1301,85 +1230,217 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
               </div>
             </div>
 
-            {/* Right: Forensic KPI Cards & Key Findings (Clean Plain Text Formulas - No Raw $ LaTeX) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Right: Highly Visual Status Cards (Color-Coded, Pictorial, Instant Comprehension) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Card 1: Visual Overall Conformance / Health Meter */}
               <div
                 style={{
-                  background: '#FFFFFF',
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)',
                   borderRadius: '14px',
-                  border: '1px solid #E2E8F0',
-                  padding: '18px',
+                  border: '1px solid #BBF7D0',
+                  padding: '16px 18px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                 }}
               >
-                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Goodness-of-Fit Statistic
-                </span>
-                <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0F172A', margin: '4px 0', fontFamily: 'monospace' }}>
-                  {chiSquareScore} <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 750 }}>(Grade A)</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#DCFCE7',
+                        color: '#166534',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.64rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Ledger Distribution Health
+                      </div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 850, color: '#0F172A' }}>
+                        Natural Conformance
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.66rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '5px',
+                      background: '#DCFCE7',
+                      color: '#166534',
+                      border: '1px solid #86EFAC',
+                    }}
+                  >
+                    Grade A
+                  </span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 550 }}>
-                  Critical Threshold (α = 0.05, df = 8): 15.51
-                </div>
-                <div
-                  style={{
-                    marginTop: '10px',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    background: '#F0FDF4',
-                    border: '1px solid #BBF7D0',
-                    color: '#166534',
-                    fontSize: '0.74rem',
-                    lineHeight: 1.45,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <Check size={14} color="#16A34A" />
-                  <span>Conforms with natural distribution. Overall ledger exhibits high mathematical integrity.</span>
+
+                {/* Score & Threshold Visual Gauge */}
+                <div style={{ marginTop: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#166534', fontFamily: 'monospace' }}>
+                      {chiSquareScore} <span style={{ fontSize: '0.70rem', color: '#64748B', fontWeight: 600 }}>χ² score</span>
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>
+                      Limit: 15.51
+                    </span>
+                  </div>
+
+                  {/* Soft Visual Meter */}
+                  <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden', marginTop: '4px' }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, Math.max(15, (chiSquareScore / 15.51) * 100))}%`,
+                        height: '100%',
+                        background: '#16A34A',
+                        borderRadius: '999px',
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', color: '#94A3B8', marginTop: '3px' }}>
+                    <span>0 (Perfect Match)</span>
+                    <span>15.51 (Critical Cutoff)</span>
+                  </div>
                 </div>
               </div>
 
+              {/* Card 2: Visual Primary Anomaly Breakdown (Digit 7 Comparison Bar) */}
               <div
                 style={{
-                  background: '#FFFFFF',
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #FFF1F2 100%)',
                   borderRadius: '14px',
-                  border: '1px solid #E2E8F0',
-                  padding: '18px',
+                  border: '1px solid #FECDD3',
+                  padding: '16px 18px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                 }}
               >
-                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#E11D48', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Primary Investigation Signal
-                </span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
-                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#BE123C', fontFamily: 'monospace' }}>Digit 7</span>
-                  <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#BE123C' }}>+3.3 pp Variance</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#FFE4E6',
+                        color: '#9F1239',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <AlertTriangle size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.64rem', fontWeight: 800, color: '#9F1239', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Primary Investigation Signal
+                      </div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 850, color: '#BE123C' }}>
+                        Digit 7 Spike (+3.3 pp)
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.66rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '5px',
+                      background: '#FFE4E6',
+                      color: '#9F1239',
+                      border: '1px solid #FDA4AF',
+                    }}
+                  >
+                    Focus Area
+                  </span>
                 </div>
-                <p style={{ margin: '6px 0 0', fontSize: '0.74rem', color: '#475569', lineHeight: 1.5 }}>
-                  Observed frequency of 9.1% exceeds theoretical 5.8%. Driven by recurring $79,800.00 consulting invoices. Traced to authorized vendor retainers.
-                </p>
+
+                {/* Side-by-Side Comparison Visual Bars */}
+                <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#BE123C', fontWeight: 750 }}>
+                      <span>Observed Population Share</span>
+                      <span>9.1%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '5px', background: '#FEE2E2', borderRadius: '999px', overflow: 'hidden', marginTop: '2px' }}>
+                      <div style={{ width: '91%', height: '100%', background: '#E11D48', borderRadius: '999px' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#64748B', fontWeight: 650 }}>
+                      <span>Expected Theoretical Standard</span>
+                      <span>5.8%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '5px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden', marginTop: '2px' }}>
+                      <div style={{ width: '58%', height: '100%', background: '#64748B', borderRadius: '999px' }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '10px', fontSize: '0.68rem', color: '#64748B', lineHeight: 1.35 }}>
+                  Traced to recurring $79,800 threshold consulting disbursements in Q4.
+                </div>
               </div>
 
+              {/* Card 3: Visual Population Coverage */}
               <div
                 style={{
-                  background: '#FFFFFF',
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
                   borderRadius: '14px',
                   border: '1px solid #E2E8F0',
-                  padding: '18px',
+                  padding: '16px 18px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                 }}
               >
-                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Total Population Screened
-                </span>
-                <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0F172A', margin: '4px 0', fontFamily: 'monospace' }}>
-                  {fmtNum(totalGlPopulation)} Records
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#E6F4F5',
+                        color: '#007680',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Database size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.64rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Population Screened
+                      </div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
+                        {fmtNum(totalGlPopulation)} txns
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.66rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '5px',
+                      background: '#F0FDF4',
+                      color: '#166534',
+                      border: '1px solid #BBF7D0',
+                    }}
+                  >
+                    100% Tested
+                  </span>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B' }}>
-                  Evaluated all non-zero monetary transaction values across the full audit period.
-                </p>
               </div>
             </div>
           </motion.div>
@@ -1728,7 +1789,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
           </motion.div>
         )}
 
-        {/* ── TAB 4: CLIENT ACCOUNTING DNA (RICH CARD DESIGN RESTORED + SPREAD BADGES) ── */}
+        {/* ── TAB 4: CLIENT ACCOUNTING DNA (BOTTOM-CENTERED LEGENDS, BALANCED FULL-HEIGHT RADAR) ── */}
         {activeIntelligenceTab === 'dna_benchmark' && (
           <motion.div
             key="dna"
@@ -1841,8 +1902,8 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
             )}
 
             {/* Radar & Restored Rich Card Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(360px, 1.25fr)', gap: '16px' }}>
-              {/* Radar Chart */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(360px, 1.25fr)', gap: '16px', alignItems: 'stretch' }}>
+              {/* Radar Chart Card (Properly Sized, Bottom Legend, Zero Empty Space) */}
               <div
                 style={{
                   background: '#FFFFFF',
@@ -1852,9 +1913,10 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
                   display: 'flex',
                   flexDirection: 'column',
+                  justifyContent: 'space-between',
                 }}
               >
-                <div style={{ marginBottom: '12px' }}>
+                <div>
                   <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
                     Accounting Behavior Vector Comparison
                   </h4>
@@ -1863,8 +1925,37 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   </div>
                 </div>
 
-                <div style={{ height: '320px', width: '100%' }}>
+                {/* Sized Radar to fill space */}
+                <div style={{ height: '370px', width: '100%', position: 'relative', marginTop: '6px' }}>
                   <Radar data={dnaRadarData} options={dnaRadarOptions} />
+                </div>
+
+                {/* Behavioral Vector Assurance Summary Strip */}
+                <div
+                  style={{
+                    background: '#F8FAFC',
+                    borderRadius: '10px',
+                    border: '1px solid #E2E8F0',
+                    padding: '10px 12px',
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    alignItems: 'center',
+                    marginTop: '8px',
+                    fontSize: '0.68rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#166534', fontWeight: 700 }}>
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#16A34A' }} />
+                    <span>4 Vectors In-Line</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#92400E', fontWeight: 700 }}>
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#F59E0B' }} />
+                    <span>1 Moderate Spread</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#9F1239', fontWeight: 700 }}>
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#E11D48' }} />
+                    <span>1 Focus Area</span>
+                  </div>
                 </div>
               </div>
 
@@ -1986,7 +2077,7 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
           </motion.div>
         )}
 
-        {/* ── TAB 5: SOX 404 & COSO SCORECARD (ELEGANT REDESIGN, SOFT PROFESSIONAL PALETTE) ── */}
+        {/* ── TAB 5: SOX 404 & COSO SCORECARD (ELEGANT REDESIGN, SOFT PROFESSIONAL PALETTE, NO EXPORT BUTTON) ── */}
         {activeIntelligenceTab === 'sox_coso' && (
           <motion.div
             key="sox"
@@ -2034,29 +2125,6 @@ Population Coverage: 100% General Ledger Assurance (${fmtNum(totalGlPopulation)}
                   SOX 404 Internal Control Deficiency Matrix
                 </h3>
               </div>
-
-              <button
-                type="button"
-                onClick={copySoxMemoToClipboard}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  background: copiedSoxMemo ? '#DCFCE7' : '#007680',
-                  color: copiedSoxMemo ? '#166534' : '#FFFFFF',
-                  border: 'none',
-                  fontSize: '0.76rem',
-                  fontWeight: 750,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0, 118, 128, 0.20)',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {copiedSoxMemo ? <Check size={14} /> : <Download size={14} />}
-                <span>{copiedSoxMemo ? 'Copied' : 'Export SOX 404 Workpaper'}</span>
-              </button>
             </div>
 
             {/* 4 Soft KPI Summary Counters */}
