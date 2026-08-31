@@ -2,9 +2,8 @@
  * VisualizationShowcase
  *
  * Premium Executive "Visualizations & Insights" showcase suite.
- * Built with native vector-rendered interactive charts, compact executive
- * proportions (zero vertical bloat), direction-aware motion choreography,
- * and Deloitte design system standards.
+ * Built with dedicated, native vector-rendered interactive charts for ALL 12 categories.
+ * Compact executive proportions, direction-aware animations, and Deloitte design system standards.
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -29,7 +28,6 @@ import {
   AlertTriangle,
   Grid,
   TrendingDown,
-  ArrowRight,
   Sparkles,
 } from 'lucide-react';
 
@@ -257,62 +255,61 @@ const RISK_BADGES: Record<string, { color: string; bg: string; border: string }>
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   CUSTOM VECTOR CHART PRESENTATION ENGINES
-   100% Vector-sharp, perfectly scaled, executive light theme.
+   CUSTOM VECTOR CHART PRESENTATION ENGINES (ALL 12 CATEGORIES)
 ───────────────────────────────────────────────────────────────────────── */
 
 const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => {
   switch (categoryId) {
     case '01_account_wise':
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '14px', alignItems: 'center', padding: '12px' }}>
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
           {/* Left: Bar Chart */}
-          <div style={{ flex: 1.1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0' }}>
+          <div style={{ flex: 1.1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Account Activity Distribution</span>
-              <div style={{ display: 'flex', gap: '8px', fontSize: '0.62rem', color: '#64748B', fontWeight: 600 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><span style={{ width: 7, height: 7, background: '#007680', borderRadius: 2 }} />Standard</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><span style={{ width: 7, height: 7, background: '#38BDF8', borderRadius: 2 }} />Non-Std</span>
+              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Account Activity Distribution</span>
+              <div style={{ display: 'flex', gap: '6px', fontSize: '0.58rem', color: '#64748B', fontWeight: 600 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><span style={{ width: 6, height: 6, background: '#007680', borderRadius: 2 }} />Std</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><span style={{ width: 6, height: 6, background: '#38BDF8', borderRadius: 2 }} />Non-Std</span>
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px', paddingTop: '10px' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '6px', paddingTop: '8px' }}>
               {[
-                { label: 'Cash & Eq', std: 65, non: 15 },
-                { label: 'Receivables', std: 95, non: 28 },
-                { label: 'Inventories', std: 80, non: 20 },
-                { label: 'Accrued Exp', std: 45, non: 12 },
-                { label: 'Suspense', std: 10, non: 22 },
-                { label: 'Revenue', std: 8, non: 32 },
+                { label: 'Cash', std: 65, non: 15 },
+                { label: 'AR', std: 95, non: 28 },
+                { label: 'Inv', std: 80, non: 20 },
+                { label: 'Accrued', std: 45, non: 12 },
+                { label: 'Susp', std: 10, non: 22 },
+                { label: 'Rev', std: 8, non: 32 },
               ].map((bar, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', height: '100%', justifyContent: 'flex-end' }}>
                   <div style={{ width: '100%', display: 'flex', gap: '2px', alignItems: 'flex-end', height: '80%' }}>
-                    <motion.div initial={{ height: 0 }} animate={{ height: `${bar.std}%` }} transition={{ duration: 0.5, delay: i * 0.05 }} style={{ flex: 1, background: '#007680', borderRadius: '3px 3px 0 0' }} />
-                    <motion.div initial={{ height: 0 }} animate={{ height: `${bar.non}%` }} transition={{ duration: 0.5, delay: i * 0.05 + 0.1 }} style={{ flex: 1, background: '#38BDF8', borderRadius: '3px 3px 0 0' }} />
+                    <motion.div initial={{ height: 0 }} animate={{ height: `${bar.std}%` }} transition={{ duration: 0.4, delay: i * 0.04 }} style={{ flex: 1, background: '#007680', borderRadius: '2px 2px 0 0' }} />
+                    <motion.div initial={{ height: 0 }} animate={{ height: `${bar.non}%` }} transition={{ duration: 0.4, delay: i * 0.04 + 0.08 }} style={{ flex: 1, background: '#38BDF8', borderRadius: '2px 2px 0 0' }} />
                   </div>
-                  <span style={{ fontSize: '0.58rem', color: '#64748B', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '38px' }}>{bar.label}</span>
+                  <span style={{ fontSize: '0.55rem', color: '#64748B' }}>{bar.label}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Right: Donut Chart with Callouts */}
-          <div style={{ flex: 0.9, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Debit Line Exposure</span>
+          <div style={{ flex: 0.9, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Debit Line Exposure</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              <svg width="110" height="110" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="36" fill="transparent" stroke="#E2E8F0" strokeWidth="16" />
-                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#007680" strokeWidth="16" strokeDasharray="90 226" strokeDashoffset="0" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 0.6 }} />
-                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#0284C7" strokeWidth="16" strokeDasharray="63 226" strokeDashoffset="-90" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -90 }} transition={{ duration: 0.6, delay: 0.1 }} />
-                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#F59E0B" strokeWidth="16" strokeDasharray="45 226" strokeDashoffset="-153" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -153 }} transition={{ duration: 0.6, delay: 0.2 }} />
-                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#10B981" strokeWidth="16" strokeDasharray="27 226" strokeDashoffset="-198" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -198 }} transition={{ duration: 0.6, delay: 0.3 }} />
+              <svg width="100" height="100" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="36" fill="transparent" stroke="#E2E8F0" strokeWidth="15" />
+                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#007680" strokeWidth="15" strokeDasharray="90 226" strokeDashoffset="0" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 0.5 }} />
+                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#0284C7" strokeWidth="15" strokeDasharray="63 226" strokeDashoffset="-90" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -90 }} transition={{ duration: 0.5, delay: 0.1 }} />
+                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#F59E0B" strokeWidth="15" strokeDasharray="45 226" strokeDashoffset="-153" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -153 }} transition={{ duration: 0.5, delay: 0.2 }} />
+                <motion.circle cx="50" cy="50" r="36" fill="transparent" stroke="#10B981" strokeWidth="15" strokeDasharray="27 226" strokeDashoffset="-198" initial={{ strokeDashoffset: 226 }} animate={{ strokeDashoffset: -198 }} transition={{ duration: 0.5, delay: 0.3 }} />
               </svg>
               <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: 600 }}>Total</span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A' }}>100%</span>
+                <span style={{ fontSize: '0.58rem', color: '#64748B', fontWeight: 600 }}>Total</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0F172A' }}>100%</span>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '0.58rem', fontWeight: 600 }}>
-              <span style={{ color: '#007680' }}>● Receivables 40%</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.55rem', fontWeight: 600 }}>
+              <span style={{ color: '#007680' }}>● Receiv 40%</span>
               <span style={{ color: '#0284C7' }}>● Finished 28%</span>
               <span style={{ color: '#F59E0B' }}>● Cash 20%</span>
               <span style={{ color: '#10B981' }}>● Accrued 12%</span>
@@ -321,111 +318,54 @@ const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => 
         </div>
       );
 
-    case '11_population_stats':
+    case '02_revenue_debits':
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '14px', alignItems: 'center', padding: '12px' }}>
-          {/* Left: Activity Trajectory Line */}
-          <div style={{ flex: 1.1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0' }}>
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          <div style={{ flex: 1.2, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Activity Trajectory (P1–P12)</span>
-              <span style={{ fontSize: '0.62rem', color: '#007680', fontWeight: 700 }}>Local Currency ($)</span>
+              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Top Revenue Debit Postings</span>
+              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>Cutoff: $250k</span>
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="100%" height="85" viewBox="0 0 240 85" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#007680" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#007680" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <motion.path d="M 10 55 Q 35 60 55 45 T 100 48 T 140 32 T 180 50 T 210 20 T 235 5" fill="none" stroke="#007680" strokeWidth="2.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8 }} />
-                <path d="M 10 55 Q 35 60 55 45 T 100 48 T 140 32 T 180 50 T 210 20 T 235 5 L 235 80 L 10 80 Z" fill="url(#lineGrad)" />
-                <circle cx="235" cy="5" r="3.5" fill="#007680" />
-                <circle cx="140" cy="32" r="3" fill="#007680" />
-                <circle cx="55" cy="45" r="3" fill="#007680" />
-              </svg>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', color: '#94A3B8' }}>
-              <span>P1</span><span>P3</span><span>P6</span><span>P9</span><span>P12 (Spike: $8.5M)</span>
-            </div>
-          </div>
-
-          {/* Right: Monthly Volume Bars */}
-          <div style={{ flex: 0.9, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Monthly Volume Profile</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '4px', paddingTop: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, justifyContent: 'center' }}>
               {[
-                { p: 'P1', val: 45 }, { p: 'P3', val: 52 }, { p: 'P6', val: 68 },
-                { p: 'P9', val: 78 }, { p: 'P11', val: 60 }, { p: 'P12', val: 95 }
-              ].map((m, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '3px' }}>
-                  <motion.div initial={{ height: 0 }} animate={{ height: `${m.val}%` }} transition={{ duration: 0.4, delay: i * 0.04 }} style={{ width: '100%', background: i === 5 ? '#007680' : '#0284C7', borderRadius: '3px 3px 0 0' }} />
-                  <span style={{ fontSize: '0.56rem', color: '#64748B' }}>{m.p}</span>
+                { acc: '4010 - Sales Revenue (Commercial)', amt: '$1,420,000', pct: 95, col: '#E11D48' },
+                { acc: '4020 - Service Contracts', amt: '$890,000', pct: 68, col: '#E11D48' },
+                { acc: '4050 - Subscription Revenue', amt: '$430,000', pct: 40, col: '#D97706' },
+                { acc: '4090 - Product Licensing', amt: '$280,000', pct: 28, col: '#007680' },
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', color: '#334155', fontWeight: 600 }}>
+                    <span>{item.acc}</span>
+                    <span style={{ fontWeight: 800, color: item.col }}>{item.amt}</span>
+                  </div>
+                  <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }} transition={{ duration: 0.5, delay: i * 0.08 }} style={{ height: '100%', background: item.col, borderRadius: '3px' }} />
+                  </div>
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', color: '#64748B', fontWeight: 600, borderTop: '1px solid #F1F5F9', paddingTop: '4px' }}>
-              <span>Standard: 88%</span>
-              <span style={{ color: '#007680' }}>P12 Surge: +34%</span>
-            </div>
           </div>
-        </div>
-      );
-
-    case '12_forensic_radar':
-      return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '14px', alignItems: 'center', padding: '12px' }}>
-          {/* Left: 6-Axis Radar */}
-          <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Accounting Behavior Vector Radar</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              <svg width="130" height="110" viewBox="0 0 120 100">
-                {/* Background Hexagon Grid */}
-                <polygon points="60,10 100,30 100,70 60,90 20,70 20,30" fill="none" stroke="#E2E8F0" strokeWidth="1" />
-                <polygon points="60,25 85,38 85,62 60,75 35,62 35,38" fill="none" stroke="#F1F5F9" strokeWidth="1" />
-                {/* Peer Median Polygon */}
-                <polygon points="60,28 88,40 82,65 60,72 38,62 40,38" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="3 3" />
-                {/* Client Risk DNA Polygon */}
-                <motion.polygon
-                  points="60,15 95,35 88,68 60,86 28,66 32,32"
-                  fill="rgba(0,118,128,0.22)"
-                  stroke="#007680"
-                  strokeWidth="2"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.6 }}
-                />
-              </svg>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', fontSize: '0.58rem', fontWeight: 600 }}>
-              <span style={{ color: '#007680' }}>● Client DNA</span>
-              <span style={{ color: '#94A3B8' }}>-- Peer Median</span>
-            </div>
-          </div>
-
-          {/* Right: Vector KPI Cards */}
-          <div style={{ flex: 1, height: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', overflow: 'hidden' }}>
-            {[
-              { title: 'Manual Override', val: '14.8%', delta: '+3.6% delta', color: '#D97706', bg: '#FFFBEB' },
-              { title: 'Closing Rush', val: '40.2%', delta: '+25.7% Focus', color: '#E11D48', bg: '#FFF1F2' },
-              { title: 'Benford Fit', val: '96%', delta: 'Grade A', color: '#16A34A', bg: '#F0FDF4' },
-              { title: 'Off-Hours', val: '0.4%', delta: '-2.0% delta', color: '#007680', bg: '#E6F4F5' },
-            ].map((kpi, i) => (
-              <div key={i} style={{ background: kpi.bg, borderRadius: '8px', padding: '8px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(0,0,0,0.05)' }}>
-                <span style={{ fontSize: '0.58rem', color: '#475569', fontWeight: 600 }}>{kpi.title}</span>
-                <span style={{ fontSize: '0.90rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{kpi.val}</span>
-                <span style={{ fontSize: '0.56rem', color: kpi.color, fontWeight: 700 }}>{kpi.delta}</span>
+          <div style={{ flex: 0.8, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Quarter-End Timing</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, justifyContent: 'center' }}>
+              <div style={{ padding: '6px', borderRadius: '6px', background: '#FFF1F2', border: '1px solid #FECDD3', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.58rem', color: '#64748B', display: 'block' }}>Within 5 Days of Close</span>
+                <span style={{ fontSize: '0.90rem', fontWeight: 900, color: '#E11D48' }}>92.4% Volume</span>
               </div>
-            ))}
+              <div style={{ padding: '6px', borderRadius: '6px', background: '#F0F9FF', border: '1px solid #BAE6FD', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.58rem', color: '#64748B', display: 'block' }}>Mandatory Confirmation</span>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0284C7' }}>18 Sample Vouchers</span>
+              </div>
+            </div>
           </div>
         </div>
       );
 
     case '03_user_wise':
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '14px', alignItems: 'center', padding: '12px' }}>
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>User Posting Value ($)</span>
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>User Posting Value ($)</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '6px', paddingTop: '8px' }}>
               {[
                 { u: 'BATCH_AUTO', amt: '$42.8M', h: 90, color: '#007680' },
@@ -435,21 +375,21 @@ const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => 
               ].map((user, i) => (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '3px' }}>
                   <motion.div initial={{ height: 0 }} animate={{ height: `${user.h}%` }} transition={{ duration: 0.4, delay: i * 0.05 }} style={{ width: '100%', background: user.color, borderRadius: '3px 3px 0 0' }} />
-                  <span style={{ fontSize: '0.54rem', color: '#64748B', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '42px' }}>{user.u}</span>
+                  <span style={{ fontSize: '0.52rem', color: '#64748B', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '38px' }}>{user.u}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>User Risk Profile</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'center', flex: 1 }}>
-              <div style={{ padding: '6px 8px', borderRadius: '6px', background: '#FFF1F2', display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', fontWeight: 700, color: '#E11D48' }}>
+          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>User Risk Profile</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', justifyContent: 'center', flex: 1 }}>
+              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#FFF1F2', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#E11D48' }}>
                 <span>Admin / Temp</span><span>17% ($12.6M)</span>
               </div>
-              <div style={{ padding: '6px 8px', borderRadius: '6px', background: '#F0F9FF', display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', fontWeight: 700, color: '#0284C7' }}>
+              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#F0F9FF', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#0284C7' }}>
                 <span>Standard Ops</span><span>25% ($18.5M)</span>
               </div>
-              <div style={{ padding: '6px 8px', borderRadius: '6px', background: '#E6F4F5', display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', fontWeight: 700, color: '#007680' }}>
+              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#E6F4F5', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#007680' }}>
                 <span>Automated Feeds</span><span>58% ($42.8M)</span>
               </div>
             </div>
@@ -459,26 +399,26 @@ const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => 
 
     case '04_closing_entries':
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '14px', alignItems: 'center', padding: '12px' }}>
-          <div style={{ flex: 1, height: '100%', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Financial Statement Effect</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, justifyContent: 'center' }}>
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          <div style={{ flex: 1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Financial Statement Effect</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, justifyContent: 'center' }}>
               {[
                 { name: 'Increase in Expense', pct: '45%', color: '#E11D48', bg: '#FFF1F2' },
                 { name: 'Increase in Assets', pct: '23%', color: '#007680', bg: '#E6F4F5' },
                 { name: 'Decrease in Liab', pct: '17%', color: '#0284C7', bg: '#F0F9FF' },
                 { name: 'Decrease in Revenue', pct: '10%', color: '#F59E0B', bg: '#FFFBEB' },
               ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', borderRadius: '6px', background: item.bg, fontSize: '0.62rem', fontWeight: 700, color: item.color }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 6px', borderRadius: '4px', background: item.bg, fontSize: '0.58rem', fontWeight: 700, color: item.color }}>
                   <span>{item.name}</span>
                   <span>{item.pct}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ flex: 1, height: '100%', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Post-Cutoff Timing Profile</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '6px', paddingTop: '8px' }}>
+          <div style={{ flex: 1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Post-Cutoff Timing Profile</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '5px', paddingTop: '8px' }}>
               {[
                 { d: 'Day -1/0', val: 95, col: '#E11D48' },
                 { d: 'Day +1/+3', val: 45, col: '#F59E0B' },
@@ -486,8 +426,8 @@ const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => 
                 { d: 'Day +8+', val: 10, col: '#007680' },
               ].map((bar, i) => (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '3px' }}>
-                  <motion.div initial={{ height: 0 }} animate={{ height: `${bar.val}%` }} transition={{ duration: 0.4, delay: i * 0.05 }} style={{ width: '100%', background: bar.col, borderRadius: '3px 3px 0 0' }} />
-                  <span style={{ fontSize: '0.54rem', color: '#64748B' }}>{bar.d}</span>
+                  <motion.div initial={{ height: 0 }} animate={{ height: `${bar.val}%` }} transition={{ duration: 0.4, delay: i * 0.05 }} style={{ width: '100%', background: bar.col, borderRadius: '2px 2px 0 0' }} />
+                  <span style={{ fontSize: '0.52rem', color: '#64748B' }}>{bar.d}</span>
                 </div>
               ))}
             </div>
@@ -495,12 +435,149 @@ const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => 
         </div>
       );
 
+    case '05_dates_interest':
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          {/* Left: Weekday vs Weekend Heatmap Grid */}
+          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Calendar Posting Density</span>
+              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>Spike: 382 Lines</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', padding: '6px 0', flex: 1, alignItems: 'center' }}>
+              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                  <span style={{ fontSize: '0.54rem', fontWeight: 700, color: i >= 5 ? '#E11D48' : '#64748B' }}>{d}</span>
+                  <div style={{ width: '100%', height: '24px', borderRadius: '3px', background: i === 6 ? '#E11D48' : i === 5 ? '#F59E0B' : '#E6F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '0.50rem', fontWeight: 800, color: i >= 5 ? '#FFFFFF' : '#007680' }}>
+                      {i === 6 ? '382' : i === 5 ? '94' : '22'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <span style={{ fontSize: '0.54rem', color: '#64748B', textAlign: 'center' }}>Sunday Midnight / Holiday Concentration Flagged</span>
+          </div>
+
+          {/* Right: Off-Hours Velocity Curve */}
+          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Hourly Posting Velocity</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="100%" height="70" viewBox="0 0 160 70">
+                <path d="M 10 55 Q 40 50 60 58 T 90 20 T 130 52 T 150 15" fill="none" stroke="#E11D48" strokeWidth="2" />
+                <circle cx="150" cy="15" r="3" fill="#E11D48" />
+                <circle cx="90" cy="20" r="3" fill="#007680" />
+              </svg>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', color: '#94A3B8' }}>
+              <span>8 AM</span><span>12 PM</span><span>6 PM</span><span style={{ color: '#E11D48', fontWeight: 700 }}>12 AM (Peak)</span>
+            </div>
+          </div>
+        </div>
+      );
+
+    case '06_amount_analysis':
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          {/* Left: Benford's Law 1-9 Curve */}
+          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Benford’s Law (Digits 1–9)</span>
+              <span style={{ fontSize: '0.58rem', color: '#16A34A', fontWeight: 700 }}>96% Grade A</span>
+            </div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '4px', paddingTop: '6px' }}>
+              {[
+                { d: '1', ben: 30.1, act: 31.2 }, { d: '2', ben: 17.6, act: 16.9 },
+                { d: '3', ben: 12.5, act: 13.1 }, { d: '4', ben: 9.7, act: 9.2 },
+                { d: '5', ben: 7.9, act: 8.4 }, { d: '6', ben: 6.7, act: 6.1 },
+                { d: '7', ben: 5.8, act: 5.4 }, { d: '8', ben: 5.1, act: 5.0 },
+                { d: '9', ben: 4.6, act: 4.7 },
+              ].map((item, i) => (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '2px' }}>
+                  <motion.div initial={{ height: 0 }} animate={{ height: `${item.act * 2.5}%` }} transition={{ duration: 0.35, delay: i * 0.03 }} style={{ width: '100%', background: '#007680', borderRadius: '2px 2px 0 0' }} />
+                  <span style={{ fontSize: '0.52rem', color: '#64748B' }}>{item.d}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Round Dollar Multiples */}
+          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Round Multiples Density</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, justifyContent: 'center' }}>
+              {[
+                { label: '$1,000 Multiples', count: '412 Lines', col: '#007680', bg: '#E6F4F5' },
+                { label: '$10,000 Multiples', count: '184 Lines', col: '#0284C7', bg: '#F0F9FF' },
+                { label: '$50,000 Multiples', count: '62 Lines', col: '#F59E0B', bg: '#FFFBEB' },
+                { label: '$100,000+ Threshold', count: '19 Lines', col: '#E11D48', bg: '#FFF1F2' },
+              ].map((r, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 6px', borderRadius: '4px', background: r.bg, fontSize: '0.58rem', fontWeight: 700, color: r.col }}>
+                  <span>{r.label}</span>
+                  <span>{r.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+    case '07_duplicate_entries':
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          {/* Left: Duplicate Match Breakdown */}
+          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Duplicate Clusters Match</span>
+              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>214 Flagged Pairs</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, justifyContent: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
+                  <span>Exact Match (Amount + Acct + Date)</span>
+                  <span style={{ color: '#E11D48' }}>142 Pairs (66%)</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: '66%' }} transition={{ duration: 0.5 }} style={{ height: '100%', background: '#E11D48' }} />
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
+                  <span>Near Match (Within 48h Window)</span>
+                  <span style={{ color: '#D97706' }}>72 Pairs (34%)</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: '34%' }} transition={{ duration: 0.5, delay: 0.1 }} style={{ height: '100%', background: '#D97706' }} />
+                </div>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.54rem', color: '#64748B', borderTop: '1px solid #F1F5F9', paddingTop: '4px' }}>
+              Potential double-count exposure: <strong>$4.20M</strong>
+            </span>
+          </div>
+
+          {/* Right: Time Window Distribution */}
+          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Repetition Time Window</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, justifyContent: 'center' }}>
+              <div style={{ padding: '5px', borderRadius: '4px', background: '#FFF1F2', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.54rem', color: '#64748B', display: 'block' }}>Same Day Reposting</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#E11D48' }}>65% Concentration</span>
+              </div>
+              <div style={{ padding: '5px', borderRadius: '4px', background: '#F0F9FF', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.54rem', color: '#64748B', display: 'block' }}>Subledger Retry Batch</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0284C7' }}>25% Lag Window</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
     case '08_word_count':
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '14px', alignItems: 'center', padding: '12px' }}>
-          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Monitored Keyword Frequency</span>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '6px', paddingTop: '8px' }}>
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Monitored Keyword Frequency</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '5px', paddingTop: '8px' }}>
               {[
                 { kw: 'Manual', count: 210, col: '#0284C7' },
                 { kw: 'Adjust', count: 145, col: '#007680' },
@@ -510,22 +587,22 @@ const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => 
                 { kw: 'Fraud', count: 4, col: '#7C3AED' },
               ].map((item, i) => (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '3px' }}>
-                  <motion.div initial={{ height: 0 }} animate={{ height: `${Math.min(95, (item.count / 210) * 90 + 10)}%` }} transition={{ duration: 0.4, delay: i * 0.04 }} style={{ width: '100%', background: item.col, borderRadius: '3px 3px 0 0' }} />
-                  <span style={{ fontSize: '0.52rem', color: '#64748B', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '36px' }}>{item.kw}</span>
+                  <motion.div initial={{ height: 0 }} animate={{ height: `${Math.min(95, (item.count / 210) * 90 + 10)}%` }} transition={{ duration: 0.4, delay: i * 0.04 }} style={{ width: '100%', background: item.col, borderRadius: '2px 2px 0 0' }} />
+                  <span style={{ fontSize: '0.50rem', color: '#64748B', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '34px' }}>{item.kw}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '10px', padding: '10px 12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>Severity Stratification</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, justifyContent: 'center' }}>
-              <div style={{ padding: '6px 8px', borderRadius: '6px', background: '#FFF1F2', display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', fontWeight: 700, color: '#E11D48' }}>
+          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Severity Stratification</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, justifyContent: 'center' }}>
+              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#FFF1F2', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#E11D48' }}>
                 <span>High Risk (Fraud/Plug)</span><span>7% ($6.98M)</span>
               </div>
-              <div style={{ padding: '6px 8px', borderRadius: '6px', background: '#FFFBEB', display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', fontWeight: 700, color: '#D97706' }}>
+              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#FFFBEB', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#D97706' }}>
                 <span>Medium (Suspense)</span><span>22% ($2.18M)</span>
               </div>
-              <div style={{ padding: '6px 8px', borderRadius: '6px', background: '#F0F9FF', display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', fontWeight: 700, color: '#0284C7' }}>
+              <div style={{ padding: '5px 7px', borderRadius: '5px', background: '#F0F9FF', display: 'flex', justifyContent: 'space-between', fontSize: '0.60rem', fontWeight: 700, color: '#0284C7' }}>
                 <span>Informational</span><span>71% ($16.4M)</span>
               </div>
             </div>
@@ -533,38 +610,193 @@ const VectorChartCanvas: React.FC<{ categoryId: string }> = ({ categoryId }) => 
         </div>
       );
 
-    default:
+    case '09_post_closing':
       return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px' }}>
-          <div style={{ width: '100%', height: '100%', background: '#FFFFFF', borderRadius: '10px', border: '1px solid #E2E8F0', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          {/* Left: Timeline Curve post freeze */}
+          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0F172A' }}>Deloitte JET Forensic Engine Analytics</span>
-              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#007680', background: '#E6F4F5', padding: '2px 8px', borderRadius: '4px' }}>Active Suite</span>
+              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Post-Freeze Journal Timeline</span>
+              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>98.7k Entries</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', flex: 1, padding: '10px 0' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="100%" height="70" viewBox="0 0 180 70">
+                <motion.path d="M 10 60 Q 40 55 70 58 T 100 20 T 140 45 T 175 10" fill="none" stroke="#E11D48" strokeWidth="2.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6 }} />
+                <circle cx="100" cy="20" r="3.5" fill="#E11D48" />
+                <circle cx="175" cy="10" r="3.5" fill="#E11D48" />
+              </svg>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', color: '#94A3B8' }}>
+              <span>Freeze Date</span><span>Day +7</span><span style={{ color: '#E11D48', fontWeight: 700 }}>Day +14 (Audit Spike)</span><span>Day +30</span>
+            </div>
+          </div>
+
+          {/* Right: Post-closing Account Distribution */}
+          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Late Adjustment Impact</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, justifyContent: 'center' }}>
               {[
-                { label: 'Total Population', val: '142,800 Lines', col: '#007680' },
-                { label: 'Reconciliation', val: 'Zero-Sum Pass', col: '#16A34A' },
-                { label: 'Exception Score', val: '99.4% Valid', col: '#0284C7' },
-              ].map((card, i) => (
-                <div key={i} style={{ background: '#F8FAFC', borderRadius: '8px', padding: '8px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.58rem', color: '#64748B', fontWeight: 600 }}>{card.label}</span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: card.col }}>{card.val}</span>
+                { acc: 'Tax Provisions', amt: '$3.8M', col: '#E11D48', bg: '#FFF1F2' },
+                { acc: 'Inventory Valuation', amt: '$2.9M', col: '#D97706', bg: '#FFFBEB' },
+                { acc: 'Accrued Bonuses', amt: '$1.7M', col: '#007680', bg: '#E6F4F5' },
+              ].map((row, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 6px', borderRadius: '4px', background: row.bg, fontSize: '0.58rem', fontWeight: 700, color: row.col }}>
+                  <span>{row.acc}</span>
+                  <span>{row.amt}</span>
                 </div>
               ))}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.62rem', color: '#64748B', borderTop: '1px solid #F1F5F9', paddingTop: '6px' }}>
-              <span>PCAOB AS 2401 &amp; ISA 240 Aligned</span>
-              <span style={{ color: '#007680', fontWeight: 700 }}>Deloitte Certified</span>
             </div>
           </div>
         </div>
       );
+
+    case '10_unrelated_accounts':
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          {/* Left: 4x4 Heatmap Matrix */}
+          <div style={{ flex: 1.1, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Cross-Ledger Pairing Matrix</span>
+              <span style={{ fontSize: '0.58rem', color: '#E11D48', fontWeight: 700 }}>128 Outliers</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '3px', flex: 1, padding: '4px 0', alignItems: 'center' }}>
+              {[
+                { label: 'Asset/Liab', alert: false, col: '#E6F4F5' },
+                { label: 'Asset/Rev', alert: false, col: '#F0F9FF' },
+                { label: 'Asset/Eq', alert: true, col: '#FFF1F2' },
+                { label: 'Liab/Exp', alert: false, col: '#E6F4F5' },
+                { label: 'Rev/Exp', alert: false, col: '#F0F9FF' },
+                { label: 'Cash/Eq', alert: true, col: '#FFE4E6' },
+                { label: 'Liab/Eq', alert: false, col: '#F8FAFC' },
+                { label: 'Susp/Rev', alert: true, col: '#FEF3C7' },
+              ].map((cell, i) => (
+                <div key={i} style={{ background: cell.col, borderRadius: '4px', padding: '4px 2px', textAlign: 'center', border: cell.alert ? '1px solid #FECDD3' : '1px solid transparent' }}>
+                  <span style={{ fontSize: '0.52rem', fontWeight: 700, color: cell.alert ? '#E11D48' : '#475569', display: 'block' }}>{cell.label}</span>
+                </div>
+              ))}
+            </div>
+            <span style={{ fontSize: '0.54rem', color: '#64748B', textAlign: 'center' }}>Atypical pairings bridging disparate COA branches</span>
+          </div>
+
+          {/* Right: Outlier Detail Card */}
+          <div style={{ flex: 0.9, height: '100%', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Primary Anomaly Focus</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, justifyContent: 'center' }}>
+              <div style={{ padding: '6px', borderRadius: '5px', background: '#FFF1F2', border: '1px solid #FECDD3' }}>
+                <span style={{ fontSize: '0.54rem', color: '#64748B', display: 'block' }}>Direct Cash ↔ Non-Operating Equity</span>
+                <span style={{ fontSize: '0.80rem', fontWeight: 900, color: '#E11D48' }}>128 Postings ($840k)</span>
+              </div>
+              <div style={{ padding: '5px', borderRadius: '5px', background: '#E6F4F5', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#007680' }}>Mandatory Ledger Audit Flag</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case '11_population_stats':
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          {/* Left: Activity Trajectory Line */}
+          <div style={{ flex: 1.1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Activity Trajectory (P1–P12)</span>
+              <span style={{ fontSize: '0.58rem', color: '#007680', fontWeight: 700 }}>Local Currency ($)</span>
+            </div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="100%" height="75" viewBox="0 0 240 75" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#007680" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#007680" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                <motion.path d="M 10 50 Q 35 55 55 40 T 100 42 T 140 28 T 180 44 T 210 18 T 235 5" fill="none" stroke="#007680" strokeWidth="2.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.7 }} />
+                <path d="M 10 50 Q 35 55 55 40 T 100 42 T 140 28 T 180 44 T 210 18 T 235 5 L 235 70 L 10 70 Z" fill="url(#lineGrad)" />
+                <circle cx="235" cy="5" r="3.5" fill="#007680" />
+                <circle cx="140" cy="28" r="3" fill="#007680" />
+              </svg>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', color: '#94A3B8' }}>
+              <span>P1</span><span>P3</span><span>P6</span><span>P9</span><span>P12 (Spike: $8.5M)</span>
+            </div>
+          </div>
+
+          {/* Right: Monthly Volume Bars */}
+          <div style={{ flex: 0.9, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Monthly Volume Profile</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '4px', paddingTop: '8px' }}>
+              {[
+                { p: 'P1', val: 45 }, { p: 'P3', val: 52 }, { p: 'P6', val: 68 },
+                { p: 'P9', val: 78 }, { p: 'P11', val: 60 }, { p: 'P12', val: 95 }
+              ].map((m, i) => (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '2px' }}>
+                  <motion.div initial={{ height: 0 }} animate={{ height: `${m.val}%` }} transition={{ duration: 0.4, delay: i * 0.04 }} style={{ width: '100%', background: i === 5 ? '#007680' : '#0284C7', borderRadius: '2px 2px 0 0' }} />
+                  <span style={{ fontSize: '0.52rem', color: '#64748B' }}>{m.p}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.54rem', color: '#64748B', fontWeight: 600, borderTop: '1px solid #F1F5F9', paddingTop: '3px' }}>
+              <span>Standard: 88%</span>
+              <span style={{ color: '#007680' }}>P12: +34%</span>
+            </div>
+          </div>
+        </div>
+      );
+
+    case '12_forensic_radar':
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', gap: '12px', alignItems: 'center', padding: '10px' }}>
+          {/* Left: 6-Axis Radar */}
+          <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', borderRadius: '8px', padding: '8px 10px', border: '1px solid #E2E8F0' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#0F172A' }}>Behavior Vector Radar</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <svg width="120" height="100" viewBox="0 0 120 100">
+                <polygon points="60,10 100,30 100,70 60,90 20,70 20,30" fill="none" stroke="#E2E8F0" strokeWidth="1" />
+                <polygon points="60,25 85,38 85,62 60,75 35,62 35,38" fill="none" stroke="#F1F5F9" strokeWidth="1" />
+                <polygon points="60,28 88,40 82,65 60,72 38,62 40,38" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="3 3" />
+                <motion.polygon
+                  points="60,15 95,35 88,68 60,86 28,66 32,32"
+                  fill="rgba(0,118,128,0.22)"
+                  stroke="#007680"
+                  strokeWidth="2"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                />
+              </svg>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', fontSize: '0.54rem', fontWeight: 600 }}>
+              <span style={{ color: '#007680' }}>● Client DNA</span>
+              <span style={{ color: '#94A3B8' }}>-- Peer Median</span>
+            </div>
+          </div>
+
+          {/* Right: Vector KPI Cards */}
+          <div style={{ flex: 1, height: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', overflow: 'hidden' }}>
+            {[
+              { title: 'Manual Override', val: '14.8%', delta: '+3.6% delta', color: '#D97706', bg: '#FFFBEB' },
+              { title: 'Closing Rush', val: '40.2%', delta: '+25.7% Focus', color: '#E11D48', bg: '#FFF1F2' },
+              { title: 'Benford Fit', val: '96%', delta: 'Grade A', color: '#16A34A', bg: '#F0FDF4' },
+              { title: 'Off-Hours', val: '0.4%', delta: '-2.0% delta', color: '#007680', bg: '#E6F4F5' },
+            ].map((kpi, i) => (
+              <div key={i} style={{ background: kpi.bg, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(0,0,0,0.05)' }}>
+                <span style={{ fontSize: '0.54rem', color: '#475569', fontWeight: 600 }}>{kpi.title}</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>{kpi.val}</span>
+                <span style={{ fontSize: '0.52rem', color: kpi.color, fontWeight: 700 }}>{kpi.delta}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    default:
+      return null;
   }
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   MAIN SHOWCASE COMPONENT (COMPACT & SLEEK)
+   MAIN SHOWCASE COMPONENT
 ───────────────────────────────────────────────────────────────────────── */
 
 export const VisualizationShowcase: React.FC = () => {
@@ -637,7 +869,7 @@ export const VisualizationShowcase: React.FC = () => {
         width: '100%',
         background: 'linear-gradient(180deg, #FFFFFF 0%, #F5FAF8 40%, #EDF7F5 100%)',
         borderBottom: '1px solid #E2E8F0',
-        padding: 'clamp(32px, 3.8vw, 48px) clamp(20px, 3.5vw, 48px)',
+        padding: 'clamp(28px, 3.5vw, 42px) clamp(20px, 3.5vw, 48px)',
         position: 'relative',
         overflow: 'hidden',
         outline: 'none',
@@ -652,28 +884,28 @@ export const VisualizationShowcase: React.FC = () => {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '16px',
-          marginBottom: '20px',
+          marginBottom: '18px',
         }}>
           <div>
-            <div style={{ marginBottom: '8px' }}>
+            <div style={{ marginBottom: '6px' }}>
               <span style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '4px 12px',
+                padding: '3px 10px',
                 borderRadius: '999px',
                 background: 'rgba(0, 163, 173, 0.10)',
                 border: '1px solid rgba(0, 118, 128, 0.18)',
                 color: '#007680',
-                fontSize: '0.74rem',
+                fontSize: '0.72rem',
                 fontWeight: 700,
               }}>
-                <Sparkles size={13} />
+                <Sparkles size={12} />
                 Client-Ready Visualizations &amp; Exception Analytics Showcase
               </span>
             </div>
             <h2 style={{
-              fontSize: 'clamp(1.75rem, 2.5vw, 2.25rem)',
+              fontSize: 'clamp(1.65rem, 2.3vw, 2.15rem)',
               fontWeight: 800,
               color: '#0F172A',
               letterSpacing: '-0.035em',
@@ -686,9 +918,9 @@ export const VisualizationShowcase: React.FC = () => {
           </div>
 
           <p style={{
-            fontSize: '0.84rem',
+            fontSize: '0.82rem',
             color: '#64748B',
-            lineHeight: 1.5,
+            lineHeight: 1.45,
             maxWidth: '380px',
             margin: 0,
           }}>
@@ -706,8 +938,8 @@ export const VisualizationShowcase: React.FC = () => {
             alignItems: 'center',
             gap: '6px',
             overflowX: 'auto',
-            paddingBottom: '10px',
-            marginBottom: '18px',
+            paddingBottom: '8px',
+            marginBottom: '16px',
             scrollbarWidth: 'none',
           }}
         >
@@ -748,15 +980,14 @@ export const VisualizationShowcase: React.FC = () => {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════
-            COMPACT FIXED STAGE (Height reduced to ~360px)
+            COMPACT FIXED STAGE (Height 340px)
         ═══════════════════════════════════════════════════════════ */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '55fr 45fr',
-          gap: '20px',
+          gap: '18px',
           alignItems: 'stretch',
-          minHeight: '350px',
-          maxHeight: '390px',
+          height: '340px',
         }}>
 
           {/* ────────────────────────────────────────────────────────
@@ -764,10 +995,10 @@ export const VisualizationShowcase: React.FC = () => {
           ──────────────────────────────────────────────────────── */}
           <div style={{
             height: '100%',
-            borderRadius: '16px',
+            borderRadius: '14px',
             background: '#FFFFFF',
             border: '1px solid #E2E8F0',
-            boxShadow: '0 12px 32px -6px rgba(15, 23, 42, 0.07)',
+            boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.06)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -777,7 +1008,7 @@ export const VisualizationShowcase: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '9px 14px',
+              padding: '8px 12px',
               background: '#F8FAFC',
               borderBottom: '1px solid #E2E8F0',
               flexShrink: 0,
@@ -789,19 +1020,19 @@ export const VisualizationShowcase: React.FC = () => {
               </div>
 
               <div style={{
-                fontSize: '0.68rem',
+                fontSize: '0.66rem',
                 fontWeight: 700,
                 color: '#007680',
                 fontFamily: 'monospace',
                 background: '#E6F4F5',
-                padding: '2px 10px',
-                borderRadius: '5px',
+                padding: '2px 8px',
+                borderRadius: '4px',
                 border: '1px solid #99D5D9',
               }}>
                 {current.badge}
               </div>
 
-              <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748B', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748B', fontFamily: 'monospace' }}>
                 {current.num} / 12
               </span>
             </div>
@@ -812,10 +1043,10 @@ export const VisualizationShowcase: React.FC = () => {
                 <motion.div
                   key={current.id}
                   custom={direction}
-                  initial={{ opacity: 0, x: direction * 30 }}
+                  initial={{ opacity: 0, x: direction * 25 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -direction * 30 }}
-                  transition={{ duration: 0.28, ease: 'easeOut' }}
+                  exit={{ opacity: 0, x: -direction * 25 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
                   style={{ width: '100%', height: '100%' }}
                 >
                   <VectorChartCanvas categoryId={current.id} />
@@ -830,10 +1061,10 @@ export const VisualizationShowcase: React.FC = () => {
           <div style={{
             height: '100%',
             background: '#FFFFFF',
-            borderRadius: '16px',
+            borderRadius: '14px',
             border: '1px solid #E2E8F0',
-            boxShadow: '0 6px 20px -4px rgba(15, 23, 42, 0.04)',
-            padding: '20px 22px',
+            boxShadow: '0 6px 18px -4px rgba(15, 23, 42, 0.04)',
+            padding: '16px 18px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -842,99 +1073,99 @@ export const VisualizationShowcase: React.FC = () => {
               <motion.div
                 key={current.id + '-panel'}
                 custom={direction}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.24, ease: 'easeOut' }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <div>
                   {/* Category Pill + Number */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
-                      padding: '3px 10px',
+                      gap: '4px',
+                      padding: '3px 8px',
                       borderRadius: '999px',
                       background: '#E6F4F5',
                       border: '1px solid #99D5D9',
                       color: '#007680',
-                      fontSize: '0.68rem',
+                      fontSize: '0.66rem',
                       fontWeight: 800,
                       textTransform: 'uppercase',
                       fontFamily: 'monospace',
                     }}>
-                      <IconComponent size={12} />
+                      <IconComponent size={11} />
                       {current.category}
                     </span>
 
-                    <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#007680', fontFamily: 'monospace' }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#007680', fontFamily: 'monospace' }}>
                       #{current.num}
                     </span>
                   </div>
 
                   {/* Title */}
                   <h3 style={{
-                    fontSize: '1.15rem',
+                    fontSize: '1.08rem',
                     fontWeight: 800,
                     color: '#0F172A',
                     letterSpacing: '-0.025em',
-                    lineHeight: 1.25,
-                    margin: '0 0 8px',
+                    lineHeight: 1.2,
+                    margin: '0 0 6px',
                   }}>
                     {current.title}
                   </h3>
 
                   {/* Blueprint Summary Box */}
                   <div style={{
-                    padding: '8px 10px',
-                    borderRadius: '8px',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
                     background: '#F8FAFC',
                     border: '1px solid #E2E8F0',
-                    marginBottom: '8px',
+                    marginBottom: '6px',
                   }}>
-                    <span style={{ fontSize: '0.60rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       Visualization Blueprint:
                     </span>
-                    <p style={{ fontSize: '0.74rem', color: '#334155', lineHeight: 1.35, margin: '2px 0 0', fontWeight: 500 }}>
+                    <p style={{ fontSize: '0.72rem', color: '#334155', lineHeight: 1.3, margin: '2px 0 0', fontWeight: 500 }}>
                       {current.whatItShows}
                     </p>
                   </div>
 
                   {/* Insight Callout */}
                   <div style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
                     background: 'rgba(0, 118, 128, 0.04)',
                     borderLeft: '3px solid #007680',
                     border: '1px solid rgba(0, 118, 128, 0.15)',
                     borderLeftWidth: '3px',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                      <TrendingUp size={11} color="#007680" strokeWidth={2.5} />
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase' }}>
+                      <TrendingUp size={10} color="#007680" strokeWidth={2.5} />
+                      <span style={{ fontSize: '0.60rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase' }}>
                         Key Audit Insight
                       </span>
                     </div>
-                    <p style={{ fontSize: '0.74rem', color: '#1E293B', lineHeight: 1.4, margin: 0, fontWeight: 500 }}>
+                    <p style={{ fontSize: '0.72rem', color: '#1E293B', lineHeight: 1.35, margin: 0, fontWeight: 500 }}>
                       {current.insight}
                     </p>
                   </div>
                 </div>
 
                 {/* Metadata Badges */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', paddingTop: '10px' }}>
-                  <div style={{ padding: '3px 8px', borderRadius: '6px', background: '#F1F5F9', border: '1px solid #E2E8F0', fontSize: '0.64rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Shield size={9} color="#64748B" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', paddingTop: '8px' }}>
+                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: '#F1F5F9', border: '1px solid #E2E8F0', fontSize: '0.62rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <Shield size={8} color="#64748B" />
                     <span>{current.analyticalMethod}</span>
                   </div>
 
-                  <div style={{ padding: '3px 8px', borderRadius: '6px', background: riskStyle.bg, border: `1px solid ${riskStyle.border}`, fontSize: '0.64rem', fontWeight: 800, color: riskStyle.color, textTransform: 'uppercase' }}>
+                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: riskStyle.bg, border: `1px solid ${riskStyle.border}`, fontSize: '0.62rem', fontWeight: 800, color: riskStyle.color, textTransform: 'uppercase' }}>
                     {current.riskLevel} Risk
                   </div>
 
-                  <div style={{ padding: '3px 8px', borderRadius: '6px', background: '#E6F4F5', border: '1px solid #99D5D9', fontSize: '0.64rem', fontWeight: 700, color: '#007680' }}>
+                  <div style={{ padding: '2px 6px', borderRadius: '4px', background: '#E6F4F5', border: '1px solid #99D5D9', fontSize: '0.62rem', fontWeight: 700, color: '#007680' }}>
                     {current.metricLabel}: <strong>{current.metricValue}</strong>
                   </div>
                 </div>
@@ -952,29 +1183,29 @@ export const VisualizationShowcase: React.FC = () => {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          marginTop: '16px',
+          marginTop: '14px',
           padding: '0 2px',
         }}>
           {/* Left: Counter */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace', lineHeight: 1 }}>
+            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace', lineHeight: 1 }}>
               {String(index + 1).padStart(2, '0')}
             </span>
-            <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontFamily: 'monospace' }}>/ 12</span>
-            <span style={{ marginLeft: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#007680', paddingLeft: '10px', borderLeft: '1.5px solid #CBD5E1' }}>
+            <span style={{ fontSize: '0.80rem', color: '#94A3B8', fontFamily: 'monospace' }}>/ 12</span>
+            <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#007680', paddingLeft: '8px', borderLeft: '1.5px solid #CBD5E1' }}>
               {current.category}
             </span>
           </div>
 
           {/* Center: Progress Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {CATEGORIES.map((_, i) => (
               <button
                 key={i}
                 onClick={() => goTo(i)}
                 aria-label={`Go to category ${i + 1}`}
                 style={{
-                  width: i === index ? 20 : 5,
+                  width: i === index ? 18 : 5,
                   height: 4,
                   borderRadius: 999,
                   border: 'none',
@@ -999,12 +1230,12 @@ export const VisualizationShowcase: React.FC = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
-                padding: '8px 14px',
+                padding: '7px 12px',
                 borderRadius: '8px',
                 border: '1px solid #CBD5E1',
                 background: canPrev ? '#FFFFFF' : '#F8FAFC',
                 color: canPrev ? '#0F172A' : '#94A3B8',
-                fontSize: '0.78rem',
+                fontSize: '0.76rem',
                 fontWeight: 700,
                 cursor: canPrev ? 'pointer' : 'not-allowed',
                 outline: 'none',
@@ -1023,12 +1254,12 @@ export const VisualizationShowcase: React.FC = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
-                padding: '8px 18px',
+                padding: '7px 16px',
                 borderRadius: '8px',
                 border: 'none',
                 background: canNext ? 'linear-gradient(135deg, #007680 0%, #004D54 100%)' : '#CBD5E1',
                 color: '#FFFFFF',
-                fontSize: '0.78rem',
+                fontSize: '0.76rem',
                 fontWeight: 700,
                 cursor: canNext ? 'pointer' : 'not-allowed',
                 boxShadow: canNext ? '0 3px 10px rgba(0, 118, 128, 0.25)' : 'none',
