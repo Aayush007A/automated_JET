@@ -1204,28 +1204,16 @@ export const VisualizationShowcase: React.FC = () => {
             </h2>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-            <p style={{
-              fontSize: '0.84rem',
-              color: '#64748B',
-              lineHeight: 1.5,
-              maxWidth: '400px',
-              margin: 0,
-              textAlign: 'right',
-            }}>
-              Explore real interactive visual workpapers generated across all 12 analytical categories, Trial Balance checkpoints, and forensic risk matrices.
-            </p>
-
-            {/* Keyboard Shortcuts Hint */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.62rem', color: '#94A3B8', fontWeight: 600 }}>
-              <span style={{ padding: '2px 5px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#475569' }}>←</span>
-              <span style={{ padding: '2px 5px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#475569' }}>→</span>
-              <span>Navigate</span>
-              <span style={{ color: '#CBD5E1' }}>•</span>
-              <span style={{ padding: '2px 6px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#475569' }}>Space</span>
-              <span>{isPlaying ? 'Pause' : 'Resume'}</span>
-            </div>
-          </div>
+          <p style={{
+            fontSize: '0.84rem',
+            color: '#64748B',
+            lineHeight: 1.5,
+            maxWidth: '400px',
+            margin: 0,
+            textAlign: 'right',
+          }}>
+            Explore real interactive visual workpapers generated across all 12 analytical categories, Trial Balance checkpoints, and forensic risk matrices.
+          </p>
         </div>
 
         {/* ── 12-Category Scrollable Tab Strip with < and > Chevron Buttons ── */}
@@ -1535,14 +1523,14 @@ export const VisualizationShowcase: React.FC = () => {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════
-            MINIMALIST FOOTER: COUNTER, PLAY/PAUSE & PROGRESS PILLS
+            MINIMALIST FOOTER: COUNTER, SHORTCUTS & PROGRESS PILLS
         ═══════════════════════════════════════════════════════════ */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '12px',
+          gap: '14px',
           marginTop: '16px',
           padding: '0 2px',
         }}>
@@ -1557,7 +1545,28 @@ export const VisualizationShowcase: React.FC = () => {
             </span>
           </div>
 
-          {/* Center / Right: Play/Pause Toggle and Progress Indicator Bar */}
+          {/* Center: Keyboard Navigation Hints */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.64rem',
+            color: '#64748B',
+            fontWeight: 600,
+            background: 'rgba(255, 255, 255, 0.7)',
+            padding: '3px 10px',
+            borderRadius: '6px',
+            border: '1px solid #E2E8F0',
+          }}>
+            <span style={{ padding: '1px 5px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#0F172A', fontWeight: 700 }}>←</span>
+            <span style={{ padding: '1px 5px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#0F172A', fontWeight: 700 }}>→</span>
+            <span>Navigate</span>
+            <span style={{ color: '#CBD5E1', margin: '0 2px' }}>•</span>
+            <span style={{ padding: '1px 6px', borderRadius: '4px', background: '#FFFFFF', border: '1px solid #CBD5E1', fontFamily: 'monospace', color: '#0F172A', fontWeight: 700 }}>Space</span>
+            <span>{isPlaying ? 'Pause' : 'Resume'}</span>
+          </div>
+
+          {/* Right: Play/Pause Toggle and Progress Indicator Bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* Play/Pause Control Button */}
             <motion.button
