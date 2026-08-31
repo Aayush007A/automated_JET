@@ -845,14 +845,8 @@ export const DashboardPage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════
       4. VISUALIZATIONS & INSIGHTS SHOWCASE SECTION
       ══════════════════════════════════════════════════════════ */}
-      <motion.div
-        initial={false}
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={sectionReveal}
-      >
-        <VisualizationShowcase />
-      </motion.div>
+      <VisualizationShowcase />
+
 
       {/* ══════════════════════════════════════════════════════════
       5. FULL-SCREEN EXECUTION HISTORY TABLE SECTION
