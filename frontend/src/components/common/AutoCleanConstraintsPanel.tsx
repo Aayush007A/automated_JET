@@ -430,8 +430,8 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
   return (
     <div style={{ width: '100%', paddingBottom: '24px' }}>
-      {/* 4 Pastel Summary Cards per row on 100% zoom standard screen */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginBottom: '20px' }}>
+      {/* 4 Pastel Summary Cards per row on 100% zoom standard screen via CSS */}
+      <div className="constraints-kpi-grid">
         {/* Card 1: Total Rows Evaluated (Peach / Orange) */}
         <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#FFF4EC', border: '1px solid #FFE7D6', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
           <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
@@ -768,92 +768,6 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           );
         })}
       </div>
-
-      {/* Bottom Proceed Action Bar (Strictly Disabled until All Required Tests Pass) */}
-      {onProceed && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: '28px',
-          padding: '16px 20px',
-          background: '#FFFFFF',
-          borderRadius: '16px',
-          border: '1px solid var(--border-subtle, #E2E8F0)',
-          boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {isCalculating ? (
-              <>
-                <Loader2 size={20} className="spin" color="var(--deloitte-teal)" />
-                <div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 750, color: '#0F172A' }}>
-                    Automated Data Cleansing & Validation in Progress...
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-                    Evaluating schema constraints and integrity rules across ERP journal entries.
-                  </div>
-                </div>
-              </>
-            ) : allPassed ? (
-              <>
-                <CheckCircle2 size={22} color="#059669" />
-                <div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 750, color: '#0F172A' }}>
-                    All {constraints.length} Data Quality Constraints Successfully Validated (100% Passed)
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-                    Data is fully cleansed, sanitized, and ready for ERP table column mapping.
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <AlertTriangle size={22} color="#DC2626" />
-                <div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 750, color: '#DC2626' }}>
-                    {failedCount} Constraint Exception{failedCount > 1 ? 's' : ''} Detected
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-                    Please review flagged items or download exception CSVs before proceeding.
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={onProceed}
-            disabled={isCalculating || !allPassed}
-            className="btn-primary"
-            style={{
-              padding: '10px 22px',
-              fontSize: '0.86rem',
-              fontWeight: 750,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              opacity: (isCalculating || !allPassed) ? 0.45 : 1,
-              cursor: (isCalculating || !allPassed) ? 'not-allowed' : 'pointer',
-              transition: 'all 0.18s ease',
-            }}
-            title={(isCalculating || !allPassed) ? 'Validation must pass all mandatory tests before proceeding' : 'Proceed to Step 3 (Data File Mapping)'}
-          >
-            {isCalculating ? (
-              <>
-                <Loader2 size={15} className="spin" />
-                <span>Evaluating Checks...</span>
-              </>
-            ) : (
-              <>
-                <span>Continue to Data File Mapping</span>
-                <ArrowRight size={15} />
-              </>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

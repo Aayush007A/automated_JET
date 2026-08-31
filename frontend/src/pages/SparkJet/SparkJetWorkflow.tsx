@@ -1349,34 +1349,24 @@ export const SparkJetWorkflow: React.FC = () => {
     }
     if (currentStep === 2) {
       return (
-        <>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button onClick={() => setCurrentStep(1)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
             <ArrowLeft size={13} /> Back
           </button>
           <button
-            type="button"
-            onClick={handleRunAutoClean}
-            disabled={autoCleaning}
-            className="btn-soft-slate"
-            style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <RefreshCw size={13} className={autoCleaning ? 'spin-slow' : ''} />
-            {autoCleaning ? 'Validating...' : 'Re-Run Clean & Validate'}
-          </button>
-          <button
             onClick={() => { setCurrentStep(3); setMaxCompletedStep((prev) => Math.max(prev, 2)); }}
-            disabled={autoCleaning || (autoCleanReport !== null && !autoCleanReport.constraintsPassed)}
+            disabled={autoCleaning || !isConstraintsPassed}
             className="btn-primary"
             style={{
               padding: '6px 16px', fontSize: '0.82rem',
-              opacity: autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 0.45 : 1,
-              cursor: autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 'not-allowed' : 'pointer'
+              opacity: autoCleaning || !isConstraintsPassed ? 0.45 : 1,
+              cursor: autoCleaning || !isConstraintsPassed ? 'not-allowed' : 'pointer'
             }}
-            title={autoCleanReport !== null && !autoCleanReport.constraintsPassed ? 'Resolve or download failed constraints to proceed' : 'Continue to Mapping'}
+            title={!isConstraintsPassed ? 'All required checkpoints must pass before proceeding' : 'Continue to Mapping'}
           >
             Continue to Mapping <ArrowRight size={13} />
           </button>
-        </>
+        </div>
       );
     }
     if (currentStep === 3) {
