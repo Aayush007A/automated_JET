@@ -191,16 +191,37 @@ const hubDoughnutCalloutPlugin = {
 
       const { startX, startY, angle, isRight, outerRadius, centerX, centerY, adjustedY, sliceColor, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth } = item;
 
-      // 1. Leader Line Geometry
-      const radialExt = 20;
+      // 1. Calculate Pill Placement with Canvas Boundary Clamping (Zero text clipping)
+      const cWidth = chart.width || 420;
+      const cHeight = chart.height || 340;
+
+      const radialExt = 18;
       const elbowX = centerX + Math.cos(angle) * (outerRadius + radialExt);
-      const elbowY = adjustedY;
 
-      const horizLen = 18;
-      const endX = isRight ? elbowX + horizLen : elbowX - horizLen;
-      const endY = elbowY;
+      let pillX: number;
+      let endX: number;
+      let arrowTipX: number;
 
-      // Connector Line with subtle slice color
+      if (isRight) {
+        // Place pill to the right, clamped within right canvas edge
+        const preferredPillX = Math.max((chartArea?.right || 300) + 24, elbowX + 14);
+        pillX = Math.min(cWidth - pillWidth - 10, preferredPillX);
+        endX = pillX - 6;
+        arrowTipX = pillX - 1;
+      } else {
+        // Place pill to the left, clamped within left canvas edge
+        const preferredPillX = Math.min((chartArea?.left || 120) - pillWidth - 24, elbowX - pillWidth - 14);
+        pillX = Math.max(10, preferredPillX);
+        endX = pillX + pillWidth + 6;
+        arrowTipX = pillX + pillWidth + 1;
+      }
+
+      let pillY = adjustedY - pillHeight / 2;
+      if (pillY < 8) pillY = 8;
+      if (pillY + pillHeight > cHeight - 8) pillY = cHeight - pillHeight - 8;
+      const endY = pillY + pillHeight / 2;
+
+      // 2. Smooth Connector Line
       ctx.beginPath();
       ctx.strokeStyle = sliceColor;
       ctx.lineWidth = 1.25;
@@ -208,11 +229,11 @@ const hubDoughnutCalloutPlugin = {
       ctx.lineJoin = 'round';
 
       ctx.moveTo(startX, startY);
-      ctx.lineTo(elbowX, elbowY);
+      ctx.lineTo(elbowX, adjustedY);
       ctx.lineTo(endX, endY);
       ctx.stroke();
 
-      // Perimeter Anchor Dot
+      // 3. Perimeter Anchor Dot
       ctx.beginPath();
       ctx.arc(startX, startY, 3, 0, 2 * Math.PI);
       ctx.fillStyle = sliceColor;
@@ -221,25 +242,22 @@ const hubDoughnutCalloutPlugin = {
       ctx.strokeStyle = '#FFFFFF';
       ctx.stroke();
 
-      // Visible Arrow Pointer Tip at end of leader line pointing at the pill badge
+      // 4. Directional Arrowhead Tip pointing directly into the pill badge edge
       ctx.beginPath();
       if (isRight) {
-        ctx.moveTo(endX + 4, endY);
-        ctx.lineTo(endX - 3, endY - 3.5);
-        ctx.lineTo(endX - 3, endY + 3.5);
+        ctx.moveTo(arrowTipX, endY);
+        ctx.lineTo(arrowTipX - 5, endY - 3.5);
+        ctx.lineTo(arrowTipX - 5, endY + 3.5);
       } else {
-        ctx.moveTo(endX - 4, endY);
-        ctx.lineTo(endX + 3, endY - 3.5);
-        ctx.lineTo(endX + 3, endY + 3.5);
+        ctx.moveTo(arrowTipX, endY);
+        ctx.lineTo(arrowTipX + 5, endY - 3.5);
+        ctx.lineTo(arrowTipX + 5, endY + 3.5);
       }
       ctx.closePath();
       ctx.fillStyle = sliceColor;
       ctx.fill();
 
-      // 2. Floating Pill Card Badge - Placed outside the arrow with 6px clear gap
-      const pillX = isRight ? endX + 6 : endX - pillWidth - 6;
-      const pillY = endY - pillHeight / 2;
-
+      // 5. Floating Pill Card Badge - 100% inside container boundaries
       // Card Drop Shadow
       ctx.shadowColor = 'rgba(15, 23, 42, 0.08)';
       ctx.shadowBlur = 8;
