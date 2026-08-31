@@ -294,6 +294,7 @@ export const SparkJetWorkflow: React.FC = () => {
   // Sequential reveal states: show in-progress before exposing numbers
   const [irResultsRevealed, setIrResultsRevealed] = useState(false);
   const [resultsRevealed, setResultsRevealed] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Step 3 In-Place IR Preview State
   const [selectedIRFile, setSelectedIRFile] = useState<string>('IR_Exception_1.csv');
@@ -687,6 +688,16 @@ export const SparkJetWorkflow: React.FC = () => {
 
     return () => unsub();
   }, [runId]);
+
+  useEffect(() => {
+    if (status?.status === 'COMPLETED' && !executing) {
+      setToastMessage('Audit Pipeline Execution Completed — All 12 Parameter Exceptions and Deliverables Ready.');
+      const timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [status?.status, executing]);
 
   const handleOpenSamplePreview = async (fileId: string, sheetName?: string) => {
     if (!runId) return;
@@ -2870,54 +2881,87 @@ export const SparkJetWorkflow: React.FC = () => {
         {/* STEP 6: RESULTS & EXECUTIVE VISUALS */}
         {currentStep === 6 && (
           <div className="fade-slide-in">
-            {/* Success Banner when Completed */}
-            {status?.status === 'COMPLETED' && !executing && (
-              <div
-                style={{
-                  background: '#E6F4F5',
-                  border: '1px solid #99D5D9',
-                  borderRadius: '12px',
-                  padding: '14px 18px',
-                  marginBottom: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  boxShadow: '0 2px 8px rgba(0, 118, 128, 0.06)',
-                }}
-              >
-                <CheckCircle2 size={18} color="#007680" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#005A62' }}>
-                  Audit Pipeline Execution Completed — All 12 Parameter Exceptions and Deliverables Ready.
-                </span>
+            {/* Top Pastel KPI Cards matching Reference Styling */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+              {/* Card 1: Total Population Rows (Peach / Light Orange) */}
+              <div style={{ background: '#FFF4EC', border: '1px solid #FFE7D6', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  Total Population Rows
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {executing || status?.status === 'RUNNING' ? 'In Progress...' : new Intl.NumberFormat('en-US').format(status?.glCheckpointsSummary?.totalLines || (status?.totalInputRows?.gl || 0))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #FED7AA' }}>
+                    ▲ 100%
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>General Ledger Lines</span>
+                </div>
               </div>
-            )}
 
-            {/* Top Metric Cards: Show In Progress... when executing, computed numbers when completed */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-              <MetricCard
-                label="Total Population Rows"
-                value={executing || status?.status === 'RUNNING' ? 'In Progress...' : (status?.glCheckpointsSummary?.totalLines || (status?.totalInputRows?.gl || 0))}
-                subtitle="General Ledger Lines"
-                variant="teal"
-              />
-              <MetricCard
-                label="TB Accounts"
-                value={executing || status?.status === 'RUNNING' ? 'In Progress...' : (status?.totalInputRows?.tb || 0)}
-                subtitle="Trial Balance Accounts"
-                variant="teal"
-              />
-              <MetricCard
-                label="IR Exceptions"
-                value={executing || status?.status === 'RUNNING' ? 'In Progress...' : (getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'))}
-                subtitle="Integrity Tests 1-3"
-                variant="warning"
-              />
-              <MetricCard
-                label="Parameter Exceptions"
-                value={executing || status?.status === 'RUNNING' ? 'In Progress...' : ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reduce((acc, num) => acc + getExceptionCount(num, `Ex${num}`), 0))}
-                subtitle="Ex1 - Ex12 Total Flagged"
-                variant="teal"
-              />
+              {/* Card 2: TB Accounts (Light Green) */}
+              <div style={{ background: '#F0F9ED', border: '1px solid #DCFCE7', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  TB Accounts
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {executing || status?.status === 'RUNNING' ? 'In Progress...' : new Intl.NumberFormat('en-US').format(status?.totalInputRows?.tb || 0)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #BBF7D0' }}>
+                    ▲ Active
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Trial Balance Accounts</span>
+                </div>
+              </div>
+
+              {/* Card 3: IR Exceptions (Soft Blue / Lavender) */}
+              <div style={{ background: '#EDF2FE', border: '1px solid #DBEAFE', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  IR Exceptions
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {executing || status?.status === 'RUNNING' ? 'In Progress...' : new Intl.NumberFormat('en-US').format(getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#007680', border: '1px solid #BFDBFE' }}>
+                    ▲ 3 Tests
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Integrity Tests 1-3</span>
+                </div>
+              </div>
+
+              {/* Card 4: Parameter Exceptions (Soft Mint / Teal) */}
+              <div style={{ background: '#EAF5F2', border: '1px solid #CCFBF1', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  Parameter Exceptions
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {executing || status?.status === 'RUNNING' ? 'In Progress...' : new Intl.NumberFormat('en-US').format([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reduce((acc, num) => acc + getExceptionCount(num, `Ex${num}`), 0))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#007680', border: '1px solid #99F6E4' }}>
+                    ▲ Screened
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Ex1 - Ex12 Flagged</span>
+                </div>
+              </div>
+
+              {/* Card 5: Audit Materiality (Soft Rose / Pink) */}
+              <div style={{ background: '#FDF0F2', border: '1px solid #FFE4E6', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  Audit Materiality
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: config?.sparkParameters?.currencyCode || 'USD', maximumFractionDigits: 0 }).format(typeof config?.sparkParameters?.materiality === 'number' ? config.sparkParameters.materiality : 500000)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#9F1239', border: '1px solid #FECDD3' }}>
+                    ▲ Cutoff
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>USD Benchmark</span>
+                </div>
+              </div>
             </div>
 
             <div
@@ -3719,6 +3763,51 @@ export const SparkJetWorkflow: React.FC = () => {
         rows={sampleModalData.rows}
         totalRows={sampleModalData.totalRows}
       />
+
+      {/* 5-Second Auto-Dismissing Toast Notification */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 99999,
+            background: '#0F172A',
+            color: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '12px 18px',
+            boxShadow: '0 12px 28px rgba(0,0,0,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            maxWidth: '480px',
+            border: '1px solid #334155',
+            animation: 'fadeIn 0.25s ease-out',
+          }}
+        >
+          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#007680', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CheckCircle2 size={16} color="#FFFFFF" />
+          </div>
+          <span style={{ fontSize: '0.84rem', fontWeight: 650, lineHeight: 1.35 }}>
+            {toastMessage}
+          </span>
+          <button
+            onClick={() => setToastMessage(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94A3B8',
+              cursor: 'pointer',
+              padding: '2px',
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

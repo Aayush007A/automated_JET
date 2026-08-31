@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Table, Database, FileSpreadsheet, ArrowRight, CheckCircle2, AlertCircle,
   Search, Filter, Sparkles, RefreshCw, HelpCircle, Check, Eye, ChevronRight
@@ -21,6 +21,62 @@ interface DataFileMappingWorkspaceProps {
   onProceed?: () => void;
 }
 
+const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+export const findBestMatchingSourceHeader = (standardField: string, sourceHeaders: string[]): string => {
+  if (!sourceHeaders || sourceHeaders.length === 0) return '';
+  const stdNorm = normalize(standardField);
+
+  // Exact match (case insensitive)
+  const exact = sourceHeaders.find(h => normalize(h) === stdNorm);
+  if (exact) return exact;
+
+  // Well-known standard field aliases dictionary
+  const ALIASES: Record<string, string[]> = {
+    // GL / General Ledger fields
+    'glaccountnumber': ['glaccount', 'glaccountnumber', 'glacct', 'gl', 'account', 'accountnumber', 'acct', 'hkont', 'saknr', 'general_ledger_account'],
+    'documentnumber': ['documentnumber', 'documentno', 'docno', 'docnumber', 'document', 'belnr', 'voucherno', 'entryno', 'transno', 'journal_entry_id'],
+    'postingdate': ['postingdate', 'pstngdate', 'budat', 'date', 'postdate', 'glpostdate', 'trandate', 'effdate', 'effectivedate', 'entry_date'],
+    'documentdate': ['documentdate', 'docdate', 'bldat', 'entrydate', 'invoicedate'],
+    'amountinlocalcurrency': ['amountinlocalcurrency', 'localcurrencyamount', 'localamount', 'amount', 'dmbtr', 'wrbtr', 'netamount', 'transamount', 'amt', 'monetary_amount'],
+    'enteredamount': ['enteredamount', 'amount', 'wrbtr', 'dmbtr', 'netamount', 'monetaryamount'],
+    'userid': ['userid', 'username', 'user', 'usnam', 'createdby', 'enteredby', 'author', 'operator', 'user_id'],
+    'transactiontype': ['transactiontype', 'transtype', 'doctype', 'documenttype', 'blart', 'type', 'category', 'trans_type'],
+    'entrydescription': ['entrydescription', 'description', 'narrative', 'sgtxt', 'bktxt', 'lineitemtext', 'memo', 'headertext', 'entry_desc'],
+    'debit': ['debit', 'debitamount', 'shkzg_s', 'd_amount', 'dr', 'd', 'debit_val'],
+    'credit': ['credit', 'creditamount', 'shkzg_h', 'c_amount', 'cr', 'c', 'credit_val'],
+    'debitcreditindicator': ['debitcreditindicator', 'shkzg', 'dc', 'drcr', 'indicator', 'type_dc', 'dc_ind'],
+    'localcurrency': ['localcurrency', 'waers', 'currency', 'currcode', 'curr', 'h_waers', 'cur'],
+    'period': ['period', 'postingperiod', 'monat', 'fiscalperiod', 'month', 'posting_period'],
+    'fiscalyear': ['fiscalyear', 'year', 'gjahr', 'fy', 'fiscal_yr'],
+    'referencenumber': ['referencenumber', 'reference', 'xblnr', 'refno', 'ref', 'ref_num'],
+
+    // TB / Trial Balance fields
+    'financialstatementcategory': ['financialstatementcategory', 'fscategory', 'category', 'fsline', 'statementcategory', 'accounttype', 'fs_category'],
+    'startingbalance': ['startingbalance', 'openingbalance', 'openbalance', 'begbalance', 'initialbalance', 'startbalance', 'opening_bal'],
+    'endingbalance': ['endingbalance', 'closingbalance', 'closebalance', 'endbalance', 'finalbalance', 'balance', 'closing_bal'],
+    'netactivity': ['netactivity', 'activity', 'movement', 'netmovement', 'periodactivity', 'turnover', 'net_act'],
+
+    // COA / Chart of Accounts fields
+    'accountdescription': ['accountdescription', 'accountname', 'acctdesc', 'acctname', 'description', 'txt20', 'txt50', 'account_desc'],
+  };
+
+  const aliases = ALIASES[stdNorm] || [];
+  for (const alias of aliases) {
+    const matched = sourceHeaders.find(h => normalize(h) === alias);
+    if (matched) return matched;
+  }
+
+  // Substring inclusion match
+  const sub = sourceHeaders.find(h => {
+    const hNorm = normalize(h);
+    return (hNorm.length > 2 && stdNorm.includes(hNorm)) || (stdNorm.length > 2 && hNorm.includes(stdNorm));
+  });
+  if (sub) return sub;
+
+  return '';
+};
+
 export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> = ({
   datasets,
   onProceed,
@@ -30,6 +86,29 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
   const [filterType, setFilterType] = useState<'ALL' | 'REQUIRED' | 'OPTIONAL' | 'UNMAPPED'>('ALL');
 
   const currentDataset = datasets.find((d) => d.key === activeTab) || datasets[0];
+
+  // Auto-pick unmapped columns when headers are detected
+  const handleAutoMapCurrentDataset = () => {
+    if (!currentDataset || !currentDataset.sourceHeaders || currentDataset.sourceHeaders.length === 0) return;
+    currentDataset.mappings.forEach((m) => {
+      if (!m.sourceField) {
+        const best = findBestMatchingSourceHeader(m.standardField, currentDataset.sourceHeaders);
+        if (best) {
+          currentDataset.onChangeMapping(m.standardField, best);
+        }
+      }
+    });
+  };
+
+  // Run auto-pick on mount or activeTab switch if unmapped fields exist
+  useEffect(() => {
+    if (currentDataset && currentDataset.sourceHeaders && currentDataset.sourceHeaders.length > 0) {
+      const hasUnmapped = currentDataset.mappings.some(m => !m.sourceField);
+      if (hasUnmapped) {
+        handleAutoMapCurrentDataset();
+      }
+    }
+  }, [activeTab, currentDataset?.sourceHeaders?.length]);
 
   const {
     totalFields,
@@ -155,8 +234,30 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
           })}
         </div>
 
-        {/* Global Progress pill */}
+        {/* Global Progress & Auto-Pick Action */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={handleAutoMapCurrentDataset}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: '#F0FDFA',
+              border: '1px solid #CCFBF1',
+              color: '#007680',
+              fontSize: '0.76rem',
+              fontWeight: 750,
+              cursor: 'pointer',
+            }}
+            title="Auto-match and pick columns based on Deloitte intelligent naming schema"
+          >
+            <Sparkles size={13} color="#007680" />
+            <span>Auto-Pick Columns</span>
+          </button>
+
           <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
             Active File Mapping:
           </span>
@@ -348,20 +449,6 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
                               </option>
                             ))}
                           </select>
-
-                          {item.sourceField && (
-                            <button
-                              type="button"
-                              onClick={() => currentDataset.onChangeMapping(item.standardField, '')}
-                              title="Clear mapping"
-                              style={{
-                                border: 'none', background: 'transparent', cursor: 'pointer',
-                                color: 'var(--text-muted)', padding: '2px 4px', fontSize: '0.7rem'
-                              }}
-                            >
-                              ✕
-                            </button>
-                          )}
                         </div>
                       </td>
 
@@ -373,21 +460,17 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
                           padding: '2px 6px',
                           borderRadius: '4px',
                           background: '#F1F5F9',
-                          color: 'var(--text-secondary)'
+                          color: 'var(--text-secondary)',
+                          fontFamily: 'var(--font-mono)'
                         }}>
-                          {item.fieldType || 'Text'}
+                          {item.fieldType || 'STRING'}
                         </span>
                       </td>
 
                       {/* Description & Guidance */}
                       <td>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.3 }}>
-                          <div>{item.description || '--'}</div>
-                          {item.guidance && (
-                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px', fontStyle: 'italic' }}>
-                              Guidance: {item.guidance}
-                            </div>
-                          )}
+                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+                          {item.description || item.guidance || 'Standard general ledger field for data reconciliation'}
                         </div>
                       </td>
 
@@ -395,26 +478,33 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
                       <td style={{ textAlign: 'center' }}>
                         {isMatched ? (
                           <span style={{
-                            fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
-                            background: 'rgba(5, 150, 105, 0.1)', color: '#059669',
-                            display: 'inline-flex', alignItems: 'center', gap: '3px'
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.70rem',
+                            fontWeight: 750,
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            background: '#F0FDF4',
+                            color: '#166534',
+                            border: '1px solid #BBF7D0'
                           }}>
-                            <Check size={11} /> Mapped
-                          </span>
-                        ) : isReq ? (
-                          <span style={{
-                            fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
-                            background: 'rgba(225, 29, 72, 0.08)', color: '#BE123C',
-                            display: 'inline-flex', alignItems: 'center', gap: '3px'
-                          }}>
-                            <AlertCircle size={11} /> Required
+                            <Check size={12} color="#16A34A" /> Mapped
                           </span>
                         ) : (
                           <span style={{
-                            fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px',
-                            background: '#F1F5F9', color: 'var(--text-muted)'
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.70rem',
+                            fontWeight: 750,
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            background: isReq ? '#FFF1F2' : '#F8FAFC',
+                            color: isReq ? '#9F1239' : '#64748B',
+                            border: isReq ? '1px solid #FECDD3' : '1px solid #E2E8F0'
                           }}>
-                            Optional
+                            {isReq ? 'Required' : 'Unmapped'}
                           </span>
                         )}
                       </td>

@@ -5,7 +5,7 @@ import { RunConfig, RunSummary, OmniaJetParameters, FieldMappingItem } from '../
 import { FileDropzone } from '../../components/common/FileDropzone';
 import { FieldMappingTable } from '../../components/common/FieldMappingTable';
 import { AutoCleanConstraintsPanel } from '../../components/common/AutoCleanConstraintsPanel';
-import { DataFileMappingWorkspace } from '../../components/common/DataFileMappingWorkspace';
+import { DataFileMappingWorkspace, findBestMatchingSourceHeader } from '../../components/common/DataFileMappingWorkspace';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { MetricCard } from '../../components/common/MetricCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -142,6 +142,7 @@ export const OmniaJetWorkflow: React.FC = () => {
   // Confirm delete modal state
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Engagement Audit Parameters (Matching Executive Overview & History)
   const [engagementAuditParams, setEngagementAuditParams] = useState<EngagementAuditParametersData>({
@@ -310,6 +311,16 @@ export const OmniaJetWorkflow: React.FC = () => {
 
     return unsub;
   }, [runId]);
+
+  useEffect(() => {
+    if (status?.status === 'COMPLETED' && !executing) {
+      setToastMessage('Omnia Financial Reconciliation & 20 DQC Matrix Execution Completed.');
+      const timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [status?.status, executing]);
 
   // Step 5: Show pipeline immediately when not executing
   useEffect(() => {
@@ -699,9 +710,134 @@ export const OmniaJetWorkflow: React.FC = () => {
     );
   }
 
-  const tbHeaders = config?.files.find(f => f.detectedDataset === 'TRIAL_BALANCE' || f.fileId === config.datasetMap.tbFileId)?.headers || [];
-  const glHeaders = config?.files.find(f => f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.fileId === config.datasetMap.glFileId)?.headers || [];
-  const coaHeaders = config?.files.find(f => f.detectedDataset === 'COA' || f.fileId === config.datasetMap.coaFileId)?.headers || [];
+  const tbHeaders = useMemo(() => {
+    if (!config) return [];
+    if (config.datasetMap?.tbFileId) {
+      const f = config.files.find(file => file.fileId === config.datasetMap.tbFileId);
+      if (f) {
+        if (f.sheets && f.sheets.length > 0) {
+          const s = (config.datasetMap.tbSheetName && f.sheets.find(sh => sh.sheetName === config.datasetMap.tbSheetName)) ||
+            f.sheets.find(sh => sh.detectedDataset === 'TRIAL_BALANCE') || f.sheets[0];
+          if (s?.headers && s.headers.length > 0) return s.headers;
+        }
+        if (f.headers && f.headers.length > 0) return f.headers;
+      }
+    }
+    const tbFile = config.files.find((f) => f.detectedDataset === 'TRIAL_BALANCE' || f.sheets?.some((s) => s.detectedDataset === 'TRIAL_BALANCE'));
+    if (tbFile) {
+      if (tbFile.sheets && tbFile.sheets.length > 0) {
+        const targetSheet = tbFile.sheets.find((s) => s.detectedDataset === 'TRIAL_BALANCE') || tbFile.sheets[0];
+        if (targetSheet.headers && targetSheet.headers.length > 0) return targetSheet.headers;
+      }
+      if (tbFile.headers && tbFile.headers.length > 0) return tbFile.headers;
+    }
+    const anyFile = config.files[0];
+    if (anyFile?.sheets?.[0]?.headers?.length) return anyFile.sheets[0].headers;
+    return anyFile?.headers || [];
+  }, [config]);
+
+  const glHeaders = useMemo(() => {
+    if (!config) return [];
+    if (config.datasetMap?.glFileId) {
+      const f = config.files.find(file => file.fileId === config.datasetMap.glFileId);
+      if (f) {
+        if (f.sheets && f.sheets.length > 0) {
+          const s = (config.datasetMap.glSheetName && f.sheets.find(sh => sh.sheetName === config.datasetMap.glSheetName)) ||
+            f.sheets.find(sh => sh.detectedDataset === 'GENERAL_LEDGER' || sh.detectedDataset === 'POPULATION') || f.sheets[0];
+          if (s?.headers && s.headers.length > 0) return s.headers;
+        }
+        if (f.headers && f.headers.length > 0) return f.headers;
+      }
+    }
+    const glFile = config.files.find((f) => f.detectedDataset === 'GENERAL_LEDGER' || f.detectedDataset === 'POPULATION' || f.sheets?.some((s) => s.detectedDataset === 'GENERAL_LEDGER' || s.detectedDataset === 'POPULATION'));
+    if (glFile) {
+      if (glFile.sheets && glFile.sheets.length > 0) {
+        const targetSheet = glFile.sheets.find((s) => s.detectedDataset === 'GENERAL_LEDGER' || s.detectedDataset === 'POPULATION') || glFile.sheets[0];
+        if (targetSheet.headers && targetSheet.headers.length > 0) return targetSheet.headers;
+      }
+      if (glFile.headers && glFile.headers.length > 0) return glFile.headers;
+    }
+    const anyFile = config.files[0];
+    if (anyFile?.sheets?.[1]?.headers?.length) return anyFile.sheets[1].headers;
+    return anyFile?.headers || [];
+  }, [config]);
+
+  const coaHeaders = useMemo(() => {
+    if (!config) return [];
+    if (config.datasetMap?.coaFileId) {
+      const f = config.files.find(file => file.fileId === config.datasetMap.coaFileId);
+      if (f) {
+        if (f.sheets && f.sheets.length > 0) {
+          const s = (config.datasetMap.coaSheetName && f.sheets.find(sh => sh.sheetName === config.datasetMap.coaSheetName)) ||
+            f.sheets.find(sh => sh.detectedDataset === 'COA') || f.sheets[0];
+          if (s?.headers && s.headers.length > 0) return s.headers;
+        }
+        if (f.headers && f.headers.length > 0) return f.headers;
+      }
+    }
+    const coaFile = config.files.find((f) => f.detectedDataset === 'COA' || f.sheets?.some((s) => s.detectedDataset === 'COA'));
+    if (coaFile) {
+      if (coaFile.sheets && coaFile.sheets.length > 0) {
+        const targetSheet = coaFile.sheets.find((s) => s.detectedDataset === 'COA') || coaFile.sheets[0];
+        if (targetSheet.headers && targetSheet.headers.length > 0) return targetSheet.headers;
+      }
+      if (coaFile.headers && coaFile.headers.length > 0) return coaFile.headers;
+    }
+    return tbHeaders;
+  }, [config, tbHeaders]);
+
+  // Automatically auto-pick unmapped fields when headers are loaded or auto-cleansing completes
+  useEffect(() => {
+    if (!config || !runId) return;
+    let hasChanges = false;
+    const newMappings = { ...config.fieldMappings };
+
+    if (tbHeaders.length > 0 && newMappings.tb) {
+      newMappings.tb = newMappings.tb.map(m => {
+        if (!m.sourceField) {
+          const best = findBestMatchingSourceHeader(m.standardField, tbHeaders);
+          if (best) {
+            hasChanges = true;
+            return { ...m, sourceField: best, status: 'SUGGESTED' as any };
+          }
+        }
+        return m;
+      });
+    }
+
+    if (glHeaders.length > 0 && newMappings.gl) {
+      newMappings.gl = newMappings.gl.map(m => {
+        if (!m.sourceField) {
+          const best = findBestMatchingSourceHeader(m.standardField, glHeaders);
+          if (best) {
+            hasChanges = true;
+            return { ...m, sourceField: best, status: 'SUGGESTED' as any };
+          }
+        }
+        return m;
+      });
+    }
+
+    if (coaHeaders.length > 0 && newMappings.coa) {
+      newMappings.coa = newMappings.coa.map(m => {
+        if (!m.sourceField) {
+          const best = findBestMatchingSourceHeader(m.standardField, coaHeaders);
+          if (best) {
+            hasChanges = true;
+            return { ...m, sourceField: best, status: 'SUGGESTED' as any };
+          }
+        }
+        return m;
+      });
+    }
+
+    if (hasChanges) {
+      setConfig(prev => prev ? { ...prev, fieldMappings: newMappings } : null);
+      RunService.updateFieldMappings(runId, 'tb', newMappings.tb || []);
+      RunService.updateFieldMappings(runId, 'gl', newMappings.gl || []);
+      RunService.updateFieldMappings(runId, 'coa', newMappings.coa || []);
+    }
+  }, [tbHeaders, glHeaders, coaHeaders, runId]);
 
   // Contextual "Continue / Back" actions rendered inside the timeline banner
   const renderTimelineActions = () => {
@@ -1520,52 +1656,87 @@ export const OmniaJetWorkflow: React.FC = () => {
         {/* STEP 6: RECONCILIATION & DQC TABLE MATRIX (EXECUTIVE RESULTS) */}
         {currentStep === 6 && (
           <div className="fade-slide-in">
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '12px',
-              marginBottom: '20px'
-            }}>
-              <MetricCard
-                label="Reconciled Accounts"
-                value={`${status?.reconciliationSummary?.reconciledAccounts ?? 0} / ${status?.reconciliationSummary?.totalAccounts ?? 0}`}
-                subtitle="Within 1.0 Tolerance"
-                variant="teal"
-              />
-              <MetricCard
-                label="Unreconciled Accounts"
-                value={status?.reconciliationSummary?.unreconciledAccounts || 0}
-                badge={(status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? 'Accounts' : 'Reconciled'}
-                subtitle={(status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? 'Variance > 1.0 Detected' : 'Zero Variances'}
-                variant={(status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? 'warning' : 'success'}
-              />
-              <MetricCard
-                label="DQC Errors"
-                value={dqcMetrics.errors}
-                badge={dqcMetrics.errors > 0 ? 'Failed' : 'Passed'}
-                subtitle={dqcMetrics.errors > 0 ? 'Critical Exceptions Detected' : 'All Critical Checks Passed'}
-                variant={dqcMetrics.errors > 0 ? 'error' : 'success'}
-              />
-              <MetricCard
-                label="DQC Warnings"
-                value={dqcMetrics.warnings}
-                badge={dqcMetrics.warnings > 0 ? 'Flagged' : 'Passed'}
-                subtitle={dqcMetrics.warnings > 0 ? 'Warning Exceptions Noted' : 'Zero Warnings'}
-                variant={dqcMetrics.warnings > 0 ? 'warning' : 'success'}
-              />
-              <MetricCard
-                label="DQC Observations"
-                value={dqcMetrics.observations}
-                badge={dqcMetrics.observations > 0 ? 'Noted' : 'Passed'}
-                subtitle={dqcMetrics.observations > 0 ? 'Observation Items Found' : 'Zero Observations'}
-                variant={dqcMetrics.observations > 0 ? 'warning' : 'success'}
-              />
-              <MetricCard
-                label="Total Variance (EC)"
-                value={status?.reconciliationSummary?.totalVariance !== undefined ? status.reconciliationSummary.totalVariance.toLocaleString() : '0.00'}
-                subtitle="Net Balance Difference"
-                variant="teal"
-              />
+            {/* Top Pastel KPI Cards matching 2nd Reference Image */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+              {/* Card 1: Reconciled Accounts (Peach / Light Orange) */}
+              <div style={{ background: '#FFF4EC', border: '1px solid #FFE7D6', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  Reconciled Accounts
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {status?.reconciliationSummary?.reconciledAccounts ?? 0} / {status?.reconciliationSummary?.totalAccounts ?? 0}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #FED7AA' }}>
+                    ▲ 100%
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Within ≤ 1.0 Tolerance</span>
+                </div>
+              </div>
+
+              {/* Card 2: Unreconciled Accounts (Light Green) */}
+              <div style={{ background: '#F0F9ED', border: '1px solid #DCFCE7', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  Unreconciled Accounts
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {status?.reconciliationSummary?.unreconciledAccounts || 0}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: (status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? '#DC2626' : '#16A34A', border: '1px solid #BBF7D0' }}>
+                    {(status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? '▼ Flagged' : '▲ Clean'}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{(status?.reconciliationSummary?.unreconciledAccounts || 0) > 0 ? 'Variance > 1.0' : 'Zero Variances'}</span>
+                </div>
+              </div>
+
+              {/* Card 3: DQC Errors (Soft Blue / Lavender) */}
+              <div style={{ background: '#EDF2FE', border: '1px solid #DBEAFE', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  Critical DQC Errors
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {dqcMetrics.errors}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: dqcMetrics.errors > 0 ? '#DC2626' : '#007680', border: '1px solid #BFDBFE' }}>
+                    {dqcMetrics.errors > 0 ? '▼ Failed' : '▲ Passed'}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Critical Schema Integrity</span>
+                </div>
+              </div>
+
+              {/* Card 4: DQC Warnings (Soft Mint / Teal) */}
+              <div style={{ background: '#EAF5F2', border: '1px solid #CCFBF1', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  DQC Warnings
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {dqcMetrics.warnings}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#007680', border: '1px solid #99F6E4' }}>
+                    ▲ Screened
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Audit Warning Checks</span>
+                </div>
+              </div>
+
+              {/* Card 5: DQC Observations (Soft Rose / Pink) */}
+              <div style={{ background: '#FDF0F2', border: '1px solid #FFE4E6', borderRadius: '16px', padding: '16px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+                  DQC Observations
+                </div>
+                <div style={{ fontSize: '1.80rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '4px 0 6px' }}>
+                  {dqcMetrics.observations}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#9F1239', border: '1px solid #FECDD3' }}>
+                    ▲ Noted
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Informational Items</span>
+                </div>
+              </div>
             </div>
 
             <div
@@ -2740,6 +2911,51 @@ export const OmniaJetWorkflow: React.FC = () => {
           setFileToDelete(null);
         }}
       />
+
+      {/* 5-Second Auto-Dismissing Toast Notification */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 99999,
+            background: '#0F172A',
+            color: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '12px 18px',
+            boxShadow: '0 12px 28px rgba(0,0,0,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            maxWidth: '480px',
+            border: '1px solid #334155',
+            animation: 'fadeIn 0.25s ease-out',
+          }}
+        >
+          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#007680', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CheckCircle2 size={16} color="#FFFFFF" />
+          </div>
+          <span style={{ fontSize: '0.84rem', fontWeight: 650, lineHeight: 1.35 }}>
+            {toastMessage}
+          </span>
+          <button
+            onClick={() => setToastMessage(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94A3B8',
+              cursor: 'pointer',
+              padding: '2px',
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
