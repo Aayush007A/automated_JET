@@ -5,7 +5,8 @@
  * Features:
  *  - High-density, tooltipless Chart.js analytical engines with maximum visual clarity
  *  - 67:33 expansive chart viewport ratio with zero empty dead space
- *  - 7-second automatic slideshow rotation with pause-on-hover
+ *  - Guaranteed 7-second automatic slideshow rotation
+ *  - Dramatic chart reveal/unreveal animations (scale, blur wipe, slide & spring physics)
  *  - Integrated `<` and `>` chevron nav buttons right alongside the 12 category chips
  *  - Botanical decor: 3D potted plant on bottom-left, upside-down leaf sprig on top-right
  *  - Generous upper breathing room with clean, elegant executive typography
@@ -306,7 +307,7 @@ const baseChartOptions: any = {
       display: false,
     },
     tooltip: {
-      enabled: false, // Tooltips disabled per user specification
+      enabled: false,
     },
   },
   scales: {
@@ -333,7 +334,7 @@ const baseDoughnutOptions: any = {
     doughnutCallout: false,
     doughnutCalloutPlugin: false,
     tooltip: {
-      enabled: false, // Tooltips disabled per user specification
+      enabled: false,
     },
   },
 };
@@ -885,7 +886,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
         animation: { duration: 500 },
         plugins: {
           legend: { display: false },
-          tooltip: { enabled: false }, // Disabled per user specification
+          tooltip: { enabled: false },
         },
         scales: {
           r: {
@@ -938,7 +939,6 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
 export const VisualizationShowcase: React.FC = () => {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [isHovered, setIsHovered] = useState(false);
   const shouldReduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
@@ -962,14 +962,14 @@ export const VisualizationShowcase: React.FC = () => {
     setIndex((prev) => (prev - 1 + total) % total);
   }, [total]);
 
-  // 7-second auto slideshow timer (pauses when user hovers over the showcase)
+  // Guaranteed 7-second auto slideshow rotation
   useEffect(() => {
-    if (isHovered) return;
     const timer = setInterval(() => {
-      goNext();
+      setDirection(1);
+      setIndex((prev) => (prev + 1) % total);
     }, 7000);
     return () => clearInterval(timer);
-  }, [isHovered, goNext]);
+  }, [total]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1000,8 +1000,6 @@ export const VisualizationShowcase: React.FC = () => {
       id="visualizations-insights-showcase"
       aria-label="Visualizations and Insights showcase"
       tabIndex={-1}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       initial={{ opacity: 0, y: 36, scale: 0.99 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin: '-60px' }}
@@ -1290,16 +1288,16 @@ export const VisualizationShowcase: React.FC = () => {
               </span>
             </div>
 
-            {/* Live Expansive Chart Canvas Area */}
+            {/* Live Expansive Chart Canvas Area with Dramatic Reveal/Unreveal */}
             <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#F8FAFC' }}>
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={current.id}
                   custom={direction}
-                  initial={{ opacity: 0, x: direction * 25, scale: 0.98 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: -direction * 25, scale: 0.98 }}
-                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ opacity: 0, x: direction * 35, scale: 0.94, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, x: 0, scale: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, x: -direction * 35, scale: 0.94, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
                   style={{ width: '100%', height: '100%' }}
                 >
                   <FullChartEngine categoryId={current.id} />
@@ -1326,10 +1324,10 @@ export const VisualizationShowcase: React.FC = () => {
               <motion.div
                 key={current.id + '-panel'}
                 custom={direction}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.22, ease: 'easeOut' }}
+                initial={{ opacity: 0, y: 12, filter: 'blur(3px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -12, filter: 'blur(3px)' }}
+                transition={{ duration: 0.30, ease: [0.16, 1, 0.3, 1] }}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
               >
                 <div>
