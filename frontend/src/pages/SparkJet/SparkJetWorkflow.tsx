@@ -595,11 +595,37 @@ export const SparkJetWorkflow: React.FC = () => {
       if (data.config.sparkParameters) {
         setSparkParams((prev) => ({ ...prev, ...data.config.sparkParameters }));
         const p = data.config.sparkParameters;
+
+        // Restore selected exception checkboxes
+        if (p.selectedExceptions && Array.isArray(p.selectedExceptions) && p.selectedExceptions.length > 0) {
+          const newEnabled: Record<string, boolean> = {
+            ex1: false, ex2: false, ex3: false, ex4: false, ex5: false, ex6: false,
+            ex7: false, ex8: false, ex9: false, ex10: false, ex11: false, ex12: false,
+          };
+          p.selectedExceptions.forEach((num: number) => {
+            newEnabled[`ex${num}`] = true;
+          });
+          setEnabledExceptions(newEnabled);
+        }
+        if (p.runControlSamples !== undefined) {
+          setRunControlSample(Boolean(p.runControlSamples));
+        }
+
+        // Restore input lists & threshold fields
         if (p.ex1UnusualAccounts && p.ex1UnusualAccounts.length > 0) {
           setUnusualAccounts(p.ex1UnusualAccounts.map(gl => ({ gl })));
         }
         if (p.ex2SeldomAccounts && p.ex2SeldomAccounts.length > 0) {
           setSeldomAccounts(p.ex2SeldomAccounts.map(gl => ({ gl })));
+        }
+        if (p.ex3RevenueDebitsThreshold !== undefined) {
+          setEx3Threshold(Number(p.ex3RevenueDebitsThreshold));
+        }
+        if (p.ex3QuarterStartDate) {
+          setEx3QuarterStart(p.ex3QuarterStartDate);
+        }
+        if (p.ex3QuarterEndDate) {
+          setEx3QuarterEnd(p.ex3QuarterEndDate);
         }
         if (p.ex4FewPostingsUserThreshold !== undefined) {
           setEx4Threshold(Number(p.ex4FewPostingsUserThreshold));
@@ -607,24 +633,24 @@ export const SparkJetWorkflow: React.FC = () => {
         if (p.ex5UsersOfInterest && p.ex5UsersOfInterest.length > 0) {
           setUsersOfInterest(p.ex5UsersOfInterest.map(u => ({ username: u })));
         }
-        if (p.ex6ClosingEntriesBeforeDays !== undefined) setEx6BeforeDays(p.ex6ClosingEntriesBeforeDays);
-        if (p.ex6ClosingEntriesAfterDays !== undefined) setEx6AfterDays(p.ex6ClosingEntriesAfterDays);
+        if (p.ex6ClosingEntriesBeforeDays !== undefined) setEx6BeforeDays(Number(p.ex6ClosingEntriesBeforeDays));
+        if (p.ex6ClosingEntriesAfterDays !== undefined) setEx6AfterDays(Number(p.ex6ClosingEntriesAfterDays));
         if (p.ex6ClosingDate) setEx6ClosingDate(p.ex6ClosingDate);
         if (p.ex6Frequency) setEx6Frequency(p.ex6Frequency);
         if (p.ex7DatesOfInterest && p.ex7DatesOfInterest.length > 0) {
           setDatesOfInterest(p.ex7DatesOfInterest.map(d => ({ date: d })));
         }
         if (p.ex8RoundDigits && p.ex8RoundDigits.length > 0) setEx8SelectedDigits(p.ex8RoundDigits);
-        if (p.ex9DuplicateCountThreshold !== undefined) setEx9CountThreshold(p.ex9DuplicateCountThreshold);
-        if (p.ex9DuplicateAmountThreshold !== undefined) setEx9AmountThreshold(p.ex9DuplicateAmountThreshold);
+        if (p.ex9DuplicateCountThreshold !== undefined) setEx9CountThreshold(Number(p.ex9DuplicateCountThreshold));
+        if (p.ex9DuplicateAmountThreshold !== undefined) setEx9AmountThreshold(Number(p.ex9DuplicateAmountThreshold));
         if (p.ex10Keywords && p.ex10Keywords.length > 0) setKeywords(p.ex10Keywords);
         if (p.ex11ClosingDate) setEx11ClosingDate(p.ex11ClosingDate);
-        if (p.ex11DaysAfterClosing !== undefined) setEx11DaysAfterClosing(p.ex11DaysAfterClosing);
+        if (p.ex11DaysAfterClosing !== undefined) setEx11DaysAfterClosing(Number(p.ex11DaysAfterClosing));
         if (p.ex11Frequency) setEx11Frequency(p.ex11Frequency);
         if (p.ex12UnrelatedRules && p.ex12UnrelatedRules.length > 0) {
           setUnrelatedRules(p.ex12UnrelatedRules.map(r => ({ debit: r.debit || r.debitFSLine || '', credit: r.credit || r.creditFSLine || '' })));
         }
-        if (p.controlSampleCount !== undefined) setSampleDocCount(p.controlSampleCount);
+        if (p.controlSampleCount !== undefined) setSampleDocCount(Number(p.controlSampleCount));
       }
 
       if (data.config) {
@@ -1204,6 +1230,52 @@ export const SparkJetWorkflow: React.FC = () => {
     if (!runId) return;
     const url = RunService.getDownloadOutputUrl(runId, fileName);
     window.open(url, '_blank');
+  };
+
+  const syncStep5Config = async (
+    customEnabled?: Record<string, boolean>,
+    customControl?: boolean
+  ) => {
+    if (!runId) return;
+    try {
+      const activeEnabled = customEnabled || enabledExceptions;
+      const activeControl = customControl !== undefined ? customControl : runControlSample;
+      const selectedList = Object.entries(activeEnabled)
+        .filter(([_, isEnabled]) => isEnabled)
+        .map(([key]) => parseInt(key.replace('ex', ''), 10));
+
+      const payloadParams: SparkJetParameters = {
+        ...sparkParams,
+        selectedExceptions: selectedList,
+        runControlSamples: activeControl,
+        ex1UnusualAccounts: unusualAccounts.map((a) => a.gl.trim()).filter(Boolean),
+        ex2SeldomAccounts: seldomAccounts.map((a) => a.gl.trim()).filter(Boolean),
+        ex3RevenueAccounts: detectedRevenueInfo.accounts.map((a) => a.gl.trim()).filter(Boolean),
+        ex3RevenueDebitsThreshold: Number(ex3Threshold || 0),
+        ex3QuarterStartDate: ex3QuarterStart,
+        ex3QuarterEndDate: ex3QuarterEnd,
+        ex4FewPostingsUserThreshold: Number(ex4Threshold || 1),
+        ex5UsersOfInterest: usersOfInterest.map((u) => u.username.trim()).filter(Boolean),
+        ex6ClosingEntriesBeforeDays: Number(ex6BeforeDays || 1),
+        ex6ClosingEntriesAfterDays: Number(ex6AfterDays || 10),
+        ex6ClosingDate: ex6ClosingDate || '31-Dec-25',
+        ex6Frequency: ex6Frequency || 'Annually',
+        ex7DatesOfInterest: datesOfInterest.map((d) => d.date.trim()).filter(Boolean),
+        ex8RoundDigits: ex8SelectedDigits,
+        ex9DuplicateCountThreshold: Number(ex9CountThreshold || 2),
+        ex9DuplicateAmountThreshold: Number(ex9AmountThreshold || 0),
+        ex10Keywords: keywords.filter(Boolean),
+        ex11ClosingDate: ex11ClosingDate || '31-Dec-25',
+        ex11DaysAfterClosing: Number(ex11DaysAfterClosing || 10),
+        ex11Frequency: ex11Frequency || 'Annually',
+        ex12UnrelatedRules: unrelatedRules.map((r) => ({ debit: r.debit.trim(), credit: r.credit.trim() })),
+        controlSampleCount: Number(sampleDocCount || 61),
+      };
+
+      await RunService.updateConfig(runId, { sparkParameters: payloadParams });
+    } catch (err) {
+      console.error('Failed to auto-sync Step 5 parameters:', err);
+    }
   };
 
   const handleRunPipeline = async (targetStepAfter: number = 5) => {
@@ -2062,14 +2134,22 @@ export const SparkJetWorkflow: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <button
-                      onClick={() => setEnabledExceptions({ ex1: true, ex2: true, ex3: true, ex4: true, ex5: true, ex6: true, ex7: true, ex8: true, ex9: true, ex10: true, ex11: true, ex12: true })}
+                      onClick={() => {
+                        const allOn: Record<string, boolean> = { ex1: true, ex2: true, ex3: true, ex4: true, ex5: true, ex6: true, ex7: true, ex8: true, ex9: true, ex10: true, ex11: true, ex12: true };
+                        setEnabledExceptions(allOn);
+                        syncStep5Config(allOn);
+                      }}
                       style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--deloitte-teal)', background: 'transparent', border: 'none', cursor: 'pointer' }}
                     >
                       All
                     </button>
                     <span style={{ color: '#CBD5E1', fontSize: '0.72rem' }}>|</span>
                     <button
-                      onClick={() => setEnabledExceptions({ ex1: false, ex2: false, ex3: false, ex4: false, ex5: false, ex6: false, ex7: false, ex8: false, ex9: false, ex10: false, ex11: false, ex12: false })}
+                      onClick={() => {
+                        const allOff: Record<string, boolean> = { ex1: false, ex2: false, ex3: false, ex4: false, ex5: false, ex6: false, ex7: false, ex8: false, ex9: false, ex10: false, ex11: false, ex12: false };
+                        setEnabledExceptions(allOff);
+                        syncStep5Config(allOff);
+                      }}
                       style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}
                     >
                       None
@@ -2104,9 +2184,12 @@ export const SparkJetWorkflow: React.FC = () => {
                         key={r.id}
                         onClick={() => {
                           if (!isControl && !isChecked) {
-                            setEnabledExceptions((prev) => ({ ...prev, [r.id]: true }));
+                            const updated = { ...enabledExceptions, [r.id]: true };
+                            setEnabledExceptions(updated);
+                            syncStep5Config(updated);
                           } else if (isControl && !isChecked) {
                             setRunControlSample(true);
+                            syncStep5Config(undefined, true);
                           }
                           setParamTab(r.id);
                         }}
@@ -2133,7 +2216,10 @@ export const SparkJetWorkflow: React.FC = () => {
                               checked={isChecked}
                               onChange={(e) => {
                                 e.stopPropagation();
-                                setEnabledExceptions((prev) => ({ ...prev, [r.id]: e.target.checked }));
+                                const val = e.target.checked;
+                                const updated = { ...enabledExceptions, [r.id]: val };
+                                setEnabledExceptions(updated);
+                                syncStep5Config(updated);
                               }}
                               style={{ cursor: 'pointer', accentColor: '#007680', width: '15px', height: '15px' }}
                             />
@@ -2143,7 +2229,9 @@ export const SparkJetWorkflow: React.FC = () => {
                               checked={isChecked}
                               onChange={(e) => {
                                 e.stopPropagation();
-                                setRunControlSample(e.target.checked);
+                                const val = e.target.checked;
+                                setRunControlSample(val);
+                                syncStep5Config(undefined, val);
                               }}
                               style={{ cursor: 'pointer', accentColor: '#007680', width: '15px', height: '15px' }}
                             />
