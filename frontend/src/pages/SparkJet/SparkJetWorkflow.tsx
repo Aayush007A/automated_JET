@@ -1353,9 +1353,98 @@ export const SparkJetWorkflow: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
-        <RefreshCw size={32} className="spin-slow" style={{ margin: '0 auto 16px', color: 'var(--deloitte-teal)' }} />
-        Loading JET Execution Workspace...
+      <div style={{
+        width: '100%',
+        minHeight: '80vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 50%, #F1F5F9 100%)',
+        padding: '40px 20px',
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '480px',
+          background: '#FFFFFF',
+          borderRadius: '16px',
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 20px 45px -10px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03)',
+          overflow: 'hidden',
+          position: 'relative',
+          padding: '36px 32px',
+          textAlign: 'center',
+        }}>
+          {/* Deloitte Signature Top Stripe */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3.5px',
+            background: 'linear-gradient(90deg, #007680 0%, #86BC25 50%, #2563EB 100%)',
+          }} />
+
+          {/* Orbiting Pulsing Icon */}
+          <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 20px' }}>
+            <div style={{
+              position: 'absolute',
+              inset: '-6px',
+              borderRadius: '50%',
+              background: 'rgba(0, 118, 128, 0.08)',
+              border: '1px dashed rgba(0, 118, 128, 0.25)',
+              animation: 'spin 8s linear infinite',
+            }} />
+            <div style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(0, 163, 173, 0.14) 0%, rgba(0, 118, 128, 0.06) 100%)',
+              border: '1.5px solid rgba(0, 118, 128, 0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#007680',
+              boxShadow: '0 4px 14px rgba(0, 118, 128, 0.12)',
+            }}>
+              <ShieldCheck size={30} strokeWidth={2.2} />
+            </div>
+          </div>
+
+          {/* Pill Badge */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(0, 118, 128, 0.08)', border: '1px solid rgba(0, 118, 128, 0.18)', color: '#007680', fontSize: '0.70rem', fontWeight: 700, marginBottom: '12px' }}>
+            <Sparkles size={11} />
+            Deloitte Spark JET Engine
+          </div>
+
+          {/* Title */}
+          <h3 style={{ fontSize: '1.12rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.025em', margin: '0 0 6px' }}>
+            Initializing Spark JET Workspace...
+          </h3>
+
+          {/* Subtitle */}
+          <p style={{ fontSize: '0.78rem', color: '#64748B', lineHeight: 1.5, margin: '0 0 20px' }}>
+            Loading general ledger datasets, exception test parameters, and audit workpaper suites.
+          </p>
+
+          {/* Shimmering Progress Bar */}
+          <div style={{ width: '100%', height: '4px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden', position: 'relative' }}>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              width: '45%',
+              background: 'linear-gradient(90deg, #007680 0%, #86BC25 100%)',
+              borderRadius: '999px',
+              animation: 'pulse 1.4s ease-in-out infinite alternate',
+            }} />
+          </div>
+
+          {/* Footer Status */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.68rem', color: '#94A3B8', marginTop: '16px', fontWeight: 500 }}>
+            <RefreshCw size={11} className="spin-slow" />
+            <span>Synchronizing engagement parameters</span>
+          </div>
+        </div>
       </div>
     );
   }
