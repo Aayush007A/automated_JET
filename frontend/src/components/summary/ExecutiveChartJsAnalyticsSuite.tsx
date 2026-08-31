@@ -40,14 +40,41 @@ ChartJS.register(
   Filler
 );
 
-// Custom Chart.js Plugin for Polyline Leader Lines & Outer Callout Labels with Interactive Highlighting & Reveal Animation
+// Helper to draw clean rounded rectangles on Canvas
+function drawCanvasRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(x, y, width, height, radius);
+  } else {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+}
+
+// Custom Chart.js Plugin for Ultra-Crisp Floating Pill Badges & Smooth Slice Connectors
 const doughnutCalloutPlugin = {
   id: 'doughnutCallout',
   afterDatasetsDraw(chart: any) {
     if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
     if (chart.options?.plugins?.doughnutCallout === false || chart.options?.plugins?.doughnutCallout?.display === false) return;
 
-    const { ctx, data } = chart;
+    const { ctx, data, chartArea } = chart;
     const meta = chart.getDatasetMeta(0);
     if (!meta || !meta.data || !meta.data.length) return;
 
@@ -57,10 +84,34 @@ const doughnutCalloutPlugin = {
     const total = dataset.data.reduce((a: number, b: number) => a + (Number(b) || 0), 0);
     if (total <= 0) return;
 
-    // Selected slice index from chart options
     const selectedIndex = chart.options?.plugins?.doughnutCallout?.selectedIndex ?? null;
+    const bgColors = dataset.backgroundColor || [];
 
     ctx.save();
+
+    interface CalloutItem {
+      index: number;
+      val: number;
+      pctStr: string;
+      title: string;
+      sliceColor: string;
+      startX: number;
+      startY: number;
+      angle: number;
+      isRight: boolean;
+      outerRadius: number;
+      centerX: number;
+      centerY: number;
+      isSelected: boolean;
+      initialElbowY: number;
+      adjustedY: number;
+      pillWidth: number;
+      pillHeight: number;
+      textWidth: number;
+      pctWidth: number;
+    }
+
+    const items: CalloutItem[] = [];
 
     meta.data.forEach((element: any, index: number) => {
       const val = Number(dataset.data[index]) || 0;
@@ -69,49 +120,11 @@ const doughnutCalloutPlugin = {
       const { startAngle, endAngle, outerRadius, x: centerX, y: centerY } = element;
       if (outerRadius < 20 || (endAngle - startAngle) < 0.04) return;
 
-      // Reveal animation scaling progress
-      const animProgress = Math.min(1, Math.max(0, (outerRadius - 20) / 35));
-      if (animProgress <= 0) return;
-
-      const isSelected = selectedIndex === null || selectedIndex === index;
-      const alpha = isSelected ? animProgress : animProgress * 0.22;
-      ctx.globalAlpha = alpha;
-
       const angle = startAngle + (endAngle - startAngle) / 2;
-
-      // 1. Point on the outer edge of the slice
       const startX = centerX + Math.cos(angle) * outerRadius;
       const startY = centerY + Math.sin(angle) * outerRadius;
-
-      // 2. Elbow point extending outward diagonally
-      const extDist = isSelected && selectedIndex !== null ? 22 : 18;
-      const elbowX = centerX + Math.cos(angle) * (outerRadius + extDist);
-      const elbowY = centerY + Math.sin(angle) * (outerRadius + extDist);
-
-      // 3. Horizontal segment going left or right
       const isRight = Math.cos(angle) >= 0;
-      const horizLen = isSelected && selectedIndex !== null ? 26 : 22;
-      const endX = isRight ? elbowX + horizLen : elbowX - horizLen;
-      const endY = elbowY;
 
-      // 4. Draw polyline leader line
-      ctx.beginPath();
-      ctx.strokeStyle = isSelected && selectedIndex !== null ? '#0284C7' : '#94A3B8';
-      ctx.lineWidth = isSelected && selectedIndex !== null ? 2 : 1.5;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(elbowX, elbowY);
-      ctx.lineTo(endX, endY);
-      ctx.stroke();
-
-      // Small anchor point on perimeter
-      ctx.beginPath();
-      ctx.arc(startX, startY, isSelected && selectedIndex !== null ? 3 : 2, 0, 2 * Math.PI);
-      ctx.fillStyle = isSelected && selectedIndex !== null ? '#0284C7' : '#64748B';
-      ctx.fill();
-
-      // 5. Clean text label & percentage
       const rawLabel = (data.labels && data.labels[index]) ? String(data.labels[index]) : `Item ${index + 1}`;
       const cleanTitle = rawLabel
         .replace(/\s*\(\d+(\.\d+)?%\)/g, '')
@@ -120,15 +133,176 @@ const doughnutCalloutPlugin = {
         .trim();
 
       const pct = ((val / total) * 100).toFixed(0);
-      const displayText = `${cleanTitle} - ${pct}%`;
+      const pctStr = `${pct}%`;
 
-      // 6. Draw typography label
-      ctx.font = isSelected && selectedIndex !== null ? "600 11.5px 'Inter', sans-serif" : "500 11px 'Inter', sans-serif";
-      ctx.fillStyle = isSelected && selectedIndex !== null ? '#0369A1' : '#1E293B';
+      const rawColor = Array.isArray(bgColors)
+        ? (bgColors[index] || '#007680')
+        : (bgColors || '#007680');
+      const sliceColor = typeof rawColor === 'string' ? rawColor.replace(/33$/, '') : '#007680';
+
+      const isSelected = selectedIndex === null || selectedIndex === index;
+
+      // Font measurement for dynamic pill sizing
+      ctx.font = "600 11px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      const textWidth = ctx.measureText(cleanTitle).width;
+      ctx.font = "700 10.5px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      const pctWidth = ctx.measureText(pctStr).width;
+
+      const pillPaddingX = 8;
+      const dotSize = 6;
+      const dotMargin = 6;
+      const gap = 6;
+      const pctPadX = 5;
+      const pctBadgeWidth = pctWidth + pctPadX * 2;
+      const pillHeight = 24;
+      const pillWidth = pillPaddingX * 2 + dotSize + dotMargin + textWidth + gap + pctBadgeWidth;
+
+      const extDist = 18;
+      const elbowY = centerY + Math.sin(angle) * (outerRadius + extDist);
+
+      items.push({
+        index,
+        val,
+        pctStr,
+        title: cleanTitle,
+        sliceColor,
+        startX,
+        startY,
+        angle,
+        isRight,
+        outerRadius,
+        centerX,
+        centerY,
+        isSelected,
+        initialElbowY: elbowY,
+        adjustedY: elbowY,
+        pillWidth,
+        pillHeight,
+        textWidth,
+        pctWidth,
+      });
+    });
+
+    // Anti-collision vertical spacing for left and right sides
+    const leftItems = items.filter(it => !it.isRight).sort((a, b) => a.initialElbowY - b.initialElbowY);
+    const rightItems = items.filter(it => it.isRight).sort((a, b) => a.initialElbowY - b.initialElbowY);
+
+    const minGap = 28;
+    const adjustSideY = (sideList: CalloutItem[]) => {
+      for (let i = 1; i < sideList.length; i++) {
+        const prev = sideList[i - 1];
+        const curr = sideList[i];
+        if (curr.adjustedY - prev.adjustedY < minGap) {
+          curr.adjustedY = prev.adjustedY + minGap;
+        }
+      }
+    };
+    adjustSideY(leftItems);
+    adjustSideY(rightItems);
+
+    // Draw all items
+    items.forEach((item) => {
+      const alpha = item.isSelected ? 1 : 0.25;
+      ctx.globalAlpha = alpha;
+
+      const { startX, startY, angle, isRight, outerRadius, centerX, centerY, adjustedY, sliceColor, isSelected, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth } = item;
+
+      // 1. Leader Line Geometry
+      const extDist = isSelected && selectedIndex !== null ? 22 : 18;
+      const elbowX = centerX + Math.cos(angle) * (outerRadius + extDist);
+      const elbowY = adjustedY;
+
+      const horizMargin = 14;
+      const endX = isRight
+        ? Math.min((chartArea?.right || 400) - pillWidth - 4, elbowX + horizMargin)
+        : Math.max((chartArea?.left || 0) + pillWidth + 4, elbowX - horizMargin);
+      const endY = elbowY;
+
+      // Connector Line with subtle slice color
+      ctx.beginPath();
+      ctx.strokeStyle = isSelected && selectedIndex !== null ? sliceColor : '#94A3B8';
+      ctx.lineWidth = isSelected && selectedIndex !== null ? 1.75 : 1.25;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(elbowX, elbowY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+
+      // Perimeter Anchor Dot
+      ctx.beginPath();
+      ctx.arc(startX, startY, isSelected && selectedIndex !== null ? 3.5 : 2.5, 0, 2 * Math.PI);
+      ctx.fillStyle = sliceColor;
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.stroke();
+
+      // 2. Floating Pill Card Badge
+      const pillX = isRight ? endX + 4 : endX - pillWidth - 4;
+      const pillY = endY - pillHeight / 2;
+
+      // Card Drop Shadow
+      ctx.shadowColor = 'rgba(15, 23, 42, 0.08)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 2;
+
+      // Card Background
+      drawCanvasRoundRect(ctx, pillX, pillY, pillWidth, pillHeight, 6);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+
+      // Reset Shadow
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Card Border
+      ctx.lineWidth = isSelected && selectedIndex !== null ? 1.5 : 1;
+      ctx.strokeStyle = isSelected && selectedIndex !== null ? sliceColor : '#E2E8F0';
+      ctx.stroke();
+
+      // Colored Dot inside Pill
+      const pillPaddingX = 8;
+      const dotSize = 6;
+      const dotMargin = 6;
+      const dotX = pillX + pillPaddingX + dotSize / 2;
+      const dotY = pillY + pillHeight / 2;
+
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, dotSize / 2, 0, 2 * Math.PI);
+      ctx.fillStyle = sliceColor;
+      ctx.fill();
+
+      // Title Text
+      const textX = dotX + dotSize / 2 + dotMargin;
+      const textY = pillY + pillHeight / 2;
+      ctx.font = "600 11px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      ctx.fillStyle = '#1E293B';
+      ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.textAlign = isRight ? 'left' : 'right';
-      const textX = isRight ? endX + 6 : endX - 6;
-      ctx.fillText(displayText, textX, endY);
+      ctx.fillText(title, textX, textY);
+
+      // Percentage Mini-Badge Tag
+      const gap = 6;
+      const pctPadX = 5;
+      const pctBadgeWidth = pctWidth + pctPadX * 2;
+      const pctBadgeHeight = 16;
+      const pctBadgeX = textX + textWidth + gap;
+      const pctBadgeY = pillY + (pillHeight - pctBadgeHeight) / 2;
+
+      drawCanvasRoundRect(ctx, pctBadgeX, pctBadgeY, pctBadgeWidth, pctBadgeHeight, 4);
+      ctx.fillStyle = `${sliceColor}1F`;
+      ctx.fill();
+
+      ctx.font = "700 10.5px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      ctx.fillStyle = sliceColor;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pctStr, pctBadgeX + pctBadgeWidth / 2, pctBadgeY + pctBadgeHeight / 2 + 0.5);
     });
 
     ctx.restore();
