@@ -5,9 +5,10 @@
  * Features:
  *  - High-density, tooltipless Chart.js analytical engines with maximum visual clarity
  *  - 67:33 expansive chart viewport ratio with zero empty dead space
- *  - Luxury botanical decor integration (realistic 3D potted plant & leaf elements)
- *  - Choreographed scroll-reveal & slide transitions for an unforgettable experience
- *  - Standardized Deloitte brand styling & light-theme perfection
+ *  - 7-second automatic slideshow rotation with pause-on-hover
+ *  - Integrated `<` and `>` chevron nav buttons right alongside the 12 category chips
+ *  - Botanical decor: 3D potted plant on bottom-left, upside-down leaf sprig on top-right
+ *  - Generous upper breathing room with clean, elegant executive typography
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -299,7 +300,7 @@ const RISK_BADGES: Record<string, { color: string; bg: string; border: string }>
 const baseChartOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
-  animation: { duration: 550 },
+  animation: { duration: 500 },
   plugins: {
     legend: {
       display: false,
@@ -324,7 +325,7 @@ const baseDoughnutOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
   cutout: '66%',
-  animation: { duration: 550 },
+  animation: { duration: 500 },
   plugins: {
     legend: {
       display: false,
@@ -881,7 +882,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
       const radarOptions: any = {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 550 },
+        animation: { duration: 500 },
         plugins: {
           legend: { display: false },
           tooltip: { enabled: false }, // Disabled per user specification
@@ -937,6 +938,7 @@ const FullChartEngine: React.FC<{ categoryId: string }> = ({ categoryId }) => {
 export const VisualizationShowcase: React.FC = () => {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [isHovered, setIsHovered] = useState(false);
   const shouldReduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
@@ -951,18 +953,23 @@ export const VisualizationShowcase: React.FC = () => {
   }, [index, total]);
 
   const goNext = useCallback(() => {
-    if (index < total - 1) {
-      setDirection(1);
-      setIndex(index + 1);
-    }
-  }, [index, total]);
+    setDirection(1);
+    setIndex((prev) => (prev + 1) % total);
+  }, [total]);
 
   const goPrev = useCallback(() => {
-    if (index > 0) {
-      setDirection(-1);
-      setIndex(index - 1);
-    }
-  }, [index]);
+    setDirection(-1);
+    setIndex((prev) => (prev - 1 + total) % total);
+  }, [total]);
+
+  // 7-second auto slideshow timer (pauses when user hovers over the showcase)
+  useEffect(() => {
+    if (isHovered) return;
+    const timer = setInterval(() => {
+      goNext();
+    }, 7000);
+    return () => clearInterval(timer);
+  }, [isHovered, goNext]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -985,9 +992,6 @@ export const VisualizationShowcase: React.FC = () => {
   }, [index]);
 
   const riskStyle = RISK_BADGES[current.riskLevel];
-  const canPrev = index > 0;
-  const canNext = index < total - 1;
-
   const IconComponent = current.icon;
 
   return (
@@ -996,53 +1000,30 @@ export const VisualizationShowcase: React.FC = () => {
       id="visualizations-insights-showcase"
       aria-label="Visualizations and Insights showcase"
       tabIndex={-1}
-      initial={{ opacity: 0, y: 32, scale: 0.99 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      initial={{ opacity: 0, y: 36, scale: 0.99 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
       style={{
         width: '100%',
         background: 'linear-gradient(180deg, #FFFFFF 0%, #F4FAF8 45%, #EBF6F4 100%)',
         borderBottom: '1px solid #E2E8F0',
-        padding: 'clamp(32px, 3.8vw, 46px) clamp(20px, 3.5vw, 52px)',
+        padding: 'clamp(44px, 5vw, 64px) clamp(20px, 3.5vw, 52px) clamp(32px, 4vw, 48px)',
         position: 'relative',
         overflow: 'hidden',
         outline: 'none',
       }}
     >
-      {/* ── BOTANICAL DECOR 1: Luxury Leaf Sprig (Floating Top-Left) ── */}
-      <motion.img
-        initial={{ opacity: 0, x: -30, rotate: -8 }}
-        whileInView={{ opacity: 0.85, x: 0, rotate: 0 }}
-        viewport={{ once: true }}
-        animate={{ y: [0, -6, 0] }}
-        transition={{
-          opacity: { duration: 0.8, ease: 'easeOut' },
-          y: { repeat: Infinity, duration: 6, ease: 'easeInOut' }
-        }}
-        src="/decor/leaf_left_clean.png"
-        alt=""
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: '-15px',
-          left: '-20px',
-          width: 'clamp(90px, 8vw, 135px)',
-          height: 'auto',
-          pointerEvents: 'none',
-          zIndex: 1,
-          filter: 'drop-shadow(0 6px 16px rgba(0, 118, 128, 0.08))',
-        }}
-      />
-
-      {/* ── BOTANICAL DECOR 2: 3D Potted Plant (Ground-Anchored Bottom-Right) ── */}
+      {/* ── BOTANICAL DECOR 1: 3D Potted Plant (Ground-Anchored Bottom-Left) ── */}
       <motion.img
         initial={{ opacity: 0, scale: 0.85, y: 25 }}
         whileInView={{ opacity: 1, scale: 1, y: 0 }}
         viewport={{ once: true }}
         animate={{ y: [0, -4, 0] }}
         transition={{
-          opacity: { duration: 0.8, ease: 'easeOut', delay: 0.15 },
+          opacity: { duration: 0.8, ease: 'easeOut' },
           scale: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
           y: { repeat: Infinity, duration: 5.5, ease: 'easeInOut' }
         }}
@@ -1051,8 +1032,8 @@ export const VisualizationShowcase: React.FC = () => {
         aria-hidden="true"
         style={{
           position: 'absolute',
-          bottom: '12px',
-          right: '18px',
+          bottom: '14px',
+          left: '16px',
           width: 'clamp(85px, 7.5vw, 115px)',
           height: 'auto',
           pointerEvents: 'none',
@@ -1061,37 +1042,63 @@ export const VisualizationShowcase: React.FC = () => {
         }}
       />
 
+      {/* ── BOTANICAL DECOR 2: Luxury Leaf Sprig (Upside-Down Floating Top-Right) ── */}
+      <motion.img
+        initial={{ opacity: 0, x: 30, rotate: 170 }}
+        whileInView={{ opacity: 0.85, x: 0, rotate: 180 }}
+        viewport={{ once: true }}
+        animate={{ y: [0, -6, 0] }}
+        transition={{
+          opacity: { duration: 0.8, ease: 'easeOut', delay: 0.15 },
+          y: { repeat: Infinity, duration: 6, ease: 'easeInOut' }
+        }}
+        src="/decor/leaf_left_clean.png"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: '-15px',
+          right: '-20px',
+          transform: 'rotate(180deg)',
+          width: 'clamp(90px, 8vw, 135px)',
+          height: 'auto',
+          pointerEvents: 'none',
+          zIndex: 1,
+          filter: 'drop-shadow(0 6px 16px rgba(0, 118, 128, 0.08))',
+        }}
+      />
+
       <div style={{ maxWidth: '1440px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
 
-        {/* ── Section Header Row ── */}
+        {/* ── Section Header Row (Generous Breathing Room) ── */}
         <div style={{
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '16px',
+          gap: '20px',
+          marginBottom: '28px',
         }}>
           <div>
-            <div style={{ marginBottom: '6px' }}>
+            <div style={{ marginBottom: '12px' }}>
               <span style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                padding: '3px 10px',
+                gap: '6px',
+                padding: '4px 12px',
                 borderRadius: '999px',
                 background: 'rgba(0, 163, 173, 0.10)',
                 border: '1px solid rgba(0, 118, 128, 0.18)',
                 color: '#007680',
-                fontSize: '0.72rem',
+                fontSize: '0.74rem',
                 fontWeight: 700,
               }}>
-                <Sparkles size={12} />
+                <Sparkles size={13} />
                 Client-Ready Visualizations &amp; Exception Analytics Showcase
               </span>
             </div>
             <h2 style={{
-              fontSize: 'clamp(1.65rem, 2.3vw, 2.15rem)',
+              fontSize: 'clamp(1.75rem, 2.5vw, 2.25rem)',
               fontWeight: 800,
               color: '#0F172A',
               letterSpacing: '-0.035em',
@@ -1104,65 +1111,125 @@ export const VisualizationShowcase: React.FC = () => {
           </div>
 
           <p style={{
-            fontSize: '0.82rem',
+            fontSize: '0.84rem',
             color: '#64748B',
-            lineHeight: 1.45,
-            maxWidth: '380px',
+            lineHeight: 1.5,
+            maxWidth: '400px',
             margin: 0,
           }}>
             Explore real interactive visual workpapers generated across all 12 analytical categories, Trial Balance checkpoints, and forensic risk matrices.
           </p>
         </div>
 
-        {/* ── 12-Category Scrollable Tab Strip ── */}
-        <div
-          ref={tabListRef}
-          role="tablist"
-          aria-label="Audit category tabs"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            overflowX: 'auto',
-            paddingBottom: '8px',
-            marginBottom: '16px',
-            scrollbarWidth: 'none',
-          }}
-        >
-          {CATEGORIES.map((item, i) => {
-            const isActive = i === index;
-            const TabIcon = item.icon;
-            return (
-              <button
-                key={item.id}
-                data-index={i}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => goTo(i)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: isActive ? '6px 12px' : '6px 10px',
-                  borderRadius: '8px',
-                  border: isActive ? '1.5px solid #007680' : '1px solid #E2E8F0',
-                  background: isActive ? '#007680' : '#FFFFFF',
-                  color: isActive ? '#FFFFFF' : '#475569',
-                  fontSize: '0.72rem',
-                  fontWeight: isActive ? 700 : 500,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  transition: 'all 0.18s ease',
-                  boxShadow: isActive ? '0 2px 8px rgba(0, 118, 128, 0.22)' : 'none',
-                  flexShrink: 0,
-                  outline: 'none',
-                }}
-              >
-                <TabIcon size={12} color={isActive ? '#FFFFFF' : '#007680'} />
-                <span>{item.shortLabel}</span>
-              </button>
-            );
-          })}
+        {/* ── 12-Category Scrollable Tab Strip with < and > Chevron Buttons ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '20px',
+        }}>
+          {/* Left Nav Button */}
+          <motion.button
+            onClick={goPrev}
+            whileHover={{ scale: 1.06, background: '#007680', color: '#FFFFFF', borderColor: '#007680' }}
+            whileTap={{ scale: 0.94 }}
+            aria-label="Previous Category"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              border: '1px solid #CBD5E1',
+              background: '#FFFFFF',
+              color: '#007680',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(0, 118, 128, 0.08)',
+              transition: 'all 0.16s ease',
+              outline: 'none',
+            }}
+          >
+            <ChevronLeft size={16} strokeWidth={2.5} />
+          </motion.button>
+
+          {/* Chips Scroll Strip */}
+          <div
+            ref={tabListRef}
+            role="tablist"
+            aria-label="Audit category tabs"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              overflowX: 'auto',
+              padding: '2px 0',
+              scrollbarWidth: 'none',
+              flex: 1,
+            }}
+          >
+            {CATEGORIES.map((item, i) => {
+              const isActive = i === index;
+              const TabIcon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  data-index={i}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => goTo(i)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: isActive ? '6px 12px' : '6px 10px',
+                    borderRadius: '8px',
+                    border: isActive ? '1.5px solid #007680' : '1px solid #E2E8F0',
+                    background: isActive ? '#007680' : '#FFFFFF',
+                    color: isActive ? '#FFFFFF' : '#475569',
+                    fontSize: '0.72rem',
+                    fontWeight: isActive ? 700 : 500,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    transition: 'all 0.18s ease',
+                    boxShadow: isActive ? '0 2px 8px rgba(0, 118, 128, 0.22)' : 'none',
+                    flexShrink: 0,
+                    outline: 'none',
+                  }}
+                >
+                  <TabIcon size={12} color={isActive ? '#FFFFFF' : '#007680'} />
+                  <span>{item.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Nav Button */}
+          <motion.button
+            onClick={goNext}
+            whileHover={{ scale: 1.06, background: '#007680', color: '#FFFFFF', borderColor: '#007680' }}
+            whileTap={{ scale: 0.94 }}
+            aria-label="Next Category"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              border: '1px solid #CBD5E1',
+              background: '#FFFFFF',
+              color: '#007680',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(0, 118, 128, 0.08)',
+              transition: 'all 0.16s ease',
+              outline: 'none',
+            }}
+          >
+            <ChevronRight size={16} strokeWidth={2.5} />
+          </motion.button>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════
@@ -1361,7 +1428,7 @@ export const VisualizationShowcase: React.FC = () => {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════
-            COMPACT NAVIGATION CONTROLS
+            MINIMALIST FOOTER: COUNTER & PROGRESS PILLS
         ═══════════════════════════════════════════════════════════ */}
         <div style={{
           display: 'flex',
@@ -1369,10 +1436,10 @@ export const VisualizationShowcase: React.FC = () => {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          marginTop: '14px',
+          marginTop: '16px',
           padding: '0 2px',
         }}>
-          {/* Left: Counter */}
+          {/* Left: Counter and Category */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
             <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace', lineHeight: 1 }}>
               {String(index + 1).padStart(2, '0')}
@@ -1383,15 +1450,15 @@ export const VisualizationShowcase: React.FC = () => {
             </span>
           </div>
 
-          {/* Center: Progress Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {/* Right: Progress Indicator Bar (7-second rotation indicators) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             {CATEGORIES.map((_, i) => (
               <button
                 key={i}
                 onClick={() => goTo(i)}
                 aria-label={`Go to category ${i + 1}`}
                 style={{
-                  width: i === index ? 18 : 5,
+                  width: i === index ? 22 : 6,
                   height: 4,
                   borderRadius: 999,
                   border: 'none',
@@ -1403,58 +1470,6 @@ export const VisualizationShowcase: React.FC = () => {
                 }}
               />
             ))}
-          </div>
-
-          {/* Right: Previous & Next (Standard Deloitte Theme) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <motion.button
-              onClick={goPrev}
-              disabled={!canPrev}
-              whileHover={canPrev ? { x: -2 } : {}}
-              whileTap={canPrev ? { scale: 0.98 } : {}}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '7px 12px',
-                borderRadius: '8px',
-                border: '1px solid #CBD5E1',
-                background: canPrev ? '#FFFFFF' : '#F8FAFC',
-                color: canPrev ? '#0F172A' : '#94A3B8',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                cursor: canPrev ? 'pointer' : 'not-allowed',
-                outline: 'none',
-              }}
-            >
-              <ChevronLeft size={13} strokeWidth={2.5} />
-              Previous
-            </motion.button>
-
-            <motion.button
-              onClick={goNext}
-              disabled={!canNext}
-              whileHover={canNext ? { x: 2 } : {}}
-              whileTap={canNext ? { scale: 0.98 } : {}}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '7px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                background: canNext ? 'linear-gradient(135deg, #007680 0%, #004D54 100%)' : '#CBD5E1',
-                color: '#FFFFFF',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                cursor: canNext ? 'pointer' : 'not-allowed',
-                boxShadow: canNext ? '0 3px 10px rgba(0, 118, 128, 0.25)' : 'none',
-                outline: 'none',
-              }}
-            >
-              Next
-              <ChevronRight size={13} strokeWidth={2.5} />
-            </motion.button>
           </div>
         </div>
 
