@@ -32,8 +32,9 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
   const [formData, setFormData] = useState<EngagementAuditParametersData>({ ...parameters });
 
   const formatCurrency = (val: number | string) => {
+    if (val === '' || val === undefined || val === null) return '—';
     const num = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]+/g, '')) : val;
-    if (isNaN(num) || num === undefined || num === null) return '$500,000.00';
+    if (isNaN(num) || num === 0) return '—';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: parameters.operatingCurrency || 'USD',
@@ -59,7 +60,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
     {
       id: 'engagementName',
       label: 'ENGAGEMENT NAME',
-      val: parameters.engagementName || 'Tangerine Skies Pvt Ltd - JET Audit FY26',
+      val: parameters.engagementName || '—',
+      isUnset: !parameters.engagementName,
       icon: Building2,
       accent: '#007680',
       bg: '#F0FDFA',
@@ -67,7 +69,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
     {
       id: 'startDate',
       label: 'START DATE',
-      val: parameters.startDate || '01-Apr-2025',
+      val: parameters.startDate || '—',
+      isUnset: !parameters.startDate,
       icon: Calendar,
       accent: '#0284C7',
       bg: '#F0F9FF',
@@ -75,7 +78,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
     {
       id: 'endDate',
       label: 'END DATE',
-      val: parameters.endDate || '31-Mar-2026',
+      val: parameters.endDate || '—',
+      isUnset: !parameters.endDate,
       icon: Calendar,
       accent: '#0284C7',
       bg: '#F0F9FF',
@@ -83,7 +87,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
     {
       id: 'financialYearEnd',
       label: 'FINANCIAL YEAR END',
-      val: parameters.financialYearEnd || '31-Mar',
+      val: parameters.financialYearEnd || '—',
+      isUnset: !parameters.financialYearEnd,
       icon: ShieldCheck,
       accent: '#6366F1',
       bg: '#EEF2FF',
@@ -91,7 +96,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
     {
       id: 'engagementRunId',
       label: 'ENGAGEMENT RUN ID',
-      val: parameters.engagementRunId || runId || 'JET-20260830-012',
+      val: parameters.engagementRunId || runId || '—',
+      isUnset: !parameters.engagementRunId && !runId,
       icon: Hash,
       accent: '#7C3AED',
       bg: '#FAF5FF',
@@ -99,7 +105,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
     {
       id: 'operatingCurrency',
       label: 'OPERATING CURRENCY',
-      val: parameters.operatingCurrency || 'USD',
+      val: parameters.operatingCurrency || '—',
+      isUnset: !parameters.operatingCurrency,
       icon: DollarSign,
       accent: '#059669',
       bg: '#ECFDF5',
@@ -108,6 +115,7 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
       id: 'overallMateriality',
       label: 'OVERALL MATERIALITY',
       val: formatCurrency(parameters.overallMateriality),
+      isUnset: !parameters.overallMateriality,
       icon: Tag,
       accent: '#D97706',
       bg: '#FFFBEB',
@@ -115,7 +123,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
     {
       id: 'engagementClassification',
       label: 'ENGAGEMENT CLASSIFICATION',
-      val: parameters.engagementClassification || 'Tier 1 Key Audit Engagement',
+      val: parameters.engagementClassification || '—',
+      isUnset: !parameters.engagementClassification,
       icon: ShieldAlert,
       accent: '#007680',
       bg: '#F0FDFA',
@@ -271,12 +280,13 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
                 <div
                   style={{
                     fontSize: '0.88rem',
-                    fontWeight: 700,
-                    color: '#0F172A',
+                    fontWeight: item.isUnset ? 500 : 700,
+                    color: item.isUnset ? '#94A3B8' : '#0F172A',
                     marginTop: '2px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
+                    fontStyle: item.isUnset ? 'italic' : 'normal',
                   }}
                   title={String(item.val)}
                 >
@@ -310,9 +320,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
                 className="jet-input"
                 value={formData.engagementName}
                 onChange={(e) => setFormData({ ...formData, engagementName: e.target.value })}
-                placeholder="e.g. Tangerine Skies Pvt Ltd - JET Audit FY26"
+                placeholder="Enter Client / Engagement Name"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-                required
               />
             </div>
 
@@ -326,9 +335,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
                 className="jet-input"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                placeholder="01-Apr-2025"
+                placeholder="e.g. 01-Apr-2025"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-                required
               />
             </div>
 
@@ -342,9 +350,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
                 className="jet-input"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                placeholder="31-Mar-2026"
+                placeholder="e.g. 31-Mar-2026"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-                required
               />
             </div>
 
@@ -358,9 +365,8 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
                 className="jet-input"
                 value={formData.financialYearEnd}
                 onChange={(e) => setFormData({ ...formData, financialYearEnd: e.target.value })}
-                placeholder="31-Mar"
+                placeholder="e.g. 31-Mar"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-                required
               />
             </div>
 
@@ -375,6 +381,7 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
                 onChange={(e) => setFormData({ ...formData, operatingCurrency: e.target.value })}
                 style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
               >
+                <option value="">Select Currency...</option>
                 <option value="USD">USD ($) - US Dollar</option>
                 <option value="EUR">EUR (€) - Euro</option>
                 <option value="GBP">GBP (£) - British Pound</option>
@@ -394,11 +401,10 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
               <input
                 type="number"
                 className="jet-input"
-                value={typeof formData.overallMateriality === 'string' ? parseFloat(formData.overallMateriality.replace(/[^0-9.-]+/g, '')) || 500000 : formData.overallMateriality}
-                onChange={(e) => setFormData({ ...formData, overallMateriality: parseFloat(e.target.value) || 0 })}
-                placeholder="500000"
+                value={typeof formData.overallMateriality === 'string' ? parseFloat(formData.overallMateriality.replace(/[^0-9.-]+/g, '')) || '' : formData.overallMateriality || ''}
+                onChange={(e) => setFormData({ ...formData, overallMateriality: e.target.value ? parseFloat(e.target.value) : '' })}
+                placeholder="e.g. 500000"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-                required
               />
             </div>
 
@@ -413,6 +419,7 @@ export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCa
                 onChange={(e) => setFormData({ ...formData, engagementClassification: e.target.value })}
                 style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
               >
+                <option value="">Select Audit Classification...</option>
                 <option value="Tier 1 Key Audit Engagement">Tier 1 Key Audit Engagement</option>
                 <option value="Public Listed Entity / PCAOB AS 2401">Public Listed Entity / PCAOB AS 2401</option>
                 <option value="Standard Statutory Audit">Standard Statutory Audit</option>

@@ -112,16 +112,16 @@ export const JetWorkflow: React.FC = () => {
   const [autoCleaning, setAutoCleaning] = useState(false);
   const [autoCleanReport, setAutoCleanReport] = useState<any>(null);
 
-  // Engagement Audit Parameters (Matching Executive Overview & History)
+  // Engagement Audit Parameters (Clean initial state for new runs)
   const [engagementAuditParams, setEngagementAuditParams] = useState<EngagementAuditParametersData>({
-    engagementName: 'Tangerine Skies Pvt Ltd - JET Audit FY26',
-    startDate: '01-Apr-2025',
-    endDate: '31-Mar-2026',
-    financialYearEnd: '31-Mar',
-    engagementRunId: runId || 'JET-20260830-012',
-    operatingCurrency: 'USD',
-    overallMateriality: 500000,
-    engagementClassification: 'Tier 1 Key Audit Engagement',
+    engagementName: '',
+    startDate: '',
+    endDate: '',
+    financialYearEnd: '',
+    engagementRunId: runId || '',
+    operatingCurrency: '',
+    overallMateriality: '',
+    engagementClassification: '',
   });
 
   const handleUpdateEngagementParams = (newParams: EngagementAuditParametersData) => {

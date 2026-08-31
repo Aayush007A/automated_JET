@@ -334,13 +334,33 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   const isSpark = workflowType === 'SPARK_JET';
   const defaultList = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
 
-  // Start with a brief evaluation sequence so the user sees live calculation in progress
-  const [isEvaluating, setIsEvaluating] = useState(true);
+  // If autoCleanReport already has results/passed, initialize directly with clean state
+  const hasExistingReport = Boolean(autoCleanReport && (autoCleanReport.constraintResults || autoCleanReport.constraintsPassed !== undefined));
+
+  const [isEvaluating, setIsEvaluating] = useState<boolean>(!hasExistingReport && Boolean(runId));
   const [isRunningClean, setIsRunningClean] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'TB' | 'GL' | 'COA' | 'FAILED'>('ALL');
-  const [constraints, setConstraints] = useState<SchemaConstraintItem[]>(
-    defaultList.map(c => ({ ...c, status: 'PENDING' }))
-  );
+  const [constraints, setConstraints] = useState<SchemaConstraintItem[]>(() => {
+    const baseList = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
+    if (hasExistingReport && autoCleanReport?.constraintResults) {
+      return baseList.map((c) => {
+        const matched = autoCleanReport.constraintResults.find(
+          (r: any) => r.id === c.id || r.id === c.id.replace('-', '_') || r.name === c.name
+        );
+        if (matched) {
+          return {
+            ...c,
+            status: matched.status || c.status,
+            failedRowsCount: matched.failedRowsCount !== undefined ? matched.failedRowsCount : 0,
+            fileName: matched.fileName,
+            details: matched.details || c.details,
+          };
+        }
+        return { ...c, status: 'PASSED' };
+      });
+    }
+    return hasExistingReport ? baseList : baseList.map(c => ({ ...c, status: 'PENDING' }));
+  });
   const [localReport, setLocalReport] = useState<any>(autoCleanReport);
 
   const applyReportToConstraints = (rep: any) => {
@@ -363,25 +383,30 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   };
 
   useEffect(() => {
+    if (hasExistingReport) {
+      // Already cleaned and validated: persist state immediately without re-flashing
+      setIsEvaluating(false);
+      if (autoCleanReport) {
+        setLocalReport(autoCleanReport);
+        applyReportToConstraints(autoCleanReport);
+      }
+      return;
+    }
+
     const list = isSpark ? SPARK_CHECKPOINTS : OMNIA_CONSTRAINTS;
     setActiveFilter('ALL');
     setIsEvaluating(true);
 
     const timer = setTimeout(() => {
       setIsEvaluating(false);
-      if (autoCleanReport) {
-        setLocalReport(autoCleanReport);
-        applyReportToConstraints(autoCleanReport);
-      } else {
-        setConstraints(list);
-        if (runId) {
-          handleRunCleansing();
-        }
+      setConstraints(list);
+      if (runId) {
+        handleRunCleansing();
       }
-    }, 1500);
+    }, 1200);
 
     return () => clearTimeout(timer);
-  }, [workflowType, runId]);
+  }, [workflowType, runId, hasExistingReport]);
 
   const totalRows = isSpark ? tbRowCount + glRowCount : tbRowCount + glRowCount + coaRowCount;
 

@@ -257,6 +257,81 @@ a:hover {
   }
 }
 
+/* ── ULTRA-SMOOTH TRANSITIONS & MICRO-ANIMATION SYSTEM ── */
+@keyframes smoothFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes smoothTabSwitch {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.998);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes smoothScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fade-slide-in,
+.step-pane-anim {
+  animation: smoothFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.tab-panel-anim {
+  animation: smoothTabSwitch 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.modal-content-scale {
+  animation: smoothScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Universal Smooth Transitions for Tabs, Cards & Tables */
+.smooth-tab-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.smooth-tab-btn:hover {
+  transform: translateY(-1px);
+}
+
+.smooth-card {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.smooth-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.smooth-row {
+  transition: background-color 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.smooth-row:hover {
+  background-color: #F8FAFC !important;
+}
+
 /* Buttons */
 .btn-primary {
   display: inline-flex;

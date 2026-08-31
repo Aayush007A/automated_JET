@@ -144,16 +144,16 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Engagement Audit Parameters (Matching Executive Overview & History)
+  // Engagement Audit Parameters (Clean initial state for new runs)
   const [engagementAuditParams, setEngagementAuditParams] = useState<EngagementAuditParametersData>({
-    engagementName: 'Tangerine Skies Pvt Ltd - JET Audit FY26',
-    startDate: '01-Apr-2025',
-    endDate: '31-Mar-2026',
-    financialYearEnd: '31-Mar',
-    engagementRunId: runId || 'JET-20260830-012',
-    operatingCurrency: 'USD',
-    overallMateriality: 500000,
-    engagementClassification: 'Tier 1 Key Audit Engagement',
+    engagementName: '',
+    startDate: '',
+    endDate: '',
+    financialYearEnd: '',
+    engagementRunId: runId || '',
+    operatingCurrency: '',
+    overallMateriality: '',
+    engagementClassification: '',
   });
 
   const handleUpdateEngagementParams = async (newParams: EngagementAuditParametersData) => {
@@ -274,6 +274,44 @@ export const OmniaJetWorkflow: React.FC = () => {
 
       if (data.config.omniaParameters) {
         setOmniaParams((prev) => ({ ...prev, ...data.config.omniaParameters }));
+      }
+
+      if (data.config) {
+        const sp = (data.config.sparkParameters || {}) as Record<string, any>;
+        const op = (data.config.omniaParameters || {}) as Record<string, any>;
+        if (sp.engagementName || op.fiscalYearEnd || sp.startDate || sp.materiality || op.entityCurrencyCode) {
+          setEngagementAuditParams({
+            engagementName: sp.engagementName || '',
+            startDate: sp.startDate || op.testingPeriodStart || '',
+            endDate: sp.endDate || op.testingPeriodEnd || '',
+            financialYearEnd: sp.financialYearEnd || op.fiscalYearEnd || '',
+            engagementRunId: targetRunId,
+            operatingCurrency: sp.currencyCode || op.entityCurrencyCode || '',
+            overallMateriality: sp.materiality !== undefined ? sp.materiality : '',
+            engagementClassification: sp.classification || '',
+          });
+        } else {
+          setEngagementAuditParams((prev) => ({
+            ...prev,
+            engagementRunId: targetRunId,
+          }));
+        }
+      }
+
+      // Restore autoCleanReport so clean status never resets on page revisit
+      const statusAny = (data.status || {}) as any;
+      if (statusAny.autoCleanReport) {
+        setAutoCleanReport(statusAny.autoCleanReport);
+      } else if (data.config?.files && data.config.files.length > 0 && data.status?.status === 'COMPLETED') {
+        setAutoCleanReport({
+          tbRowsCleaned: data.status?.totalInputRows?.tb || 0,
+          glRowsCleaned: data.status?.totalInputRows?.gl || 0,
+          datesStandardized: 0,
+          numbersConverted: 0,
+          constraintsPassed: true,
+          warnings: [],
+          status: 'PASSED',
+        });
       }
 
       if (data.status.status === 'COMPLETED') {
@@ -922,7 +960,7 @@ export const OmniaJetWorkflow: React.FC = () => {
 
         {/* STEP 1: ENGAGEMENT AUDIT PARAMETERS & FILE INGESTION */}
         {currentStep === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div key="step-1" className="step-pane-anim" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 1. Engagement Audit Parameters Card (Image 2) */}
             <EngagementAuditParametersCard
               parameters={engagementAuditParams}
@@ -996,7 +1034,7 @@ export const OmniaJetWorkflow: React.FC = () => {
 
         {/* STEP 2: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
         {currentStep === 2 && (
-          <div>
+          <div key="step-2" className="step-pane-anim">
             <DataFileMappingWorkspace
               datasets={[
                 {
@@ -1036,7 +1074,7 @@ export const OmniaJetWorkflow: React.FC = () => {
 
         {/* STEP 3: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
         {currentStep === 3 && (
-          <div>
+          <div key="step-3" className="step-pane-anim">
             <AutoCleanConstraintsPanel
               workflowType="OMNIA_JET"
               runId={runId || undefined}
@@ -1053,7 +1091,7 @@ export const OmniaJetWorkflow: React.FC = () => {
 
         {/* STEP 4: OMNIA PARAMETERS */}
         {currentStep === 4 && (
-          <div>
+          <div key="step-4" className="step-pane-anim">
             <div className="glass-panel" style={{ padding: '28px', background: '#FFFFFF', marginBottom: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
@@ -1736,7 +1774,7 @@ export const OmniaJetWorkflow: React.FC = () => {
             </div>
 
             {activeTab === 'reconciliation' && (
-              <div className="glass-panel" style={{ padding: '20px 24px', background: '#FFFFFF' }}>
+              <div key="reconciliation" className="glass-panel tab-panel-anim" style={{ padding: '20px 24px', background: '#FFFFFF' }}>
                 {/* Header Toolbar */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
                   <div>
@@ -2017,7 +2055,7 @@ export const OmniaJetWorkflow: React.FC = () => {
               const totalCount = DQC_DEFINITIONS.length;
 
               return (
-                <div className="glass-panel" style={{ padding: '20px 24px', background: '#FFFFFF' }}>
+                <div key="dqc" className="glass-panel tab-panel-anim" style={{ padding: '20px 24px', background: '#FFFFFF' }}>
                   {/* Top Banner Toolbar */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px', marginBottom: '16px' }}>
                     <div>

@@ -196,6 +196,7 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
               <button
                 key={ds.key}
                 type="button"
+                className="smooth-tab-btn"
                 onClick={() => {
                   setActiveTab(ds.key);
                   setSearchQuery('');
@@ -212,7 +213,6 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
                   fontWeight: isActive ? 800 : 600,
                   fontSize: '0.84rem',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
                   boxShadow: isActive ? '0 2px 6px rgba(0, 118, 128, 0.12)' : 'none'
                 }}
               >
@@ -238,6 +238,7 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
+            className="smooth-tab-btn"
             onClick={handleAutoMapCurrentDataset}
             style={{
               display: 'inline-flex',
@@ -272,8 +273,8 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
         </div>
       </div>
 
-      {/* Main Mapping Table Panel */}
-      <div className="glass-panel" style={{ padding: '24px 28px', background: '#FFFFFF', marginBottom: '20px' }}>
+      {/* Main Mapping Table Panel with Smooth Tab Transition */}
+      <div key={activeTab} className="glass-panel tab-panel-anim" style={{ padding: '24px 28px', background: '#FFFFFF', marginBottom: '20px' }}>
         {/* Header with Title and Search/Filter Controls */}
         <div style={{
           display: 'flex',
@@ -391,6 +392,7 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
                   return (
                     <tr
                       key={item.standardField}
+                      className="smooth-row"
                       style={{
                         background: !isMatched && isReq ? 'rgba(254, 242, 242, 0.4)' : '#FFFFFF'
                       }}

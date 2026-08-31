@@ -328,16 +328,16 @@ export const SparkJetWorkflow: React.FC = () => {
   const [ex2MinCount, setEx2MinCount] = useState<number>(1);
   const [ex2MaxCount, setEx2MaxCount] = useState<number>(5);
 
-  // Engagement Audit Parameters (Matching Executive Overview & History)
+  // Engagement Audit Parameters (Clean initial state for new runs)
   const [engagementAuditParams, setEngagementAuditParams] = useState<EngagementAuditParametersData>({
-    engagementName: 'Tangerine Skies Pvt Ltd - JET Audit FY26',
-    startDate: '01-Apr-2025',
-    endDate: '31-Mar-2026',
-    financialYearEnd: '31-Mar',
-    engagementRunId: runId || 'JET-20260830-012',
-    operatingCurrency: 'USD',
-    overallMateriality: 500000,
-    engagementClassification: 'Tier 1 Key Audit Engagement',
+    engagementName: '',
+    startDate: '',
+    endDate: '',
+    financialYearEnd: '',
+    engagementRunId: runId || '',
+    operatingCurrency: '',
+    overallMateriality: '',
+    engagementClassification: '',
   });
 
   const handleUpdateEngagementParams = async (newParams: EngagementAuditParametersData) => {
@@ -625,6 +625,44 @@ export const SparkJetWorkflow: React.FC = () => {
           setUnrelatedRules(p.ex12UnrelatedRules.map(r => ({ debit: r.debit || r.debitFSLine || '', credit: r.credit || r.creditFSLine || '' })));
         }
         if (p.controlSampleCount !== undefined) setSampleDocCount(p.controlSampleCount);
+      }
+
+      if (data.config) {
+        const sp = (data.config.sparkParameters || {}) as Record<string, any>;
+        const op = (data.config.omniaParameters || {}) as Record<string, any>;
+        if (sp.engagementName || sp.financialYearEnd || sp.startDate || sp.materiality || sp.currencyCode) {
+          setEngagementAuditParams({
+            engagementName: sp.engagementName || '',
+            startDate: sp.startDate || op.testingPeriodStart || '',
+            endDate: sp.endDate || op.testingPeriodEnd || '',
+            financialYearEnd: sp.financialYearEnd || op.fiscalYearEnd || '',
+            engagementRunId: targetRunId,
+            operatingCurrency: sp.currencyCode || op.entityCurrencyCode || '',
+            overallMateriality: sp.materiality !== undefined ? sp.materiality : '',
+            engagementClassification: sp.classification || '',
+          });
+        } else {
+          setEngagementAuditParams((prev) => ({
+            ...prev,
+            engagementRunId: targetRunId,
+          }));
+        }
+      }
+
+      // Restore autoCleanReport so clean status never resets on page revisit
+      const statusAny = (data.status || {}) as any;
+      if (statusAny.autoCleanReport) {
+        setAutoCleanReport(statusAny.autoCleanReport);
+      } else if (data.config?.files && data.config.files.length > 0 && data.status?.status === 'COMPLETED') {
+        setAutoCleanReport({
+          tbRowsCleaned: data.status?.totalInputRows?.tb || 0,
+          glRowsCleaned: data.status?.totalInputRows?.gl || (data.status?.glCheckpointsSummary?.totalLines || 0),
+          datesStandardized: 0,
+          numbersConverted: 0,
+          constraintsPassed: true,
+          warnings: [],
+          status: 'PASSED',
+        });
       }
 
       if (data.status.status === 'COMPLETED') {
@@ -1524,7 +1562,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
         {/* STEP 1: ENGAGEMENT AUDIT PARAMETERS & FILE INGESTION */}
         {currentStep === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
+          <div key="step-1" className="step-pane-anim" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
             {/* 1. Engagement Audit Parameters Card (Image 2) */}
             <EngagementAuditParametersCard
               parameters={engagementAuditParams}
@@ -1567,7 +1605,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
         {/* STEP 2: DATA FILE MAPPING (TAB SWITCHER VIEW) */}
         {currentStep === 2 && (
-          <div>
+          <div key="step-2" className="step-pane-anim">
             <DataFileMappingWorkspace
               datasets={[
                 {
@@ -1598,7 +1636,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
         {/* STEP 3: AUTO-CLEANSING & SCHEMA CONSTRAINTS VALIDATION */}
         {currentStep === 3 && (
-          <div>
+          <div key="step-3" className="step-pane-anim">
             <AutoCleanConstraintsPanel
               workflowType="SPARK_JET"
               runId={runId || undefined}
