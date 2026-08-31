@@ -9,6 +9,7 @@ interface MetricCardProps {
   icon?: React.ReactNode;
   variant?: 'default' | 'peach' | 'orange' | 'green' | 'success' | 'blue' | 'lavender' | 'teal' | 'mint' | 'pink' | 'rose' | 'error' | 'warning' | 'info';
   delta?: string;
+  progressPercent?: number;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -19,6 +20,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   icon,
   variant = 'default',
   delta,
+  progressPercent,
 }) => {
   // Pastel Theme Configuration matching Reference Card Design
   let cardBg = '#FFF4EC';
@@ -29,6 +31,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   let pillBorder = '#FED7AA';
   let pillColor = '#16A34A';
   let defaultDelta = '▲ 100%';
+  let barColor = '#EA580C';
 
   if (variant === 'green' || variant === 'success') {
     cardBg = '#F0F9ED';
@@ -36,36 +39,42 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     pillBorder = '#BBF7D0';
     pillColor = '#16A34A';
     defaultDelta = '▲ Active';
+    barColor = '#16A34A';
   } else if (variant === 'blue' || variant === 'lavender' || variant === 'info') {
     cardBg = '#EDF2FE';
     cardBorder = '#DBEAFE';
     pillBorder = '#BFDBFE';
     pillColor = '#007680';
     defaultDelta = '▲ Tested';
+    barColor = '#2563EB';
   } else if (variant === 'teal' || variant === 'mint') {
     cardBg = '#EAF5F2';
     cardBorder = '#CCFBF1';
     pillBorder = '#99F6E4';
     pillColor = '#007680';
     defaultDelta = '▲ Screened';
+    barColor = '#007680';
   } else if (variant === 'pink' || variant === 'rose' || variant === 'error') {
     cardBg = '#FDF0F2';
     cardBorder = '#FFE4E6';
     pillBorder = '#FECDD3';
     pillColor = '#9F1239';
     defaultDelta = '▲ Cutoff';
+    barColor = '#E11D48';
   } else if (variant === 'warning') {
     cardBg = '#FEF9C3';
     cardBorder = '#FEF08A';
     pillBorder = '#FDE047';
     pillColor = '#B45309';
     defaultDelta = '▲ Flagged';
+    barColor = '#D97706';
   } else if (variant === 'peach' || variant === 'orange' || variant === 'default') {
     cardBg = '#FFF4EC';
     cardBorder = '#FFE7D6';
     pillBorder = '#FED7AA';
     pillColor = '#16A34A';
     defaultDelta = '▲ 100%';
+    barColor = '#EA580C';
   }
 
   // Parse value string if it contains embedded status badges
@@ -99,21 +108,22 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   }
 
   const activeDelta = delta || (parsedBadge ? `▲ ${parsedBadge}` : defaultDelta);
+  const activePercent = progressPercent !== undefined ? Math.min(100, Math.max(0, progressPercent)) : 100;
 
   return (
     <div
+      className="elevated-card"
       style={{
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         border: `1px solid ${cardBorder}`,
-        padding: '16px 18px',
+        padding: '16px 18px 14px',
         backgroundColor: cardBg,
-        minHeight: '120px',
+        minHeight: '124px',
         borderRadius: '16px',
-        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
         position: 'relative',
-        transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+        overflow: 'hidden',
       }}
     >
       {/* Card Header: Category Label & Optional Icon */}
@@ -137,11 +147,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             width: '26px',
             height: '26px',
             borderRadius: '6px',
-            background: 'rgba(255, 255, 255, 0.7)',
+            background: 'rgba(255, 255, 255, 0.8)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
           }}>
             {icon}
           </div>
@@ -176,8 +187,26 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </span>
       </div>
 
+      {/* Embedded Micro-Visualization Spark Bar */}
+      <div style={{
+        width: '100%',
+        height: '4px',
+        background: 'rgba(0, 0, 0, 0.05)',
+        borderRadius: '999px',
+        overflow: 'hidden',
+        margin: '2px 0 8px'
+      }}>
+        <div style={{
+          width: `${activePercent}%`,
+          height: '100%',
+          background: barColor,
+          borderRadius: '999px',
+          transition: 'width 0.4s ease'
+        }} />
+      </div>
+
       {/* Card Footer: Pill Badge + Subtitle */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px', gap: '8px' }}>
         <span
           style={{
             display: 'inline-flex',
@@ -191,6 +220,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             color: pillColor,
             border: `1px solid ${pillBorder}`,
             whiteSpace: 'nowrap',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
           }}
         >
           {activeDelta}

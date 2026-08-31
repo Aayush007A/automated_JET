@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { SchemaConstraintItem } from '../../types';
 import { RunService } from '../../services/runService';
+import { InspectionDrawer } from './InspectionDrawer';
 
 interface AutoCleanConstraintsPanelProps {
   workflowType: 'OMNIA_JET' | 'SPARK_JET';
@@ -441,6 +442,53 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
   const isCalculating = isEvaluating || isRunningClean;
 
+  // Slide-Over Inspection Drawer State
+  const [drawerData, setDrawerData] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    ruleCode?: string;
+    ruleDescription?: string;
+    headers?: string[];
+    rows?: any[];
+    downloadUrl?: string;
+    badge?: { text: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' };
+  }>({
+    isOpen: false,
+    title: '',
+  });
+
+  const handleOpenConstraintDrawer = async (c: SchemaConstraintItem) => {
+    let rows: any[] = [];
+    let headers: string[] = [];
+    if (runId && c.fileName) {
+      try {
+        const res = await RunService.previewOutput(runId, c.fileName, 50);
+        if (res && res.rows) {
+          rows = res.rows;
+          headers = res.headers || (rows.length > 0 ? Object.keys(rows[0]) : []);
+        }
+      } catch (e) {
+        console.error('Failed to preview failed rows:', e);
+      }
+    }
+
+    setDrawerData({
+      isOpen: true,
+      title: `${c.id}: ${c.name}`,
+      subtitle: `Schema Validation & Data Cleanliness Record Breakdown (${c.dataset})`,
+      ruleCode: c.id,
+      ruleDescription: c.details,
+      headers,
+      rows,
+      downloadUrl: c.fileName && runId ? RunService.getDownloadOutputUrl(runId, c.fileName) : undefined,
+      badge: {
+        text: c.status === 'PASSED' ? 'PASSED (0 Exceptions)' : c.failedRowsCount ? `${c.failedRowsCount} Failed Records` : 'FAILED',
+        variant: c.status === 'PASSED' ? 'success' : 'danger',
+      },
+    });
+  };
+
   const filteredConstraints = constraints.filter((c) => {
     if (activeFilter === 'FAILED') return c.status !== 'PASSED' || (c.failedRowsCount !== undefined && c.failedRowsCount > 0);
     if (activeFilter === 'TB') return c.dataset === 'Trial Balance';
@@ -452,28 +500,35 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
   const passedCount = constraints.filter((c) => c.status === 'PASSED' && (!c.failedRowsCount || c.failedRowsCount === 0)).length;
   const failedCount = constraints.filter((c) => c.status !== 'PASSED' || (c.failedRowsCount !== undefined && c.failedRowsCount > 0)).length;
   const allPassed = failedCount === 0 && !isCalculating;
+  const passedRatio = constraints.length > 0 ? Math.round((passedCount / constraints.length) * 100) : 100;
 
   return (
     <div style={{ width: '100%', paddingBottom: '24px' }}>
-      {/* 4 Pastel Summary Cards per row on 100% zoom standard screen via CSS */}
+      {/* 4 Pastel Summary Cards with Micro-Visualization Sparklines */}
       <div className="constraints-kpi-grid">
         {/* Card 1: Total Rows Evaluated (Peach / Orange) */}
-        <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#FFF4EC', border: '1px solid #FFE7D6', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
-            Total Evaluated Rows
+        <div className="elevated-card" style={{ padding: '16px 18px 14px', borderRadius: '16px', background: '#FFF4EC', border: '1px solid #FFE7D6', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '124px' }}>
+          <div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+              Total Evaluated Rows
+            </div>
+            <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {isCalculating ? (
+                <>
+                  <Loader2 size={18} className="spin" color="var(--deloitte-teal)" />
+                  <span style={{ color: 'var(--deloitte-teal)', fontSize: '1.20rem' }}>Calculating...</span>
+                </>
+              ) : (
+                totalRows.toLocaleString()
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isCalculating ? (
-              <>
-                <Loader2 size={18} className="spin" color="var(--deloitte-teal)" />
-                <span style={{ color: 'var(--deloitte-teal)', fontSize: '1.20rem' }}>Calculating...</span>
-              </>
-            ) : (
-              totalRows.toLocaleString()
-            )}
+          {/* Mini Sparkline Bar */}
+          <div style={{ width: '100%', height: '4px', background: 'rgba(0,0,0,0.06)', borderRadius: '999px', overflow: 'hidden', margin: '2px 0 6px' }}>
+            <div style={{ width: isCalculating ? '40%' : '100%', height: '100%', background: '#EA580C', borderRadius: '999px', transition: 'width 0.4s ease' }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #FED7AA' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #FED7AA', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
               {isCalculating ? '▲ Evaluating' : '▲ 100%'}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -483,22 +538,28 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
         </div>
 
         {/* Card 2: Checkpoints Evaluated (Light Green) */}
-        <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#F0F9ED', border: '1px solid #DCFCE7', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
-            {isSpark ? 'Checkpoints Evaluated' : 'Rules Evaluated'}
+        <div className="elevated-card" style={{ padding: '16px 18px 14px', borderRadius: '16px', background: '#F0F9ED', border: '1px solid #DCFCE7', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '124px' }}>
+          <div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+              {isSpark ? 'Checkpoints Evaluated' : 'Rules Evaluated'}
+            </div>
+            <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {isCalculating ? (
+                <>
+                  <Loader2 size={18} className="spin" color="#2563EB" />
+                  <span style={{ color: '#2563EB', fontSize: '1.20rem' }}>Processing...</span>
+                </>
+              ) : (
+                constraints.length
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isCalculating ? (
-              <>
-                <Loader2 size={18} className="spin" color="#2563EB" />
-                <span style={{ color: '#2563EB', fontSize: '1.20rem' }}>Processing...</span>
-              </>
-            ) : (
-              constraints.length
-            )}
+          {/* Mini Sparkline Bar */}
+          <div style={{ width: '100%', height: '4px', background: 'rgba(0,0,0,0.06)', borderRadius: '999px', overflow: 'hidden', margin: '2px 0 6px' }}>
+            <div style={{ width: '100%', height: '100%', background: '#16A34A', borderRadius: '999px', transition: 'width 0.4s ease' }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #BBF7D0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: '#16A34A', border: '1px solid #BBF7D0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
               {isCalculating ? '▲ Scanning' : '▲ Active'}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -508,22 +569,28 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
         </div>
 
         {/* Card 3: Passed Checkpoints (Soft Blue / Lavender) */}
-        <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#EDF2FE', border: '1px solid #DBEAFE', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
-            {isSpark ? 'Passed Checkpoints' : 'Passed Constraints'}
+        <div className="elevated-card" style={{ padding: '16px 18px 14px', borderRadius: '16px', background: '#EDF2FE', border: '1px solid #DBEAFE', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '124px' }}>
+          <div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+              {isSpark ? 'Passed Checkpoints' : 'Passed Constraints'}
+            </div>
+            <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {isCalculating ? (
+                <>
+                  <Loader2 size={18} className="spin" color="#059669" />
+                  <span style={{ color: '#059669', fontSize: '1.20rem' }}>Validating...</span>
+                </>
+              ) : (
+                `${passedCount} / ${constraints.length}`
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isCalculating ? (
-              <>
-                <Loader2 size={18} className="spin" color="#059669" />
-                <span style={{ color: '#059669', fontSize: '1.20rem' }}>Validating...</span>
-              </>
-            ) : (
-              `${passedCount} / ${constraints.length}`
-            )}
+          {/* Mini Sparkline Bar */}
+          <div style={{ width: '100%', height: '4px', background: 'rgba(0,0,0,0.06)', borderRadius: '999px', overflow: 'hidden', margin: '2px 0 6px' }}>
+            <div style={{ width: `${passedRatio}%`, height: '100%', background: failedCount === 0 ? '#059669' : '#D97706', borderRadius: '999px', transition: 'width 0.4s ease' }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: failedCount === 0 ? '#16A34A' : '#D97706', border: '1px solid #BFDBFE' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: failedCount === 0 ? '#16A34A' : '#D97706', border: '1px solid #BFDBFE', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
               {isCalculating ? '▲ Testing' : failedCount === 0 ? '▲ 100% Passed' : `▼ ${failedCount} Flagged`}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -533,34 +600,40 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
         </div>
 
         {/* Card 4: Data Readiness Status (Soft Mint / Teal) */}
-        <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#EAF5F2', border: '1px solid #CCFBF1', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
-            Data Readiness Status
+        <div className="elevated-card" style={{ padding: '16px 18px 14px', borderRadius: '16px', background: '#EAF5F2', border: '1px solid #CCFBF1', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '124px' }}>
+          <div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+              Data Readiness Status
+            </div>
+            <div style={{ fontSize: isCalculating ? '1.20rem' : '1.45rem', fontWeight: 850, color: isCalculating ? 'var(--deloitte-teal)' : allPassed ? '#007680' : '#DC2626', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {isCalculating ? (
+                <>
+                  <Loader2 size={18} className="spin" color="var(--deloitte-teal)" />
+                  <span>IN PROGRESS</span>
+                </>
+              ) : allPassed ? (
+                <>
+                  <CheckCircle2 size={20} color="#007680" />
+                  <span>READY</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={20} color="#DC2626" />
+                  <span>ATTENTION</span>
+                </>
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: isCalculating ? '1.20rem' : '1.45rem', fontWeight: 850, color: isCalculating ? 'var(--deloitte-teal)' : allPassed ? '#007680' : '#DC2626', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isCalculating ? (
-              <>
-                <Loader2 size={18} className="spin" color="var(--deloitte-teal)" />
-                <span>IN PROGRESS</span>
-              </>
-            ) : allPassed ? (
-              <>
-                <CheckCircle2 size={20} color="#007680" />
-                <span>READY</span>
-              </>
-            ) : (
-              <>
-                <AlertTriangle size={20} color="#DC2626" />
-                <span>ATTENTION</span>
-              </>
-            )}
+          {/* Mini Sparkline Bar */}
+          <div style={{ width: '100%', height: '4px', background: 'rgba(0,0,0,0.06)', borderRadius: '999px', overflow: 'hidden', margin: '2px 0 6px' }}>
+            <div style={{ width: allPassed ? '100%' : '30%', height: '100%', background: allPassed ? '#007680' : '#DC2626', borderRadius: '999px', transition: 'width 0.4s ease' }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', gap: '8px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: isCalculating ? 'var(--deloitte-teal)' : allPassed ? '#007680' : '#DC2626', border: '1px solid #99F6E4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 750, color: isCalculating ? 'var(--deloitte-teal)' : allPassed ? '#007680' : '#DC2626', border: '1px solid #99F6E4', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
               {isCalculating ? '▲ Verifying' : allPassed ? '▲ Unlocked' : '▼ Action Required'}
             </span>
             <span style={{ fontSize: '0.72rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {isCalculating ? 'Running schema checks' : allPassed ? 'Step 3 Unlocked' : 'Inspect Records'}
+              {isCalculating ? 'Running schema checks' : allPassed ? 'Step 4 Unlocked' : 'Inspect Records'}
             </span>
           </div>
         </div>
@@ -737,26 +810,27 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
               <div>
                 {/* Action Buttons for Failed / Flagged Constraint Records */}
-                {c.fileName && runId && hasFailedRows && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', marginBottom: '8px'
-                  }}>
-                    {onPreviewFailedRows && (
-                      <button
-                        type="button"
-                        onClick={() => onPreviewFailedRows(c.fileName!, `${c.id}: ${c.name} (Failed Records)`)}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '4px',
-                          padding: '3.5px 8px', borderRadius: '5px', fontSize: '0.69rem', fontWeight: 700,
-                          background: 'var(--deloitte-teal-light)', color: 'var(--deloitte-teal)',
-                          border: '1px solid rgba(0, 118, 128, 0.25)', cursor: 'pointer',
-                          transition: 'all 0.15s ease', flex: 1, justifyContent: 'center'
-                        }}
-                        title={`Preview sample failed records for ${c.id}`}
-                      >
-                        <Eye size={11} /> Preview ({c.failedRowsCount || 'Rows'})
-                      </button>
-                    )}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', marginBottom: '8px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenConstraintDrawer(c)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      padding: '3.5px 8px', borderRadius: '5px', fontSize: '0.69rem', fontWeight: 700,
+                      background: hasFailedRows ? '#FFF1F2' : 'var(--deloitte-teal-light)',
+                      color: hasFailedRows ? '#E11D48' : 'var(--deloitte-teal)',
+                      border: hasFailedRows ? '1px solid #FECDD3' : '1px solid rgba(0, 118, 128, 0.25)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease', flex: 1, justifyContent: 'center'
+                    }}
+                    title={`Inspect detailed records for ${c.id}`}
+                  >
+                    <Eye size={11} /> {hasFailedRows ? `Inspect (${c.failedRowsCount || 'Rows'})` : 'Inspect Rule'}
+                  </button>
+
+                  {c.fileName && runId && (
                     <a
                       href={RunService.getDownloadOutputUrl(runId, c.fileName)}
                       style={{
@@ -771,8 +845,8 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                     >
                       <Download size={11} color="#FFFFFF" /> Export CSV
                     </a>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <div style={{
                   fontSize: '0.68rem', color: '#64748B', paddingTop: '7px',
@@ -793,6 +867,20 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
           );
         })}
       </div>
+
+      {/* Progressive Slide-Over Inspection Drawer */}
+      <InspectionDrawer
+        isOpen={drawerData.isOpen}
+        onClose={() => setDrawerData((prev) => ({ ...prev, isOpen: false }))}
+        title={drawerData.title}
+        subtitle={drawerData.subtitle}
+        ruleCode={drawerData.ruleCode}
+        ruleDescription={drawerData.ruleDescription}
+        headers={drawerData.headers}
+        rows={drawerData.rows}
+        downloadUrl={drawerData.downloadUrl}
+        badge={drawerData.badge}
+      />
     </div>
   );
 };

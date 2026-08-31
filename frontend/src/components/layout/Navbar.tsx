@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthService } from '../../services/authService';
 import {
   ShieldCheck, User, LogOut, LayoutDashboard, Rocket,
   Sparkles, History, CheckCircle2, ChevronRight, FileSpreadsheet,
-  Activity, ArrowUpRight
+  Activity, ArrowUpRight, Search, Command
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { CommandPalette } from '../common/CommandPalette';
 
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,18 @@ export const Navbar: React.FC = () => {
   const user = AuthService.getCurrentUser();
   const searchParams = new URLSearchParams(location.search);
   const currentRunId = searchParams.get('runId');
+  const [isCmdOpen, setIsCmdOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCmdOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const isDashboard = location.pathname === '/dashboard' || location.pathname === '/';
   const isWorkflowPage = location.pathname.includes('/jet') || location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
@@ -228,8 +241,45 @@ export const Navbar: React.FC = () => {
           )}
         </div>
 
-        {/* ── Right: New Run CTA + User Profile + Logout ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* ── Right: Quick Search + New Run CTA + User Profile + Logout ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Global Command Palette Trigger Pill */}
+          <button
+            type="button"
+            onClick={() => setIsCmdOpen(true)}
+            className="smooth-tab-btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              color: '#64748B',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+            }}
+            title="Open Command Palette (Ctrl + K)"
+          >
+            <Search size={13} color="#007680" />
+            <span style={{ color: '#475569' }}>Search actions...</span>
+            <kbd style={{
+              fontSize: '0.66rem',
+              padding: '2px 5px',
+              background: '#FFFFFF',
+              border: '1px solid #CBD5E1',
+              borderRadius: '4px',
+              color: '#007680',
+              fontWeight: 800,
+              fontFamily: 'var(--font-mono)'
+            }}>
+              Ctrl K
+            </kbd>
+          </button>
+
           {/* Quick Launch CTA Button */}
           {!isWorkflowPage && (
             <motion.button
@@ -330,6 +380,17 @@ export const Navbar: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Global Command Palette */}
+      <CommandPalette
+        isOpen={isCmdOpen}
+        onClose={() => setIsCmdOpen(false)}
+        onNavigateStep={(step) => {
+          if (!isWorkflowPage) {
+            navigate('/jet');
+          }
+        }}
+      />
     </header>
   );
 };
