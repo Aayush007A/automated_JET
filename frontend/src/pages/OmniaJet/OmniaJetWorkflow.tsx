@@ -14,6 +14,7 @@ import { SampleDataModal } from '../../components/common/SampleDataModal';
 import { StepTimeline, TimelineStep } from '../../components/common/StepTimeline';
 import { TabSlider } from '../../components/common/TabSlider';
 import { EngagementAuditParametersCard, EngagementAuditParametersData } from '../../components/common/EngagementAuditParametersCard';
+import { DatasetColumnHealthVisualizer } from '../../components/common/DatasetColumnHealthVisualizer';
 import { OmniaExclusionsPanel } from './components/OmniaExclusionsPanel';
 import { OmniaTestDesignPanel } from './components/OmniaTestDesignPanel';
 import { OmniaFlaggedEntriesTable } from './components/OmniaFlaggedEntriesTable';
@@ -409,7 +410,7 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [artifactCategory, setArtifactCategory] = useState<'ALL' | 'RECONCILIATION' | 'MASTER' | 'DQC' | 'CONTROL_TOTAL' | 'PARAMETRIC'>('ALL');
   const [artifactSearch, setArtifactSearch] = useState('');
 
-  const loadRun = async (overrideRunId?: string) => {
+  const loadRun = async (overrideRunId?: string, syncStep: boolean = false) => {
     const targetRunId = overrideRunId || runId;
     if (!targetRunId) {
       setLoading(false);
@@ -478,12 +479,20 @@ export const OmniaJetWorkflow: React.FC = () => {
         });
       }
 
-      if (data.status.status === 'COMPLETED') {
-        setCurrentStep(6);
-        setMaxCompletedStep(6);
-      } else if (data.status.status === 'RUNNING') {
-        setCurrentStep(5);
-        setMaxCompletedStep(5);
+      if (syncStep) {
+        if (data.status.status === 'COMPLETED') {
+          setCurrentStep(6);
+          setMaxCompletedStep(6);
+        } else if (data.status.status === 'RUNNING') {
+          setCurrentStep(5);
+          setMaxCompletedStep(5);
+        }
+      } else {
+        if (data.status.status === 'COMPLETED') {
+          setMaxCompletedStep(6);
+        } else if (data.status.status === 'RUNNING') {
+          setMaxCompletedStep(5);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -493,7 +502,7 @@ export const OmniaJetWorkflow: React.FC = () => {
   };
 
   useEffect(() => {
-    loadRun();
+    loadRun(undefined, true);
   }, [runId]);
 
   useEffect(() => {
@@ -702,6 +711,8 @@ export const OmniaJetWorkflow: React.FC = () => {
 
   const handleUpload = async (files: File[]) => {
     setUploading(true);
+    // Snapshot params before loadRun can overwrite them
+    const savedParams = { ...engagementAuditParams };
     try {
       let activeRunId = runId;
       if (!activeRunId) {
@@ -755,6 +766,12 @@ export const OmniaJetWorkflow: React.FC = () => {
       const res = await RunService.uploadFiles(activeRunId, files, 'OMNIA_JET');
       setConfig((prev) => prev ? { ...prev, files: res.files, datasetMap: res.datasetMap, fieldMappings: res.fieldMappings } : null);
       await loadRun(activeRunId);
+      // Restore user-entered params after loadRun
+      setEngagementAuditParams(prev => ({
+        ...prev,
+        ...savedParams,
+        engagementRunId: activeRunId || savedParams.engagementRunId,
+      }));
     } catch (err: any) {
       console.error(`Upload failed:`, err);
     } finally {
@@ -784,10 +801,19 @@ export const OmniaJetWorkflow: React.FC = () => {
   const handleRunAutoClean = async () => {
     if (!runId) return;
     setAutoCleaning(true);
+    // Snapshot params before loadRun can overwrite them
+    const savedParams = { ...engagementAuditParams };
     try {
       const res = await RunService.autoCleanData(runId);
       setAutoCleanReport(res.report);
       await loadRun();
+      // Restore user-entered params — backend has no reason to clear these
+      setEngagementAuditParams(prev => ({
+        ...prev,
+        ...savedParams,
+        // Only keep runId from backend if it changed
+        engagementRunId: prev.engagementRunId || savedParams.engagementRunId,
+      }));
     } catch (err) {
       console.error('Auto clean error:', err);
     } finally {
@@ -1495,11 +1521,11 @@ export const OmniaJetWorkflow: React.FC = () => {
                     type="button"
                     onClick={handleRunAutoClean}
                     disabled={autoCleaning}
-                    className="btn-soft-teal"
-                    style={{ padding: '8px 14px', fontSize: '0.80rem', fontWeight: 700 }}
+                    className="btn-deloitte-action"
+                    style={{ padding: '8px 16px', fontSize: '0.80rem' }}
                   >
-                    <Sparkles size={14} className={autoCleaning ? 'spin-slow' : ''} />
-                    {autoCleaning ? 'Cleaning & Checking Constraints...' : 'Run Auto-Clean & Sanitize Data'}
+                    <Sparkles size={14} color="#6EE7B7" className={autoCleaning ? 'spin-slow' : ''} />
+                    <span>{autoCleaning ? 'Cleaning & Checking Constraints...' : 'Run Auto-Clean & Sanitize Data'}</span>
                   </button>
                 )}
               </div>
@@ -1512,25 +1538,18 @@ export const OmniaJetWorkflow: React.FC = () => {
                 uploading={uploading}
                 isCleaningPassed={isConstraintsPassed}
               />
-
-              {autoCleanReport && (
-                <div style={{
-                  marginTop: '20px', padding: '16px 20px', borderRadius: 'var(--radius-md)',
-                  background: 'var(--status-success-bg)', border: '1px solid var(--status-success-border)', color: '#0F766E',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: 800 }}>
-                    <CheckCircle2 size={18} color="var(--status-success)" />
-                    <span>Data Auto-Cleaning & Constraint Check Completed</span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', fontSize: '0.82rem', marginTop: '10px' }}>
-                    <div>TB Rows Cleaned: <strong>{autoCleanReport.tbRowsCleaned?.toLocaleString() || 0}</strong></div>
-                    <div>GL Rows Cleaned: <strong>{autoCleanReport.glRowsCleaned?.toLocaleString() || 0}</strong></div>
-                    <div>Dates Standardized: <strong>{autoCleanReport.datesStandardized?.toLocaleString() || 0}</strong></div>
-                    <div>Numbers Converted: <strong>{autoCleanReport.numbersConverted?.toLocaleString() || 0}</strong></div>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {/* 3. Deep Column Health, Profiling & Quality Suite */}
+            {config && config.files.length > 0 && (
+              <DatasetColumnHealthVisualizer
+                files={config.files}
+                isCleaningPassed={isConstraintsPassed}
+                onRunAutoClean={handleRunAutoClean}
+                autoCleaning={autoCleaning}
+                autoCleanReport={autoCleanReport}
+              />
+            )}
           </div>
         )}
 
@@ -2373,12 +2392,12 @@ export const OmniaJetWorkflow: React.FC = () => {
               }}
             >
               {[
-                { id: 'preview', label: 'Parameter Exception Previews (Top 50)', icon: Eye },
-                { id: 'overview', label: 'Executive Visual Analytics', icon: BarChart3 },
-                { id: 'checkpoints', label: 'Reconciliation & DQC Checkpoints', icon: Activity },
-                { id: 'forensic', label: 'Forensic & Risk Intelligence Hub', icon: Scale },
-                { id: 'tickmarks', label: 'Auditor Evaluations & Tickmarks', icon: Tag },
-                { id: 'artifacts', label: 'Download All Outputs', icon: Archive },
+                { id: 'preview', label: 'Exception Previews', icon: Eye },
+                { id: 'overview', label: 'Visual Analytics', icon: BarChart3 },
+                { id: 'checkpoints', label: 'Reconciliation & DQC', icon: Activity },
+                { id: 'forensic', label: 'Forensic & Risk Intel.', icon: Scale },
+                { id: 'tickmarks', label: 'Evaluations & Tickmarks', icon: Tag },
+                { id: 'artifacts', label: 'Download Outputs', icon: Archive },
               ].map((tab, idx) => {
                 const IconComp = tab.icon;
                 const isActive = activeVisualTab === tab.id;
@@ -2435,6 +2454,41 @@ export const OmniaJetWorkflow: React.FC = () => {
 
             {/* TAB 1: PARAMETER EXCEPTION PREVIEWS (2-COLUMN WORKSPACE) */}
             {activeVisualTab === 'preview' && (() => {
+              /* Hero Header */
+              const _heroPreview = (
+                <div style={{
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
+                  borderRadius: '16px', border: '1px solid #E2E8F0',
+                  padding: '18px 24px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)', marginBottom: '4px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '260px' }}>
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)', flexShrink: 0,
+                    }}>
+                      <Eye size={20} color="#FFFFFF" />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                          Parameter Exception Previews
+                        </h3>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 750, color: '#007680', background: '#E6F4F5', border: '1px solid #B2DFE2', padding: '2px 8px', borderRadius: '6px' }}>
+                          Top 50 per Test
+                        </span>
+                      </div>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
+                        Browse flagged journal entries across all 9 parametric fraud tests, scored by risk tier (High / Medium / Low).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+
               const allCards = OMNIA_EXCEPTION_CARDS.map((card) => {
                 const count = getOmniaExceptionCount(card.id, card.file);
                 return { ...card, count };
@@ -2591,21 +2645,23 @@ export const OmniaJetWorkflow: React.FC = () => {
               );
 
               return (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '345px 1fr',
-                  gap: '18px',
-                  alignItems: 'stretch',
-                  marginBottom: '24px',
-                  height: '700px',
-                }}>
-                  {/* LEFT MASTER SIDEBAR */}
-                  <div className="glass-panel" style={{
-                    padding: '16px',
-                    background: '#FFFFFF',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
+                <React.Fragment>
+                  {_heroPreview}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '345px 1fr',
+                    gap: '18px',
+                    alignItems: 'stretch',
+                    marginBottom: '24px',
+                    height: '700px',
+                  }}>
+                    {/* LEFT MASTER SIDEBAR */}
+                    <div className="glass-panel" style={{
+                      padding: '16px',
+                      background: '#FFFFFF',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
                     height: '100%',
                     overflow: 'hidden',
                   }}>
@@ -2883,6 +2939,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                </React.Fragment>
               );
             })()}
 
@@ -4182,6 +4239,38 @@ export const OmniaJetWorkflow: React.FC = () => {
             {/* TAB 5: AUDITOR EVALUATIONS & TICKMARKS */}
             {activeVisualTab === 'tickmarks' && (
               <div key="tickmarks" className="tab-panel-anim" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Hero Header */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
+                  borderRadius: '16px', border: '1px solid #E2E8F0',
+                  padding: '18px 24px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '260px' }}>
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)', flexShrink: 0,
+                    }}>
+                      <Tag size={20} color="#FFFFFF" />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                          Auditor Evaluations & Tickmarks
+                        </h3>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 750, color: '#007680', background: '#E6F4F5', border: '1px solid #B2DFE2', padding: '2px 8px', borderRadius: '6px' }}>
+                          2 Modules
+                        </span>
+                      </div>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
+                        Group and explain flagged exceptions with audit tickmarks, document evaluator conclusions, and sign-off on audit workpapers.
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
                   <OmniaTickmarksTab
                     tickmarks={omniaParams.tickmarks || []}

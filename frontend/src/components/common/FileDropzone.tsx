@@ -144,25 +144,25 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
     }
     if (t.includes('PARAM') || t.includes('INPUT') || t.includes('EXCEPTION') || t.includes('AUDIT_PARAM')) {
       return {
-        bg: '#F0FDF4',
-        border: '#BBF7D0',
-        color: '#16A34A',
-        badgeBg: '#F0FDF4',
-        badgeColor: '#15803D',
-        badgeBorder: '#BBF7D0',
-        dotColor: '#16A34A',
+        bg: '#F0FDFA',
+        border: '#B2DFE2',
+        color: '#007680',
+        badgeBg: '#F0FDFA',
+        badgeColor: '#005A60',
+        badgeBorder: '#99F6E4',
+        dotColor: '#007680',
         label: 'INPUT PARAMETERS',
       };
     }
     if (t.includes('COA') || t.includes('CHART')) {
       return {
-        bg: '#FAF5FF',
-        border: '#E9D5FF',
-        color: '#7C3AED',
-        badgeBg: '#FAF5FF',
-        badgeColor: '#6D28D9',
-        badgeBorder: '#DDD6FE',
-        dotColor: '#7C3AED',
+        bg: '#F0FDFA',
+        border: '#CCFBF1',
+        color: '#007680',
+        badgeBg: '#F0FDFA',
+        badgeColor: '#005A60',
+        badgeBorder: '#99F6E4',
+        dotColor: '#007680',
         label: 'CHART OF ACCOUNTS',
       };
     }
@@ -438,15 +438,15 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                     gap: '6px',
                     padding: '4px 14px',
                     borderRadius: '20px',
-                    background: '#ECFDF5',
-                    color: '#059669',
-                    border: '1px solid #A7F3D0',
+                    background: '#F0FDFA',
+                    color: '#007680',
+                    border: '1px solid #99F6E4',
                     fontSize: '0.74rem',
                     fontWeight: 800,
-                    boxShadow: '0 2px 6px rgba(5, 150, 105, 0.1)',
+                    boxShadow: '0 2px 6px rgba(0, 118, 128, 0.1)',
                   }}
                 >
-                  <CheckCircle2 size={13} /> CLEANING PASSED
+                  <CheckCircle2 size={13} color="#007680" /> CLEANING PASSED
                 </span>
               ) : (
                 <span
@@ -729,9 +729,9 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                           style={{
                             fontSize: '0.68rem',
                             fontWeight: 700,
-                            color: '#059669',
-                            background: '#ECFDF5',
-                            border: '1px solid #A7F3D0',
+                            color: '#007680',
+                            background: '#F0FDFA',
+                            border: '1px solid #99F6E4',
                             padding: '2px 7px',
                             borderRadius: '5px',
                             display: 'inline-flex',
@@ -739,7 +739,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                             gap: '4px',
                           }}
                         >
-                          <CheckCircle2 size={11} /> Cleaned
+                          <CheckCircle2 size={11} color="#007680" /> Cleaned
                         </span>
                       ) : (
                         <span

@@ -17,6 +17,7 @@ import { JetSummaryReportSuite } from '../../components/summary/JetSummaryReport
 import { ExecutiveChartJsAnalyticsSuite } from '../../components/summary/ExecutiveChartJsAnalyticsSuite';
 import { ExecutiveForensicIntelligenceHub } from '../../components/summary/ExecutiveForensicIntelligenceHub';
 import { EngagementAuditParametersCard, EngagementAuditParametersData } from '../../components/common/EngagementAuditParametersCard';
+import { DatasetColumnHealthVisualizer } from '../../components/common/DatasetColumnHealthVisualizer';
 import {
   ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download,
   Layers, Settings, FileSpreadsheet, ShieldCheck, Database, RefreshCw, Archive,
@@ -572,7 +573,7 @@ export const SparkJetWorkflow: React.FC = () => {
     }
   };
 
-  const loadRun = async (overrideRunId?: string) => {
+  const loadRun = async (overrideRunId?: string, syncStep: boolean = false) => {
     const targetRunId = overrideRunId || runId;
     if (!targetRunId) {
       setLoading(false);
@@ -700,12 +701,21 @@ export const SparkJetWorkflow: React.FC = () => {
         });
       }
 
-      if (data.status.status === 'COMPLETED') {
-        setMaxCompletedStep(6);
-        setIsIrApproved(true);
-        setCurrentStep((prev) => (prev === 1 ? 6 : prev));
-      } else if (data.config.files.length > 0) {
-        setMaxCompletedStep((prev) => Math.max(prev, 2));
+      if (syncStep) {
+        if (data.status.status === 'COMPLETED') {
+          setMaxCompletedStep(6);
+          setIsIrApproved(true);
+          setCurrentStep(6);
+        } else if (data.config.files.length > 0) {
+          setMaxCompletedStep((prev) => Math.max(prev, 2));
+        }
+      } else {
+        if (data.status.status === 'COMPLETED') {
+          setMaxCompletedStep(6);
+          setIsIrApproved(true);
+        } else if (data.config.files.length > 0) {
+          setMaxCompletedStep((prev) => Math.max(prev, 2));
+        }
       }
 
       await loadContextData(data.config);
@@ -717,7 +727,7 @@ export const SparkJetWorkflow: React.FC = () => {
   };
 
   useEffect(() => {
-    loadRun();
+    loadRun(undefined, true);
   }, [runId]);
 
   useEffect(() => {
@@ -856,11 +866,13 @@ export const SparkJetWorkflow: React.FC = () => {
   const handleRunAutoClean = async () => {
     if (!runId) return;
     setAutoCleaning(true);
+    const savedParams = { ...engagementAuditParams };
     try {
       const res = await RunService.autoCleanData(runId);
       if (res.success) {
         setAutoCleanReport(res.report);
       }
+      setEngagementAuditParams(prev => ({ ...prev, ...savedParams, engagementRunId: prev.engagementRunId || savedParams.engagementRunId }));
     } catch (err: any) {
       console.error('Failed to run auto-cleaning:', err);
     } finally {
@@ -870,6 +882,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
   const handleUpload = async (files: File[]) => {
     setUploading(true);
+    const savedParams = { ...engagementAuditParams };
     try {
       let activeRunId = runId;
       if (!activeRunId) {
@@ -910,6 +923,12 @@ export const SparkJetWorkflow: React.FC = () => {
 
       await RunService.uploadFiles(activeRunId, files, 'SPARK_JET');
       await loadRun(activeRunId);
+      // Restore user-entered params after loadRun
+      setEngagementAuditParams(prev => ({
+        ...prev,
+        ...savedParams,
+        engagementRunId: activeRunId || savedParams.engagementRunId,
+      }));
     } catch (err) {
       console.error(err);
     } finally {
@@ -1828,6 +1847,19 @@ export const SparkJetWorkflow: React.FC = () => {
                     Upload your raw Trial Balance and General Ledger / Population dataset files.
                   </p>
                 </div>
+
+                {config && config.files.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleRunAutoClean}
+                    disabled={autoCleaning}
+                    className="btn-deloitte-action"
+                    style={{ padding: '8px 16px', fontSize: '0.80rem' }}
+                  >
+                    <Sparkles size={14} color="#6EE7B7" className={autoCleaning ? 'spin-slow' : ''} />
+                    <span>{autoCleaning ? 'Cleaning & Checking Constraints...' : 'Run Auto-Clean & Sanitize Data'}</span>
+                  </button>
+                )}
               </div>
 
               <FileDropzone
@@ -1839,6 +1871,17 @@ export const SparkJetWorkflow: React.FC = () => {
                 isCleaningPassed={isConstraintsPassed}
               />
             </div>
+
+            {/* 3. Deep Column Health, Profiling & Quality Suite */}
+            {config && config.files.length > 0 && (
+              <DatasetColumnHealthVisualizer
+                files={config.files}
+                isCleaningPassed={isConstraintsPassed}
+                onRunAutoClean={handleRunAutoClean}
+                autoCleaning={autoCleaning}
+                autoCleanReport={autoCleanReport}
+              />
+            )}
           </div>
         )}
 
@@ -3344,11 +3387,11 @@ export const SparkJetWorkflow: React.FC = () => {
               }}
             >
               {[
-                { id: 'preview', label: 'Parameter Exception Previews (Top 50)', icon: Eye },
-                { id: 'overview', label: 'Executive Visual Analytics', icon: BarChart3 },
+                { id: 'preview', label: 'Exception Previews', icon: Eye },
+                { id: 'overview', label: 'Visual Analytics', icon: BarChart3 },
                 { id: 'checkpoints', label: 'TB & GL Checkpoints', icon: Activity },
-                { id: 'forensic', label: 'Forensic & CFO Intelligence', icon: Scale },
-                { id: 'artifacts', label: 'Download All Outputs', icon: Archive },
+                { id: 'forensic', label: 'Forensic & CFO Intel.', icon: Scale },
+                { id: 'artifacts', label: 'Download Outputs', icon: Archive },
               ].map((tab, idx) => {
                 const IconComp = tab.icon;
                 const isActive = activeVisualTab === tab.id;
@@ -3846,40 +3889,142 @@ export const SparkJetWorkflow: React.FC = () => {
             })()}
 
             {activeVisualTab === 'overview' && (
-              <ExecutiveChartJsAnalyticsSuite
-                runId={runId!}
-                status={status}
-                config={config}
-                enabledExceptions={enabledExceptions}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Hero Header */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
+                  borderRadius: '16px', border: '1px solid #E2E8F0',
+                  padding: '18px 24px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)', flexShrink: 0,
+                    }}>
+                      <BarChart3 size={20} color="#FFFFFF" />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                          Executive Visual Analytics
+                        </h3>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 750, color: '#007680', background: '#E6F4F5', border: '1px solid #B2DFE2', padding: '2px 8px', borderRadius: '6px' }}>
+                          SparkJet Suite
+                        </span>
+                      </div>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
+                        Parametric exception analytics, risk stratification charts and trend heatmaps across the full GL population.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <ExecutiveChartJsAnalyticsSuite
+                  runId={runId!}
+                  status={status}
+                  config={config}
+                  enabledExceptions={enabledExceptions}
+                />
+              </div>
             )}
 
             {activeVisualTab === 'checkpoints' && (
-              <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px' }}>Trial Balance & Population Checkpoint Summary</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                  <div className="jet-card" style={{ padding: '18px' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Opening Balance Sum</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{status?.tbCheckpointsSummary?.openingSum?.toLocaleString() || '0.00'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Hero Header */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
+                  borderRadius: '16px', border: '1px solid #E2E8F0',
+                  padding: '18px 24px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)', flexShrink: 0,
+                    }}>
+                      <Activity size={20} color="#FFFFFF" />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                          TB & GL Checkpoints
+                        </h3>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 750, color: '#007680', background: '#E6F4F5', border: '1px solid #B2DFE2', padding: '2px 8px', borderRadius: '6px' }}>
+                          Balance Summary
+                        </span>
+                      </div>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
+                        Trial balance opening & closing sums, GL net transaction volume, and period reconciliation checkpoints.
+                      </p>
+                    </div>
                   </div>
-                  <div className="jet-card" style={{ padding: '18px' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Closing Balance Sum</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{status?.tbCheckpointsSummary?.closingSum?.toLocaleString() || '0.00'}</div>
-                  </div>
-                  <div className="jet-card" style={{ padding: '18px' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Total GL Transaction Volume</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)' }}>{status?.glCheckpointsSummary?.totalNetBalance?.toLocaleString() || '0.00'}</div>
+                </div>
+                <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px' }}>Trial Balance & Population Checkpoint Summary</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    <div className="jet-card" style={{ padding: '18px' }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Opening Balance Sum</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{status?.tbCheckpointsSummary?.openingSum?.toLocaleString() || '0.00'}</div>
+                    </div>
+                    <div className="jet-card" style={{ padding: '18px' }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Closing Balance Sum</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{status?.tbCheckpointsSummary?.closingSum?.toLocaleString() || '0.00'}</div>
+                    </div>
+                    <div className="jet-card" style={{ padding: '18px' }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Total GL Transaction Volume</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--deloitte-teal)' }}>{status?.glCheckpointsSummary?.totalNetBalance?.toLocaleString() || '0.00'}</div>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {activeVisualTab === 'forensic' && (
-              <ExecutiveForensicIntelligenceHub
-                runId={runId!}
-                status={status}
-                config={config}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Hero Header */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
+                  borderRadius: '16px', border: '1px solid #E2E8F0',
+                  padding: '18px 24px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)', flexShrink: 0,
+                    }}>
+                      <Scale size={20} color="#FFFFFF" />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                          Forensic & CFO Intelligence Hub
+                        </h3>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 750, color: '#007680', background: '#E6F4F5', border: '1px solid #B2DFE2', padding: '2px 8px', borderRadius: '6px' }}>
+                          Risk Stratification
+                        </span>
+                      </div>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
+                        Executive-level forensic risk breakdown, population funnel analytics, user-of-interest profiling and period-over-period trends.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <ExecutiveForensicIntelligenceHub
+                  runId={runId!}
+                  status={status}
+                  config={config}
+                />
+              </div>
             )}
 
             {activeVisualTab === 'artifacts' && (() => {

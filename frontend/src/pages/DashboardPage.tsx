@@ -127,7 +127,9 @@ export const DashboardPage: React.FC = () => {
     else matchFilter = r.status === statusFilter;
     const matchSearch = !searchQuery
       || r.runId.toLowerCase().includes(searchQuery.toLowerCase())
-      || r.status.toLowerCase().includes(searchQuery.toLowerCase());
+      || r.status.toLowerCase().includes(searchQuery.toLowerCase())
+      || (r.workflow || '').toLowerCase().includes(searchQuery.toLowerCase())
+      || (r.workflow === 'OMNIA_JET' ? 'omnia' : 'spark').includes(searchQuery.toLowerCase());
     return matchFilter && matchSearch;
   });
 
@@ -440,7 +442,7 @@ export const DashboardPage: React.FC = () => {
           }}
         />
 
-        <div style={{ maxWidth: '1520px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           {/* Section Header (Unified Typographic Hierarchy) */}
           <div style={{ marginBottom: '32px', maxWidth: '820px' }}>
             {/* Pill badge */}
@@ -495,7 +497,7 @@ export const DashboardPage: React.FC = () => {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '20px',
+              gap: '18px',
             }}
           >
             {[
@@ -506,6 +508,7 @@ export const DashboardPage: React.FC = () => {
                 accentColor: '#007680',
                 chipBg: 'rgba(0, 163, 173, 0.12)',
                 chipColor: '#007680',
+                numBg: '#E6F4F1',
                 flatIcon: <CheckSquare size={20} strokeWidth={2.2} />,
                 img3d: '/pillars/pillar_clean_1.png',
               },
@@ -516,6 +519,7 @@ export const DashboardPage: React.FC = () => {
                 accentColor: '#2563EB',
                 chipBg: '#EFF6FF',
                 chipColor: '#2563EB',
+                numBg: '#EDF2FE',
                 flatIcon: <Scale size={20} strokeWidth={2.2} />,
                 img3d: '/pillars/pillar_clean_2.png',
               },
@@ -526,6 +530,7 @@ export const DashboardPage: React.FC = () => {
                 accentColor: '#16A34A',
                 chipBg: '#F0FDF4',
                 chipColor: '#16A34A',
+                numBg: '#EAF8ED',
                 flatIcon: <ShieldCheck size={20} strokeWidth={2.2} />,
                 img3d: '/pillars/pillar_clean_3.png',
               },
@@ -536,10 +541,11 @@ export const DashboardPage: React.FC = () => {
                 accentColor: '#D97706',
                 chipBg: '#FFFBEB',
                 chipColor: '#D97706',
+                numBg: '#FEF6E6',
                 flatIcon: <BarChart3 size={20} strokeWidth={2.2} />,
                 img3d: '/pillars/pillar_clean_4.png',
               },
-            ].map((pillar, i) => (
+            ].map((pillar) => (
               <motion.div
                 key={pillar.title}
                 variants={cardItem}
@@ -575,7 +581,7 @@ export const DashboardPage: React.FC = () => {
                 }} />
 
                 {/* Card inner content */}
-                <div style={{ padding: '26px 24px 22px 24px', display: 'flex', flexDirection: 'column', flex: 1, position: 'relative', zIndex: 1 }}>
+                <div style={{ padding: '24px 22px 20px 22px', display: 'flex', flexDirection: 'column', flex: 1, position: 'relative', zIndex: 1 }}>
 
                   {/* Top Row: Left Flat Icon Chip + Right 3D Visual Asset */}
                   <div style={{
@@ -583,7 +589,7 @@ export const DashboardPage: React.FC = () => {
                     alignItems: 'flex-start',
                     justifyContent: 'space-between',
                     marginBottom: '16px',
-                    minHeight: '84px',
+                    minHeight: '80px',
                   }}>
                     {/* Left Icon Chip */}
                     <div style={{
@@ -606,8 +612,8 @@ export const DashboardPage: React.FC = () => {
                       src={pillar.img3d}
                       alt={pillar.title}
                       style={{
-                        width: '84px',
-                        height: '84px',
+                        width: '80px',
+                        height: '80px',
                         objectFit: 'contain',
                         display: 'block',
                         filter: 'drop-shadow(0 6px 14px rgba(0, 0, 0, 0.06))',
@@ -618,7 +624,7 @@ export const DashboardPage: React.FC = () => {
 
                   {/* Title */}
                   <h3 style={{
-                    fontSize: '1.14rem',
+                    fontSize: '1.10rem',
                     fontWeight: 800,
                     color: '#0F172A',
                     letterSpacing: '-0.025em',
@@ -640,35 +646,46 @@ export const DashboardPage: React.FC = () => {
 
                   {/* Description */}
                   <p style={{
-                    fontSize: '0.84rem',
+                    fontSize: '0.83rem',
                     color: '#64748B',
-                    lineHeight: 1.6,
+                    lineHeight: 1.55,
                     margin: 0,
-                    marginBottom: '24px',
+                    marginBottom: '20px',
                     flex: 1,
                     fontWeight: 400,
                   }}>
                     {pillar.description}
                   </p>
 
-                  {/* Bottom Row: Number + Arrow */}
+                  {/* Bottom Row: Number Tab Badge + Arrow (Matches Reference Image 1) */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     marginTop: 'auto',
+                    marginLeft: '-22px',
+                    marginRight: '-22px',
+                    marginBottom: '-20px',
+                    paddingRight: '22px',
                   }}>
-                    <span style={{
+                    <div style={{
+                      background: pillar.numBg,
+                      color: pillar.accentColor,
+                      padding: '8px 24px 8px 22px',
+                      borderTopRightRadius: '20px',
+                      borderBottomRightRadius: '20px',
                       fontSize: '0.92rem',
                       fontWeight: 800,
-                      color: pillar.accentColor,
                       letterSpacing: '0.02em',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}>
                       {pillar.number}
-                    </span>
+                    </div>
 
                     <span style={{
-                      color: '#94A3B8',
+                      color: '#475569',
                       display: 'inline-flex',
                       alignItems: 'center',
                       transition: 'all 0.25s ease',
@@ -873,7 +890,7 @@ export const DashboardPage: React.FC = () => {
                   }}>
                     <History size={17} strokeWidth={2.4} />
                   </div>
-                  
+
                   <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.025em', margin: 0 }}>
                     Execution History &amp; Audit Runs
                   </h3>
@@ -1056,7 +1073,7 @@ export const DashboardPage: React.FC = () => {
                     <th style={{ padding: '12px 18px', width: '15%', fontSize: '0.70rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
-                
+
                 <tbody>
                   <AnimatePresence mode="wait">
                     {loading ? (
@@ -1321,113 +1338,113 @@ export const DashboardPage: React.FC = () => {
                         );
                       })
                     ) : (
-                        /* ── Inline Centered Empty State inside Stable Table Frame ── */
-                        <motion.tr
-                          key={`empty-${statusFilter}-${searchQuery}`}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.18 }}
-                        >
-                          <td colSpan={6} style={{ textAlign: 'center', padding: '44px 20px' }}>
-                            <div style={{
-                              width: '42px',
-                              height: '42px',
-                              borderRadius: '12px',
-                              background: 'rgba(0, 118, 128, 0.08)',
-                              border: '1px solid rgba(0, 118, 128, 0.18)',
-                              color: '#007680',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              margin: '0 auto 10px',
-                            }}>
-                              <Activity size={20} strokeWidth={2.2} />
-                            </div>
+                      /* ── Inline Centered Empty State inside Stable Table Frame ── */
+                      <motion.tr
+                        key={`empty-${statusFilter}-${searchQuery}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.18 }}
+                      >
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '44px 20px' }}>
+                          <div style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '12px',
+                            background: 'rgba(0, 118, 128, 0.08)',
+                            border: '1px solid rgba(0, 118, 128, 0.18)',
+                            color: '#007680',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 10px',
+                          }}>
+                            <Activity size={20} strokeWidth={2.2} />
+                          </div>
 
-                            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0F172A', marginBottom: '3px', letterSpacing: '-0.015em' }}>
-                              {statusFilter === 'RUNNING'
-                                ? 'No Active Running Executions'
-                                : statusFilter === 'COMPLETED'
-                                  ? 'No Completed Audit Runs Found'
-                                  : statusFilter === 'FAILED'
-                                    ? 'No Failed Audit Runs'
-                                    : searchQuery
-                                      ? `No Executions Matching "${searchQuery}"`
-                                      : 'No Audit Runs Found'}
-                            </div>
-
-                            <p style={{ fontSize: '0.79rem', color: '#64748B', maxWidth: '380px', margin: '0 auto 14px', lineHeight: 1.5 }}>
-                              {statusFilter === 'RUNNING'
-                                ? 'There are currently no pipelines executing. Launch a new workflow to start testing.'
-                                : statusFilter !== 'ALL'
-                                  ? `There are no executions currently categorized as ${statusFilter.toLowerCase()}.`
+                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0F172A', marginBottom: '3px', letterSpacing: '-0.015em' }}>
+                            {statusFilter === 'RUNNING'
+                              ? 'No Active Running Executions'
+                              : statusFilter === 'COMPLETED'
+                                ? 'No Completed Audit Runs Found'
+                                : statusFilter === 'FAILED'
+                                  ? 'No Failed Audit Runs'
                                   : searchQuery
-                                    ? `No audit runs match "${searchQuery}". Try adjusting your keywords or clearing the search.`
-                                    : 'Execute your Trial Balance and General Ledger datasets to start generating audit workpapers.'}
-                            </p>
+                                    ? `No Executions Matching "${searchQuery}"`
+                                    : 'No Audit Runs Found'}
+                          </div>
 
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                              {(statusFilter !== 'ALL' || searchQuery) && (
-                                <button
-                                  onClick={() => {
-                                    setStatusFilter('ALL');
-                                    setSearchQuery('');
-                                    setCurrentPage(1);
-                                  }}
-                                  style={{
-                                    padding: '6px 13px',
-                                    fontSize: '0.77rem',
-                                    fontWeight: 600,
-                                    borderRadius: '7px',
-                                    border: '1px solid #E2E8F0',
-                                    background: '#FFFFFF',
-                                    color: '#334155',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.12s ease',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.borderColor = '#007680';
-                                    e.currentTarget.style.color = '#007680';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.borderColor = '#E2E8F0';
-                                    e.currentTarget.style.color = '#334155';
-                                  }}
-                                >
-                                  Reset Filters
-                                </button>
-                              )}
+                          <p style={{ fontSize: '0.79rem', color: '#64748B', maxWidth: '380px', margin: '0 auto 14px', lineHeight: 1.5 }}>
+                            {statusFilter === 'RUNNING'
+                              ? 'There are currently no pipelines executing. Launch a new workflow to start testing.'
+                              : statusFilter !== 'ALL'
+                                ? `There are no executions currently categorized as ${statusFilter.toLowerCase()}.`
+                                : searchQuery
+                                  ? `No audit runs match "${searchQuery}". Try adjusting your keywords or clearing the search.`
+                                  : 'Execute your Trial Balance and General Ledger datasets to start generating audit workpapers.'}
+                          </p>
 
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            {(statusFilter !== 'ALL' || searchQuery) && (
                               <button
-                                onClick={() => handleStartWorkflow()}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '6px 15px',
-                                  borderRadius: '7px',
-                                  background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
-                                  color: '#FFFFFF',
-                                  fontSize: '0.77rem',
-                                  fontWeight: 700,
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  boxShadow: '0 2px 8px rgba(0, 118, 128, 0.22)',
-                                  transition: 'transform 0.12s ease',
+                                onClick={() => {
+                                  setStatusFilter('ALL');
+                                  setSearchQuery('');
+                                  setCurrentPage(1);
                                 }}
-                                onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-                                onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                                style={{
+                                  padding: '6px 13px',
+                                  fontSize: '0.77rem',
+                                  fontWeight: 600,
+                                  borderRadius: '7px',
+                                  border: '1px solid #E2E8F0',
+                                  background: '#FFFFFF',
+                                  color: '#334155',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.12s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.borderColor = '#007680';
+                                  e.currentTarget.style.color = '#007680';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.borderColor = '#E2E8F0';
+                                  e.currentTarget.style.color = '#334155';
+                                }}
                               >
-                                <Rocket size={13} /> Launch JET Workflow <ArrowRight size={12} />
+                                Reset Filters
                               </button>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      )}
-                    </AnimatePresence>
-                  </tbody>
-                </table>
+                            )}
+
+                            <button
+                              onClick={() => handleStartWorkflow()}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 15px',
+                                borderRadius: '7px',
+                                background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                                color: '#FFFFFF',
+                                fontSize: '0.77rem',
+                                fontWeight: 700,
+                                border: 'none',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0, 118, 128, 0.22)',
+                                transition: 'transform 0.12s ease',
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                              onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                            >
+                              <Rocket size={13} /> Launch JET Workflow <ArrowRight size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    )}
+                  </AnimatePresence>
+                </tbody>
+              </table>
 
               {/* ── Docked Bottom Footer Bar ── */}
               <div style={{
@@ -1530,7 +1547,7 @@ export const DashboardPage: React.FC = () => {
                     <span style={{ fontSize: '0.76rem', color: '#94A3B8', fontWeight: 500 }}>
                       0 audit runs matching filter ({statusFilter.toLowerCase()})
                     </span>
-                    
+
                     <button
                       onClick={() => {
                         setStatusFilter('ALL');

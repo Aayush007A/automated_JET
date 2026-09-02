@@ -94,7 +94,7 @@ export const OmniaTickmarksTab: React.FC<OmniaTickmarksTabProps> = ({
           <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
             RESOLVED / EXPLAINED ENTRIES
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 850, color: '#16A34A' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: 850, color: 'var(--deloitte-teal)' }}>
             {totalEntriesResolved.toLocaleString()} Entries
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -138,68 +138,60 @@ export const OmniaTickmarksTab: React.FC<OmniaTickmarksTabProps> = ({
 
       </div>
 
-      {/* Sub-Tabs Selector */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
+      {/* Sub-Tabs Selector — matching the white-card pattern used throughout the app */}
+      <div style={{
+        display: 'inline-flex', alignItems: 'center',
+        background: '#F1F5F9', padding: '3px', borderRadius: '11px',
+        border: '1px solid #E2E8F0', gap: '3px',
+      }}>
         <button
           onClick={() => setActiveSubTab('tickmarks')}
           style={{
-            padding: '8px 16px', borderRadius: '8px',
-            background: activeSubTab === 'tickmarks' ? 'var(--deloitte-teal)' : '#F1F5F9',
-            color: activeSubTab === 'tickmarks' ? '#FFFFFF' : '#475569',
-            border: 'none', fontWeight: 750, fontSize: '0.80rem', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '8px',
-            transition: 'all 0.15s ease'
+            display: 'inline-flex', alignItems: 'center', gap: '7px',
+            whiteSpace: 'nowrap', padding: '7px 14px', fontSize: '0.76rem',
+            fontWeight: activeSubTab === 'tickmarks' ? 750 : 500,
+            color: activeSubTab === 'tickmarks' ? '#007680' : '#475569',
+            background: activeSubTab === 'tickmarks' ? '#FFFFFF' : 'transparent',
+            border: activeSubTab === 'tickmarks' ? '1px solid #CBD5E1' : '1px solid transparent',
+            borderRadius: '8px', cursor: 'pointer',
+            boxShadow: activeSubTab === 'tickmarks' ? '0 2px 8px rgba(0, 118, 128, 0.10)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
-          <span
-            style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              background: activeSubTab === 'tickmarks' ? '#FFFFFF' : '#CBD5E1',
-              color: activeSubTab === 'tickmarks' ? '#007680' : '#475569',
-              fontSize: '0.68rem',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              fontFamily: 'var(--font-mono, monospace)',
-            }}
-          >
-            1
-          </span>
+          <span style={{
+            width: '18px', height: '18px', borderRadius: '50%',
+            background: activeSubTab === 'tickmarks' ? '#007680' : '#E2E8F0',
+            color: activeSubTab === 'tickmarks' ? '#FFFFFF' : '#64748B',
+            fontSize: '0.68rem', fontWeight: 800,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, fontFamily: 'var(--font-mono, monospace)',
+            transition: 'all 0.15s ease',
+          }}>1</span>
           Managed Tickmarks ({tickmarks.length})
         </button>
         <button
           onClick={() => setActiveSubTab('evaluations')}
           style={{
-            padding: '8px 16px', borderRadius: '8px',
-            background: activeSubTab === 'evaluations' ? 'var(--deloitte-teal)' : '#F1F5F9',
-            color: activeSubTab === 'evaluations' ? '#FFFFFF' : '#475569',
-            border: 'none', fontWeight: 750, fontSize: '0.80rem', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '8px',
-            transition: 'all 0.15s ease'
+            display: 'inline-flex', alignItems: 'center', gap: '7px',
+            whiteSpace: 'nowrap', padding: '7px 14px', fontSize: '0.76rem',
+            fontWeight: activeSubTab === 'evaluations' ? 750 : 500,
+            color: activeSubTab === 'evaluations' ? '#007680' : '#475569',
+            background: activeSubTab === 'evaluations' ? '#FFFFFF' : 'transparent',
+            border: activeSubTab === 'evaluations' ? '1px solid #CBD5E1' : '1px solid transparent',
+            borderRadius: '8px', cursor: 'pointer',
+            boxShadow: activeSubTab === 'evaluations' ? '0 2px 8px rgba(0, 118, 128, 0.10)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
-          <span
-            style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              background: activeSubTab === 'evaluations' ? '#FFFFFF' : '#CBD5E1',
-              color: activeSubTab === 'evaluations' ? '#007680' : '#475569',
-              fontSize: '0.68rem',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              fontFamily: 'var(--font-mono, monospace)',
-            }}
-          >
-            2
-          </span>
+          <span style={{
+            width: '18px', height: '18px', borderRadius: '50%',
+            background: activeSubTab === 'evaluations' ? '#007680' : '#E2E8F0',
+            color: activeSubTab === 'evaluations' ? '#FFFFFF' : '#64748B',
+            fontSize: '0.68rem', fontWeight: 800,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, fontFamily: 'var(--font-mono, monospace)',
+            transition: 'all 0.15s ease',
+          }}>2</span>
           Auditor Evaluations & Sign-Offs ({evaluations.length})
         </button>
       </div>

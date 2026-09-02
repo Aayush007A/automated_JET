@@ -201,8 +201,8 @@ export const OmniaBenfordChart: React.FC<OmniaBenfordChartProps> = ({
           <div style={{ fontSize: '1.4rem', fontWeight: 850, color: conformityRate >= 85 ? '#007680' : '#DC2626', fontFamily: 'monospace' }}>
             {conformityRate.toFixed(1)}%
           </div>
-          <div style={{ fontSize: '0.70rem', color: conformityRate >= 85 ? '#16A34A' : '#92400E', fontWeight: 700, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <CheckCircle2 size={12} /> {conformityRate >= 85 ? 'High Conformity (Natural Distribution)' : 'Marginal Deviation Detected'}
+          <div style={{ fontSize: '0.70rem', color: conformityRate >= 85 ? '#007680' : '#92400E', fontWeight: 700, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <CheckCircle2 size={12} color={conformityRate >= 85 ? '#007680' : '#92400E'} /> {conformityRate >= 85 ? 'High Conformity (Natural Distribution)' : 'Marginal Deviation Detected'}
           </div>
         </div>
 
@@ -235,7 +235,7 @@ export const OmniaBenfordChart: React.FC<OmniaBenfordChartProps> = ({
           <div style={{ fontSize: '1.4rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace' }}>
             {mad.toFixed(4)}
           </div>
-          <div style={{ fontSize: '0.70rem', color: mad <= 0.012 ? '#16A34A' : '#DC2626', fontWeight: 600, marginTop: '2px' }}>
+          <div style={{ fontSize: '0.70rem', color: mad <= 0.012 ? '#007680' : '#DC2626', fontWeight: 600, marginTop: '2px' }}>
             {mad <= 0.006 ? 'Close conformity (< 0.006)' : mad <= 0.012 ? 'Acceptable conformity' : 'Non-conforming'}
           </div>
         </div>
@@ -249,7 +249,7 @@ export const OmniaBenfordChart: React.FC<OmniaBenfordChartProps> = ({
           <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>
             ANOMALY SPIKES (DEVIATION &gt; 3%)
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 850, color: digitStats.filter((s: BenfordDigitStat) => s.isAnomaly).length > 0 ? '#DC2626' : '#16A34A', fontFamily: 'monospace' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: 850, color: digitStats.filter((s: BenfordDigitStat) => s.isAnomaly).length > 0 ? '#DC2626' : '#007680', fontFamily: 'monospace' }}>
             {digitStats.filter((s: BenfordDigitStat) => s.isAnomaly).length} Digits
           </div>
           <div style={{ fontSize: '0.70rem', color: '#64748B', marginTop: '2px' }}>
@@ -345,9 +345,9 @@ export const OmniaBenfordChart: React.FC<OmniaBenfordChartProps> = ({
                         <span style={{
                           display: 'inline-block',
                           fontSize: '0.66rem', fontWeight: 750, padding: '2px 8px', borderRadius: '4px',
-                          background: s.isAnomaly ? '#FEE2E2' : '#DCFCE7',
-                          color: s.isAnomaly ? '#991B1B' : '#166534',
-                          border: `1px solid ${s.isAnomaly ? '#FECDD3' : '#BBF7D0'}`,
+                          background: s.isAnomaly ? '#FEE2E2' : '#F0FDFA',
+                          color: s.isAnomaly ? '#991B1B' : '#007680',
+                          border: `1px solid ${s.isAnomaly ? '#FECDD3' : '#99F6E4'}`,
                           whiteSpace: 'nowrap',
                         }}>
                           {s.isAnomaly ? 'ANOMALY DETECTED' : 'CONFORMING'}

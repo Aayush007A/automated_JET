@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Building2, Calendar, ShieldCheck, Hash, DollarSign, Tag, ShieldAlert,
-  Edit3, Check, X
-} from 'lucide-react';
+import { Building2, Calendar, ShieldCheck, DollarSign, Tag, ShieldAlert, Briefcase, Check, ChevronDown } from 'lucide-react';
 
 export interface EngagementAuditParametersData {
   engagementName: string;
@@ -22,452 +19,105 @@ interface EngagementAuditParametersCardProps {
   editable?: boolean;
 }
 
-export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCardProps> = ({
-  parameters,
-  onChange,
-  runId,
-  editable = true,
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<EngagementAuditParametersData>({ ...parameters });
+const CURRENCIES = [
+  { code: 'INR', label: 'INR (₹) — Indian Rupee' },
+  { code: 'USD', label: 'USD ($) — US Dollar' },
+  { code: 'EUR', label: 'EUR (€) — Euro' },
+  { code: 'GBP', label: 'GBP (£) — British Pound' },
+  { code: 'CAD', label: 'CAD ($) — Canadian Dollar' },
+  { code: 'AUD', label: 'AUD ($) — Australian Dollar' },
+  { code: 'SGD', label: 'SGD ($) — Singapore Dollar' },
+  { code: 'JPY', label: 'JPY (¥) — Japanese Yen' },
+  { code: 'AED', label: 'AED (د.إ) — UAE Dirham' },
+  { code: 'CHF', label: 'CHF (₣) — Swiss Franc' },
+];
 
-  const formatCurrency = (val: number | string) => {
-    if (val === '' || val === undefined || val === null) return '—';
-    const num = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]+/g, '')) : val;
-    if (isNaN(num) || num === 0) return '—';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: parameters.operatingCurrency || 'USD',
-      maximumFractionDigits: 2,
-    }).format(num);
-  };
+const CLASSIFICATIONS = [
+  'Select Audit Classification...',
+  'Tier 1 Key Audit Engagement',
+  'Public Listed Entity / PCAOB AS 2401',
+  'Standard Statutory Audit',
+  'Internal Audit Review',
+  'Agreed-Upon Procedures (AUP)',
+  'Special Purpose Audit',
+];
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onChange({ ...formData });
-    setIsEditing(false);
-  };
+export const EngagementAuditParametersCard: React.FC<EngagementAuditParametersCardProps> = ({ parameters, onChange, runId, editable = true }) => {
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const update = (field: keyof EngagementAuditParametersData, value: string | number) => onChange({ ...parameters, [field]: value });
+  const currentCurrencyCode = parameters.operatingCurrency && parameters.operatingCurrency.length <= 4 ? parameters.operatingCurrency : (CURRENCIES.find(c => c.code === parameters.operatingCurrency || c.label === parameters.operatingCurrency)?.code || parameters.operatingCurrency || 'INR');
+  const displayRunId = runId || parameters.engagementRunId || 'JET-20260902-004';
 
-  const handleCancel = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setFormData({ ...parameters });
-    setIsEditing(false);
-  };
+  const labelStyle: React.CSSProperties = { fontSize: '0.62rem', fontWeight: 800, color: '#64748B', letterSpacing: '0.045em', textTransform: 'uppercase', marginBottom: '6px', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+  const getContainerStyle = (fieldName: string): React.CSSProperties => { const focused = focusedField === fieldName; return { display: 'flex', alignItems: 'center', width: '100%', height: '42px', background: '#FFFFFF', border: `1px solid ${focused ? '#66B8BC' : '#DCE5EC'}`, borderRadius: '10px', overflow: 'hidden', transition: 'border-color .16s ease, box-shadow .16s ease', boxShadow: focused ? '0 0 0 3px rgba(0,118,128,.08)' : '0 1px 2px rgba(15,23,42,.02)' }; };
+  const leftIconBoxStyle: React.CSSProperties = { width: '38px', height: '100%', minWidth: '38px', background: '#F2FBFA', borderRight: '1px solid #E4ECEF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#007680', flexShrink: 0 };
+  const inputStyle: React.CSSProperties = { flex: 1, minWidth: 0, border: 'none', outline: 'none', padding: '0 12px', fontSize: '0.80rem', fontWeight: 650, color: '#172033', background: 'transparent', fontFamily: 'inherit', height: '100%' };
 
-  const items = [
-    {
-      id: 'engagementName',
-      label: 'ENGAGEMENT NAME',
-      val: parameters.engagementName || '—',
-      isUnset: !parameters.engagementName,
-      icon: Building2,
-      accent: '#007680',
-      bg: '#F0FDFA',
-    },
-    {
-      id: 'startDate',
-      label: 'START DATE',
-      val: parameters.startDate || '—',
-      isUnset: !parameters.startDate,
-      icon: Calendar,
-      accent: '#0284C7',
-      bg: '#F0F9FF',
-    },
-    {
-      id: 'endDate',
-      label: 'END DATE',
-      val: parameters.endDate || '—',
-      isUnset: !parameters.endDate,
-      icon: Calendar,
-      accent: '#0284C7',
-      bg: '#F0F9FF',
-    },
-    {
-      id: 'financialYearEnd',
-      label: 'FINANCIAL YEAR END',
-      val: parameters.financialYearEnd || '—',
-      isUnset: !parameters.financialYearEnd,
-      icon: ShieldCheck,
-      accent: '#6366F1',
-      bg: '#EEF2FF',
-    },
-    {
-      id: 'engagementRunId',
-      label: 'ENGAGEMENT RUN ID',
-      val: parameters.engagementRunId || runId || '—',
-      isUnset: !parameters.engagementRunId && !runId,
-      icon: Hash,
-      accent: '#7C3AED',
-      bg: '#FAF5FF',
-    },
-    {
-      id: 'operatingCurrency',
-      label: 'OPERATING CURRENCY',
-      val: parameters.operatingCurrency || '—',
-      isUnset: !parameters.operatingCurrency,
-      icon: DollarSign,
-      accent: '#059669',
-      bg: '#ECFDF5',
-    },
-    {
-      id: 'overallMateriality',
-      label: 'OVERALL MATERIALITY',
-      val: formatCurrency(parameters.overallMateriality),
-      isUnset: !parameters.overallMateriality,
-      icon: Tag,
-      accent: '#D97706',
-      bg: '#FFFBEB',
-    },
-    {
-      id: 'engagementClassification',
-      label: 'ENGAGEMENT CLASSIFICATION',
-      val: parameters.engagementClassification || '—',
-      isUnset: !parameters.engagementClassification,
-      icon: ShieldAlert,
-      accent: '#007680',
-      bg: '#F0FDFA',
-    },
-  ];
+  const fieldWrap: React.CSSProperties = { minWidth: 0 };
+  const rowGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' };
 
   return (
-    <div
-      style={{
-        background: '#FFFFFF',
-        borderRadius: '16px',
-        border: '1px solid #E2E8F0',
-        padding: '20px 24px',
-        boxShadow: '0 2px 10px -2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02)',
-        marginBottom: '20px',
-      }}
-    >
-      {/* Header Section with Title + Edit Action */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '16px',
-          paddingBottom: '14px',
-          borderBottom: '1px solid #F1F5F9',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg, rgba(0, 118, 128, 0.12) 0%, rgba(0, 77, 84, 0.06) 100%)',
-              color: '#007680',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid rgba(0, 118, 128, 0.20)',
-            }}
-          >
-            <ShieldCheck size={18} />
-          </div>
-          <div>
-            <h3
-              style={{
-                fontSize: '1.02rem',
-                fontWeight: 800,
-                color: '#0F172A',
-                margin: 0,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Engagement Audit Parameters
-            </h3>
-            <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500 }}>
-              Client engagement metadata, testing boundary dates, currency, and materiality scope.
-            </span>
+    <div style={{ width: '100%', background: '#FFFFFF', border: '1px solid #DFE7ED', borderRadius: '16px', boxShadow: '0 6px 22px -16px rgba(15,23,42,.22)', overflow: 'hidden', marginBottom: '16px' }}>
+      <div style={{ padding: '16px 18px', borderBottom: '1px solid #E8EEF2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px', background: 'linear-gradient(180deg,#FFFFFF 0%,#FBFDFD 100%)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '11px', background: '#EAF7F6', color: '#007680', border: '1px solid #C7E6E4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Briefcase size={18} strokeWidth={2.1} /></div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: '1.04rem', fontWeight: 800, color: '#122033', margin: 0, letterSpacing: '-0.02em' }}>Engagement Audit Parameters</h3>
+              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#007680', background: '#F0FAF9', border: '1px solid #CFE9E7', padding: '3px 7px', borderRadius: '999px', whiteSpace: 'nowrap' }}>Live Configuration</span>
+            </div>
+            <p style={{ fontSize: '0.73rem', color: '#718096', margin: '3px 0 0', lineHeight: 1.35 }}>Define client details, testing period, currency and materiality scope for Journal Entry testing.</p>
           </div>
         </div>
-
-        {editable && !isEditing && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              setFormData({ ...parameters });
-              setIsEditing(true);
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '8px',
-              background: '#F8FAFC',
-              color: '#007680',
-              border: '1px solid #E2E8F0',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = '#F0FDFA';
-              e.currentTarget.style.borderColor = '#99F6E4';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = '#F8FAFC';
-              e.currentTarget.style.borderColor = '#E2E8F0';
-            }}
-          >
-            <Edit3 size={13} />
-            <span>Edit Parameters</span>
-          </button>
-        )}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#F5FAFA', border: '1px solid #D5E9E8', borderRadius: '999px', padding: '7px 12px', flexShrink: 0 }}>
+          <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#E4F4F3', color: '#007680', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.72rem' }}>#</span>
+          <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.72rem', fontWeight: 800, color: '#24545A', letterSpacing: '0.025em' }}>{displayRunId}</span>
+        </div>
       </div>
 
-      {/* Main Grid: Clean, high-contrast parameter cards matching Image 2 (4x2 on desktop) */}
-      {!isEditing ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '12px',
-          }}
-        >
-          {items.map((item) => {
-            const IconComponent = item.icon;
-            return (
-              <div
-                key={item.id}
-                style={{
-                  background: '#F8FAFC',
-                  borderRadius: '10px',
-                  border: '1px solid #E2E8F0',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.background = '#FFFFFF';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(15, 23, 42, 0.04)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.borderColor = '#E2E8F0';
-                  e.currentTarget.style.background = '#F8FAFC';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '0.66rem',
-                    fontWeight: 800,
-                    color: '#64748B',
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                  }}
-                >
-                  <IconComponent size={12} color={item.accent} />
-                  <span>{item.label}</span>
-                </div>
-                <div
-                  style={{
-                    fontSize: '0.88rem',
-                    fontWeight: item.isUnset ? 500 : 700,
-                    color: item.isUnset ? '#94A3B8' : '#0F172A',
-                    marginTop: '2px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    fontStyle: item.isUnset ? 'italic' : 'normal',
-                  }}
-                  title={String(item.val)}
-                >
-                  {item.val}
-                </div>
-              </div>
-            );
-          })}
+      <div style={{ padding: '16px 18px 18px' }}>
+        <div style={rowGrid}>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Client / Engagement Name</label>
+            <div style={getContainerStyle('engagementName')}><div style={leftIconBoxStyle}><Building2 size={15} /></div><input type="text" style={inputStyle} value={parameters.engagementName || ''} onChange={e => update('engagementName', e.target.value)} onFocus={() => setFocusedField('engagementName')} onBlur={() => setFocusedField(null)} placeholder="e.g. Aayush Private Limited" disabled={!editable} /></div>
+          </div>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Engagement Audit Classification</label>
+            <div style={{ ...getContainerStyle('engagementClassification'), position: 'relative' }}><div style={leftIconBoxStyle}><ShieldAlert size={15} /></div><select style={{ ...inputStyle, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', paddingRight: '32px' }} value={parameters.engagementClassification || ''} onChange={e => update('engagementClassification', e.target.value)} onFocus={() => setFocusedField('engagementClassification')} onBlur={() => setFocusedField(null)} disabled={!editable}>{CLASSIFICATIONS.map(c => <option key={c} value={c === 'Select Audit Classification...' ? '' : c}>{c}</option>)}</select><ChevronDown size={14} color="#718096" style={{ position: 'absolute', right: '11px', pointerEvents: 'none' }} /></div>
+          </div>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Testing Period Start</label>
+            <div style={getContainerStyle('startDate')}><div style={leftIconBoxStyle}><Calendar size={15} /></div><input type="text" style={inputStyle} value={parameters.startDate || ''} onChange={e => update('startDate', e.target.value)} onFocus={() => setFocusedField('startDate')} onBlur={() => setFocusedField(null)} placeholder="04/01/2025" disabled={!editable} /><Calendar size={14} color="#94A3B8" style={{ marginRight: '11px', flexShrink: 0 }} /></div>
+          </div>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Testing Period End</label>
+            <div style={getContainerStyle('endDate')}><div style={leftIconBoxStyle}><Calendar size={15} /></div><input type="text" style={inputStyle} value={parameters.endDate || ''} onChange={e => update('endDate', e.target.value)} onFocus={() => setFocusedField('endDate')} onBlur={() => setFocusedField(null)} placeholder="03/31/2026" disabled={!editable} /><Calendar size={14} color="#94A3B8" style={{ marginRight: '11px', flexShrink: 0 }} /></div>
+          </div>
         </div>
-      ) : (
-        /* Inline Quick Edit Form (Never Refreshes) */
-        <form onSubmit={handleSave}>
-          <div
-            style={{
-              background: '#F8FAFC',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              padding: '16px',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '14px',
-            }}
-          >
-            {/* Engagement Name */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 800, color: '#475569', marginBottom: '5px', textTransform: 'uppercase' }}>
-                Engagement / Client Name
-              </label>
-              <input
-                type="text"
-                className="jet-input"
-                value={formData.engagementName}
-                onChange={(e) => setFormData({ ...formData, engagementName: e.target.value })}
-                placeholder="Enter Client / Engagement Name"
-                style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-              />
-            </div>
 
-            {/* Start Date */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 800, color: '#475569', marginBottom: '5px', textTransform: 'uppercase' }}>
-                Start Date (DD-MMM-YYYY)
-              </label>
-              <input
-                type="text"
-                className="jet-input"
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                placeholder="e.g. 01-Apr-2025"
-                style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-              />
-            </div>
-
-            {/* End Date */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 800, color: '#475569', marginBottom: '5px', textTransform: 'uppercase' }}>
-                End Date (DD-MMM-YYYY)
-              </label>
-              <input
-                type="text"
-                className="jet-input"
-                value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                placeholder="e.g. 31-Mar-2026"
-                style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-              />
-            </div>
-
-            {/* Financial Year End */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 800, color: '#475569', marginBottom: '5px', textTransform: 'uppercase' }}>
-                Financial Year End
-              </label>
-              <input
-                type="text"
-                className="jet-input"
-                value={formData.financialYearEnd}
-                onChange={(e) => setFormData({ ...formData, financialYearEnd: e.target.value })}
-                placeholder="e.g. 31-Mar"
-                style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-              />
-            </div>
-
-            {/* Operating Currency */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 800, color: '#475569', marginBottom: '5px', textTransform: 'uppercase' }}>
-                Operating Currency
-              </label>
-              <select
-                className="jet-input"
-                value={formData.operatingCurrency}
-                onChange={(e) => setFormData({ ...formData, operatingCurrency: e.target.value })}
-                style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-              >
-                <option value="">Select Currency...</option>
-                <option value="USD">USD ($) - US Dollar</option>
-                <option value="EUR">EUR (€) - Euro</option>
-                <option value="GBP">GBP (£) - British Pound</option>
-                <option value="CAD">CAD ($) - Canadian Dollar</option>
-                <option value="INR">INR (₹) - Indian Rupee</option>
-                <option value="AUD">AUD ($) - Australian Dollar</option>
-                <option value="SGD">SGD ($) - Singapore Dollar</option>
-                <option value="JPY">JPY (¥) - Japanese Yen</option>
-              </select>
-            </div>
-
-            {/* Overall Materiality */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 800, color: '#475569', marginBottom: '5px', textTransform: 'uppercase' }}>
-                Overall Materiality ($)
-              </label>
-              <input
-                type="number"
-                className="jet-input"
-                value={typeof formData.overallMateriality === 'string' ? parseFloat(formData.overallMateriality.replace(/[^0-9.-]+/g, '')) || '' : formData.overallMateriality || ''}
-                onChange={(e) => setFormData({ ...formData, overallMateriality: e.target.value ? parseFloat(e.target.value) : '' })}
-                placeholder="e.g. 500000"
-                style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-              />
-            </div>
-
-            {/* Engagement Classification */}
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 800, color: '#475569', marginBottom: '5px', textTransform: 'uppercase' }}>
-                Engagement Audit Classification
-              </label>
-              <select
-                className="jet-input"
-                value={formData.engagementClassification}
-                onChange={(e) => setFormData({ ...formData, engagementClassification: e.target.value })}
-                style={{ width: '100%', fontSize: '0.82rem', padding: '7px 10px', borderRadius: '7px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
-              >
-                <option value="">Select Audit Classification...</option>
-                <option value="Tier 1 Key Audit Engagement">Tier 1 Key Audit Engagement</option>
-                <option value="Public Listed Entity / PCAOB AS 2401">Public Listed Entity / PCAOB AS 2401</option>
-                <option value="Standard Statutory Audit">Standard Statutory Audit</option>
-                <option value="Internal Audit Review">Internal Audit Review</option>
-              </select>
+        <div style={{ ...rowGrid, marginTop: '12px' }}>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Financial Year End</label>
+            <div style={getContainerStyle('financialYearEnd')}><div style={leftIconBoxStyle}><ShieldCheck size={15} /></div><input type="text" style={inputStyle} value={parameters.financialYearEnd || ''} onChange={e => update('financialYearEnd', e.target.value)} onFocus={() => setFocusedField('financialYearEnd')} onBlur={() => setFocusedField(null)} placeholder="03/31/2026" disabled={!editable} /><Calendar size={14} color="#94A3B8" style={{ marginRight: '11px', flexShrink: 0 }} /></div>
+          </div>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Operating Currency</label>
+            <div style={{ ...getContainerStyle('operatingCurrency'), position: 'relative' }}><div style={leftIconBoxStyle}><DollarSign size={15} /></div><select style={{ ...inputStyle, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', paddingRight: '32px' }} value={parameters.operatingCurrency || 'INR'} onChange={e => update('operatingCurrency', e.target.value)} onFocus={() => setFocusedField('operatingCurrency')} onBlur={() => setFocusedField(null)} disabled={!editable}>{CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}</select><ChevronDown size={14} color="#718096" style={{ position: 'absolute', right: '11px', pointerEvents: 'none' }} /></div>
+          </div>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Overall Materiality (Amount)</label>
+            <div style={getContainerStyle('overallMateriality')}><div style={leftIconBoxStyle}><Tag size={15} /></div><input type="number" style={inputStyle} value={typeof parameters.overallMateriality === 'string' ? parseFloat(String(parameters.overallMateriality).replace(/[^0-9.-]+/g, '')) || '' : parameters.overallMateriality || ''} onChange={e => update('overallMateriality', e.target.value ? parseFloat(e.target.value) : '')} onFocus={() => setFocusedField('overallMateriality')} onBlur={() => setFocusedField(null)} placeholder="100000" disabled={!editable} /><span style={{ marginRight: '8px', padding: '3px 6px', background: '#F4F7F9', border: '1px solid #E3E9ED', borderRadius: '5px', fontSize: '0.64rem', fontWeight: 800, color: '#536274', letterSpacing: '0.04em', flexShrink: 0 }}>{currentCurrencyCode}</span></div>
+          </div>
+          <div style={fieldWrap}>
+            <label style={labelStyle}>Configuration Persistence</label>
+            <div style={{ height: '42px', width: '100%', boxSizing: 'border-box', background: '#F3FAF9', border: '1px solid #BFE4E0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 10px', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}><div style={{ width: '21px', height: '21px', borderRadius: '50%', background: '#007680', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Check size={12} strokeWidth={3} /></div><div style={{ minWidth: 0, lineHeight: 1.1 }}><div style={{ fontSize: '0.71rem', fontWeight: 800, color: '#0A6268', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>All parameters saved live</div><div style={{ fontSize: '0.61rem', color: '#718096', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ready for step 2 verification</div></div></div>
+              <Check size={16} color="#007680" style={{ flexShrink: 0 }} />
             </div>
           </div>
-
-          {/* Form Actions (Save / Cancel) */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
-            <button
-              type="button"
-              onClick={handleCancel}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '7px',
-                border: '1px solid #CBD5E1',
-                background: '#FFFFFF',
-                color: '#475569',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                padding: '6px 16px',
-                borderRadius: '7px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
-                color: '#FFFFFF',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 6px rgba(0, 118, 128, 0.20)',
-              }}
-            >
-              <Check size={13} /> Save Parameters
-            </button>
-          </div>
-        </form>
-      )}
+        </div>
+      </div>
     </div>
   );
 };
+
