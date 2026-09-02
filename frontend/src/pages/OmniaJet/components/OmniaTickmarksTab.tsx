@@ -220,7 +220,7 @@ export const OmniaTickmarksTab: React.FC<OmniaTickmarksTabProps> = ({
               </div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', maxWidth: '840px', gap: '14px' }}>
               {tickmarks.map((tm) => (
                 <div
                   key={tm.id}
