@@ -2379,7 +2379,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                 { id: 'forensic', label: 'Forensic & Risk Intelligence Hub', icon: Scale },
                 { id: 'tickmarks', label: 'Auditor Evaluations & Tickmarks', icon: Tag },
                 { id: 'artifacts', label: 'Download All Outputs', icon: Archive },
-              ].map((tab) => {
+              ].map((tab, idx) => {
                 const IconComp = tab.icon;
                 const isActive = activeVisualTab === tab.id;
                 return (
@@ -2392,7 +2392,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '7px',
                       padding: '8px 10px',
                       background: isActive ? '#FFFFFF' : 'transparent',
                       border: isActive ? '1px solid #CBD5E1' : '1px solid transparent',
@@ -2407,7 +2407,25 @@ export const OmniaJetWorkflow: React.FC = () => {
                       boxSizing: 'border-box',
                     }}
                   >
-                    <IconComp size={14} color={isActive ? '#007680' : '#64748B'} style={{ flexShrink: 0 }} />
+                    <span
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: isActive ? '#007680' : '#E2E8F0',
+                        color: isActive ? '#FFFFFF' : '#64748B',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        fontFamily: 'var(--font-mono, monospace)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
                   </button>
                 );
@@ -3321,7 +3339,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                     { id: 'reconciliation', label: 'Account-Level Reconciliation', icon: Table },
                     { id: 'dqc', label: '20 DQC Golden Matrix', icon: ShieldCheck },
                     { id: 'controlTotals', label: 'Control Totals', icon: Layers },
-                  ].map((btn) => {
+                  ].map((btn, idx) => {
                     const isSel = checkpointSubTab === btn.id;
                     const Icon = btn.icon;
                     return (
@@ -3345,7 +3363,25 @@ export const OmniaJetWorkflow: React.FC = () => {
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        <Icon size={14} color={isSel ? '#007680' : '#64748B'} />
+                        <span
+                          style={{
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            background: isSel ? '#007680' : '#E2E8F0',
+                            color: isSel ? '#FFFFFF' : '#64748B',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            fontFamily: 'var(--font-mono, monospace)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
                         <span>{btn.label}</span>
                       </button>
                     );

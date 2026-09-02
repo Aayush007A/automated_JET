@@ -3328,10 +3328,11 @@ export const SparkJetWorkflow: React.FC = () => {
               </div>
             </div>
 
+            {/* Standard 5-Tab Executive Workspace Selector matching JET Suite architecture */}
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                display: 'flex',
+                alignItems: 'center',
                 gap: '4px',
                 background: '#F1F5F9',
                 padding: '4px',
@@ -3339,6 +3340,7 @@ export const SparkJetWorkflow: React.FC = () => {
                 border: '1px solid #E2E8F0',
                 marginBottom: '20px',
                 width: '100%',
+                boxSizing: 'border-box',
               }}
             >
               {[
@@ -3347,33 +3349,54 @@ export const SparkJetWorkflow: React.FC = () => {
                 { id: 'checkpoints', label: 'TB & GL Checkpoints', icon: Activity },
                 { id: 'forensic', label: 'Forensic & CFO Intelligence', icon: Scale },
                 { id: 'artifacts', label: 'Download All Outputs', icon: Archive },
-              ].map((tab) => {
+              ].map((tab, idx) => {
                 const IconComp = tab.icon;
                 const isActive = activeVisualTab === tab.id;
                 return (
                   <button
                     key={tab.id}
+                    type="button"
                     onClick={() => setActiveVisualTab(tab.id as any)}
                     style={{
-                      display: 'flex',
+                      flex: 1,
+                      display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '7px',
-                      padding: '8px 14px',
+                      padding: '8px 10px',
                       background: isActive ? '#FFFFFF' : 'transparent',
-                      border: isActive ? '1px solid #E2E8F0' : '1px solid transparent',
+                      border: isActive ? '1px solid #CBD5E1' : '1px solid transparent',
                       borderRadius: '8px',
                       whiteSpace: 'nowrap',
                       color: isActive ? '#007680' : '#64748B',
-                      fontWeight: isActive ? 600 : 500,
-                      fontSize: '0.82rem',
+                      fontWeight: isActive ? 750 : 500,
+                      fontSize: '0.78rem',
                       cursor: 'pointer',
-                      boxShadow: isActive ? '0 1px 3px rgba(0, 0, 0, 0.04)' : 'none',
+                      boxShadow: isActive ? '0 1px 3px rgba(0, 0, 0, 0.05)' : 'none',
                       transition: 'all 0.15s ease',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    <IconComp size={15} color={isActive ? '#007680' : '#64748B'} />
-                    <span>{tab.label}</span>
+                    <span
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: isActive ? '#007680' : '#E2E8F0',
+                        color: isActive ? '#FFFFFF' : '#64748B',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        fontFamily: 'var(--font-mono, monospace)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
                   </button>
                 );
               })}

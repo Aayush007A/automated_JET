@@ -1126,7 +1126,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
             overflowX: 'auto',
           }}
         >
-          {intelligenceTabs.map((tab) => {
+          {intelligenceTabs.map((tab, idx) => {
             const Icon = tab.icon;
             const active = activeIntelligenceTab === tab.id;
             return (
@@ -1151,7 +1151,25 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                   transition: 'all 0.15s ease',
                 }}
               >
-                <Icon size={14} color={active ? '#007680' : '#64748B'} />
+                <span
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: active ? '#007680' : '#E2E8F0',
+                    color: active ? '#FFFFFF' : '#64748B',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    fontFamily: 'var(--font-mono, monospace)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {idx + 1}
+                </span>
                 <span>{tab.label}</span>
               </button>
             );

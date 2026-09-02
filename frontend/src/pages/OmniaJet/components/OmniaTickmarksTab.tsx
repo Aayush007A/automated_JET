@@ -147,10 +147,29 @@ export const OmniaTickmarksTab: React.FC<OmniaTickmarksTabProps> = ({
             background: activeSubTab === 'tickmarks' ? 'var(--deloitte-teal)' : '#F1F5F9',
             color: activeSubTab === 'tickmarks' ? '#FFFFFF' : '#475569',
             border: 'none', fontWeight: 750, fontSize: '0.80rem', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '6px'
+            display: 'flex', alignItems: 'center', gap: '8px',
+            transition: 'all 0.15s ease'
           }}
         >
-          <Tag size={14} /> 1. Managed Tickmarks ({tickmarks.length})
+          <span
+            style={{
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              background: activeSubTab === 'tickmarks' ? '#FFFFFF' : '#CBD5E1',
+              color: activeSubTab === 'tickmarks' ? '#007680' : '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              fontFamily: 'var(--font-mono, monospace)',
+            }}
+          >
+            1
+          </span>
+          Managed Tickmarks ({tickmarks.length})
         </button>
         <button
           onClick={() => setActiveSubTab('evaluations')}
@@ -159,10 +178,29 @@ export const OmniaTickmarksTab: React.FC<OmniaTickmarksTabProps> = ({
             background: activeSubTab === 'evaluations' ? 'var(--deloitte-teal)' : '#F1F5F9',
             color: activeSubTab === 'evaluations' ? '#FFFFFF' : '#475569',
             border: 'none', fontWeight: 750, fontSize: '0.80rem', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '6px'
+            display: 'flex', alignItems: 'center', gap: '8px',
+            transition: 'all 0.15s ease'
           }}
         >
-          <FileText size={14} /> 2. Auditor Evaluations & Sign-Offs ({evaluations.length})
+          <span
+            style={{
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              background: activeSubTab === 'evaluations' ? '#FFFFFF' : '#CBD5E1',
+              color: activeSubTab === 'evaluations' ? '#007680' : '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              fontFamily: 'var(--font-mono, monospace)',
+            }}
+          >
+            2
+          </span>
+          Auditor Evaluations & Sign-Offs ({evaluations.length})
         </button>
       </div>
 
