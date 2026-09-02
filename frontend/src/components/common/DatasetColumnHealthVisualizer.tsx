@@ -3064,12 +3064,9 @@ function renderMultivariate(selectedCols: ColumnMetricItem[], dataset: Extracted
   const dateCols = selectedCols.filter(c => classify(c) === 'date');
   const catCols = selectedCols.filter(c => classify(c) === 'categorical');
 
-  // Step 0: exactly one category with 2+ measures is its own deterministic case — a stacked
-  // column chart (one segment per measure, grouped by category) is more informative here than
-  // reducing everything down to a single winning measure × category pairing, so this is checked
-  // BEFORE the scored pairing search intercepts the selection.
+  // Step 0: exactly one category with 2+ measures -> Grouped Side-by-Side Multi-Measure Column Chart
   if (catCols.length === 1 && numericCols.length >= 2 && dateCols.length === 0) {
-    return renderStackedMultiMeasure(catCols[0], numericCols, selectedCols);
+    return renderGroupedMultiMeasure(catCols[0], numericCols, selectedCols);
   }
 
   // Step 1: for every other shape, look for the strongest measure × category pairing first —
@@ -3094,7 +3091,7 @@ function renderMultivariate(selectedCols: ColumnMetricItem[], dataset: Extracted
   }
 
   // Two numeric measures only -> reuse the bivariate scatter logic for consistency.
-  if (numericCols.length === 2 && catCols.length === 0 && dateCols.length === 0) {
+  if (numericCols.length == 2 && catCols.length === 0 && dateCols.length === 0) {
     return renderBivariate(numericCols[0], numericCols[1]);
   }
 
@@ -3120,9 +3117,9 @@ function renderMultivariate(selectedCols: ColumnMetricItem[], dataset: Extracted
   return renderSchemaHealthFallback(selectedCols, dataset);
 }
 
-/** 1 categorical + 2+ numeric measures -> a genuine STACKED column chart: one bar per category,
- *  each measure stacked as a segment within that bar (Chart.js stacked bar via matching stack ids). */
-function renderStackedMultiMeasure(category: ColumnMetricItem, numericCols: ColumnMetricItem[], selectedCols: ColumnMetricItem[]) {
+/** 1 categorical + 2+ numeric measures -> Grouped Side-by-Side Column Chart:
+ *  each category shows individual side-by-side comparative bars for each selected measure. */
+function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: ColumnMetricItem[], selectedCols: ColumnMetricItem[]) {
   const n = Math.min(category.rawValues.length, ...numericCols.map(c => c.rawValues.length));
   const agg: Record<string, Record<string, number>> = {};
   let pairedN = 0;
@@ -3141,16 +3138,16 @@ function renderStackedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
     if (rowHasValue) pairedN++;
   }
 
-  const categoryTotal = (k: string) => numericCols.reduce((s, m) => s + (agg[k]?.[m.name] || 0), 0);
+  const categoryTotal = (k: string) => numericCols.reduce((s, m) => s + Math.abs(agg[k]?.[m.name] || 0), 0);
   const topCategories = Object.keys(agg).sort((x, y) => categoryTotal(y) - categoryTotal(x)).slice(0, 10);
 
   if (topCategories.length === 0 || pairedN === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
         <EdaPanelHeader
-          eyebrow="Automatic Chart Decision • Stacked Multi-Measure by Category"
+          eyebrow="Automatic Chart Decision • Grouped Side-by-Side Multi-Measure by Category"
           eyebrowColor={CHART_TEAL}
-          title={`Measures Stacked by ${category.name}`}
+          title={`Measures Grouped by ${category.name}`}
           description="No paired category + measure observations were available to aggregate."
         />
         <EdaEmptyState message={`Couldn't pair values between ${category.name} and the selected measures.`} />
@@ -3165,17 +3162,16 @@ function renderStackedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
     backgroundColor: PALETTE_BG[idx % PALETTE_BG.length],
     borderColor: PALETTE[idx % PALETTE.length],
     borderWidth: 1,
-    borderRadius: 3,
-    stack: 'stacked-measures',
+    borderRadius: 4,
   }));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
       <EdaPanelHeader
-        eyebrow="Automatic Chart Decision • Stacked Multi-Measure by Category"
+        eyebrow="Automatic Chart Decision • Grouped Side-by-Side Multi-Measure by Category"
         eyebrowColor={CHART_TEAL}
-        title={`${measuresUsed.map(m => m.name).join(' + ')} by ${category.name}`}
-        description={`Stacked column chart — each bar is a ${category.name} value, segments are the SUM of each selected measure.`}
+        title={`${measuresUsed.map(m => m.name).join(' vs ')} by ${category.name}`}
+        description={`Grouped column chart — each ${category.name} category displays individual side-by-side comparative bars for each selected measure.`}
         rightBadge={`Top ${topCategories.length} categories`}
       />
       <div style={{ height: 240, width: '100%' }}>
@@ -3185,7 +3181,7 @@ function renderStackedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { display: true, position: 'top' as const, labels: { font: { size: 9.5, weight: 'normal' }, color: '#334155', boxWidth: 10, padding: 8 } },
+              legend: { display: true, position: 'top' as const, labels: { font: { size: 9.5, weight: 'bold' }, color: '#334155', boxWidth: 10, padding: 8 } },
               tooltip: {
                 backgroundColor: '#FFFFFF',
                 titleColor: CHART_NAVY,
@@ -3198,8 +3194,8 @@ function renderStackedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
               },
             },
             scales: {
-              x: { stacked: true, grid: { display: false }, ticks: { color: CHART_SLATE, font: { size: 9, weight: 'normal' }, maxRotation: 35 } },
-              y: { stacked: true, beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { color: CHART_SLATE, font: { size: 9 } } },
+              x: { stacked: false, grid: { display: false }, ticks: { color: CHART_SLATE, font: { size: 9, weight: 'normal' }, maxRotation: 35 } },
+              y: { stacked: false, beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { color: CHART_SLATE, font: { size: 9 } } },
             },
           }}
         />
@@ -3512,65 +3508,6 @@ function renderCategoricalCardinalityAndHeatmap(catCols: ColumnMetricItem[]) {
   );
 }
 
-function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: ColumnMetricItem[], selectedCols: ColumnMetricItem[]) {
-  const n = Math.min(category.rawValues.length, ...numericCols.map(c => c.rawValues.length));
-  const agg: Record<string, Record<string, number>> = {};
-
-  for (let i = 0; i < n; i++) {
-    const catKey = cleanStr(category.rawValues[i]) || '(blank)';
-    agg[catKey] = agg[catKey] || {};
-    numericCols.forEach(m => {
-      const v = parseNum(m.rawValues[i]);
-      if (Number.isFinite(v)) agg[catKey][m.name] = (agg[catKey][m.name] || 0) + v;
-    });
-  }
-
-  const topCategories = Object.keys(agg).slice(0, 8);
-
-  if (topCategories.length === 0) {
-    return <EdaEmptyState message={`Couldn't pair values between ${category.name} and the selected measures.`} />;
-  }
-
-  const datasets = numericCols.slice(0, 3).map((m, idx) => ({
-    label: m.name,
-    data: topCategories.map(catKey => agg[catKey][m.name] || 0),
-    backgroundColor: PALETTE_BG[idx % PALETTE_BG.length],
-    borderColor: PALETTE[idx % PALETTE.length],
-    borderWidth: 1.2,
-    borderRadius: 4,
-  }));
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
-      <EdaPanelHeader
-        eyebrow="Grouped Multi-Measure Aggregation"
-        eyebrowColor={CHART_TEAL}
-        title={`Measures Grouped by ${category.name}`}
-        description={`Comparing available financial metrics across distinct categories of ${category.name}.`}
-        rightBadge={`Top ${topCategories.length} categories`}
-      />
-      <div style={{ height: 220, width: '100%' }}>
-        <Bar
-          data={{ labels: topCategories.map(k => (k.length > 14 ? k.slice(0, 12) + '…' : k)), datasets }}
-          options={{
-            ...baseChartOptions(),
-            plugins: {
-              legend: { display: true, position: 'top' as const, labels: { font: { size: 9.5, weight: '700' }, color: '#334155', boxWidth: 10, padding: 8 } },
-              tooltip: baseChartOptions().plugins.tooltip,
-            },
-          }}
-        />
-      </div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {selectedCols.map(c => (
-          <span key={c.name} style={{ fontSize: '0.64rem', padding: '3px 7px', borderRadius: 5, background: '#F8FAFC', border: '1px solid #E2E8F0', color: c === category ? CHART_TEAL : CHART_NAVY, fontWeight: 650 }}>
-            {c.name} · {c.inferredType}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /** Missing-data co-occurrence pattern view — surfaces columns whose missingness rates line up,
  *  which is a data-quality root-cause signal distinct from each column's own completeness %. */
