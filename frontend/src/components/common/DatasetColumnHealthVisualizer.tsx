@@ -1687,10 +1687,10 @@ function baseChartOptions(tooltipTitle?: (i: any[]) => string): any {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0F172A',
-        titleColor: '#F8FAFC',
-        bodyColor: '#E2E8F0',
-        borderColor: '#007680',
+        backgroundColor: '#FFFFFF',
+        titleColor: '#0F172A',
+        bodyColor: '#334155',
+        borderColor: '#CBD5E1',
         borderWidth: 1.5,
         padding: 12,
         cornerRadius: 8,
@@ -1712,10 +1712,28 @@ function baseChartOptions(tooltipTitle?: (i: any[]) => string): any {
             if (prev !== null && prev !== 0) {
               const diff = val - prev;
               const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
-              const dir = diff >= 0 ? '▲ +' : '▼ ';
-              return ` Shift vs Prior: ${dir}${pctDiff}% (${diff >= 0 ? '+' : ''}${formatCompactNumber(diff)})`;
+              if (diff > 0) {
+                return ` Shift vs Prior: 🟢 ▲ +${pctDiff}% (+${formatCompactNumber(diff)})`;
+              } else if (diff < 0) {
+                return ` Shift vs Prior: 🔴 ▼ ${pctDiff}% (${formatCompactNumber(diff)})`;
+              } else {
+                return ` Shift vs Prior: ⚪ 0.0% (No Change)`;
+              }
             }
             return ` Baseline: Evaluated Audit Period`;
+          },
+          labelColor: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const dataIndex = ctx.dataIndex;
+            const data = ctx.dataset?.data || [];
+            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+            if (prev !== null && prev !== 0) {
+              const diff = val - prev;
+              return diff >= 0
+                ? { borderColor: '#16A34A', backgroundColor: '#16A34A' }
+                : { borderColor: '#DC2626', backgroundColor: '#DC2626' };
+            }
+            return { borderColor: '#007680', backgroundColor: '#007680' };
           },
         },
       },

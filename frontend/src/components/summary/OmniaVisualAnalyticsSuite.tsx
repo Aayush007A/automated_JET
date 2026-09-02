@@ -409,10 +409,10 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         },
       },
       tooltip: {
-        backgroundColor: '#0F172A',
-        titleColor: '#F8FAFC',
-        bodyColor: '#E2E8F0',
-        borderColor: '#007680',
+        backgroundColor: '#FFFFFF',
+        titleColor: '#0F172A',
+        bodyColor: '#334155',
+        borderColor: '#CBD5E1',
         borderWidth: 1.5,
         padding: 12,
         boxPadding: 4,
@@ -431,13 +431,31 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
             const dataIndex = ctx.dataIndex;
             const data = ctx.dataset?.data || [];
             const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
-            if (prev !== null && prev > 0) {
+            if (prev !== null && prev !== 0) {
               const diff = val - prev;
-              const pctDiff = ((diff / prev) * 100).toFixed(1);
-              const dir = diff >= 0 ? '▲ +' : '▼ ';
-              return ` Shift vs Prior: ${dir}${pctDiff}% (${diff >= 0 ? '+' : ''}${fmtNum(diff)})`;
+              const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
+              if (diff > 0) {
+                return ` Shift vs Prior: 🟢 ▲ +${pctDiff}% (+${fmtNum(diff)})`;
+              } else if (diff < 0) {
+                return ` Shift vs Prior: 🔴 ▼ ${pctDiff}% (${fmtNum(diff)})`;
+              } else {
+                return ` Shift vs Prior: ⚪ 0.0% (No Change)`;
+              }
             }
             return ` Baseline: Benchmark Standard`;
+          },
+          labelColor: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const dataIndex = ctx.dataIndex;
+            const data = ctx.dataset?.data || [];
+            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+            if (prev !== null && prev !== 0) {
+              const diff = val - prev;
+              return diff >= 0
+                ? { borderColor: '#16A34A', backgroundColor: '#16A34A' }
+                : { borderColor: '#DC2626', backgroundColor: '#DC2626' };
+            }
+            return { borderColor: '#007680', backgroundColor: '#007680' };
           },
         },
       },
@@ -476,10 +494,10 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         labels: { font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const }, color: '#0F172A' },
       },
       tooltip: {
-        backgroundColor: '#0F172A',
-        titleColor: '#F8FAFC',
-        bodyColor: '#E2E8F0',
-        borderColor: '#007680',
+        backgroundColor: '#FFFFFF',
+        titleColor: '#0F172A',
+        bodyColor: '#334155',
+        borderColor: '#CBD5E1',
         borderWidth: 1.5,
         padding: 12,
         cornerRadius: 8,
@@ -487,7 +505,13 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
           label: (ctx: any) => ` ${ctx.dataset.label || 'Risk Index'}: ${ctx.raw} / 100`,
           afterLabel: (ctx: any) => {
             const val = Number(ctx.raw) || 0;
-            return val > 70 ? ' Severity: High Risk Exposure' : ' Severity: Moderate / Normal Risk';
+            return val > 70 ? ' 🔴 Severity: High Risk Exposure' : ' 🟢 Severity: Normal Risk Range';
+          },
+          labelColor: (ctx: any) => {
+            const val = Number(ctx.raw) || 0;
+            return val > 70
+              ? { borderColor: '#DC2626', backgroundColor: '#DC2626' }
+              : { borderColor: '#16A34A', backgroundColor: '#16A34A' };
           },
         },
       },
@@ -510,10 +534,10 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         labels: { font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const }, color: '#0F172A' },
       },
       tooltip: {
-        backgroundColor: '#0F172A',
-        titleColor: '#F8FAFC',
-        bodyColor: '#E2E8F0',
-        borderColor: '#007680',
+        backgroundColor: '#FFFFFF',
+        titleColor: '#0F172A',
+        bodyColor: '#334155',
+        borderColor: '#CBD5E1',
         borderWidth: 1.5,
         padding: 12,
         cornerRadius: 8,
@@ -529,13 +553,31 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
             const dataIndex = ctx.dataIndex;
             const data = ctx.dataset?.data || [];
             const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
-            if (prev !== null && prev > 0) {
+            if (prev !== null && prev !== 0) {
               const diff = val - prev;
-              const pctDiff = ((diff / prev) * 100).toFixed(1);
-              const dir = diff >= 0 ? '▲ +' : '▼ ';
-              return ` Shift vs Peer: ${dir}${pctDiff}% (${diff >= 0 ? '+' : ''}${fmtNum(diff)})`;
+              const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
+              if (diff > 0) {
+                return ` Shift vs Peer: 🟢 ▲ +${pctDiff}% (+${fmtNum(diff)})`;
+              } else if (diff < 0) {
+                return ` Shift vs Peer: 🔴 ▼ ${pctDiff}% (${fmtNum(diff)})`;
+              } else {
+                return ` Shift vs Peer: ⚪ 0.0% (Equal)`;
+              }
             }
             return ` Risk Profile: Primary Concentration Segment`;
+          },
+          labelColor: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const dataIndex = ctx.dataIndex;
+            const data = ctx.dataset?.data || [];
+            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+            if (prev !== null && prev !== 0) {
+              const diff = val - prev;
+              return diff >= 0
+                ? { borderColor: '#16A34A', backgroundColor: '#16A34A' }
+                : { borderColor: '#DC2626', backgroundColor: '#DC2626' };
+            }
+            return { borderColor: '#007680', backgroundColor: '#007680' };
           },
         },
       },
