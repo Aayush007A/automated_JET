@@ -3064,63 +3064,71 @@ function renderMultivariate(selectedCols: ColumnMetricItem[], dataset: Extracted
   const dateCols = selectedCols.filter(c => classify(c) === 'date');
   const catCols = selectedCols.filter(c => classify(c) === 'categorical');
 
-  // Step 0: exactly one category with 2+ measures -> Grouped Side-by-Side Multi-Measure Column Chart
-  if (catCols.length === 1 && numericCols.length >= 2 && dateCols.length === 0) {
+  // Case 1: 2+ Numeric Measures + 1+ Category (No Date) -> Grouped Side-by-Side Bar Chart for ALL selected measures
+  if (numericCols.length >= 2 && catCols.length >= 1 && dateCols.length === 0) {
     return renderGroupedMultiMeasure(catCols[0], numericCols, selectedCols);
   }
 
-  // Step 1: for every other shape, look for the strongest measure × category pairing first —
-  // this is the "meaningful aggregation" the spec calls for, regardless of how many other fields
-  // are selected.
-  if (numericCols.length >= 1 && catCols.length >= 1) {
+  // Case 2: 2+ Numeric Measures + 1+ Date -> Multi-Measure Time Series Progression
+  if (numericCols.length >= 2 && dateCols.length >= 1) {
+    return renderMultiMeasureTimeSeries(dateCols[0], numericCols, selectedCols);
+  }
+
+  // Case 3: 1 Numeric Measure + 1+ Category -> Strongest Category Pairing Chart
+  if (numericCols.length === 1 && catCols.length >= 1 && dateCols.length === 0) {
     const strongest = findStrongestPairing(numericCols, catCols);
     if (strongest) {
       return renderStrongestPairingChart(strongest, selectedCols);
     }
   }
 
-  // Step 2: no confident category pairing — try a date-driven multi-measure trend.
-  if (dateCols.length >= 1 && numericCols.length >= 2) {
+  // Case 4: 1 Numeric Measure + 1+ Date -> Date Time Series
+  if (numericCols.length === 1 && dateCols.length >= 1) {
     return renderMultiMeasureTimeSeries(dateCols[0], numericCols, selectedCols);
   }
 
-  // Step 3: three or more numeric measures with no useful category or date -> correlation matrix
-  // (this replaces a single side-by-side bar chart with an actual relationship view, plus per-measure cards).
+  // Case 5: 3+ Numeric Measures (No Category, No Date) -> Pairwise Correlation Matrix
   if (numericCols.length >= 3 && catCols.length === 0 && dateCols.length === 0) {
     return renderCorrelationMatrix(numericCols);
   }
 
-  // Two numeric measures only -> reuse the bivariate scatter logic for consistency.
-  if (numericCols.length == 2 && catCols.length === 0 && dateCols.length === 0) {
+  // Case 6: Exactly 2 Numeric Measures (No Category, No Date) -> Bivariate Scatter Plot
+  if (numericCols.length === 2 && catCols.length === 0 && dateCols.length === 0) {
     return renderBivariate(numericCols[0], numericCols[1]);
   }
 
-  // Three or more categorical / identifier fields with no numeric measure -> cardinality comparison
-  // plus a heatmap of the two highest-cardinality-discriminating fields.
+  // Case 7: 3+ Categorical Fields (No Numeric) -> Categorical Cardinality & Heatmap
   if (catCols.length >= 3 && numericCols.length === 0) {
     return renderCategoricalCardinalityAndHeatmap(catCols);
   }
 
-  // One category + one/no numeric alongside extra low-signal fields -> grouped multi-measure bars.
-  if (catCols.length >= 1 && numericCols.length >= 1) {
-    return renderGroupedMultiMeasure(catCols[0], numericCols, selectedCols);
+  // Case 8: 2 Categorical Fields (No Numeric) -> Cross-tab Heatmap
+  if (catCols.length === 2 && numericCols.length === 0) {
+    return renderCategoricalHeatmap(catCols[0], catCols[1]);
   }
 
-  // No strong measure/category/date relationship found among the selected fields -> check whether
-  // missingness itself is a meaningful pattern before giving up on a relationship view entirely.
+  // Case 9: 1 Categorical Field (No Numeric) -> Categorical Frequency
+  if (catCols.length === 1 && numericCols.length === 0) {
+    return renderCategoricalUnivariate(catCols[0]);
+  }
+
+  // Fallback: Missingness correlation or schema health
   const missingPattern = computeMissingCorrelation(selectedCols);
   if (missingPattern.pairs.length > 0) {
     return renderMissingCorrelationView(missingPattern, selectedCols, dataset);
   }
 
-  // Nothing produced a confident analytical relationship -> schema-health radar / summary cards.
   return renderSchemaHealthFallback(selectedCols, dataset);
 }
 
 /** 1 categorical + 2+ numeric measures -> Grouped Side-by-Side Column Chart:
  *  each category shows individual side-by-side comparative bars for each selected measure. */
 function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: ColumnMetricItem[], selectedCols: ColumnMetricItem[]) {
-  const n = Math.min(category.rawValues.length, ...numericCols.map(c => c.rawValues.length));
+  const n = Math.min(
+    category.rawValues?.length || 0,
+    ...numericCols.map(c => c.rawValues?.length || 0)
+  );
+
   const agg: Record<string, Record<string, number>> = {};
   let pairedN = 0;
 
@@ -3161,8 +3169,11 @@ function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
     data: topCategories.map(k => agg[k]?.[m.name] || 0),
     backgroundColor: PALETTE_BG[idx % PALETTE_BG.length],
     borderColor: PALETTE[idx % PALETTE.length],
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: 4,
+    grouped: true,
+    categoryPercentage: 0.8,
+    barPercentage: 0.9,
   }));
 
   return (
@@ -3194,8 +3205,17 @@ function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
               },
             },
             scales: {
-              x: { stacked: false, grid: { display: false }, ticks: { color: CHART_SLATE, font: { size: 9, weight: 'normal' }, maxRotation: 35 } },
-              y: { stacked: false, beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { color: CHART_SLATE, font: { size: 9 } } },
+              x: {
+                stacked: false,
+                grid: { display: false },
+                ticks: { color: CHART_SLATE, font: { size: 9, weight: 'normal' }, maxRotation: 35 }
+              },
+              y: {
+                stacked: false,
+                beginAtZero: true,
+                grid: { color: '#F1F5F9' },
+                ticks: { color: CHART_SLATE, font: { size: 9 } }
+              },
             },
           }}
         />
