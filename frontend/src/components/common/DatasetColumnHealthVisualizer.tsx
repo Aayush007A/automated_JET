@@ -1578,15 +1578,63 @@ const cleanStr = (v: any) => String(v ?? '').trim();
 
 function parseNum(v: any): number {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
-  const s = cleanStr(v).replace(/[,$₹€£¥()]/g, '');
-  const n = Number(s);
-  return Number.isFinite(n) ? n : NaN;
+  const raw = cleanStr(v);
+  if (!raw) return NaN;
+
+  // Check if parens denote a negative number e.g. "( 1,234.50 )"
+  const isParensNeg = /^\s*\(\s*[\d,.]+\s*\)\s*$/.test(raw);
+
+  // Clean common noise: commas, spaces, currency symbols, Dr/Cr, %
+  let cleaned = raw
+    .replace(/[,$₹€£¥%\s]/g, '')
+    .replace(/^(Dr|Cr|dr|cr)/i, '')
+    .replace(/(Dr|Cr|dr|cr)$/i, '');
+
+  if (isParensNeg) {
+    cleaned = '-' + cleaned.replace(/[()]/g, '');
+  } else {
+    cleaned = cleaned.replace(/[()]/g, '');
+  }
+
+  const n = Number(cleaned);
+  if (Number.isFinite(n)) return n;
+
+  // Regex fallback: try to extract first numeric sequence e.g. "INV-1002" or "INR 500" or "Doc #450"
+  const match = raw.match(/[-+]?\d[\d,]*\.?\d*/);
+  if (match) {
+    const numExtracted = Number(match[0].replace(/,/g, ''));
+    if (Number.isFinite(numExtracted)) return numExtracted;
+  }
+
+  return NaN;
 }
 
 function monthKey(v: any): string | null {
-  const d = new Date(String(v));
-  if (Number.isNaN(d.getTime())) return null;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  if (!v) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  // Fallback regex for common date/period formats like "31/12/2025", "2025/12/31", "31-Dec-2025", "2025-12"
+  const isoMatch = s.match(/(\d{4})[-/](\d{1,2})/);
+  if (isoMatch) {
+    const y = isoMatch[1];
+    const m = isoMatch[2].padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  const dmyMatch = s.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const y = dmyMatch[3];
+    const m = dmyMatch[2].padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  return null;
 }
 
 function formatCompactNumber(num: number): string {
@@ -2199,6 +2247,88 @@ function OutlierCallout({ outliers }: { outliers: OutlierResult }) {
   );
 }
 
+function renderCategoricalUnivariate(col: ColumnMetricItem) {
+  const freq: Record<string, number> = {};
+  const values = (col.rawValues && col.rawValues.length > 0)
+    ? col.rawValues
+    : (col.sampleValues && col.sampleValues.length > 0)
+      ? col.sampleValues
+      : [];
+
+  values.forEach(v => {
+    const k = cleanStr(v) || '(blank)';
+    freq[k] = (freq[k] || 0) + 1;
+  });
+
+  let top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (top.length === 0 && col.sampleValues && col.sampleValues.length > 0) {
+    col.sampleValues.forEach(s => {
+      const k = cleanStr(s) || '(blank)';
+      freq[k] = (freq[k] || 0) + 1;
+    });
+    top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  }
+
+  // Guaranteed non-empty fallback
+  if (top.length === 0) {
+    top = [['(blank / null)', col.totalCount || 1]];
+  }
+
+  const data = {
+    labels: top.map(([k]) => (k.length > 22 ? k.slice(0, 20) + '…' : k)),
+    datasets: [{
+      label: 'Occurrence Count',
+      data: top.map(([, v]) => v),
+      backgroundColor: 'rgba(0,118,128,0.72)',
+      borderColor: CHART_TEAL,
+      borderWidth: 1,
+      borderRadius: 5,
+    }],
+  };
+
+  const topCategory = top[0]?.[0] || '—';
+  const topCount = top[0]?.[1] || 0;
+  const totalObserved = top.reduce((acc, [, v]) => acc + v, 0);
+  const topPct = totalObserved > 0 ? Math.round((topCount / totalObserved) * 100) : 0;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
+      <EdaPanelHeader
+        eyebrow={`Semantic Chart Decision • Value Frequency Spread (${col.inferredType})`}
+        eyebrowColor={CHART_TEAL}
+        title={col.name}
+        description={`Ranked value frequency distribution of observed distinct entries for ${col.name}.`}
+        rightBadge={`${col.validCount.toLocaleString()} valid • ${col.completenessPct}% complete`}
+      />
+
+      <div style={{ height: 220, width: '100%' }}>
+        <Bar data={data} options={{ ...baseChartOptions(), indexAxis: 'y' as const }} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 7, padding: '7px 9px' }}>
+          <div style={{ fontSize: '0.59rem', color: CHART_SLATE, fontWeight: 750 }}>DOMINANT VALUE</div>
+          <div style={{ fontSize: '0.76rem', color: CHART_TEAL, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>
+            {topCategory}
+          </div>
+        </div>
+        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 7, padding: '7px 9px' }}>
+          <div style={{ fontSize: '0.59rem', color: CHART_SLATE, fontWeight: 750 }}>DOMINANCE WEIGHT</div>
+          <div style={{ fontSize: '0.78rem', color: CHART_NAVY, fontWeight: 800, fontFamily: 'monospace', marginTop: 2 }}>
+            {topPct}% ({topCount.toLocaleString()} rows)
+          </div>
+        </div>
+        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 7, padding: '7px 9px' }}>
+          <div style={{ fontSize: '0.59rem', color: CHART_SLATE, fontWeight: 750 }}>DISTINCT CATEGORIES</div>
+          <div style={{ fontSize: '0.78rem', color: CHART_NAVY, fontWeight: 800, fontFamily: 'monospace', marginTop: 2 }}>
+            {col.uniqueCount ? col.uniqueCount.toLocaleString() : top.length.toLocaleString()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 'boxplot' = 'histogram') {
   const kind = classify(col);
 
@@ -2207,17 +2337,7 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
     const vals = col.rawValues.map(parseNum).filter(Number.isFinite);
 
     if (vals.length === 0) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
-          <EdaPanelHeader
-            eyebrow="Semantic Chart Decision • Numeric Frequency Spread"
-            eyebrowColor={CHART_TEAL}
-            title={col.name}
-            description="No usable numeric values were found for this column in the current sample."
-          />
-          <EdaEmptyState message="This column has no parseable numeric values to plot yet — check the sample rows or run Auto-Clean first." />
-        </div>
-      );
+      return renderCategoricalUnivariate(col);
     }
 
     const outliers = computeIQROutliers(vals);
@@ -2304,17 +2424,7 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
     const entries = Object.entries(buckets).sort(([a], [b]) => a.localeCompare(b)).slice(-12);
 
     if (entries.length === 0) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
-          <EdaPanelHeader
-            eyebrow="Semantic Chart Decision • Monthly Posting Volume Trend"
-            eyebrowColor={CHART_BLUE}
-            title={col.name}
-            description="No parseable dates were found in this column's sample values."
-          />
-          <EdaEmptyState message="This column has no parseable dates to plot yet — check the sample rows or run Auto-Clean first." />
-        </div>
-      );
+      return renderCategoricalUnivariate(col);
     }
 
     const data = {
@@ -2381,17 +2491,7 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
     const top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
     if (top.length === 0) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
-          <EdaPanelHeader
-            eyebrow="Semantic Chart Decision • Identifier Uniqueness Check"
-            eyebrowColor={CHART_INDIGO}
-            title={col.name}
-            description="No usable values were found in this identifier column's sample."
-          />
-          <EdaEmptyState message="This column has no values to check for duplicates yet." />
-        </div>
-      );
+      return renderCategoricalUnivariate(col);
     }
 
     const data = {
@@ -2452,56 +2552,8 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
     );
   }
 
-  // Categorical (Text) — ranked frequency chart, never "Row 1, Row 2..."
-  const freq: Record<string, number> = {};
-  col.rawValues.forEach(v => {
-    const k = cleanStr(v) || '(blank)';
-    freq[k] = (freq[k] || 0) + 1;
-  });
-  const top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10);
-
-  if (top.length === 0) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
-        <EdaPanelHeader
-          eyebrow="Semantic Chart Decision • Categorical Key Frequency"
-          eyebrowColor={CHART_TEAL}
-          title={col.name}
-          description="No usable values were found in this column's sample."
-        />
-        <EdaEmptyState message="This column has no values to summarize yet." />
-      </div>
-    );
-  }
-
-  const data = {
-    labels: top.map(([k]) => (k.length > 22 ? k.slice(0, 20) + '…' : k)),
-    datasets: [{
-      label: 'Records',
-      data: top.map(([, v]) => v),
-      backgroundColor: 'rgba(0,118,128,0.68)',
-      borderColor: CHART_TEAL,
-      borderWidth: 1,
-      borderRadius: 5,
-    }],
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', justifyContent: 'space-between' }}>
-      <EdaPanelHeader
-        eyebrow="Semantic Chart Decision • Categorical Key Frequency"
-        eyebrowColor={CHART_TEAL}
-        title={col.name}
-        description="Ranked occurrence frequency of the top distinct category values."
-      />
-      <div style={{ height: 220, width: '100%' }}>
-        <Bar data={data} options={{ ...baseChartOptions(), indexAxis: 'y' as const }} />
-      </div>
-      <div style={{ fontSize: '0.68rem', color: CHART_SLATE }}>
-        Top {top.length} observed categories shown • {col.uniqueCount.toLocaleString()} distinct values in dataset.
-      </div>
-    </div>
-  );
+  // Categorical (Text) — ranked frequency chart
+  return renderCategoricalUnivariate(col);
 }
 
 // ── 2 FIELDS (BIVARIATE) ─────────────────────────────────────────────────
