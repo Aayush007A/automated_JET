@@ -3330,7 +3330,7 @@ export const OmniaJetWorkflow: React.FC = () => {
 
                 {/* ── Hero Header Card matching Forensic section style ── */}
                 <div style={{
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #EFF6FF 100%)',
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
                   borderRadius: '16px',
                   border: '1px solid #E2E8F0',
                   padding: '18px 24px',
@@ -3347,12 +3347,12 @@ export const OmniaJetWorkflow: React.FC = () => {
                       width: '42px',
                       height: '42px',
                       borderRadius: '12px',
-                      background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+                      background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
                       color: '#FFFFFF',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.24)',
+                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)',
                       flexShrink: 0,
                     }}>
                       <Activity size={20} color="#FFFFFF" />
@@ -3363,8 +3363,8 @@ export const OmniaJetWorkflow: React.FC = () => {
                           Reconciliation & DQC Checkpoints
                         </h3>
                         <span style={{
-                          fontSize: '0.68rem', fontWeight: 750, color: '#3B82F6',
-                          background: '#EFF6FF', border: '1px solid #BFDBFE',
+                          fontSize: '0.68rem', fontWeight: 750, color: '#007680',
+                          background: '#E6F4F5', border: '1px solid #B2DFE2',
                           padding: '2px 8px', borderRadius: '6px',
                         }}>
                           3 Modules
@@ -3407,18 +3407,18 @@ export const OmniaJetWorkflow: React.FC = () => {
                             padding: '7px 14px',
                             fontSize: '0.76rem',
                             fontWeight: isSel ? 750 : 500,
-                            color: isSel ? '#3B82F6' : '#475569',
+                            color: isSel ? '#007680' : '#475569',
                             background: isSel ? '#FFFFFF' : 'transparent',
-                            border: isSel ? '1px solid #BFDBFE' : '1px solid transparent',
+                            border: isSel ? '1px solid #CBD5E1' : '1px solid transparent',
                             borderRadius: '8px',
                             cursor: 'pointer',
-                            boxShadow: isSel ? '0 2px 8px rgba(59, 130, 246, 0.10)' : 'none',
+                            boxShadow: isSel ? '0 2px 8px rgba(0, 118, 128, 0.10)' : 'none',
                             transition: 'all 0.15s ease',
                           }}
                         >
                           <span style={{
                             width: '18px', height: '18px', borderRadius: '50%',
-                            background: isSel ? '#3B82F6' : '#E2E8F0',
+                            background: isSel ? '#007680' : '#E2E8F0',
                             color: isSel ? '#FFFFFF' : '#64748B',
                             fontSize: '0.68rem', fontWeight: 800,
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
