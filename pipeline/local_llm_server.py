@@ -68,6 +68,43 @@ def health():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
+    last_msg = ""
+    for m in reversed(req.messages):
+        if m.role == "user":
+            last_msg = m.content.strip().lower()
+            break
+
+    if last_msg in ["/questions", "/help", "/prompts", "sample questions", "catalog", "show questions"]:
+        catalog = (
+            "### Deloitte JET AI Prompt Catalog\n\n"
+            "Here is the structured master catalog of audit inquiries supported by the AI Assistant:\n\n"
+            "#### 1. Workflow & Current Step Guidance\n"
+            "- `What is this current step all about and what do I need to do?`\n"
+            "- `What file formats and schemas can I upload on Step 1?`\n"
+            "- `What are the 16 mandatory auto-cleansing rules on Step 3?`\n"
+            "- `What canonical CDM fields must be mapped on Step 4?`\n"
+            "- `How do I review the summary reconciliation on Step 6?`\n\n"
+            "#### 2. Audit Risk Tests (01 to 12)\n"
+            "- `Explain Test 2 Suspect Keywords regex scanning and logic`\n"
+            "- `What does Test 3 Post-Closing Cutoff window measure?`\n"
+            "- `Explain Test 4 Unusual Accounts and conflicting pairings`\n"
+            "- `What are Test 8 Debits to Revenue Accounts?`\n"
+            "- `What are Test 9 Monitored and Rare Users?`\n\n"
+            "#### 3. Forensic Mathematics & Benford Analysis\n"
+            "- `How is Benford's Law conformity score calculated?`\n"
+            "- `What does Mean Absolute Deviation (MAD) indicate?`\n"
+            "- `How does first-digit distribution detect artificial rounding?`\n\n"
+            "#### 4. Column Health Diagnostics & Visualizations\n"
+            "- `Explain how the Column Health Visualizer renders grouped bars`\n"
+            "- `How does the parser handle accounting negative parentheses?`\n"
+            "- `What does distinct cardinality indicate in the health report?`\n\n"
+            "#### 5. Planning Materiality & Standards\n"
+            "- `How do I configure overall planning materiality?`\n"
+            "- `How does ISA 240 define management override of controls?`\n"
+            "- `What are the 20 Golden DQC integrity rules?`"
+        )
+        return ChatResponse(message=catalog, guardrailTriggered=False)
+
     if model is None or tokenizer is None:
         init_model()
 

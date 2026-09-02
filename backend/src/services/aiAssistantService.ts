@@ -43,7 +43,8 @@ class AiAssistantService {
     'deloitte', 'platform', 'feature', 'features', 'help', 'guide', 'how to', 'step', 'overview',
     'beginning_balance', 'ending_balance', 'currency', 'formula', 'variance', 'prior', 'baseline',
     'mapping', 'cdm', 'canonical', 'trial balance', 'chart of accounts', 'workpaper', 'reconciliation',
-    'current step', 'what do i do', 'next step', 'where am i', 'what is this step', 'how do i', 'explain this'
+    'current step', 'what do i do', 'next step', 'where am i', 'what is this step', 'how do i', 'explain this',
+    'question', 'questions', 'sample', 'sample questions', 'prompts', '/questions', '/help', '/prompts', 'catalog', 'inquiries'
   ];
 
   // Strictly prohibited off-topic indicators
@@ -144,7 +145,43 @@ class AiAssistantService {
 
   // ── Dynamic Step-Aware Knowledge Engine (Ultra-Reliable Fallback) ──
   private generateStepAwareResponse(userQuery: string, context?: ActivePageContext): string {
-    const q = userQuery.toLowerCase();
+    const q = userQuery.toLowerCase().trim();
+
+    // 0. Sample Questions / Prompt Catalog Command
+    if (q === '/questions' || q === '/help' || q === '/prompts' || q.includes('sample question') || q.includes('prompt catalog') || q.includes('all questions') || q.includes('what questions')) {
+      return `### Deloitte JET AI Prompt Catalog
+
+Here is the structured master catalog of audit inquiries supported by the AI Assistant:
+
+#### 1. Workflow & Current Step Guidance
+- \`What is this current step all about and what do I need to do?\`
+- \`What file formats and schemas can I upload on Step 1?\`
+- \`What are the 16 mandatory auto-cleansing rules on Step 3?\`
+- \`What canonical CDM fields must be mapped on Step 4?\`
+- \`How do I review the summary reconciliation on Step 6?\`
+
+#### 2. Audit Risk Tests (01 to 12)
+- \`Explain Test 2 Suspect Keywords regex scanning and logic\`
+- \`What does Test 3 Post-Closing Cutoff window measure?\`
+- \`Explain Test 4 Unusual Accounts and conflicting pairings\`
+- \`What are Test 8 Debits to Revenue Accounts?\`
+- \`What are Test 9 Monitored and Rare Users?\`
+
+#### 3. Forensic Mathematics & Benford Analysis
+- \`How is Benford's Law conformity score calculated?\`
+- \`What does Mean Absolute Deviation (MAD) indicate?\`
+- \`How does first-digit distribution detect artificial rounding?\`
+
+#### 4. Column Health Diagnostics & Visualizations
+- \`Explain how the Column Health Visualizer renders grouped bars\`
+- \`How does the parser handle accounting negative parentheses?\`
+- \`What does distinct cardinality indicate in the health report?\`
+
+#### 5. Planning Materiality & Standards
+- \`How do I configure overall planning materiality?\`
+- \`How does ISA 240 define management override of controls?\`
+- \`What are the 20 Golden DQC integrity rules?\``;
+    }
 
     // Contextual Step Queries
     if (context && (q.includes('step') || q.includes('what do i do') || q.includes('how do i') || q.includes('current') || q.includes('next') || q.includes('where am i') || q.includes('explain this'))) {
