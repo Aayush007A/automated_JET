@@ -3911,13 +3911,20 @@ export const OmniaJetWorkflow: React.FC = () => {
                     </div>
 
                     {/* 4 Dimension Switcher Cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                      gap: '12px',
+                      marginBottom: '20px',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}>
                       {[
-                        { file: 'Control_Total_By_Period.csv', title: 'By Period', stat: '12 Periods', subtitle: 'Monthly debit/credit volume', icon: Calendar },
-                        { file: 'Control_Total_By_User.csv', title: 'By User ID', stat: 'User Audit', subtitle: 'Preparer transaction counts', icon: UserCheck },
-                        { file: 'Control_Total_By_Currency.csv', title: 'By Currency', stat: 'Currencies', subtitle: 'Transactional vs Group currency', icon: Coins },
-                        { file: 'JE_Line_Distribution.csv', title: 'Line Stratification', stat: '5 Buckets', subtitle: '1 line, 2-20, 21-100, 1000+', icon: Layers },
-                      ].map((c) => {
+                        { file: 'Control_Total_By_Period.csv', title: 'By Period', stat: '12 Periods', subtitle: 'Monthly debit/credit volume', highlight: '12 Fiscal Periods (P01 - P12)', icon: Calendar },
+                        { file: 'Control_Total_By_User.csv', title: 'By User ID', stat: 'User Audit', subtitle: 'Preparer transaction counts', highlight: 'Preparer & Bot Segregation', icon: UserCheck },
+                        { file: 'Control_Total_By_Currency.csv', title: 'By Currency', stat: 'Currencies', subtitle: 'Transactional vs Group currency', highlight: 'Multi-Currency Dual Totals', icon: Coins },
+                        { file: 'JE_Line_Distribution.csv', title: 'Line Stratification', stat: '5 Buckets', subtitle: '1 line, 2-20, 21-100, 1000+', highlight: 'Transaction Complexity Bands', icon: Layers },
+                      ].map((c, idx) => {
                         const isSelected = selectedControlFile === c.file;
                         const Icon = c.icon;
                         return (
@@ -3926,27 +3933,98 @@ export const OmniaJetWorkflow: React.FC = () => {
                             onClick={() => setSelectedControlFile(c.file)}
                             style={{
                               padding: '14px 16px',
-                              borderRadius: '10px',
+                              borderRadius: '12px',
                               border: isSelected ? '1.5px solid var(--deloitte-teal)' : '1px solid #E2E8F0',
-                              background: isSelected ? 'rgba(0, 118, 128, 0.04)' : '#FFFFFF',
+                              background: isSelected
+                                ? 'linear-gradient(135deg, rgba(0, 118, 128, 0.06) 0%, #FFFFFF 100%)'
+                                : '#FFFFFF',
                               cursor: 'pointer',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                              boxShadow: isSelected
+                                ? '0 4px 14px rgba(0, 118, 128, 0.12)'
+                                : '0 1px 3px rgba(0, 0, 0, 0.02)',
                               display: 'flex',
                               flexDirection: 'column',
                               justifyContent: 'space-between',
-                              minHeight: '100px'
+                              minHeight: '115px',
+                              boxSizing: 'border-box',
+                              minWidth: 0,
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              position: 'relative',
+                              overflow: 'hidden',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                                <Icon size={15} color="var(--deloitte-teal)" />
-                                <span style={{ fontWeight: 750, fontSize: '0.84rem', color: '#0F172A' }}>{c.title}</span>
+                            {/* Top Row: Number Badge, Title, and Stat Tag */}
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', minWidth: 0, gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                  <span
+                                    style={{
+                                      width: '20px',
+                                      height: '20px',
+                                      borderRadius: '50%',
+                                      background: isSelected ? 'var(--deloitte-teal)' : '#E2E8F0',
+                                      color: isSelected ? '#FFFFFF' : '#475569',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 800,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      flexShrink: 0,
+                                      fontFamily: 'var(--font-mono, monospace)',
+                                      transition: 'all 0.15s ease',
+                                    }}
+                                  >
+                                    {idx + 1}
+                                  </span>
+                                  <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {c.title}
+                                  </span>
+                                </div>
+
+                                <span style={{
+                                  fontSize: '0.66rem',
+                                  fontWeight: 800,
+                                  padding: '2px 7px',
+                                  borderRadius: '5px',
+                                  background: isSelected ? '#DCFCE7' : '#F1F5F9',
+                                  color: isSelected ? '#15803D' : '#475569',
+                                  border: isSelected ? '1px solid #BBF7D0' : '1px solid #E2E8F0',
+                                  whiteSpace: 'nowrap',
+                                  flexShrink: 0,
+                                  letterSpacing: '0.02em',
+                                }}>
+                                  {isSelected ? '● Active' : c.stat}
+                                </span>
                               </div>
-                              <span style={{ fontSize: '0.70rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: '#F1F5F9', color: '#475569' }}>
-                                {c.stat}
-                              </span>
+
+                              <p style={{ fontSize: '0.73rem', color: '#64748B', margin: '0 0 8px', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {c.subtitle}
+                              </p>
                             </div>
-                            <p style={{ fontSize: '0.73rem', color: '#64748B', margin: 0 }}>{c.subtitle}</p>
+
+                            {/* Bottom Micro-Indicator: Accent Bar + Highlight Caption */}
+                            <div style={{ marginTop: 'auto' }}>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '0.66rem',
+                                color: isSelected ? 'var(--deloitte-teal)' : '#94A3B8',
+                                fontWeight: 700,
+                                marginBottom: '4px',
+                              }}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.highlight}</span>
+                              </div>
+                              <div style={{
+                                height: '3px',
+                                width: '100%',
+                                borderRadius: '999px',
+                                background: isSelected
+                                  ? 'linear-gradient(90deg, #007680 0%, #2DD4BF 100%)'
+                                  : '#E2E8F0',
+                                transition: 'all 0.2s ease',
+                              }} />
+                            </div>
                           </div>
                         );
                       })}
