@@ -28,8 +28,30 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pageContext, setPageContext] = useState<ActivePageContext>(PageContextService.getContext());
 
+  // Holographic Opening Bootup Animation State
+  const [isBooting, setIsBooting] = useState<boolean>(true);
+  const [bootStage, setBootStage] = useState<number>(0);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Trigger bootup animation on open
+  useEffect(() => {
+    if (isOpen) {
+      setIsBooting(true);
+      setBootStage(0);
+
+      const t1 = setTimeout(() => setBootStage(1), 450);
+      const t2 = setTimeout(() => setBootStage(2), 950);
+      const t3 = setTimeout(() => setIsBooting(false), 1600);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    }
+  }, [isOpen]);
 
   // Subscribe to real-time page and step context
   useEffect(() => {
@@ -77,12 +99,12 @@ How can I assist you with your current audit task?`,
     }
   }, [messages, isOpen, isLoading]);
 
-  // Focus input when opened
+  // Focus input when opened and bootup completed
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 150);
+    if (isOpen && !isBooting) {
+      setTimeout(() => inputRef.current?.focus(), 120);
     }
-  }, [isOpen]);
+  }, [isOpen, isBooting]);
 
   const handleSend = async (textToSend?: string) => {
     const query = (textToSend !== undefined ? textToSend : inputValue).trim();
@@ -244,6 +266,151 @@ How can I assist you with your current audit task?`,
             fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
           }}
         >
+          {/* HOLOGRAPHIC ENTRANCE BOOTUP ANIMATION */}
+          <AnimatePresence>
+            {isBooting && (
+              <motion.div
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0, scale: 1.04 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                onClick={() => setIsBooting(false)}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(145deg, #FFFFFF 0%, #F0FDFA 60%, #E6F4F5 100%)',
+                  zIndex: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '24px',
+                  cursor: 'pointer',
+                }}
+              >
+                {/* Expanding Glowing Orb Portal */}
+                <div style={{ position: 'relative', width: '92px', height: '92px', marginBottom: '20px' }}>
+                  {/* Outer Rotating Concentric Ring */}
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 6, ease: 'linear' }}
+                    style={{
+                      position: 'absolute',
+                      inset: -14,
+                      borderRadius: '50%',
+                      border: '2px dashed rgba(0, 118, 128, 0.40)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+
+                  {/* Pulsing Ripple Halo */}
+                  <motion.div
+                    animate={{ scale: [1, 1.45, 1.7], opacity: [0.7, 0.25, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: 'easeOut' }}
+                    style={{
+                      position: 'absolute',
+                      inset: -6,
+                      borderRadius: '50%',
+                      border: '2px solid #2DD4BF',
+                      pointerEvents: 'none',
+                    }}
+                  />
+
+                  {/* Central Holographic AI Orb Avatar */}
+                  <motion.div
+                    animate={{ scale: [0.92, 1.06, 0.98] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                    style={{
+                      width: '92px',
+                      height: '92px',
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      background: '#090D16',
+                      boxShadow: '0 0 35px rgba(0, 118, 128, 0.5), 0 0 60px rgba(45, 212, 191, 0.25)',
+                      border: '2px solid #CCFBF1',
+                    }}
+                  >
+                    <img
+                      src="/ai-agent-avatar.png"
+                      alt="Deloitte AI"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </motion.div>
+                </div>
+
+                {/* Title & Staggered Boot Telemetry */}
+                <div style={{ textAlign: 'center' }}>
+                  <div
+                    style={{
+                      fontSize: '1.25rem',
+                      fontWeight: 850,
+                      color: '#0F172A',
+                      letterSpacing: '-0.02em',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    Deloitte JET AI
+                  </div>
+
+                  {/* Dynamic Stage Text */}
+                  <div
+                    style={{
+                      fontSize: '0.76rem',
+                      color: '#007680',
+                      fontWeight: 700,
+                      minHeight: '22px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: '#10B981',
+                        boxShadow: '0 0 6px #10B981',
+                      }}
+                    />
+                    <span>
+                      {bootStage === 0 && 'Initializing Neural Audit Core...'}
+                      {bootStage === 1 && 'Calibrating Schema & Audit Constraints...'}
+                      {bootStage >= 2 && `Linked: ${pageContext.stepTitle ? pageContext.stepTitle.split('&')[0].trim() : 'Dashboard'}`}
+                    </span>
+                  </div>
+
+                  {/* Sleek High-Tech Progress Bar */}
+                  <div
+                    style={{
+                      width: '160px',
+                      height: '3px',
+                      background: '#E2E8F0',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      margin: '14px auto 8px',
+                    }}
+                  >
+                    <motion.div
+                      initial={{ width: '0%' }}
+                      animate={{ width: bootStage === 0 ? '30%' : bootStage === 1 ? '75%' : '100%' }}
+                      transition={{ duration: 0.45, ease: 'easeOut' }}
+                      style={{
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #007680, #2DD4BF)',
+                        borderRadius: '4px',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ fontSize: '0.64rem', color: '#94A3B8', marginTop: '6px' }}>
+                    Click anywhere to skip
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* COMPACT, CLEAN EXECUTIVE HEADER (NO TEXT WRAP) */}
           <div
             style={{
