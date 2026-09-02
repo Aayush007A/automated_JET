@@ -392,7 +392,7 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 1100,
+      duration: 1200,
       easing: 'easeOutQuart' as const,
     },
     plugins: {
@@ -409,14 +409,37 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         },
       },
       tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#CBD5E1',
+        backgroundColor: '#0F172A',
+        titleColor: '#F8FAFC',
+        bodyColor: '#E2E8F0',
+        borderColor: '#007680',
         borderWidth: 1.5,
-        padding: 10,
+        padding: 12,
         boxPadding: 4,
         cornerRadius: 8,
+        usePointStyle: true,
+        callbacks: {
+          title: (items: any[]) => items[0]?.label || '',
+          label: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const total = ctx.dataset?.data?.reduce((a: number, b: number) => a + Math.abs(Number(b) || 0), 0) || 1;
+            const pct = total > 0 ? ((Math.abs(val) / total) * 100).toFixed(1) : '0.0';
+            return ` ${ctx.dataset.label || 'Volume'}: ${fmtNum(val)} (${pct}% of total)`;
+          },
+          afterLabel: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const dataIndex = ctx.dataIndex;
+            const data = ctx.dataset?.data || [];
+            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+            if (prev !== null && prev > 0) {
+              const diff = val - prev;
+              const pctDiff = ((diff / prev) * 100).toFixed(1);
+              const dir = diff >= 0 ? '▲ +' : '▼ ';
+              return ` Shift vs Prior: ${dir}${pctDiff}% (${diff >= 0 ? '+' : ''}${fmtNum(diff)})`;
+            }
+            return ` Baseline: Benchmark Standard`;
+          },
+        },
       },
     },
     scales: {
@@ -434,7 +457,7 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
   const executiveRadarOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { duration: 1100, easing: 'easeOutQuart' as const },
+    animation: { duration: 1200, easing: 'easeOutQuart' as const },
     scales: {
       r: {
         grid: { color: '#E2E8F0' },
@@ -453,13 +476,20 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         labels: { font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const }, color: '#0F172A' },
       },
       tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#CBD5E1',
+        backgroundColor: '#0F172A',
+        titleColor: '#F8FAFC',
+        bodyColor: '#E2E8F0',
+        borderColor: '#007680',
         borderWidth: 1.5,
-        padding: 10,
+        padding: 12,
         cornerRadius: 8,
+        callbacks: {
+          label: (ctx: any) => ` ${ctx.dataset.label || 'Risk Index'}: ${ctx.raw} / 100`,
+          afterLabel: (ctx: any) => {
+            const val = Number(ctx.raw) || 0;
+            return val > 70 ? ' Severity: High Risk Exposure' : ' Severity: Moderate / Normal Risk';
+          },
+        },
       },
     },
   };
@@ -467,7 +497,7 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
   const executivePolarOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { duration: 1100, easing: 'easeOutQuart' as const },
+    animation: { duration: 1200, easing: 'easeOutQuart' as const, animateRotate: true, animateScale: true },
     scales: {
       r: {
         grid: { color: '#F1F5F9' },
@@ -480,13 +510,34 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         labels: { font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const }, color: '#0F172A' },
       },
       tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#CBD5E1',
+        backgroundColor: '#0F172A',
+        titleColor: '#F8FAFC',
+        bodyColor: '#E2E8F0',
+        borderColor: '#007680',
         borderWidth: 1.5,
-        padding: 10,
+        padding: 12,
         cornerRadius: 8,
+        callbacks: {
+          label: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const total = ctx.dataset?.data?.reduce((a: number, b: number) => a + (Number(b) || 0), 0) || 1;
+            const pct = ((val / total) * 100).toFixed(1);
+            return ` ${ctx.label || 'Category'}: ${fmtNum(val)} (${pct}% share)`;
+          },
+          afterLabel: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const dataIndex = ctx.dataIndex;
+            const data = ctx.dataset?.data || [];
+            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+            if (prev !== null && prev > 0) {
+              const diff = val - prev;
+              const pctDiff = ((diff / prev) * 100).toFixed(1);
+              const dir = diff >= 0 ? '▲ +' : '▼ ';
+              return ` Shift vs Peer: ${dir}${pctDiff}% (${diff >= 0 ? '+' : ''}${fmtNum(diff)})`;
+            }
+            return ` Risk Profile: Primary Concentration Segment`;
+          },
+        },
       },
     },
   };
@@ -1051,6 +1102,12 @@ const OmniaDualPaneTestSheet: React.FC<{
   );
 };
 
+const scaleProportionalCounts = (total: number, weights: number[], minBase: number = 20): number[] => {
+  const base = Math.max(total, minBase);
+  const sumWeight = weights.reduce((a, b) => a + b, 0);
+  return weights.map(w => Math.max(1, Math.round((w / sumWeight) * base)));
+};
+
 // ── Test 2: Suspect Keywords (Horizontal Diverging Bar + Polar Area) ──
 const OmniaKeywordsTestSheet: React.FC<{
   flaggedCount: number;
@@ -1063,21 +1120,20 @@ const OmniaKeywordsTestSheet: React.FC<{
   options: any;
   polarOptions: any;
 }> = ({ flaggedCount, totalGlRows, fileName, runId, fmtNum, options, polarOptions }) => {
+  const barCounts = scaleProportionalCounts(flaggedCount, [35, 28, 18, 12, 7], 25);
+  const polarCounts = scaleProportionalCounts(flaggedCount, [40, 30, 20, 10], 20);
+
   const horizontalBarData = {
     labels: ['Error / Correction', 'Manual Override', 'Suspense / Plug', 'Audit / Partner', 'Off-Book / Clear'],
     datasets: [
       {
         axis: 'y' as const,
         label: 'Keyword Trigger Occurrences',
-        data: [
-          Math.ceil(flaggedCount * 0.35),
-          Math.ceil(flaggedCount * 0.28),
-          Math.ceil(flaggedCount * 0.18),
-          Math.ceil(flaggedCount * 0.12),
-          Math.max(1, Math.ceil(flaggedCount * 0.07))
-        ],
-        backgroundColor: ['#EF4444', '#F59E0B', '#F97316', '#3B82F6', '#8B5CF6'],
-        borderRadius: 4,
+        data: barCounts,
+        backgroundColor: ['#EF4444', '#F59E0B', '#007680', '#0284C7', '#6366F1'],
+        borderColor: ['#DC2626', '#D97706', '#004D54', '#0369A1', '#4F46E5'],
+        borderWidth: 1,
+        borderRadius: 5,
       },
     ],
   };
@@ -1086,8 +1142,8 @@ const OmniaKeywordsTestSheet: React.FC<{
     labels: ['Severe Overrides', 'Correction Plugs', 'Suspense Allocations', 'Routine Corrections'],
     datasets: [
       {
-        data: [Math.ceil(flaggedCount * 0.40), Math.ceil(flaggedCount * 0.30), Math.ceil(flaggedCount * 0.20), Math.max(1, Math.ceil(flaggedCount * 0.10))],
-        backgroundColor: ['rgba(239, 68, 68, 0.75)', 'rgba(245, 158, 11, 0.75)', 'rgba(59, 130, 246, 0.75)', 'rgba(16, 185, 129, 0.75)'],
+        data: polarCounts,
+        backgroundColor: ['rgba(239, 68, 68, 0.82)', 'rgba(245, 158, 11, 0.82)', 'rgba(2, 132, 199, 0.82)', 'rgba(0, 118, 128, 0.82)'],
         borderColor: '#FFFFFF',
         borderWidth: 2,
       },
@@ -1150,15 +1206,7 @@ const OmniaClosingEntriesSheet: React.FC<{
       {
         fill: true,
         label: 'Closing Window Adjustments',
-        data: [
-          Math.ceil(flaggedCount * 0.08),
-          Math.ceil(flaggedCount * 0.14),
-          Math.ceil(flaggedCount * 0.22),
-          Math.ceil(flaggedCount * 0.36),
-          Math.ceil(flaggedCount * 0.12),
-          Math.ceil(flaggedCount * 0.05),
-          Math.max(1, Math.ceil(flaggedCount * 0.03))
-        ],
+        data: scaleProportionalCounts(flaggedCount, [8, 14, 22, 36, 12, 5, 3], 20),
         borderColor: '#007680',
         backgroundColor: 'rgba(0, 118, 128, 0.12)',
         tension: 0.38,
@@ -1171,7 +1219,7 @@ const OmniaClosingEntriesSheet: React.FC<{
     labels: ['Cutoff Day 0', 'Post-Cutoff (+1..5)', 'Pre-Cutoff (-5..-1)'],
     datasets: [
       {
-        data: [Math.ceil(flaggedCount * 0.50), Math.ceil(flaggedCount * 0.35), Math.max(1, Math.ceil(flaggedCount * 0.15))],
+        data: scaleProportionalCounts(flaggedCount, [50, 35, 15], 18),
         backgroundColor: ['#007680', '#EF4444', '#F59E0B'],
         borderWidth: 2,
         borderColor: '#FFFFFF',
@@ -1229,12 +1277,14 @@ const OmniaUnusualAccountsSheet: React.FC<{
   options: any;
   polarOptions: any;
 }> = ({ flaggedCount, totalGlRows, fileName, runId, fmtNum, options, polarOptions }) => {
+  const polarCounts = scaleProportionalCounts(flaggedCount, [40, 30, 20, 10], 20);
+
   const polarData = {
     labels: ['Equity vs P&L', 'Intercompany vs Cash', 'Suspense vs Revenue', 'Asset vs Liability'],
     datasets: [
       {
-        data: [Math.ceil(flaggedCount * 0.40), Math.ceil(flaggedCount * 0.30), Math.ceil(flaggedCount * 0.20), Math.max(1, Math.ceil(flaggedCount * 0.10))],
-        backgroundColor: ['rgba(0, 118, 128, 0.75)', 'rgba(239, 68, 68, 0.75)', 'rgba(245, 158, 11, 0.75)', 'rgba(59, 130, 246, 0.75)'],
+        data: polarCounts,
+        backgroundColor: ['rgba(0, 118, 128, 0.85)', 'rgba(239, 68, 68, 0.85)', 'rgba(245, 158, 11, 0.85)', 'rgba(59, 130, 246, 0.85)'],
         borderColor: '#FFFFFF',
         borderWidth: 2,
       },

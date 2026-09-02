@@ -1680,18 +1680,44 @@ function baseChartOptions(tooltipTitle?: (i: any[]) => string): any {
   return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 1200,
+      easing: 'easeOutQuart',
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: CHART_NAVY,
-        bodyColor: '#334155',
-        borderColor: '#DCE6EC',
-        borderWidth: 1,
-        padding: 10,
+        backgroundColor: '#0F172A',
+        titleColor: '#F8FAFC',
+        bodyColor: '#E2E8F0',
+        borderColor: '#007680',
+        borderWidth: 1.5,
+        padding: 12,
         cornerRadius: 8,
-        displayColors: false,
-        callbacks: tooltipTitle ? { title: tooltipTitle } : undefined,
+        displayColors: true,
+        boxPadding: 4,
+        callbacks: {
+          title: tooltipTitle ? tooltipTitle : (items: any[]) => items[0]?.label || '',
+          label: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const total = ctx.dataset?.data?.reduce((a: number, b: number) => a + Math.abs(Number(b) || 0), 0) || 1;
+            const pct = total > 0 ? ((Math.abs(val) / total) * 100).toFixed(1) : '0.0';
+            return ` ${ctx.dataset.label || 'Observed Value'}: ${formatCompactNumber(val)} (${pct}% of total volume)`;
+          },
+          afterLabel: (ctx: any) => {
+            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
+            const dataIndex = ctx.dataIndex;
+            const data = ctx.dataset?.data || [];
+            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+            if (prev !== null && prev !== 0) {
+              const diff = val - prev;
+              const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
+              const dir = diff >= 0 ? '▲ +' : '▼ ';
+              return ` Shift vs Prior: ${dir}${pctDiff}% (${diff >= 0 ? '+' : ''}${formatCompactNumber(diff)})`;
+            }
+            return ` Baseline: Evaluated Audit Period`;
+          },
+        },
       },
     },
     scales: {
