@@ -37,19 +37,28 @@ class ChatResponse(BaseModel):
     guardrailTriggered: bool = False
     guardrailReason: Optional[str] = None
 
+ADAPTER_DIR = "pipeline/fine_tuned_jet_adapter"
+
 def init_model():
     global tokenizer, model
     if model is None:
-        print(f"[Local AI] Loading {MODEL_ID} from local cache...")
+        print(f"[Local AI] Loading base model {MODEL_ID}...")
         t0 = time.time()
         tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, local_files_only=True)
-        model = AutoModelForCausalLM.from_pretrained(
+        base_model = AutoModelForCausalLM.from_pretrained(
             MODEL_ID,
             torch_dtype=torch.float32,
             device_map="cpu",
             local_files_only=True
         )
-        print(f"[Local AI] Model loaded successfully in {round(time.time() - t0, 2)}s")
+        if os.path.exists(ADAPTER_DIR):
+            from peft import PeftModel
+            print(f"[Local AI] Activating fine-tuned LoRA adapter from {ADAPTER_DIR}...")
+            model = PeftModel.from_pretrained(base_model, ADAPTER_DIR)
+            print(f"[Local AI] Fine-tuned JET model loaded in {round(time.time() - t0, 2)}s")
+        else:
+            model = base_model
+            print(f"[Local AI] Base model loaded in {round(time.time() - t0, 2)}s")
 
 @app.on_event("startup")
 def startup_event():
@@ -151,7 +160,7 @@ def chat(req: ChatRequest):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=220,
+            max_new_tokens=512,
             temperature=0.3,
             do_sample=True,
             pad_token_id=tokenizer.eos_token_id

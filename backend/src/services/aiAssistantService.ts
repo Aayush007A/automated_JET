@@ -382,7 +382,7 @@ The Deloitte Automated JET platform delivers automated general ledger ingestion,
       };
     }
 
-    // 2. Deterministic Commands & Core Canonicals (Instant High-Accuracy Execution)
+    // 2. Interactive Catalog Command (Deterministic UI)
     if (
       q === '/questions' ||
       q === '/help' ||
@@ -390,15 +390,7 @@ The Deloitte Automated JET platform delivers automated general ledger ingestion,
       q.includes('sample question') ||
       q.includes('prompt catalog') ||
       q.includes('show questions') ||
-      q.includes('all questions') ||
-      q.includes('all the step') ||
-      q.includes('all steps') ||
-      q.includes('steps i need to perform') ||
-      q.includes('steps to perform') ||
-      q.includes('workflow steps') ||
-      q.includes('ingest data') ||
-      q.includes('ingest dataset') ||
-      (q.includes('12') && (q.includes('test') || q.includes('forensic') || q.includes('overview') || q.includes('cover')))
+      q.includes('all questions')
     ) {
       const canonicalResponse = this.generateStepAwareResponse(lastUserMessage, context);
       return {
@@ -407,7 +399,7 @@ The Deloitte Automated JET platform delivers automated general ledger ingestion,
       };
     }
 
-    // 3. Attempt Real Local Neural Model (Qwen2.5 on Port 5005)
+    // 3. Real Local Fine-Tuned Neural LLM (LoRA Adapted Qwen2.5 on Port 5005)
     try {
       const llmResult = await this.queryLocalNeuralModel(messages, context);
       return {
