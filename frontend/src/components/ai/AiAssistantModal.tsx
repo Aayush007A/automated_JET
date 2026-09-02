@@ -235,8 +235,9 @@ How can I assist you with your current audit task?`,
   const currentPrompts = getContextualPrompts();
 
   // Clean step subtitle
-  const cleanStepTitle = pageContext.currentStep
-    ? `Step ${pageContext.currentStep}: ${pageContext.stepTitle?.split('&')[0]?.trim() || 'Workflow'}`
+  const isWorkflow = pageContext.route?.includes('/jet') || pageContext.route?.includes('/spark-jet') || pageContext.route?.includes('/omnia-jet');
+  const cleanStepTitle = isWorkflow
+    ? `Step ${pageContext.currentStep || 1}: ${pageContext.stepTitle ? pageContext.stepTitle.replace(/^Step\s*\d+:\s*/i, '').split('&')[0].trim() : 'Ingest Data'}`
     : 'Dashboard • Engagement Overview';
 
   return (

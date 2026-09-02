@@ -183,6 +183,70 @@ Explore categorized inquiries across the platform. Click any question below to a
 [ASK: What are the 20 Golden DQC integrity rules?]`;
     }
 
+    // Query for all workflow steps on the page
+    if (
+      q.includes('all the step') ||
+      q.includes('all steps') ||
+      q.includes('steps i need to perform') ||
+      q.includes('steps to perform') ||
+      q.includes('workflow steps') ||
+      q.includes('overview of steps')
+    ) {
+      const activeStepTitle = context?.stepTitle || 'Step 1: Ingest Data';
+      return `### Overview of JET Audit Workflow Steps
+
+Here is the complete step-by-step audit process across all workflow steps on this page:
+
+1. **Step 1: Ingest Data (Upload Files)**
+   - **What to do**: Upload your raw general ledger and accounting populations—either separate CSV files or an all-in-one multi-sheet Excel workbook containing Trial Balance (TB) and General Ledger (GL) Population.
+   - **Verification**: Inspect the detected sheet previews, verify total row counts, and ensure files are properly parsed before proceeding.
+
+2. **Step 2: Data File Mapping**
+   - **What to do**: Map your source system columns to Deloitte's standard Canonical Data Model (CDM) schema.
+   - **Required Fields**: Account Number, Account Description, Debit/Credit Amounts, Effective Date, Journal Entry / Document ID, and User / Preparer ID.
+
+3. **Step 3: Auto-Cleansing & Constraints Check**
+   - **What to do**: Automated hygiene engine cleanses raw data, standardizes date formats into ISO-8601 (\`YYYY-MM-DD\`), converts negative accounting parentheses \`(1,234.56)\` -> \`-1234.56\`, and validates 16 mandatory audit integrity rules.
+   - **Column Health**: Review exploratory Column Health diagnostics with univariate distributions and grouped comparative bars.
+
+4. **Step 4: Integrity & Data Readiness Tests (IR 1-4)**
+   - **What to do**: Execute core baseline checks: Trial Balance debits/credits zero-balance checkpoint, GL to TB total volume reconciliation, and document numbering gap diagnostics.
+
+5. **Step 5: Parametric Exception Testing (Ex 01-12)**
+   - **What to do**: Configure engagement audit parameters, materiality thresholds, suspect keyword regex patterns, weekend/holiday dates, and cutoff adjustment windows.
+
+6. **Step 6: Executive Deliverables & Workpapers**
+   - **What to do**: Review interactive audit dashboards, forensic exception tables, and Benford's Law logarithmic first-digit conformity scores. Download full audit documentation and audit workpapers.
+
+*Currently, you are on **${activeStepTitle}**. Upload your TB and GL population files to begin.*`;
+    }
+
+    // Step 1: Ingest Data / Dataset Guidance
+    if (
+      q.includes('ingest') ||
+      q.includes('upload file') ||
+      q.includes('upload dataset') ||
+      (context?.currentStep === 1 && (q.includes('what do i do') || q.includes('how do i') || q.includes('current step') || q.includes('next')))
+    ) {
+      return `### Step 1: Ingest Data (Upload Files)
+
+On this step, you load the raw general ledger and financial accounting datasets for the audit engagement:
+
+**What you need to do:**
+1. **Upload Files**: Drag & drop or browse for your files:
+   - **Trial Balance (TB)**: Account-level opening, debit, credit, and closing balances.
+   - **General Ledger (GL) Population**: Transaction-level journal entries containing amounts, dates, accounts, and preparer IDs.
+   - **Chart of Accounts (COA)**: Optional account hierarchy and category metadata.
+2. **Supported Formats**: CSV (\`.csv\`) or multi-sheet Excel (\`.xlsx\`, \`.xls\`).
+3. **Inspect Sheet Previews**: Click on any detected sheet tab to preview the top 50 sample rows and confirm correct parsing.
+4. **Proceed**: Once files are loaded, click **"Proceed to Data File Mapping"** to map your columns to the Deloitte CDM schema.
+
+**Key Requirements:**
+- Ensure numerical values are formatted correctly (parentheses or negative signs for credits).
+- The Trial Balance debits and credits must balance to zero.
+- Ensure date fields contain full day, month, and year information.`;
+    }
+
     // Contextual Step Queries
     if (context && (q.includes('step') || q.includes('what do i do') || q.includes('how do i') || q.includes('current') || q.includes('next') || q.includes('where am i') || q.includes('explain this'))) {
       const stepNum = context.currentStep || 1;
@@ -327,6 +391,13 @@ The Deloitte Automated JET platform delivers automated general ledger ingestion,
       q.includes('prompt catalog') ||
       q.includes('show questions') ||
       q.includes('all questions') ||
+      q.includes('all the step') ||
+      q.includes('all steps') ||
+      q.includes('steps i need to perform') ||
+      q.includes('steps to perform') ||
+      q.includes('workflow steps') ||
+      q.includes('ingest data') ||
+      q.includes('ingest dataset') ||
       (q.includes('12') && (q.includes('test') || q.includes('forensic') || q.includes('overview') || q.includes('cover')))
     ) {
       const canonicalResponse = this.generateStepAwareResponse(lastUserMessage, context);

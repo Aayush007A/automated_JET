@@ -19,6 +19,19 @@ class PageContextManager {
   private listeners: Array<(ctx: ActivePageContext) => void> = [];
 
   public getContext(): ActivePageContext {
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    const isWorkflow = currentPath.includes('/spark-jet') || currentPath.includes('/omnia-jet') || currentPath.includes('/jet');
+    if (isWorkflow && (this.currentContext.route === '/dashboard' || !this.currentContext.route.includes('jet'))) {
+      return {
+        ...this.currentContext,
+        route: currentPath,
+        pageTitle: 'JET Audit Workflow',
+        currentStep: this.currentContext.currentStep || 1,
+        stepTitle: 'Step 1: Ingest Data (Upload Files)',
+        stepDescription: 'Upload Trial Balance and General Ledger population files, inspect detected sheets, and verify row counts.',
+        actionGuidance: 'Upload CSV or multi-sheet Excel workbook for Trial Balance and Population files. Verify sheet previews before proceeding.',
+      };
+    }
     return { ...this.currentContext };
   }
 

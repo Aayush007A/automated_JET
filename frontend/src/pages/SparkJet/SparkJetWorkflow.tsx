@@ -18,6 +18,7 @@ import { ExecutiveChartJsAnalyticsSuite } from '../../components/summary/Executi
 import { ExecutiveForensicIntelligenceHub } from '../../components/summary/ExecutiveForensicIntelligenceHub';
 import { EngagementAuditParametersCard, EngagementAuditParametersData } from '../../components/common/EngagementAuditParametersCard';
 import { DatasetColumnHealthVisualizer } from '../../components/common/DatasetColumnHealthVisualizer';
+import { PageContextService } from '../../services/pageContextService';
 import {
   ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download,
   Layers, Settings, FileSpreadsheet, ShieldCheck, Database, RefreshCw, Archive,
@@ -282,6 +283,29 @@ export const SparkJetWorkflow: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [executing, setExecuting] = useState(false);
+
+  // Publish dynamic step context to AI Assistant
+  useEffect(() => {
+    PageContextService.setContext({
+      route: '/spark-jet',
+      pageTitle: 'JET Audit Workflow',
+      currentStep,
+      totalSteps: 6,
+      stepTitle: STEP_COPY[currentStep]?.title || `Step ${currentStep}`,
+      stepDescription: STEP_COPY[currentStep]?.desc,
+      actionGuidance: currentStep === 1
+        ? 'Upload the Trial Balance (TB) and General Ledger population files (CSV or Excel workbook). Preview sheets, inspect row counts, and verify schema before proceeding to data file mapping.'
+        : currentStep === 2
+        ? 'Map source data columns to standard Deloitte Canonical Data Model (CDM) fields for Trial Balance and Population, ensuring all required fields (Account, Amount, Date, Doc ID) are mapped.'
+        : currentStep === 3
+        ? 'Execute automated data cleansing, inspect column health diagnostics, verify negative accounting parentheses conversion, and ensure all 16 integrity constraints pass.'
+        : currentStep === 4
+        ? 'Execute and review Integrity & Data Readiness Tests (IR 1-4) including Trial Balance control totals, debit/credit balancing, and gap analysis.'
+        : currentStep === 5
+        ? 'Configure parametric fraud testing rules (Ex 1-12) such as suspect keywords, round sums, cutoff windows, and conflicting account pairings.'
+        : 'Inspect executive summary reconciliation, forensic exception dashboards, Benford conformity analysis, and download validated audit workpapers.',
+    });
+  }, [currentStep]);
 
   // Sample Data Modal for raw inputs (Top 50 sample rows)
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
