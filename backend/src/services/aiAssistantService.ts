@@ -151,36 +151,36 @@ class AiAssistantService {
     if (q === '/questions' || q === '/help' || q === '/prompts' || q.includes('sample question') || q.includes('prompt catalog') || q.includes('all questions') || q.includes('what questions')) {
       return `### Deloitte JET AI Prompt Catalog
 
-Here is the structured master catalog of audit inquiries supported by the AI Assistant:
+Explore categorized inquiries across the platform. Click any question below to ask immediately:
 
 #### 1. Workflow & Current Step Guidance
-- \`What is this current step all about and what do I need to do?\`
-- \`What file formats and schemas can I upload on Step 1?\`
-- \`What are the 16 mandatory auto-cleansing rules on Step 3?\`
-- \`What canonical CDM fields must be mapped on Step 4?\`
-- \`How do I review the summary reconciliation on Step 6?\`
+[ASK: What is this current step all about and what do I need to do?]
+[ASK: What file formats and schemas can I upload on Step 1?]
+[ASK: What are the 16 mandatory auto-cleansing rules on Step 3?]
+[ASK: What canonical CDM fields must be mapped on Step 4?]
+[ASK: How do I review the summary reconciliation on Step 6?]
 
 #### 2. Audit Risk Tests (01 to 12)
-- \`Explain Test 2 Suspect Keywords regex scanning and logic\`
-- \`What does Test 3 Post-Closing Cutoff window measure?\`
-- \`Explain Test 4 Unusual Accounts and conflicting pairings\`
-- \`What are Test 8 Debits to Revenue Accounts?\`
-- \`What are Test 9 Monitored and Rare Users?\`
+[ASK: Explain Test 2 Suspect Keywords regex scanning and logic]
+[ASK: What does Test 3 Post-Closing Cutoff window measure?]
+[ASK: Explain Test 4 Unusual Accounts and conflicting pairings]
+[ASK: What are Test 8 Debits to Revenue Accounts?]
+[ASK: What are Test 9 Monitored and Rare Users?]
 
 #### 3. Forensic Mathematics & Benford Analysis
-- \`How is Benford's Law conformity score calculated?\`
-- \`What does Mean Absolute Deviation (MAD) indicate?\`
-- \`How does first-digit distribution detect artificial rounding?\`
+[ASK: How is Benford's Law conformity score calculated?]
+[ASK: What does Mean Absolute Deviation (MAD) indicate?]
+[ASK: How does first-digit distribution detect artificial rounding?]
 
 #### 4. Column Health Diagnostics & Visualizations
-- \`Explain how the Column Health Visualizer renders grouped bars\`
-- \`How does the parser handle accounting negative parentheses?\`
-- \`What does distinct cardinality indicate in the health report?\`
+[ASK: Explain how the Column Health Visualizer renders grouped bars]
+[ASK: How does the parser handle accounting negative parentheses?]
+[ASK: What does distinct cardinality indicate in the health report?]
 
 #### 5. Planning Materiality & Standards
-- \`How do I configure overall planning materiality?\`
-- \`How does ISA 240 define management override of controls?\`
-- \`What are the 20 Golden DQC integrity rules?\``;
+[ASK: How do I configure overall planning materiality?]
+[ASK: How does ISA 240 define management override of controls?]
+[ASK: What are the 20 Golden DQC integrity rules?]`;
     }
 
     // Contextual Step Queries
@@ -300,9 +300,7 @@ The Deloitte Automated JET platform delivers automated general ledger ingestion,
 **Core Capabilities:**
 - **Audit Risk Tests 01 to 12**: Seldom Accounts, Suspect Keywords, Cutoff Adjustments, Unusual Account Pairings, Round Sum Multiples, Duplicate Transactions, Weekend/Holiday Postings, Debits to Revenue, Monitored Users, Benford's Law, Population Funnel, and Engagement Details.
 - **EDA Column Health Diagnostics**: Deep univariate/multivariate distributions, accounting format parsing, and data completeness metrics.
-- **Reconciliation Workpapers**: Three-way Trial Balance to General Ledger reconciliation.
-
-*Ask about your current workflow step, any specific test, or data validation rule.*`;
+- **Reconciliation Workpapers**: Three-way Trial Balance to General Ledger reconciliation.`;
   }
 
   // ── Main Process Method ─────────────────────────────────────────────

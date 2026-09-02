@@ -686,10 +686,12 @@ How can I assist you with your current audit task?`,
                   ) : (
                     <div
                       onClick={(e) => {
-                        const target = e.target as HTMLElement;
-                        const query = target.getAttribute('data-query');
-                        if (query) {
-                          handleSend(query);
+                        const target = (e.target as HTMLElement).closest('[data-query]') as HTMLElement;
+                        if (target) {
+                          const query = target.getAttribute('data-query');
+                          if (query) {
+                            handleSend(query);
+                          }
                         }
                       }}
                       dangerouslySetInnerHTML={{
@@ -948,33 +950,39 @@ function renderBeautifulMarkdown(raw: string): string {
     '<div style="font-size: 0.78rem; font-weight: 800; color: #007680; margin: 6px 0 2px; text-transform: uppercase; letter-spacing: 0.03em;">$1</div>'
   );
 
-  // 3. Bold text
-  text = text.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #0F172A; font-weight: 750;">$1</strong>');
-
-  // 4. Interactive Question Chips: `What is this step?`
-  text = text.replace(/`([^`]+)`/g, (_match, p1) => {
-    return `<code data-query="${p1.replace(/"/g, '&quot;')}" style="background: #F1F5F9; color: #007680; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-family: monospace; font-weight: 600; cursor: pointer; border: 1px solid #E2E8F0; display: inline-block; margin: 1px 0;" title="Click to ask this question">${p1}</code>`;
+  // 3. Interactive Question Action Cards: [ASK: What is this step?]
+  text = text.replace(/\[ASK:\s*(.*?)\]/g, (_match, question) => {
+    const cleanQ = question.trim().replace(/"/g, '&quot;');
+    return `<div data-query="${cleanQ}" style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 8px 12px; margin: 5px 0; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.77rem; font-weight: 600; color: #1E293B; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03); box-sizing: border-box;" onmouseover="this.style.background='#F0FDFA';this.style.borderColor='#99F6E4';this.style.color='#007680';" onmouseout="this.style.background='#FFFFFF';this.style.borderColor='#E2E8F0';this.style.color='#1E293B';"><span>${question}</span><span style="color: #007680; font-size: 0.88rem; font-weight: 800; margin-left: 8px; flex-shrink: 0;">→</span></div>`;
   });
 
-  // 5. Bullet points with tight margins
+  // 4. Bold text
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #0F172A; font-weight: 750;">$1</strong>');
+
+  // 5. Clean Code / Query Chips (Modern sans-serif, no typewriter monospace)
+  text = text.replace(/`([^`]+)`/g, (_match, p1) => {
+    return `<span data-query="${p1.replace(/"/g, '&quot;')}" style="background: #F8FAFC; color: #007680; padding: 2px 7px; border-radius: 5px; font-size: 0.75rem; font-weight: 650; cursor: pointer; border: 1px solid #E2E8F0; display: inline-block; margin: 1px 0;" title="Click to ask">${p1}</span>`;
+  });
+
+  // 6. Bullet points with tight margins
   text = text.replace(
     /^\s*-\s(.*$)/gim,
     '<div style="display: flex; gap: 6px; margin: 2px 0; align-items: flex-start; line-height: 1.45;"><span style="color: #007680; font-weight: 800; font-size: 0.82rem; line-height: 1.2;">•</span><div style="flex: 1;">$1</div></div>'
   );
 
-  // 6. Numbered lists with tight margins
+  // 7. Numbered lists with tight margins
   text = text.replace(
     /^\s*(\d+)\.\s(.*$)/gim,
     '<div style="display: flex; gap: 6px; margin: 2px 0; align-items: flex-start; line-height: 1.45;"><span style="color: #007680; font-weight: 750; font-size: 0.74rem; min-width: 16px;">$1.</span><div style="flex: 1;">$2</div></div>'
   );
 
-  // 7. General paragraphs: convert double newlines to clean spacing
+  // 8. General paragraphs: convert double newlines to clean spacing
   const paragraphs = text.split('\n\n');
   return paragraphs
     .map((p) => {
       const trimmed = p.trim();
       if (!trimmed) return '';
-      if (trimmed.startsWith('<div') || trimmed.startsWith('<code')) return trimmed;
+      if (trimmed.startsWith('<div') || trimmed.startsWith('<span') || trimmed.startsWith('<code')) return trimmed;
       return `<p style="margin: 3px 0 5px; line-height: 1.5; color: #334155;">${trimmed}</p>`;
     })
     .join('');
