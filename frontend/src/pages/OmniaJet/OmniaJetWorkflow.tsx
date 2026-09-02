@@ -2738,7 +2738,7 @@ export const OmniaJetWorkflow: React.FC = () => {
                     {/* Table View Body with scrolling */}
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
                       {selectedCard.id === 'flaggedAll' && status?.status === 'COMPLETED' ? (
-                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                           <OmniaFlaggedEntriesTable
                             entries={flaggedEntriesPreview}
                             onViewDetails={(entry) => {

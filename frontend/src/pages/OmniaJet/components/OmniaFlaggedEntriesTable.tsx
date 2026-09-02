@@ -272,11 +272,11 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', height: '100%', minHeight: 0, overflow: 'hidden' }}>
       
       {/* Search & Filter Controls Toolbar */}
       <div style={{
-        padding: '12px 16px',
+        padding: '10px 14px',
         background: '#FFFFFF',
         borderRadius: '10px',
         border: '1px solid #E2E8F0',
@@ -284,12 +284,13 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '10px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+        gap: '8px',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+        flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '320px', flexWrap: 'wrap' }}>
           {/* Quick Search */}
-          <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
             <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
             <input
               type="text"
@@ -301,7 +302,7 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
                 paddingLeft: '32px',
                 paddingRight: '12px',
                 fontSize: '0.80rem',
-                height: '34px',
+                height: '32px',
                 background: '#F8FAFC',
                 border: '1px solid #CBD5E1',
                 borderRadius: '6px',
@@ -328,7 +329,7 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
                 background: '#FFFFFF',
                 border: '1px solid #CBD5E1',
                 borderRadius: '6px',
-                height: '34px',
+                height: '32px',
                 cursor: 'pointer'
               }}
             >
@@ -357,7 +358,7 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
                 background: '#FFFFFF',
                 border: '1px solid #CBD5E1',
                 borderRadius: '6px',
-                height: '34px',
+                height: '32px',
                 maxWidth: '200px',
                 cursor: 'pointer'
               }}
@@ -379,14 +380,15 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
               className="btn-primary"
               style={{
                 fontSize: '0.76rem',
-                padding: '5px 12px',
+                padding: '4px 12px',
                 background: '#007680',
                 color: '#FFFFFF',
                 borderRadius: '6px',
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px'
+                gap: '5px',
+                height: '32px',
               }}
             >
               <Tag size={12} /> +Tickmark ({selectedIds.size})
@@ -397,7 +399,7 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
             onClick={handleExportCSV}
             style={{
               fontSize: '0.76rem',
-              padding: '5px 12px',
+              padding: '4px 12px',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '5px',
@@ -407,7 +409,7 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
               color: '#334155',
               fontWeight: 650,
               cursor: 'pointer',
-              height: '34px'
+              height: '32px',
             }}
           >
             <Download size={13} /> Export CSV ({filteredEntries.length})
@@ -415,16 +417,20 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
         </div>
       </div>
 
-      {/* Flagged Exceptions Table */}
+      {/* Flagged Exceptions Table Card */}
       <div style={{
         background: '#FFFFFF',
         borderRadius: '10px',
         border: '1px solid #E2E8F0',
         overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)'
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
       }}>
-        <div style={{ overflowX: 'auto', maxHeight: '580px' }}>
-          <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div style={{ overflowY: 'auto', overflowX: 'auto', flex: 1, minHeight: 0 }}>
+          <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse', textAlign: 'left', minWidth: '960px' }}>
             <thead>
               <tr style={{
                 background: '#F8FAFC',
@@ -446,15 +452,15 @@ export const OmniaFlaggedEntriesTable: React.FC<OmniaFlaggedEntriesTableProps> =
                     style={{ cursor: 'pointer' }}
                   />
                 </th>
-                <th style={{ width: '80px', padding: '9px 10px' }}>Risk</th>
-                <th style={{ width: '110px', padding: '9px 10px' }}>Doc / JE #</th>
-                <th style={{ width: '90px', padding: '9px 10px' }}>Date</th>
-                <th style={{ minWidth: '150px', padding: '9px 10px' }}>GL Account</th>
-                <th style={{ width: '115px', padding: '9px 10px', textAlign: 'right' }}>Net Amount</th>
-                <th style={{ width: '120px', padding: '9px 10px' }}>User / Preparer</th>
-                <th style={{ minWidth: '180px', padding: '9px 10px' }}>Flagged Tests</th>
-                <th style={{ minWidth: '160px', padding: '9px 10px' }}>Audit Reason</th>
-                <th style={{ width: '70px', padding: '9px 10px', textAlign: 'center' }}>Action</th>
+                <th style={{ width: '75px', padding: '9px 10px' }}>Risk</th>
+                <th style={{ width: '105px', padding: '9px 10px' }}>Doc / JE #</th>
+                <th style={{ width: '85px', padding: '9px 10px' }}>Date</th>
+                <th style={{ width: '140px', padding: '9px 10px' }}>GL Account</th>
+                <th style={{ width: '120px', padding: '9px 10px', textAlign: 'right' }}>Net Amount</th>
+                <th style={{ width: '110px', padding: '9px 10px' }}>User / Preparer</th>
+                <th style={{ width: '160px', padding: '9px 10px' }}>Flagged Tests</th>
+                <th style={{ minWidth: '150px', padding: '9px 10px' }}>Audit Reason</th>
+                <th style={{ width: '65px', padding: '9px 10px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
