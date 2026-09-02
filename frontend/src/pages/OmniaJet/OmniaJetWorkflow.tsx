@@ -3327,66 +3327,111 @@ export const OmniaJetWorkflow: React.FC = () => {
             {/* TAB 3: RECONCILIATION & DQC CHECKPOINTS */}
             {activeVisualTab === 'checkpoints' && (
               <div key="checkpoints" className="tab-panel-anim" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Sub-tab switcher */}
+
+                {/* ── Hero Header Card matching Forensic section style ── */}
                 <div style={{
-                  display: 'inline-flex',
-                  background: '#F1F5F9',
-                  padding: '4px',
-                  borderRadius: '8px',
-                  gap: '4px',
-                  alignSelf: 'flex-start',
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #EFF6FF 100%)',
+                  borderRadius: '16px',
+                  border: '1px solid #E2E8F0',
+                  padding: '18px 24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
                 }}>
-                  {[
-                    { id: 'reconciliation', label: 'Account-Level Reconciliation', icon: Table },
-                    { id: 'dqc', label: '20 DQC Golden Matrix', icon: ShieldCheck },
-                    { id: 'controlTotals', label: 'Control Totals', icon: Layers },
-                  ].map((btn, idx) => {
-                    const isSel = checkpointSubTab === btn.id;
-                    const Icon = btn.icon;
-                    return (
-                      <button
-                        key={btn.id}
-                        type="button"
-                        onClick={() => setCheckpointSubTab(btn.id as any)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 14px',
-                          fontSize: '0.78rem',
-                          fontWeight: isSel ? 700 : 500,
-                          color: isSel ? '#007680' : '#475569',
-                          background: isSel ? '#FFFFFF' : 'transparent',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          boxShadow: isSel ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <span
+                  {/* Left: Icon + Title + Description */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '260px' }}>
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.24)',
+                      flexShrink: 0,
+                    }}>
+                      <Activity size={20} color="#FFFFFF" />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                          Reconciliation & DQC Checkpoints
+                        </h3>
+                        <span style={{
+                          fontSize: '0.68rem', fontWeight: 750, color: '#3B82F6',
+                          background: '#EFF6FF', border: '1px solid #BFDBFE',
+                          padding: '2px 8px', borderRadius: '6px',
+                        }}>
+                          3 Modules
+                        </span>
+                      </div>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
+                        Account-level GL variance reconciliation, 20-point DQC golden matrix validation, and multi-dimensional control totals cross-verification.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Compact 3-tab Sub-Switcher (not full width) */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    background: '#F1F5F9',
+                    padding: '3px',
+                    borderRadius: '11px',
+                    border: '1px solid #E2E8F0',
+                    gap: '3px',
+                    flexShrink: 0,
+                  }}>
+                    {[
+                      { id: 'reconciliation', label: 'Account-Level Reconciliation', icon: Table },
+                      { id: 'dqc', label: '20 DQC Golden Matrix', icon: ShieldCheck },
+                      { id: 'controlTotals', label: 'Control Totals', icon: Layers },
+                    ].map((btn, idx) => {
+                      const isSel = checkpointSubTab === btn.id;
+                      const Icon = btn.icon;
+                      return (
+                        <button
+                          key={btn.id}
+                          type="button"
+                          onClick={() => setCheckpointSubTab(btn.id as any)}
                           style={{
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            background: isSel ? '#007680' : '#E2E8F0',
-                            color: isSel ? '#FFFFFF' : '#64748B',
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            fontFamily: 'var(--font-mono, monospace)',
+                            gap: '7px',
+                            whiteSpace: 'nowrap',
+                            padding: '7px 14px',
+                            fontSize: '0.76rem',
+                            fontWeight: isSel ? 750 : 500,
+                            color: isSel ? '#3B82F6' : '#475569',
+                            background: isSel ? '#FFFFFF' : 'transparent',
+                            border: isSel ? '1px solid #BFDBFE' : '1px solid transparent',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            boxShadow: isSel ? '0 2px 8px rgba(59, 130, 246, 0.10)' : 'none',
                             transition: 'all 0.15s ease',
                           }}
                         >
-                          {idx + 1}
-                        </span>
-                        <span>{btn.label}</span>
-                      </button>
-                    );
-                  })}
+                          <span style={{
+                            width: '18px', height: '18px', borderRadius: '50%',
+                            background: isSel ? '#3B82F6' : '#E2E8F0',
+                            color: isSel ? '#FFFFFF' : '#64748B',
+                            fontSize: '0.68rem', fontWeight: 800,
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0, fontFamily: 'var(--font-mono, monospace)',
+                            transition: 'all 0.15s ease',
+                          }}>
+                            {idx + 1}
+                          </span>
+                          <span>{btn.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Sub-Panel: Account Reconciliation */}
