@@ -1676,6 +1676,81 @@ const cardStyle: React.CSSProperties = {
   boxShadow: '0 1px 4px rgba(15,23,42,0.03)',
 };
 
+function customImage2TooltipHandler(context: any) {
+  let tooltipEl = document.getElementById('chartjs-tooltip-image2');
+
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.id = 'chartjs-tooltip-image2';
+    tooltipEl.style.background = '#FFFFFF';
+    tooltipEl.style.borderRadius = '10px';
+    tooltipEl.style.border = '1px solid #CBD5E1';
+    tooltipEl.style.boxShadow = '0 10px 25px -5px rgba(15, 23, 42, 0.14)';
+    tooltipEl.style.color = '#0F172A';
+    tooltipEl.style.opacity = '0';
+    tooltipEl.style.pointerEvents = 'none';
+    tooltipEl.style.position = 'absolute';
+    tooltipEl.style.transform = 'translate(-50%, -105%)';
+    tooltipEl.style.transition = 'opacity 0.12s ease, transform 0.12s ease';
+    tooltipEl.style.padding = '10px 14px';
+    tooltipEl.style.zIndex = '99999';
+    tooltipEl.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
+    document.body.appendChild(tooltipEl);
+  }
+
+  const tooltipModel = context.tooltip;
+  if (tooltipModel.opacity === 0) {
+    tooltipEl.style.opacity = '0';
+    return;
+  }
+
+  if (tooltipModel.body) {
+    const dataPoint = tooltipModel.dataPoints?.[0];
+    if (dataPoint) {
+      const val = dataPoint.raw;
+      const label = dataPoint.label || tooltipModel.title?.[0] || 'Metric Item';
+      const datasetLabel = dataPoint.dataset?.label || 'Total Value';
+
+      const dataIndex = dataPoint.dataIndex;
+      const data = dataPoint.dataset?.data || [];
+      const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+
+      let varianceHtml = `<span style="color: #64748B; font-weight: 500;">vs prior baseline</span>`;
+      if (prev !== null && prev !== 0) {
+        const diff = (typeof val === 'number' ? val : Number(val) || 0) - prev;
+        const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
+        const formattedDiff = formatCompactNumber(diff);
+        if (diff > 0) {
+          varianceHtml = `<span style="color: #16A34A; font-weight: 800;">▲ +${pctDiff}%</span> <span style="color: #64748B; font-weight: 500;">vs prior (+${formattedDiff})</span>`;
+        } else if (diff < 0) {
+          varianceHtml = `<span style="color: #DC2626; font-weight: 800;">▼ ${pctDiff}%</span> <span style="color: #64748B; font-weight: 500;">vs prior (${formattedDiff})</span>`;
+        } else {
+          varianceHtml = `<span style="color: #64748B; font-weight: 700;">0.0%</span> <span style="color: #64748B; font-weight: 500;">vs prior (0)</span>`;
+        }
+      }
+
+      const formattedVal = typeof val === 'number' ? formatCompactNumber(val) : val;
+
+      tooltipEl.innerHTML = `
+        <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-bottom: 5px; white-space: nowrap; letter-spacing: -0.01em;">
+          ${label}
+        </div>
+        <div style="font-size: 12px; color: #475569; margin-bottom: 6px; white-space: nowrap; font-weight: 500;">
+          ${datasetLabel}: <strong style="color: #0F172A; font-weight: 800;">${formattedVal}</strong>
+        </div>
+        <div style="border-top: 1px solid #F1F5F9; padding-top: 5px; font-size: 11.5px; white-space: nowrap;">
+          ${varianceHtml}
+        </div>
+      `;
+    }
+  }
+
+  const position = context.chart.canvas.getBoundingClientRect();
+  tooltipEl.style.opacity = '1';
+  tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+  tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY - 8 + 'px';
+}
+
 function baseChartOptions(tooltipTitle?: (i: any[]) => string): any {
   return {
     responsive: true,
@@ -1687,55 +1762,8 @@ function baseChartOptions(tooltipTitle?: (i: any[]) => string): any {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#CBD5E1',
-        borderWidth: 1.5,
-        padding: 12,
-        cornerRadius: 8,
-        displayColors: true,
-        boxPadding: 4,
-        callbacks: {
-          title: tooltipTitle ? tooltipTitle : (items: any[]) => items[0]?.label || '',
-          label: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const total = ctx.dataset?.data?.reduce((a: number, b: number) => a + Math.abs(Number(b) || 0), 0) || 1;
-            const pct = total > 0 ? ((Math.abs(val) / total) * 100).toFixed(1) : '0.0';
-            return ` ${ctx.dataset.label || 'Observed Value'}: ${formatCompactNumber(val)} (${pct}% of total volume)`;
-          },
-          afterLabel: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const dataIndex = ctx.dataIndex;
-            const data = ctx.dataset?.data || [];
-            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
-            if (prev !== null && prev !== 0) {
-              const diff = val - prev;
-              const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
-              if (diff > 0) {
-                return ` Shift vs Prior: 🟢 ▲ +${pctDiff}% (+${formatCompactNumber(diff)})`;
-              } else if (diff < 0) {
-                return ` Shift vs Prior: 🔴 ▼ ${pctDiff}% (${formatCompactNumber(diff)})`;
-              } else {
-                return ` Shift vs Prior: ⚪ 0.0% (No Change)`;
-              }
-            }
-            return ` Baseline: Evaluated Audit Period`;
-          },
-          labelColor: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const dataIndex = ctx.dataIndex;
-            const data = ctx.dataset?.data || [];
-            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
-            if (prev !== null && prev !== 0) {
-              const diff = val - prev;
-              return diff >= 0
-                ? { borderColor: '#16A34A', backgroundColor: '#16A34A' }
-                : { borderColor: '#DC2626', backgroundColor: '#DC2626' };
-            }
-            return { borderColor: '#007680', backgroundColor: '#007680' };
-          },
-        },
+        enabled: false,
+        external: customImage2TooltipHandler,
       },
     },
     scales: {

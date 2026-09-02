@@ -387,6 +387,82 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
     { id: '12_engagement_details', num: '12', title: 'Engagement Parameters', icon: Building, count: null },
   ];
 
+function customImage2TooltipHandler(context: any) {
+  let tooltipEl = document.getElementById('chartjs-tooltip-image2');
+
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.id = 'chartjs-tooltip-image2';
+    tooltipEl.style.background = '#FFFFFF';
+    tooltipEl.style.borderRadius = '10px';
+    tooltipEl.style.border = '1px solid #CBD5E1';
+    tooltipEl.style.boxShadow = '0 10px 25px -5px rgba(15, 23, 42, 0.14)';
+    tooltipEl.style.color = '#0F172A';
+    tooltipEl.style.opacity = '0';
+    tooltipEl.style.pointerEvents = 'none';
+    tooltipEl.style.position = 'absolute';
+    tooltipEl.style.transform = 'translate(-50%, -105%)';
+    tooltipEl.style.transition = 'opacity 0.12s ease, transform 0.12s ease';
+    tooltipEl.style.padding = '10px 14px';
+    tooltipEl.style.zIndex = '99999';
+    tooltipEl.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
+    document.body.appendChild(tooltipEl);
+  }
+
+  const tooltipModel = context.tooltip;
+  if (tooltipModel.opacity === 0) {
+    tooltipEl.style.opacity = '0';
+    return;
+  }
+
+  if (tooltipModel.body) {
+    const dataPoint = tooltipModel.dataPoints?.[0];
+    if (dataPoint) {
+      const val = dataPoint.raw;
+      const label = dataPoint.label || tooltipModel.title?.[0] || 'Metric Category';
+      const datasetLabel = dataPoint.dataset?.label || 'Total Occurrences';
+
+      const dataIndex = dataPoint.dataIndex;
+      const data = dataPoint.dataset?.data || [];
+      const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+
+      let varianceHtml = `<span style="color: #64748B; font-weight: 500;">vs prior baseline</span>`;
+      if (prev !== null && prev !== 0) {
+        const diff = (typeof val === 'number' ? val : Number(val) || 0) - prev;
+        const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
+        const formattedDiff = typeof diff === 'number' ? Math.abs(diff) : diff;
+        const unitLabel = typeof val === 'number' && val > 1000 ? 'amount' : 'units';
+        if (diff > 0) {
+          varianceHtml = `<span style="color: #16A34A; font-weight: 800;">▲ +${pctDiff}%</span> <span style="color: #64748B; font-weight: 500;">vs prior (+${formattedDiff} ${unitLabel})</span>`;
+        } else if (diff < 0) {
+          varianceHtml = `<span style="color: #DC2626; font-weight: 800;">▼ ${pctDiff}%</span> <span style="color: #64748B; font-weight: 500;">vs prior (-${formattedDiff} ${unitLabel})</span>`;
+        } else {
+          varianceHtml = `<span style="color: #64748B; font-weight: 700;">0.0%</span> <span style="color: #64748B; font-weight: 500;">vs prior (0 ${unitLabel})</span>`;
+        }
+      }
+
+      const formattedVal = typeof val === 'number' ? val.toLocaleString('en-US') : val;
+
+      tooltipEl.innerHTML = `
+        <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-bottom: 5px; white-space: nowrap; letter-spacing: -0.01em;">
+          ${label}
+        </div>
+        <div style="font-size: 12px; color: #475569; margin-bottom: 6px; white-space: nowrap; font-weight: 500;">
+          ${datasetLabel}: <strong style="color: #0F172A; font-weight: 800;">${formattedVal}</strong>
+        </div>
+        <div style="border-top: 1px solid #F1F5F9; padding-top: 5px; font-size: 11.5px; white-space: nowrap;">
+          ${varianceHtml}
+        </div>
+      `;
+    }
+  }
+
+  const position = context.chart.canvas.getBoundingClientRect();
+  tooltipEl.style.opacity = '1';
+  tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+  tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY - 8 + 'px';
+}
+
   // Global Chart.js executive options
   const executiveChartOptions = {
     responsive: true,
@@ -409,55 +485,8 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         },
       },
       tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#CBD5E1',
-        borderWidth: 1.5,
-        padding: 12,
-        boxPadding: 4,
-        cornerRadius: 8,
-        usePointStyle: true,
-        callbacks: {
-          title: (items: any[]) => items[0]?.label || '',
-          label: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const total = ctx.dataset?.data?.reduce((a: number, b: number) => a + Math.abs(Number(b) || 0), 0) || 1;
-            const pct = total > 0 ? ((Math.abs(val) / total) * 100).toFixed(1) : '0.0';
-            return ` ${ctx.dataset.label || 'Volume'}: ${fmtNum(val)} (${pct}% of total)`;
-          },
-          afterLabel: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const dataIndex = ctx.dataIndex;
-            const data = ctx.dataset?.data || [];
-            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
-            if (prev !== null && prev !== 0) {
-              const diff = val - prev;
-              const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
-              if (diff > 0) {
-                return ` Shift vs Prior: 🟢 ▲ +${pctDiff}% (+${fmtNum(diff)})`;
-              } else if (diff < 0) {
-                return ` Shift vs Prior: 🔴 ▼ ${pctDiff}% (${fmtNum(diff)})`;
-              } else {
-                return ` Shift vs Prior: ⚪ 0.0% (No Change)`;
-              }
-            }
-            return ` Baseline: Benchmark Standard`;
-          },
-          labelColor: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const dataIndex = ctx.dataIndex;
-            const data = ctx.dataset?.data || [];
-            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
-            if (prev !== null && prev !== 0) {
-              const diff = val - prev;
-              return diff >= 0
-                ? { borderColor: '#16A34A', backgroundColor: '#16A34A' }
-                : { borderColor: '#DC2626', backgroundColor: '#DC2626' };
-            }
-            return { borderColor: '#007680', backgroundColor: '#007680' };
-          },
-        },
+        enabled: false,
+        external: customImage2TooltipHandler,
       },
     },
     scales: {
@@ -494,26 +523,8 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         labels: { font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const }, color: '#0F172A' },
       },
       tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#CBD5E1',
-        borderWidth: 1.5,
-        padding: 12,
-        cornerRadius: 8,
-        callbacks: {
-          label: (ctx: any) => ` ${ctx.dataset.label || 'Risk Index'}: ${ctx.raw} / 100`,
-          afterLabel: (ctx: any) => {
-            const val = Number(ctx.raw) || 0;
-            return val > 70 ? ' 🔴 Severity: High Risk Exposure' : ' 🟢 Severity: Normal Risk Range';
-          },
-          labelColor: (ctx: any) => {
-            const val = Number(ctx.raw) || 0;
-            return val > 70
-              ? { borderColor: '#DC2626', backgroundColor: '#DC2626' }
-              : { borderColor: '#16A34A', backgroundColor: '#16A34A' };
-          },
-        },
+        enabled: false,
+        external: customImage2TooltipHandler,
       },
     },
   };
@@ -534,52 +545,8 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
         labels: { font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const }, color: '#0F172A' },
       },
       tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#CBD5E1',
-        borderWidth: 1.5,
-        padding: 12,
-        cornerRadius: 8,
-        callbacks: {
-          label: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const total = ctx.dataset?.data?.reduce((a: number, b: number) => a + (Number(b) || 0), 0) || 1;
-            const pct = ((val / total) * 100).toFixed(1);
-            return ` ${ctx.label || 'Category'}: ${fmtNum(val)} (${pct}% share)`;
-          },
-          afterLabel: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const dataIndex = ctx.dataIndex;
-            const data = ctx.dataset?.data || [];
-            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
-            if (prev !== null && prev !== 0) {
-              const diff = val - prev;
-              const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
-              if (diff > 0) {
-                return ` Shift vs Peer: 🟢 ▲ +${pctDiff}% (+${fmtNum(diff)})`;
-              } else if (diff < 0) {
-                return ` Shift vs Peer: 🔴 ▼ ${pctDiff}% (${fmtNum(diff)})`;
-              } else {
-                return ` Shift vs Peer: ⚪ 0.0% (Equal)`;
-              }
-            }
-            return ` Risk Profile: Primary Concentration Segment`;
-          },
-          labelColor: (ctx: any) => {
-            const val = typeof ctx.raw === 'number' ? ctx.raw : Number(ctx.raw) || 0;
-            const dataIndex = ctx.dataIndex;
-            const data = ctx.dataset?.data || [];
-            const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
-            if (prev !== null && prev !== 0) {
-              const diff = val - prev;
-              return diff >= 0
-                ? { borderColor: '#16A34A', backgroundColor: '#16A34A' }
-                : { borderColor: '#DC2626', backgroundColor: '#DC2626' };
-            }
-            return { borderColor: '#007680', backgroundColor: '#007680' };
-          },
-        },
+        enabled: false,
+        external: customImage2TooltipHandler,
       },
     },
   };
