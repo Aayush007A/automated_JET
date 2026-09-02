@@ -1116,14 +1116,16 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         {/* 5-Pillar Segmented Switcher */}
         <div
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
+            width: '100%',
+            boxSizing: 'border-box',
             background: '#F1F5F9',
             padding: '3px',
             borderRadius: '11px',
             border: '1px solid #E2E8F0',
             gap: '3px',
-            overflowX: 'auto',
+            overflow: 'hidden',
           }}
         >
           {intelligenceTabs.map((tab, idx) => {
@@ -1135,17 +1137,19 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                 type="button"
                 onClick={() => setActiveIntelligenceTab(tab.id)}
                 style={{
+                  flex: 1,
+                  minWidth: 0,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  whiteSpace: 'nowrap',
-                  padding: '7px 12px',
+                  overflow: 'hidden',
+                  padding: '7px 10px',
                   borderRadius: '8px',
                   border: active ? '1px solid #CBD5E1' : '1px solid transparent',
                   background: active ? '#FFFFFF' : 'transparent',
                   color: active ? '#007680' : '#64748B',
                   fontWeight: active ? 750 : 600,
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
                   cursor: 'pointer',
                   boxShadow: active ? '0 2px 8px rgba(15, 23, 42, 0.06)' : 'none',
                   transition: 'all 0.15s ease',
@@ -1170,7 +1174,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                 >
                   {idx + 1}
                 </span>
-                <span>{tab.label}</span>
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
               </button>
             );
           })}
