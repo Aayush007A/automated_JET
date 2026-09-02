@@ -512,18 +512,24 @@ How can I assist you with your current audit task?`,
                     wordBreak: 'break-word',
                   }}
                 >
-                  <div
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      const query = target.getAttribute('data-query');
-                      if (query) {
-                        handleSend(query);
-                      }
-                    }}
-                    dangerouslySetInnerHTML={{
-                      __html: renderBeautifulMarkdown(msg.content),
-                    }}
-                  />
+                  {msg.role === 'user' ? (
+                    <div style={{ color: '#FFFFFF', fontWeight: 550, whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>
+                      {msg.content}
+                    </div>
+                  ) : (
+                    <div
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        const query = target.getAttribute('data-query');
+                        if (query) {
+                          handleSend(query);
+                        }
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: renderBeautifulMarkdown(msg.content),
+                      }}
+                    />
+                  )}
 
                   {msg.role === 'assistant' && (
                     <div
