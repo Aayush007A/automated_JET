@@ -9,6 +9,8 @@ import { OmniaJetWorkflow } from './pages/OmniaJet/OmniaJetWorkflow';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { AuthGuard } from './components/layout/AuthGuard';
+import { AiAgentTrigger } from './components/ai/AiAgentTrigger';
+import { AiAssistantModal } from './components/ai/AiAssistantModal';
 
 /* ── Scroll-Reveal Observer ───────────────────────────────────── */
 function ScrollRevealObserver() {
@@ -54,6 +56,7 @@ const pageVariants = {
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isWorkflowPage = location.pathname.includes('/jet') || location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
+  const [isAiOpen, setIsAiOpen] = React.useState(false);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -70,6 +73,16 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </motion.div>
       </main>
       {!isWorkflowPage && <Footer />}
+
+      {/* Global Holographic AI Assistant Agent */}
+      <AiAgentTrigger
+        isOpen={isAiOpen}
+        onToggle={() => setIsAiOpen((prev) => !prev)}
+      />
+      <AiAssistantModal
+        isOpen={isAiOpen}
+        onClose={() => setIsAiOpen(false)}
+      />
     </div>
   );
 };

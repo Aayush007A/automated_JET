@@ -6,6 +6,7 @@ import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/authRoutes';
 import runRoutes from './routes/runRoutes';
 import logRoutes from './routes/logRoutes';
+import aiRoutes from './routes/aiRoutes';
 
 // Global uncaught handlers to guarantee high availability and prevent crashes
 process.on('uncaughtException', (err) => {
@@ -53,6 +54,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/runs', runRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
