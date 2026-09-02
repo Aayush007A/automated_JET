@@ -14,6 +14,7 @@ import { SampleDataModal } from '../../components/common/SampleDataModal';
 import { StepTimeline, TimelineStep } from '../../components/common/StepTimeline';
 import { TabSlider } from '../../components/common/TabSlider';
 import { EngagementAuditParametersCard, EngagementAuditParametersData } from '../../components/common/EngagementAuditParametersCard';
+import { PageContextService } from '../../services/pageContextService';
 import { DatasetColumnHealthVisualizer } from '../../components/common/DatasetColumnHealthVisualizer';
 import { OmniaExclusionsPanel } from './components/OmniaExclusionsPanel';
 import { OmniaTestDesignPanel } from './components/OmniaTestDesignPanel';
@@ -235,6 +236,29 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [executing, setExecuting] = useState(false);
+
+  // Publish dynamic step context to AI Assistant
+  useEffect(() => {
+    PageContextService.setContext({
+      route: '/omnia-jet',
+      pageTitle: 'Comprehensive Journal Entry Testing Suite',
+      currentStep,
+      totalSteps: 6,
+      stepTitle: STEP_COPY[currentStep]?.title || `Step ${currentStep}`,
+      stepDescription: STEP_COPY[currentStep]?.desc,
+      actionGuidance: currentStep === 1
+        ? 'Upload multi-sheet workbook or separate CSV files for Trial Balance, Population, and Chart of Accounts.'
+        : currentStep === 2
+        ? 'Map raw columns to Deloitte CDM canonical audit models.'
+        : currentStep === 3
+        ? 'Cleanse raw data, validate 16 mandatory schema rules, and review column health.'
+        : currentStep === 4
+        ? 'Configure population exclusions, mandatory fraud tests, Benford analysis, and fiscal bounds.'
+        : currentStep === 5
+        ? 'Execute 3-way CDM reconciliation, 20 DQC integrity rules, and audit risk tests.'
+        : 'Inspect forensic exceptions, Benford conformity scores, tickmarks, and download workpapers.',
+    });
+  }, [currentStep]);
 
   // Step 4 Sub-Tab state: 'exclusions' | 'designTests' | 'fiscalDqc'
   const [step4ActiveTab, setStep4ActiveTab] = useState<'exclusions' | 'designTests' | 'fiscalDqc'>('exclusions');

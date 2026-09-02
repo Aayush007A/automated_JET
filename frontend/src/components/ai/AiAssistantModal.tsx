@@ -3,54 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Send,
-  Sparkles,
-  ShieldCheck,
-  Cpu,
-  Settings,
   Trash2,
   Copy,
   Check,
   ChevronRight,
-  RefreshCw,
-  HelpCircle,
-  ExternalLink,
-  Minimize2,
-  AlertCircle
+  ShieldCheck
 } from 'lucide-react';
-import { AiService, AiChatMessage, AiStatus } from '../../services/aiService';
+import { AiService, AiChatMessage } from '../../services/aiService';
+import { PageContextService, ActivePageContext } from '../../services/pageContextService';
 
 interface AiAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const STARTER_PROMPTS = [
-  {
-    icon: '🔍',
-    title: 'Test 2: Suspect Keywords',
-    prompt: 'How does Test 2 detect suspect keywords and narrations in journal entries?',
-  },
-  {
-    icon: '📊',
-    title: "Benford's Law Conformity",
-    prompt: "How is the Benford's Law conformity score calculated and what does MAD indicate?",
-  },
-  {
-    icon: '⏰',
-    title: 'Cutoff Window Adjustments',
-    prompt: 'What does Test 3 Post-Closing Cutoff Window (+/- 5 days) measure?',
-  },
-  {
-    icon: '📈',
-    title: 'Column Health & Grouped Bars',
-    prompt: 'Explain how the EDA Column Health Visualizer renders side-by-side grouped multivariate bars and handles accounting parenthesis.',
-  },
-  {
-    icon: '⚙️',
-    title: 'Materiality Configuration',
-    prompt: 'How do I configure the materiality threshold and how does it influence flagged risk priority?',
-  },
-];
 
 export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
   isOpen,
@@ -60,45 +25,41 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [status, setStatus] = useState<AiStatus | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [settingsEndpoint, setSettingsEndpoint] = useState('http://localhost:11434');
-  const [settingsModel, setSettingsModel] = useState('llama3.2:1b');
-  const [isSavingConfig, setIsSavingConfig] = useState(false);
-  const [configFeedback, setConfigFeedback] = useState<string | null>(null);
+  const [pageContext, setPageContext] = useState<ActivePageContext>(PageContextService.getContext());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load stored history and check local LLM status
+  // Subscribe to real-time page and step context
+  useEffect(() => {
+    setPageContext(PageContextService.getContext());
+    const unsubscribe = PageContextService.subscribe((ctx) => {
+      setPageContext(ctx);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Load chat history
   useEffect(() => {
     const history = AiService.getStoredMessages();
     if (history.length > 0) {
       setMessages(history);
     } else {
-      // Welcome Greeting Message
       setMessages([
         {
           id: 'welcome-init',
           role: 'assistant',
-          content: `### 👋 Welcome to Deloitte Automated JET Intelligence!
+          content: `### Deloitte JET Assistant
 
-I am your dedicated **Journal Entry Testing (JET) Copilot**, guarded to answer queries strictly concerning this platform, our 12 Omnia risk tests, and dataset health diagnostics.
+I am your dedicated enterprise audit copilot, specialized in **Journal Entry Testing (JET)**, forensic analytics, and audit data preparation.
 
-Select a prompt below or ask any question about your audit data:`,
+I am aware of your current workflow position and can guide you step-by-step through data ingestion, schema validation, column health, and the 12 audit risk tests.
+
+How can I assist you with your current audit task?`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          source: 'built-in-engine',
-          modelUsed: 'Deloitte-JET-Assistant',
         },
       ]);
     }
-
-    // Check daemon status
-    AiService.getStatus().then((res) => {
-      setStatus(res);
-      setSettingsEndpoint(res.endpoint || 'http://localhost:11434');
-      setSettingsModel(res.model || 'llama3.2:1b');
-    });
   }, []);
 
   // Save history on changes
@@ -139,8 +100,10 @@ Select a prompt below or ask any question about your audit data:`,
     setIsLoading(true);
 
     try {
+      const currentCtx = PageContextService.getContext();
       const response = await AiService.sendMessage(
-        updatedHistory.map((m) => ({ role: m.role, content: m.content }))
+        updatedHistory.map((m) => ({ role: m.role, content: m.content })),
+        currentCtx
       );
 
       const assistantMsg: AiChatMessage = {
@@ -150,8 +113,6 @@ Select a prompt below or ask any question about your audit data:`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         guardrailTriggered: response.guardrailTriggered,
         guardrailReason: response.guardrailReason,
-        modelUsed: response.modelUsed,
-        source: response.source,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -159,9 +120,8 @@ Select a prompt below or ask any question about your audit data:`,
       const errorMsg: AiChatMessage = {
         id: `error-${Date.now()}`,
         role: 'assistant',
-        content: `⚠️ **Connection Error**: Unable to reach AI Assistant service (${err.message || 'Network Timeout'}). Please ensure the backend server is running.`,
+        content: `**Connection Error**: Unable to complete request (${err.message || 'Service Unavailable'}). Please ensure the backend service is active.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        source: 'built-in-engine',
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
@@ -188,53 +148,83 @@ Select a prompt below or ask any question about your audit data:`,
       {
         id: 'welcome-reset',
         role: 'assistant',
-        content: `### 🔄 Conversation Cleared\n\nI am ready for your next Journal Entry Testing (JET) or Omnia audit inquiry!`,
+        content: `### Conversation Cleared\n\nReady for your next Journal Entry Testing (JET) inquiry.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        source: 'built-in-engine',
       },
     ]);
   };
 
-  const handleSaveConfig = async () => {
-    setIsSavingConfig(true);
-    setConfigFeedback(null);
-    try {
-      await AiService.updateConfig({
-        localEndpoint: settingsEndpoint,
-        model: settingsModel,
-      });
-      const newStatus = await AiService.getStatus();
-      setStatus(newStatus);
-      setConfigFeedback('Configuration updated successfully!');
-      setTimeout(() => {
-        setShowSettings(false);
-        setConfigFeedback(null);
-      }, 1200);
-    } catch (err: any) {
-      setConfigFeedback(`Failed to update config: ${err.message}`);
-    } finally {
-      setIsSavingConfig(false);
+  // Dynamic starter prompt chips based on current step
+  const getContextualPrompts = () => {
+    const step = pageContext.currentStep;
+    if (step === 1) {
+      return [
+        { label: 'What files do I need to upload here?', query: 'What files do I need to upload on Step 1, and what are the required formats?' },
+        { label: 'What GL columns are mandatory?', query: 'What are the mandatory general ledger columns required for ingestion?' },
+        { label: 'Explain this current step', query: 'What is this current step all about and what do I need to do?' },
+      ];
     }
+    if (step === 2) {
+      return [
+        { label: 'What is File Preparation?', query: 'What is File Preparation on Step 2 and how do I inspect the detected sheets?' },
+        { label: 'Explain this current step', query: 'What is this current step all about and what do I need to do?' },
+      ];
+    }
+    if (step === 3) {
+      return [
+        { label: 'What data cleaning rules are applied?', query: 'What data cleansing rules are applied on Step 3 and how are constraints validated?' },
+        { label: 'Explain Column Health visualizer', query: 'Explain how the Column Health visualizer analyzes my dataset and renders grouped bars.' },
+        { label: 'What should I do on this step?', query: 'What is this current step all about and what do I need to do next?' },
+      ];
+    }
+    if (step === 4) {
+      return [
+        { label: 'What canonical fields must be mapped?', query: 'What canonical CDM fields must be mapped on Step 4 for Trial Balance and General Ledger?' },
+        { label: 'How does Trial Balance balance check work?', query: 'How does the platform verify that debits equal credits in the Trial Balance?' },
+        { label: 'Explain this current step', query: 'What is this current step all about and what do I need to do?' },
+      ];
+    }
+    if (step === 5) {
+      return [
+        { label: 'What tests are executed in this pipeline?', query: 'What tests are executed during pipeline integrity testing on Step 5?' },
+        { label: 'How do I monitor live test progress?', query: 'How do I monitor real-time test progress and audit logs?' },
+      ];
+    }
+    if (step === 6) {
+      return [
+        { label: 'Explain the summary reconciliation', query: 'Explain how to review the executive summary reconciliation and download audit workpapers.' },
+        { label: 'What do the 12 risk tests indicate?', query: 'Provide a breakdown of the 12 forensic risk tests and how exceptions are evaluated.' },
+        { label: 'Explain Benford conformity scoring', query: 'How is the Benford conformity score calculated and what does MAD indicate?' },
+      ];
+    }
+    // Default (Dashboard / General)
+    return [
+      { label: 'How do I start a new JET audit workflow?', query: 'How do I start a new Journal Entry Testing audit workflow?' },
+      { label: 'What do the 12 forensic risk tests cover?', query: 'Provide an overview of the 12 forensic risk tests in this platform.' },
+      { label: 'Explain Benford Law conformity', query: 'How does Benford Law analysis detect accounting anomalies in general ledger populations?' },
+    ];
   };
+
+  const currentPrompts = getContextualPrompts();
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: 30, scale: 0.94 }}
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 25, scale: 0.94 }}
-          transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ type: 'spring', damping: 28, stiffness: 340 }}
           style={{
             position: 'fixed',
             bottom: '96px',
             right: '24px',
-            width: '460px',
+            width: '450px',
             maxWidth: 'calc(100vw - 36px)',
-            height: '660px',
+            height: '650px',
             maxHeight: 'calc(100vh - 120px)',
             background: '#FFFFFF',
-            borderRadius: '18px',
+            borderRadius: '16px',
             border: '1px solid #CBD5E1',
             boxShadow: '0 24px 60px -12px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(0, 118, 128, 0.08)',
             display: 'flex',
@@ -244,12 +234,12 @@ Select a prompt below or ask any question about your audit data:`,
             fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
           }}
         >
-          {/* Header Bar */}
+          {/* Executive Header */}
           <div
             style={{
               padding: '14px 18px',
-              background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-              borderBottom: '1px solid #334155',
+              background: '#0B132B',
+              borderBottom: '1px solid rgba(0, 118, 128, 0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -265,65 +255,42 @@ Select a prompt below or ask any question about your audit data:`,
                   borderRadius: '50%',
                   overflow: 'hidden',
                   background: '#090D16',
-                  boxShadow: '0 0 12px rgba(0, 118, 128, 0.5)',
+                  boxShadow: '0 0 14px rgba(0, 118, 128, 0.6)',
+                  flexShrink: 0,
                 }}
               >
                 <img
                   src="/ai-agent-avatar.png"
-                  alt="Agent"
+                  alt="Deloitte AI"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.90rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
-                    Deloitte JET AI
+                  <span style={{ fontSize: '0.90rem', fontWeight: 800, letterSpacing: '-0.01em', color: '#FFFFFF' }}>
+                    Deloitte JET Assistant
                   </span>
                   <span
                     style={{
-                      fontSize: '0.62rem',
-                      fontWeight: 700,
-                      background: 'rgba(0, 118, 128, 0.3)',
-                      color: '#2DD4BF',
-                      border: '1px solid rgba(45, 212, 191, 0.4)',
-                      padding: '1px 6px',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      background: '#10B981',
+                      boxShadow: '0 0 8px #10B981',
+                      display: 'inline-block',
                     }}
-                  >
-                    <ShieldCheck size={10} /> GUARDED
-                  </span>
+                    title="Active & Ready"
+                  />
                 </div>
-                <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '1px' }}>
-                  {status?.connected
-                    ? `🟢 Local LLM (${status.model})`
-                    : '⚡ Built-in JET Knowledge Engine'}
+                <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <ShieldCheck size={11} color="#2DD4BF" />
+                  <span>Enterprise Audit Copilot</span>
                 </div>
               </div>
             </div>
 
-            {/* Header Action Buttons */}
+            {/* Header Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <button
-                type="button"
-                onClick={() => setShowSettings(!showSettings)}
-                title="Model & Endpoint Settings"
-                style={{
-                  background: showSettings ? 'rgba(0, 118, 128, 0.4)' : 'transparent',
-                  border: 'none',
-                  color: '#94A3B8',
-                  padding: '6px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Settings size={15} />
-              </button>
               <button
                 type="button"
                 onClick={handleClearHistory}
@@ -363,96 +330,46 @@ Select a prompt below or ask any question about your audit data:`,
             </div>
           </div>
 
-          {/* Settings Drawer (if toggled) */}
-          <AnimatePresence>
-            {showSettings && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+          {/* Current Page / Step Context Badge */}
+          {pageContext && (
+            <div
+              style={{
+                background: '#F8FAFC',
+                borderBottom: '1px solid #E2E8F0',
+                padding: '8px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '0.72rem',
+                color: '#475569',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontWeight: 750, color: '#007680' }}>
+                  {pageContext.currentStep ? `Step ${pageContext.currentStep} of ${pageContext.totalSteps || 6}` : 'Screen'}
+                </span>
+                <span style={{ color: '#CBD5E1' }}>|</span>
+                <span style={{ fontWeight: 600, color: '#1E293B' }}>
+                  {pageContext.stepTitle || pageContext.pageTitle || 'Audit Workspace'}
+                </span>
+              </div>
+              <span
                 style={{
-                  background: '#F8FAFC',
-                  borderBottom: '1px solid #E2E8F0',
-                  padding: '14px 18px',
-                  overflow: 'hidden',
-                  fontSize: '0.78rem',
+                  fontSize: '0.64rem',
+                  fontWeight: 700,
+                  color: '#007680',
+                  background: '#E6F4F5',
+                  padding: '2px 7px',
+                  borderRadius: '12px',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <div style={{ fontWeight: 800, color: '#0F172A', marginBottom: '8px' }}>
-                  Local LLM Engine Configuration
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                      Local Daemon Endpoint (Ollama / LM Studio)
-                    </label>
-                    <input
-                      type="text"
-                      value={settingsEndpoint}
-                      onChange={(e) => setSettingsEndpoint(e.target.value)}
-                      placeholder="http://localhost:11434"
-                      style={{
-                        width: '100%',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #CBD5E1',
-                        fontSize: '0.76rem',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.70rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
-                      Model Tag / Name
-                    </label>
-                    <input
-                      type="text"
-                      value={settingsModel}
-                      onChange={(e) => setSettingsModel(e.target.value)}
-                      placeholder="llama3.2:1b"
-                      style={{
-                        width: '100%',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #CBD5E1',
-                        fontSize: '0.76rem',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <span style={{ fontSize: '0.70rem', color: '#64748B' }}>
-                      Status: {status?.connected ? '✅ Connected' : '⚡ Using Built-in Engine'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleSaveConfig}
-                      disabled={isSavingConfig}
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: '6px',
-                        background: '#007680',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {isSavingConfig ? 'Saving...' : 'Apply & Save'}
-                    </button>
-                  </div>
-                  {configFeedback && (
-                    <div style={{ fontSize: '0.70rem', color: configFeedback.includes('Failed') ? '#DC2626' : '#16A34A', fontWeight: 600 }}>
-                      {configFeedback}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                Context Aware
+              </span>
+            </div>
+          )}
 
-          {/* Messages Scroll Area */}
+          {/* Message Stream */}
           <div
             style={{
               flex: 1,
@@ -473,7 +390,7 @@ Select a prompt below or ask any question about your audit data:`,
                   alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
                 }}
               >
-                {/* Role Header */}
+                {/* Message Header */}
                 <div
                   style={{
                     fontSize: '0.66rem',
@@ -484,7 +401,7 @@ Select a prompt below or ask any question about your audit data:`,
                     gap: '6px',
                   }}
                 >
-                  {msg.role === 'user' ? 'You' : 'Deloitte JET Copilot'}
+                  {msg.role === 'user' ? 'You' : 'Deloitte JET Assistant'}
                   <span>•</span>
                   <span>{msg.timestamp}</span>
                   {msg.guardrailTriggered && (
@@ -506,7 +423,7 @@ Select a prompt below or ask any question about your audit data:`,
                 {/* Message Bubble Card */}
                 <div
                   style={{
-                    maxWidth: '90%',
+                    maxWidth: '92%',
                     padding: '12px 16px',
                     borderRadius: msg.role === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
                     background: msg.role === 'user' ? 'linear-gradient(135deg, #007680 0%, #0369A1 100%)' : '#FFFFFF',
@@ -522,11 +439,10 @@ Select a prompt below or ask any question about your audit data:`,
                   <div
                     style={{ whiteSpace: 'pre-wrap' }}
                     dangerouslySetInnerHTML={{
-                      __html: renderSimpleMarkdown(msg.content),
+                      __html: renderCleanMarkdown(msg.content),
                     }}
                   />
 
-                  {/* Copy Button for Assistant responses */}
                   {msg.role === 'assistant' && (
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
                       <button
@@ -554,7 +470,7 @@ Select a prompt below or ask any question about your audit data:`,
               </div>
             ))}
 
-            {/* Thinking / Typing Animation */}
+            {/* Thinking / Neural Generation Animation */}
             {isLoading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px' }}>
                 <div
@@ -564,6 +480,7 @@ Select a prompt below or ask any question about your audit data:`,
                     borderRadius: '50%',
                     overflow: 'hidden',
                     background: '#090D16',
+                    flexShrink: 0,
                   }}
                 >
                   <img
@@ -580,7 +497,7 @@ Select a prompt below or ask any question about your audit data:`,
                     borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '5px',
+                    gap: '6px',
                   }}
                 >
                   <motion.span
@@ -596,10 +513,10 @@ Select a prompt below or ask any question about your audit data:`,
                   <motion.span
                     animate={{ scale: [1, 1.4, 1] }}
                     transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }}
-                    style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8B5CF6' }}
+                    style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366F1' }}
                   />
                   <span style={{ fontSize: '0.72rem', color: '#64748B', marginLeft: '4px', fontWeight: 600 }}>
-                    Synthesizing audit intelligence...
+                    Evaluating audit context...
                   </span>
                 </div>
               </div>
@@ -608,52 +525,58 @@ Select a prompt below or ask any question about your audit data:`,
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Starter Chips (Only show if few messages) */}
-          {messages.length <= 2 && !isLoading && (
+          {/* Context-Aware Action Prompt Chips */}
+          {!isLoading && currentPrompts.length > 0 && (
             <div
               style={{
-                padding: '10px 16px',
+                padding: '10px 14px',
                 background: '#FFFFFF',
                 borderTop: '1px solid #F1F5F9',
                 display: 'flex',
-                flexWrap: 'wrap',
-                gap: '6px',
+                flexDirection: 'column',
+                gap: '5px',
               }}
             >
-              {STARTER_PROMPTS.slice(0, 3).map((chip, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSend(chip.prompt)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: '16px',
-                    background: '#F1F5F9',
-                    border: '1px solid #E2E8F0',
-                    color: '#334155',
-                    fontSize: '0.70rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#E0F2FE';
-                    e.currentTarget.style.borderColor = '#38BDF8';
-                    e.currentTarget.style.color = '#0284C7';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#F1F5F9';
-                    e.currentTarget.style.borderColor = '#E2E8F0';
-                    e.currentTarget.style.color = '#334155';
-                  }}
-                >
-                  <span>{chip.icon}</span>
-                  <span>{chip.title}</span>
-                </button>
-              ))}
+              <div style={{ fontSize: '0.66rem', fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Suggested Inquiries
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {currentPrompts.map((chip, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSend(chip.query)}
+                    style={{
+                      padding: '5px 11px',
+                      borderRadius: '14px',
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      color: '#334155',
+                      fontSize: '0.70rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#F0FDFA';
+                      e.currentTarget.style.borderColor = '#99F6E4';
+                      e.currentTarget.style.color = '#007680';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#F8FAFC';
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.color = '#334155';
+                    }}
+                  >
+                    <span>{chip.label}</span>
+                    <ChevronRight size={11} />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -673,7 +596,7 @@ Select a prompt below or ask any question about your audit data:`,
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about Omnia tests, Benford scoring, column health..."
+              placeholder={pageContext.currentStep ? `Ask anything about Step ${pageContext.currentStep} or audit tests...` : "Ask about audit tests, column health, Benford scoring..."}
               rows={1}
               style={{
                 flex: 1,
@@ -711,9 +634,10 @@ Select a prompt below or ask any question about your audit data:`,
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'background 0.2s ease',
+                flexShrink: 0,
               }}
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </div>
         </motion.div>
@@ -722,18 +646,20 @@ Select a prompt below or ask any question about your audit data:`,
   );
 };
 
-// ── Simple Markdown Formatter Helper ─────────────────────────────────
-function renderSimpleMarkdown(raw: string): string {
+// ── Clean Markdown Formatter Helper ─────────────────────────────────
+function renderCleanMarkdown(raw: string): string {
   if (!raw) return '';
 
   let text = raw
+    // Clean out Omnia occurrences
+    .replace(/omnia/gi, 'Deloitte JET')
     // Escape standard tags
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     // Headings
-    .replace(/^### (.*$)/gim, '<div style="font-size: 0.92rem; font-weight: 800; color: #0F172A; margin: 8px 0 4px;">$1</div>')
-    .replace(/^## (.*$)/gim, '<div style="font-size: 1.0rem; font-weight: 800; color: #0F172A; margin: 10px 0 4px;">$1</div>')
+    .replace(/^### (.*$)/gim, '<div style="font-size: 0.90rem; font-weight: 800; color: #0F172A; margin: 8px 0 4px;">$1</div>')
+    .replace(/^## (.*$)/gim, '<div style="font-size: 0.98rem; font-weight: 800; color: #0F172A; margin: 10px 0 4px;">$1</div>')
     // Bold
     .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #0F172A; font-weight: 750;">$1</strong>')
     // Inline code

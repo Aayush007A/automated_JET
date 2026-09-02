@@ -13,6 +13,7 @@ import { SampleDataModal } from '../../components/common/SampleDataModal';
 import { StepTimeline, TimelineStep } from '../../components/common/StepTimeline';
 import { JetSummaryReportSuite } from '../../components/summary/JetSummaryReportSuite';
 import { EngagementAuditParametersCard, EngagementAuditParametersData } from '../../components/common/EngagementAuditParametersCard';
+import { PageContextService } from '../../services/pageContextService';
 import {
   ArrowLeft, ArrowRight, Play, CheckCircle2, AlertTriangle, Download,
   Layers, Settings, FileSpreadsheet, ShieldCheck, Database, RefreshCw, Archive,
@@ -93,6 +94,29 @@ export const JetWorkflow: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [executing, setExecuting] = useState(false);
+
+  // Publish dynamic step context to AI Assistant
+  useEffect(() => {
+    PageContextService.setContext({
+      route: '/jet',
+      pageTitle: 'Journal Entry Testing Workflow',
+      currentStep,
+      totalSteps: 6,
+      stepTitle: STEP_COPY[currentStep]?.title || `Step ${currentStep}`,
+      stepDescription: STEP_COPY[currentStep]?.desc,
+      actionGuidance: currentStep === 1
+        ? 'Upload CSV files or multi-sheet Excel workbook for Trial Balance, General Ledger, and Chart of Accounts.'
+        : currentStep === 2
+        ? 'Verify detected sheets and preview raw table rows.'
+        : currentStep === 3
+        ? 'Review auto-cleansing rules, standardize headers, and resolve schema validation warnings.'
+        : currentStep === 4
+        ? 'Map source columns to Deloitte canonical fields and verify Trial Balance balancing.'
+        : currentStep === 5
+        ? 'Execute the audit pipeline and monitor real-time test progress.'
+        : 'Inspect forensic exception tables, review Benford conformity, and download workpapers.',
+    });
+  }, [currentStep]);
 
   // Intelligent Routing Diagnostics State
   const [routingDiagnostic, setRoutingDiagnostic] = useState<RoutingDiagnostic | null>(null);

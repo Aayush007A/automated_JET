@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { aiAssistantService, AiMessage } from '../services/aiAssistantService';
+import { aiAssistantService, AiMessage, ActivePageContext } from '../services/aiAssistantService';
 
 const router = Router();
 
-// POST /api/ai/chat - Process user query through guardrail and local LLM
+// POST /api/ai/chat - Process user query with active page & step context
 router.post('/chat', async (req: Request, res: Response) => {
   try {
-    const { messages } = req.body;
+    const { messages, context } = req.body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({
@@ -15,7 +15,10 @@ router.post('/chat', async (req: Request, res: Response) => {
       });
     }
 
-    const response = await aiAssistantService.processQuery(messages as AiMessage[]);
+    const response = await aiAssistantService.processQuery(
+      messages as AiMessage[],
+      context as ActivePageContext | undefined
+    );
     return res.json(response);
   } catch (error: any) {
     console.error('AI Chat Error:', error);
@@ -26,40 +29,9 @@ router.post('/chat', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/ai/status - Test connection to local LLM daemon
+// GET /api/ai/status - Simple ping for health check
 router.get('/status', async (_req: Request, res: Response) => {
-  try {
-    const status = await aiAssistantService.checkStatus();
-    return res.json(status);
-  } catch (error: any) {
-    return res.status(500).json({
-      connected: false,
-      error: error.message,
-    });
-  }
-});
-
-// GET /api/ai/config - Get current local LLM configuration
-router.get('/config', (_req: Request, res: Response) => {
-  return res.json(aiAssistantService.getConfig());
-});
-
-// POST /api/ai/config - Update local LLM configuration (endpoint, model)
-router.post('/config', (req: Request, res: Response) => {
-  try {
-    const { localEndpoint, model, temperature } = req.body;
-    const updated = aiAssistantService.setConfig({
-      ...(localEndpoint && { localEndpoint }),
-      ...(model && { model }),
-      ...(typeof temperature === 'number' && { temperature }),
-    });
-    return res.json(updated);
-  } catch (error: any) {
-    return res.status(400).json({
-      error: 'CONFIG_UPDATE_ERROR',
-      message: error.message,
-    });
-  }
+  return res.json({ status: 'operational', active: true });
 });
 
 export default router;

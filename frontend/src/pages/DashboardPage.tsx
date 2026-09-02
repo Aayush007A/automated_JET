@@ -15,6 +15,7 @@ import {
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { InfiniteStageCarousel } from '../components/dashboard/InfiniteStageCarousel';
 import { VisualizationShowcase } from '../components/dashboard/VisualizationShowcase';
+import { PageContextService } from '../services/pageContextService';
 
 /* ── Smooth One-Way Scroll-Reveal ── */
 const sectionReveal = {
@@ -72,6 +73,13 @@ export const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchRuns();
+    PageContextService.setContext({
+      route: '/dashboard',
+      pageTitle: 'Audit Engagement Executive Dashboard',
+      stepTitle: 'Overview of Audited Engagements & Recent Risk Analytics Runs',
+      stepDescription: 'Launch new journal entry testing runs, inspect completed audit batches, or review forensic anomaly summaries.',
+      actionGuidance: 'Click "Start Audit Workflow" to launch a new Journal Entry Testing engagement, or select an existing engagement run to review workpapers and exception diagnostics.',
+    });
   }, []);
 
   const handleStartWorkflow = () => {
