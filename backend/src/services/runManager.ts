@@ -193,6 +193,7 @@ export class RunManager {
       if (fs.existsSync(statusPath)) {
         try {
           const summary = JSON.parse(fs.readFileSync(statusPath, 'utf-8'));
+          summary.config = this.getRunConfig(dir) || undefined;
           if (!summary.startedAt) {
             if (summary.completedAt) {
               summary.startedAt = summary.completedAt;

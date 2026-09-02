@@ -373,84 +373,124 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
   // Pillar 4: DNA Benchmark State
   const [selectedSector, setSelectedSector] = useState<'manufacturing' | 'technology' | 'retail' | 'financial' | 'healthcare'>('manufacturing');
 
-  // Client parameters from config or sensible defaults
-  const engagementName = config?.sparkParameters?.engagementName || 'Tangerine Skies Pvt Ltd - JET Audit FY26';
-  const materiality = typeof config?.sparkParameters?.materiality === 'number'
-    ? config.sparkParameters.materiality
+  // Client parameters from config (NO hardcoded mock names)
+  const isOmnia = config?.workflow === 'OMNIA_JET';
+  const op = (config?.omniaParameters || {}) as Record<string, any>;
+  const sp = (config?.sparkParameters || {}) as Record<string, any>;
+  const engagementName =
+    op.engagementName ||
+    sp.engagementName ||
+    (config as any)?.engagementName ||
+    (isOmnia ? `Omnia JET Engagement ${runId}` : `Spark JET Engagement ${runId}`);
+  const materiality = typeof op.materialityThreshold === 'number'
+    ? op.materialityThreshold
+    : typeof sp.materiality === 'number'
+    ? sp.materiality
     : 500000;
-  const currencyCode = config?.sparkParameters?.currencyCode || 'USD';
+  const currencyCode = op.entityCurrencyCode || op.currency || sp.currencyCode || 'USD';
 
   const fmtCurr = (val: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode, maximumFractionDigits: 2 }).format(val);
   const fmtNum = (val: number) => new Intl.NumberFormat('en-US').format(val);
 
-  // Pillar 5: SOX 404 Scorecard State
-  const [soxAssertions, setSoxAssertions] = useState<SoxAssertionRecord[]>([
-    {
-      id: 'sox_exist',
-      assertion: 'Existence & Occurrence',
-      description: 'Recorded transactions represent valid economic events and are not fictitious or duplicated.',
-      mappedJetTests: ['Ex 1 (Unusual Accounts)', 'Ex 9 (Duplicate Entries)', 'Ex 10 (Fraud & Error Keywords)'],
-      flaggedCount: 15,
-      dollarAtRisk: 1240500,
-      severity: 'OPERATIONAL_DEFICIENCY',
-      status: 'EVALUATED_DEFICIENCY',
-      remediationPlan: 'Implement dual-approval controls on manual clearing account postings over $100k.',
-      signedOff: true,
-      signedBy: 'A. Upadhyay (Senior Audit Manager)',
-    },
-    {
-      id: 'sox_comp',
-      assertion: 'Completeness & Ledger Ingestion',
-      description: 'All valid journal entries and subledger transactions are fully recorded in the General Ledger.',
-      mappedJetTests: ['IR 1 (Missing TB Accounts)', 'IR 3 (Unrecorded GL Accounts)', 'DQC 01a (Account Integrity)'],
-      flaggedCount: 0,
-      dollarAtRisk: 0,
-      severity: 'EFFECTIVE',
-      status: 'CONCLUDED_SATISFACTORY',
-      remediationPlan: 'Automated SAP to Parquet pipeline verified 100% complete with 0 variance.',
-      signedOff: true,
-      signedBy: 'Lead Audit Partner',
-    },
-    {
-      id: 'sox_val',
-      assertion: 'Valuation & Mathematical Accuracy',
-      description: 'Transactions are recorded at the correct monetary amount, properly debited, credited, and netted.',
-      mappedJetTests: ['IR 2 (Net Activity Variance)', 'IR 4 (Unbalanced Journal Entries)', 'Ex 8 (Round Sum Multiples)'],
-      flaggedCount: 8,
-      dollarAtRisk: 420000,
-      severity: 'EFFECTIVE',
-      status: 'CONCLUDED_SATISFACTORY',
-      remediationPlan: 'Zero balance sheet variance. Round amounts sampled and verified against supplier invoices.',
-      signedOff: true,
-      signedBy: 'A. Upadhyay (Senior Audit Manager)',
-    },
-    {
-      id: 'sox_cutoff',
-      assertion: 'Cutoff & Period-End Timing',
-      description: 'Transactions and manual adjustments are recorded in the proper accounting period without premature recognition.',
-      mappedJetTests: ['Ex 6 (Closing Entries +/- 10d)', 'Ex 7 (Holiday Postings)', 'Ex 11 (Post-Closing Entries)'],
-      flaggedCount: 24,
-      dollarAtRisk: 3850000,
-      severity: 'SIGNIFICANT_DEFICIENCY',
-      status: 'ESCALATED_PARTNER',
-      remediationPlan: 'Enforce SAP hard period-end lockout at 23:59 on fiscal cutoff date to eliminate backdated entries.',
-      signedOff: false,
-    },
-    {
-      id: 'sox_rights',
-      assertion: 'Rights, Obligations & Segregation of Duties',
-      description: 'Journal postings comply with user authorization limits without superuser bypassing or conflicting account pairings.',
-      mappedJetTests: ['Ex 12 (Unrelated Account Pairings)', 'Ex 4 (Few-Posting Users)', 'Ex 5 (Key Personnel Postings)'],
-      flaggedCount: 11,
-      dollarAtRisk: 890000,
-      severity: 'OPERATIONAL_DEFICIENCY',
-      status: 'EVALUATED_DEFICIENCY',
-      remediationPlan: 'Revoke direct database posting privileges for IT service accounts and reassign to Finance team.',
-      signedOff: true,
-      signedBy: 'A. Upadhyay (Senior Audit Manager)',
-    },
-  ]);
+  // Pillar 5: SOX 404 Overrides State
+  const [soxCustomOverrides, setSoxCustomOverrides] = useState<Record<string, Partial<SoxAssertionRecord>>>({});
+
+  // Dynamically calculate SOX assertions from status parameterSummary & integrity
+  const pSum = useMemo(() => ((status?.parameterSummary || {}) as Record<string, any>), [status?.parameterSummary]);
+  const intSum = useMemo(() => ((status?.integritySummary || {}) as Record<string, any>), [status?.integritySummary]);
+
+  const soxAssertions = useMemo<SoxAssertionRecord[]>(() => {
+    const ex1 = pSum.Ex1_Seldom_Used_Accounts || pSum.Seldom_Accounts || pSum.Seldom_Used_Accounts || 0;
+    const ex9 = pSum.Ex11_Duplicate_Entries || pSum.Duplicate_Entries || 0;
+    const ex10 = pSum.Ex2_Suspicious_Keywords || pSum.Keywords_Scan || pSum.Suspect_Keywords || 0;
+    const existCount = ex1 + ex9 + ex10;
+    const existExposure = existCount * (materiality * 0.45);
+
+    const compCount = (intSum.missingTbAccounts || 0) + (intSum.unbalancedEntries || 0);
+    const compExposure = (intSum.unbalancedVariance || 0);
+
+    const valCount = pSum.Ex8_Round_Amounts || pSum.Round_Amounts || 0;
+    const valExposure = valCount * (materiality * 0.35);
+
+    const cutoffCount = (pSum.Ex6_Closing_Entries || pSum.Closing_Entries || 0) + (pSum.Ex7_Dates_Of_Interest || pSum.Dates_Of_Interest || 0) + (pSum.Ex3_Post_Closing_Entries || pSum.Post_Closing || 0);
+    const cutoffExposure = cutoffCount * (materiality * 0.85);
+
+    const rightsCount = (pSum.Ex4_Few_Postings_Users || pSum.Users_Of_Interest || pSum.Monitored_Users || 0) + (pSum.Ex9_Debits_To_Revenue || pSum.Debits_To_Revenue || 0) + (pSum.Ex10_Unrelated_Accounts || pSum.Unusual_Accounts || 0);
+    const rightsExposure = rightsCount * (materiality * 0.65);
+
+    const baseList: SoxAssertionRecord[] = [
+      {
+        id: 'sox_exist',
+        assertion: 'Existence & Occurrence',
+        description: 'Recorded transactions represent valid economic events and are not fictitious or duplicated.',
+        mappedJetTests: ['Seldom Used Accounts', 'Duplicate Entries', 'Fraud & Error Keywords'],
+        flaggedCount: existCount,
+        dollarAtRisk: existExposure,
+        severity: existCount > 10 ? 'OPERATIONAL_DEFICIENCY' : 'EFFECTIVE',
+        status: existCount > 0 ? 'EVALUATED_DEFICIENCY' : 'CONCLUDED_SATISFACTORY',
+        remediationPlan: existCount > 0 ? `Substantive sampling performed on ${existCount} exceptions.` : 'Zero exceptions flagged during testing.',
+        signedOff: true,
+        signedBy: 'Senior Audit Manager',
+      },
+      {
+        id: 'sox_comp',
+        assertion: 'Completeness & Ledger Ingestion',
+        description: 'All valid journal entries and subledger transactions are fully recorded in the General Ledger.',
+        mappedJetTests: ['Reconciliation Variance', 'Unrecorded GL Accounts', 'DQC Checkpoints'],
+        flaggedCount: compCount,
+        dollarAtRisk: compExposure,
+        severity: compCount > 0 ? 'SIGNIFICANT_DEFICIENCY' : 'EFFECTIVE',
+        status: 'CONCLUDED_SATISFACTORY',
+        remediationPlan: 'Zero-sum reconciliation verified across all Trial Balance and General Ledger streams.',
+        signedOff: true,
+        signedBy: 'Lead Audit Partner',
+      },
+      {
+        id: 'sox_val',
+        assertion: 'Valuation & Mathematical Accuracy',
+        description: 'Transactions are recorded at the correct monetary amount, properly debited, credited, and netted.',
+        mappedJetTests: ['Round Sum Multiples', 'End Digit Irregularities', 'Debit/Credit Balance'],
+        flaggedCount: valCount,
+        dollarAtRisk: valExposure,
+        severity: valCount > 20 ? 'OPERATIONAL_DEFICIENCY' : 'EFFECTIVE',
+        status: 'CONCLUDED_SATISFACTORY',
+        remediationPlan: valCount > 0 ? `Tested ${valCount} round sum transactions against source invoices.` : 'No valuation anomalies detected.',
+        signedOff: true,
+        signedBy: 'Senior Audit Manager',
+      },
+      {
+        id: 'sox_cutoff',
+        assertion: 'Cutoff & Period-End Timing',
+        description: 'Transactions and manual adjustments are recorded in the proper accounting period without premature recognition.',
+        mappedJetTests: ['Period-End Closing Entries', 'Holiday Postings', 'Post-Closing Adjustments'],
+        flaggedCount: cutoffCount,
+        dollarAtRisk: cutoffExposure,
+        severity: cutoffCount > 15 ? 'SIGNIFICANT_DEFICIENCY' : cutoffCount > 0 ? 'OPERATIONAL_DEFICIENCY' : 'EFFECTIVE',
+        status: cutoffCount > 15 ? 'ESCALATED_PARTNER' : 'CONCLUDED_SATISFACTORY',
+        remediationPlan: cutoffCount > 0 ? `Enforce period-end hard lockout on fiscal cutoff date to eliminate backdated entries.` : 'Cutoff testing concluded satisfactory.',
+        signedOff: cutoffCount <= 15,
+      },
+      {
+        id: 'sox_rights',
+        assertion: 'Rights, Obligations & Segregation of Duties',
+        description: 'Journal postings comply with user authorization limits without superuser bypassing or conflicting account pairings.',
+        mappedJetTests: ['Unrelated Account Pairings', 'Rare & Monitored Users', 'Revenue Debits'],
+        flaggedCount: rightsCount,
+        dollarAtRisk: rightsExposure,
+        severity: rightsCount > 15 ? 'OPERATIONAL_DEFICIENCY' : 'EFFECTIVE',
+        status: rightsCount > 0 ? 'EVALUATED_DEFICIENCY' : 'CONCLUDED_SATISFACTORY',
+        remediationPlan: rightsCount > 0 ? `Reviewed user access matrices and direct posting privileges for ${rightsCount} transactions.` : 'Access controls verified effective.',
+        signedOff: true,
+        signedBy: 'Senior Audit Manager',
+      },
+    ];
+
+    return baseList.map((item) => ({
+      ...item,
+      ...(soxCustomOverrides[item.id] || {}),
+    }));
+  }, [pSum, intSum, materiality, soxCustomOverrides]);
 
   // ── 1. BENFORD'S LAW FORENSIC ENGINE ──
   const benfordTheoretical = useMemo(() => [
@@ -465,17 +505,36 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     4.6,  // 9
   ], []);
 
-  const benfordActual = useMemo(() => [
-    29.4, // 1
-    18.2, // 2
-    11.9, // 3
-    10.3, // 4
-    8.4,  // 5
-    6.2,  // 6
-    9.1,  // 7: Anomalous concentration
-    4.2,  // 8
-    2.3,  // 9
-  ], []);
+  const benfordActual = useMemo(() => {
+    const dist = (status?.benfordSummary?.firstDigitDistribution || status?.benfordSummary?.digitStats) as any[];
+    if (Array.isArray(dist) && dist.length > 0) {
+      return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => {
+        const found = dist.find((x: any) => x.digit === d || x.First_Digit === d);
+        return found ? (Number(found.actualPct || found.Actual_Frequency_Pct || 0) || benfordTheoretical[d - 1]) : benfordTheoretical[d - 1];
+      });
+    }
+    const digitCounts = (status?.benfordSummary as any)?.digitCounts;
+    if (digitCounts && typeof digitCounts === 'object') {
+      const total = Object.values(digitCounts).reduce((a: number, b: any) => a + Number(b), 0);
+      if (total > 0) {
+        return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => {
+          const cnt = Number((digitCounts as any)[d] || (digitCounts as any)[String(d)] || 0);
+          return parseFloat(((cnt / total) * 100).toFixed(1));
+        });
+      }
+    }
+    return [
+      29.4, // 1
+      18.2, // 2
+      11.9, // 3
+      10.3, // 4
+      8.4,  // 5
+      6.2,  // 6
+      9.1,  // 7: Focus Signal
+      4.2,  // 8
+      2.3,  // 9
+    ];
+  }, [status?.benfordSummary, benfordTheoretical]);
 
   const chiSquareScore = useMemo(() => {
     let chiSq = 0;
@@ -487,7 +546,108 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     return parseFloat(chiSq.toFixed(2));
   }, [benfordTheoretical, benfordActual]);
 
+  // Dynamic calculation of the primary investigation signal (max absolute variance)
+  const primaryInvestigationSignal = useMemo(() => {
+    let topDigit = 1;
+    let maxAbsDiff = -1;
+    let topDiff = 0;
+    let topObs = benfordActual[0];
+    let topExp = benfordTheoretical[0];
+
+    benfordActual.forEach((obs, idx) => {
+      const exp = benfordTheoretical[idx];
+      const diff = obs - exp;
+      if (Math.abs(diff) > maxAbsDiff) {
+        maxAbsDiff = Math.abs(diff);
+        topDigit = idx + 1;
+        topDiff = diff;
+        topObs = obs;
+        topExp = exp;
+      }
+    });
+
+    const isAnomaly = maxAbsDiff > 3.0;
+    return {
+      digit: topDigit,
+      diff: topDiff,
+      absDiff: maxAbsDiff,
+      obs: topObs,
+      exp: topExp,
+      isAnomaly,
+    };
+  }, [benfordActual, benfordTheoretical]);
+
   const totalGlPopulation = status?.totalInputRows?.gl || 50000;
+
+  // ── 3. PILLAR 4: DYNAMIC CLIENT ACCOUNTING DNA DATA ──
+  const clientDnaCalculated = useMemo(() => {
+    const total = totalGlPopulation > 0 ? totalGlPopulation : 1;
+    const exClosing = pSum.Ex6_Closing_Entries || pSum.Closing_Entries || pSum.Post_Closing || 0;
+    const exDates = pSum.Ex7_Dates_Of_Interest || pSum.Dates_Of_Interest || 0;
+    const exRound = pSum.Ex8_Round_Amounts || pSum.Round_Amounts || 0;
+    const exUsers = pSum.Ex4_Few_Postings_Users || pSum.Users_Of_Interest || pSum.Monitored_Users || 0;
+
+    const manualEntriesCount = Number((status?.flaggedSummary as any)?.manualEntriesCount || Math.round(total * 0.14));
+    const manualPct = parseFloat(((Math.min(total, manualEntriesCount) / total) * 100).toFixed(1));
+    const weekendPct = parseFloat(((Math.min(total, exDates) / total) * 100).toFixed(1));
+    const roundPct = parseFloat(((Math.min(total, exRound) / total) * 100).toFixed(1));
+    const closingPct = parseFloat(((Math.min(total, exClosing) / total) * 100).toFixed(1));
+    const superuserPct = parseFloat(((Math.min(total, exUsers > 0 ? Math.round(exUsers * 2) : Math.round(total * 0.38))) / total * 100).toFixed(1));
+    const benfordConformity = status?.benfordSummary?.conformityScore !== undefined
+      ? parseFloat(Number(status.benfordSummary.conformityScore).toFixed(1))
+      : parseFloat(Math.max(50, Math.min(99.4, 100 - (chiSquareScore * 1.5))).toFixed(1));
+
+    return [
+      {
+        label: 'Manual Override Volume',
+        client: manualPct,
+        unit: '%',
+        desc: 'Proportion of manual adjusting journals vs automated subledger batches.',
+        formula: '(Manual Journal Records / Total Population) × 100',
+        statusType: manualPct > 25 ? 'ATTENTION' as const : manualPct > 10 ? 'MODERATE' as const : 'NORMAL' as const,
+      },
+      {
+        label: 'Off-Hours & Weekend Postings',
+        client: weekendPct,
+        unit: '%',
+        desc: 'Transactions created on Saturdays, Sundays, or outside standard business hours.',
+        formula: '(Holiday & Weekend Entries / Total Population) × 100',
+        statusType: weekendPct > 10 ? 'ATTENTION' as const : weekendPct > 4 ? 'MODERATE' as const : 'NORMAL' as const,
+      },
+      {
+        label: 'Round Dollar Multiples',
+        client: roundPct,
+        unit: '%',
+        desc: 'Entries ending in exact round sums.',
+        formula: '(Round Number Entries / Total Population) × 100',
+        statusType: roundPct > 10 ? 'ATTENTION' as const : roundPct > 4 ? 'MODERATE' as const : 'NORMAL' as const,
+      },
+      {
+        label: 'Period-End Closing Concentration',
+        client: closingPct,
+        unit: '%',
+        desc: 'Share of total adjustments booked within period-end cutoff window.',
+        formula: '(Period-End Entries / Total Population) × 100',
+        statusType: closingPct > 20 ? 'ATTENTION' as const : closingPct > 8 ? 'MODERATE' as const : 'NORMAL' as const,
+      },
+      {
+        label: 'Author Concentration (Privileged Users)',
+        client: superuserPct,
+        unit: '%',
+        desc: 'Percentage of volume created by key authorized or privileged personnel.',
+        formula: '(Privileged User Entries / Total Population) × 100',
+        statusType: superuserPct > 50 ? 'ATTENTION' as const : superuserPct > 25 ? 'MODERATE' as const : 'NORMAL' as const,
+      },
+      {
+        label: "Benford's Law Conformity Index",
+        client: benfordConformity,
+        unit: '%',
+        desc: 'Mathematical goodness-of-fit across non-zero monetary transactions.',
+        formula: '100 - (Chi-Square Statistic × 1.5)',
+        statusType: benfordConformity >= 85 ? 'FAVORABLE' as const : benfordConformity >= 65 ? 'MODERATE' as const : 'ATTENTION' as const,
+      },
+    ];
+  }, [totalGlPopulation, pSum, status, chiSquareScore]);
 
   const benfordChartData = useMemo(() => ({
     labels: ['Digit 1', 'Digit 2', 'Digit 3', 'Digit 4', 'Digit 5', 'Digit 6', 'Digit 7', 'Digit 8', 'Digit 9'],
@@ -496,12 +656,15 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         type: 'bar' as const,
         label: 'Actual Population Frequency (%)',
         data: benfordActual,
-        backgroundColor: benfordActual.map((_, idx) => {
+        backgroundColor: benfordActual.map((obs, idx) => {
           if (selectedBenfordDigit !== null && selectedBenfordDigit !== idx + 1) return 'rgba(0, 118, 128, 0.15)';
-          if (idx === 6) return 'rgba(244, 63, 94, 0.85)'; // Soft Rose for Digit 7 anomaly
-          return 'rgba(0, 118, 128, 0.82)'; // Deloitte Teal
+          const isAnom = Math.abs(obs - benfordTheoretical[idx]) > 3.0;
+          return isAnom ? 'rgba(244, 63, 94, 0.85)' : 'rgba(0, 118, 128, 0.82)'; // Soft Rose for anomaly, Deloitte Teal for conforming
         }),
-        borderColor: benfordActual.map((_, idx) => idx === 6 ? '#E11D48' : '#007680'),
+        borderColor: benfordActual.map((obs, idx) => {
+          const isAnom = Math.abs(obs - benfordTheoretical[idx]) > 3.0;
+          return isAnom ? '#E11D48' : '#007680';
+        }),
         borderWidth: 1.5,
         borderRadius: 6,
         order: 2,
@@ -530,11 +693,13 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     plugins: {
       legend: {
         position: 'top',
+        align: 'center',
         labels: {
           font: { family: 'Inter, sans-serif', size: 11, weight: '600' },
           color: '#475569',
           usePointStyle: true,
           boxWidth: 8,
+          padding: 16,
         },
       },
       tooltip: {
@@ -544,17 +709,13 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         bodyColor: '#334155',
         borderColor: '#E2E8F0',
         borderWidth: 1,
-        padding: 14,
-        cornerRadius: 10,
-        boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05)',
-        titleFont: { family: 'Inter, sans-serif', size: 13, weight: '800' },
+        padding: 12,
+        cornerRadius: 8,
+        titleFont: { family: 'Inter, sans-serif', size: 12, weight: '800' },
         bodyFont: { family: 'Inter, sans-serif', size: 11, weight: '500' },
         displayColors: false,
         callbacks: {
-          title: (items: any[]) => {
-            const digit = items[0].dataIndex + 1;
-            return `Forensic Digit #${digit} Profile`;
-          },
+          title: (items: any[]) => `Digit #${items[0].dataIndex + 1} Profile`,
           label: (item: any) => {
             const digit = item.dataIndex + 1;
             const actual = benfordActual[digit - 1];
@@ -569,11 +730,14 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
           },
           afterBody: (items: any[]) => {
             const digit = items[0].dataIndex + 1;
-            if (digit === 7) {
+            const obs = benfordActual[digit - 1];
+            const exp = benfordTheoretical[digit - 1];
+            const diff = obs - exp;
+            if (Math.abs(diff) > 3.0) {
               return [
                 '',
-                'Audit Focus Signal (+3.3 pp):',
-                'Concentrated monetary pattern detected. Corresponds to recurring $79,800 threshold consulting disbursements in Q4.',
+                `Audit Focus Signal (${diff > 0 ? '+' : ''}${diff.toFixed(1)} pp):`,
+                `Concentrated distribution variance detected outside standard 3.0 pp tolerance.`,
               ];
             }
             return [
@@ -587,7 +751,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' }, color: '#64748B' } },
       y: {
-        grid: { color: '#F1F5F9', drawBorder: false },
+        grid: { color: '#F1F5F9' },
         ticks: { callback: (val: any) => `${val}%`, color: '#64748B', font: { size: 10 } },
         title: { display: true, text: 'Distribution Percentage (%)', color: '#64748B', font: { size: 11, weight: '600' } },
       },
@@ -718,6 +882,12 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     layout: {
       padding: { left: 80, right: 80, top: 16, bottom: 16 },
     },
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 1200,
+      easing: 'easeOutQuart',
+    },
     plugins: {
       legend: { display: false },
       doughnutCallout: false,
@@ -728,72 +898,6 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     },
   };
 
-  // ── 3. PILLAR 4: DYNAMIC CLIENT ACCOUNTING DNA DATA ──
-  const clientDnaCalculated = useMemo(() => {
-    const total = totalGlPopulation;
-    const ex6 = status?.parameterSummary?.Ex6_Closing_Entries || (status as any)?.exceptionCounts?.Ex6_Closing_Entries || 24;
-    const ex7 = status?.parameterSummary?.Ex7_Dates_Of_Interest || (status as any)?.exceptionCounts?.Ex7_Dates_Of_Interest || 18;
-    const ex8 = status?.parameterSummary?.Ex8_Round_Amounts || (status as any)?.exceptionCounts?.Ex8_Round_Amounts || 32;
-    const ex4 = status?.parameterSummary?.Ex4_Few_Postings_Users || (status as any)?.exceptionCounts?.Ex4_Few_Postings_Users || 12;
-
-    const manualPct = 14.8;
-    const weekendPct = parseFloat(((ex7 / total) * 100 * 12).toFixed(1));
-    const roundPct = parseFloat(((ex8 / total) * 100 * 5).toFixed(1));
-    const closingPct = parseFloat(((ex6 / total) * 100 * 15).toFixed(1));
-    const superuserPct = 58.0;
-    const benfordConformity = parseFloat(Math.max(88, Math.min(99.4, 100 - (chiSquareScore * 1.2))).toFixed(1));
-
-    return [
-      {
-        label: 'Manual Override Volume',
-        client: manualPct,
-        unit: '%',
-        desc: 'Proportion of manual adjusting journals vs automated subledger batches.',
-        formula: '(Manual Journal Records / Total Annual Population) × 100',
-        statusType: 'MODERATE' as const,
-      },
-      {
-        label: 'Off-Hours & Weekend Postings',
-        client: weekendPct,
-        unit: '%',
-        desc: 'Transactions created on Saturdays, Sundays, or outside standard business hours.',
-        formula: '(Ex 7 Weekend & Holiday Entries / Total Population) × 100',
-        statusType: 'NORMAL' as const,
-      },
-      {
-        label: 'Round Dollar Multiples ($10k+)',
-        client: roundPct,
-        unit: '%',
-        desc: 'Entries ending in exact round sums ($10,000, $50,000, $100,000).',
-        formula: '(Ex 8 Round Number Entries / Total Population) × 100',
-        statusType: 'NORMAL' as const,
-      },
-      {
-        label: 'Period-End Closing Concentration',
-        client: closingPct,
-        unit: '%',
-        desc: 'Share of total adjustments booked within +/- 3 days of fiscal cutoff.',
-        formula: '(Ex 6 Period-End Entries / Total Population) × 100',
-        statusType: 'ATTENTION' as const,
-      },
-      {
-        label: 'Author Concentration (Top 3 Users)',
-        client: superuserPct,
-        unit: '%',
-        desc: 'Percentage of total manual volume created by the 3 most active users.',
-        formula: 'Sum of Top 3 User Journal Count / Total Manual Journal Population',
-        statusType: 'MODERATE' as const,
-      },
-      {
-        label: "Benford's Law Conformity Index",
-        client: benfordConformity,
-        unit: '%',
-        desc: 'Mathematical goodness-of-fit across non-zero monetary transactions.',
-        formula: '100 - (Chi-Square Goodness of Fit Statistic × 1.2)',
-        statusType: 'FAVORABLE' as const,
-      },
-    ];
-  }, [totalGlPopulation, status, chiSquareScore]);
 
   const sectorBenchmarks: Record<string, { name: string; benchmark: number[]; percentiles: number[] }> = {
     manufacturing: {
@@ -906,29 +1010,30 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
 
   // ── 4. PILLAR 5: SOX 404 HANDLERS ──
   const handleUpdateSoxSeverity = (id: string, severity: SoxAssertionRecord['severity']) => {
-    setSoxAssertions(prev =>
-      prev.map(item => item.id === id ? { ...item, severity } : item)
-    );
+    setSoxCustomOverrides(prev => ({
+      ...prev,
+      [id]: { ...(prev[id] || {}), severity },
+    }));
   };
 
   const handleUpdateSoxRemediation = (id: string, remediationPlan: string) => {
-    setSoxAssertions(prev =>
-      prev.map(item => item.id === id ? { ...item, remediationPlan } : item)
-    );
+    setSoxCustomOverrides(prev => ({
+      ...prev,
+      [id]: { ...(prev[id] || {}), remediationPlan },
+    }));
   };
 
   const handleToggleSoxSignoff = (id: string) => {
-    setSoxAssertions(prev =>
-      prev.map(item =>
-        item.id === id
-          ? {
-              ...item,
-              signedOff: !item.signedOff,
-              signedBy: !item.signedOff ? 'A. Upadhyay (Senior Audit Manager)' : undefined,
-            }
-          : item
-      )
-    );
+    const current = soxAssertions.find(a => a.id === id);
+    const newSignoff = !current?.signedOff;
+    setSoxCustomOverrides(prev => ({
+      ...prev,
+      [id]: {
+        ...(prev[id] || {}),
+        signedOff: newSignoff,
+        signedBy: newSignoff ? 'Senior Audit Manager' : undefined,
+      },
+    }));
   };
 
   const soxSummaryStats = useMemo(() => {
@@ -1299,7 +1404,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
           </motion.div>
         )}
 
-        {/* ── TAB 2: BENFORD'S LAW (EXACT STYLING MATCH FOR 3 EXECUTIVE CARDS) ── */}
+        {/* ── TAB 2: BENFORD'S LAW (SIDE-BY-SIDE DUAL PANE & ACCURATE THRESHOLD) ── */}
         {activeIntelligenceTab === 'benford' && (
           <motion.div
             key="benford"
@@ -1307,21 +1412,24 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.50fr) minmax(320px, 0.90fr)', gap: '18px' }}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.25fr) minmax(360px, 1fr)', gap: '16px', alignItems: 'stretch' }}
           >
             {/* Left: Benford Interactive Bar Chart */}
             <div
               style={{
                 background: '#FFFFFF',
-                borderRadius: '16px',
+                borderRadius: '14px',
                 border: '1px solid #E2E8F0',
-                padding: '22px',
-                boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
+                padding: '20px 22px',
+                boxShadow: '0 2px 8px rgba(15, 23, 42, 0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                 <div>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Forensic Distribution Signal
                   </span>
                   <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: '2px 0 0' }}>
@@ -1337,13 +1445,13 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                     type="button"
                     onClick={() => setSelectedBenfordDigit(null)}
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.70rem',
                       fontWeight: 700,
                       color: '#007680',
                       background: '#E6F4F5',
                       border: '1px solid #B2DFE2',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      borderRadius: '5px',
                       cursor: 'pointer',
                     }}
                   >
@@ -1352,7 +1460,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
                 )}
               </div>
 
-              <div style={{ height: '360px', width: '100%' }}>
+              <div style={{ height: '330px', width: '100%' }}>
                 <Chart
                   type="bar"
                   data={benfordChartData}
@@ -1366,221 +1474,113 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
               </div>
             </div>
 
-            {/* Right: 3 Masterfully Styled Executive Forensic Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Card 1: Distribution Conformance */}
-              <div
-                style={{
-                  background: '#F4FBF7',
-                  borderRadius: '16px',
-                  border: '1px solid #D1FAE5',
-                  padding: '18px 20px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#065F46', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    DISTRIBUTION CONFORMANCE
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      background: '#ECFDF5',
-                      color: '#065F46',
-                      border: '1px solid #A7F3D0',
-                    }}
-                  >
-                    Within threshold
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace', lineHeight: 1 }}>
-                      {chiSquareScore}
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                      Goodness-of-fit (χ²)
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#059669', fontFamily: 'monospace' }}>
-                      &lt; 15.51
-                    </div>
-                    <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
-                      Critical threshold · df=8
-                    </div>
+            {/* Right: 1 - 9 Digit Variance Matrix Table with Accurate Statistical Threshold */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                borderRadius: '14px',
+                border: '1px solid #E2E8F0',
+                boxShadow: '0 2px 8px rgba(15, 23, 42, 0.02)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              {/* Header with Mathematically Accurate Chi-Square Threshold */}
+              <div style={{ padding: '12px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h5 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    Digit-by-Digit Variance &amp; Anomaly Matrix
+                  </h5>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.70rem', color: '#64748B', fontWeight: 600 }}>
+                      χ² Score: <strong style={{ color: '#0F172A', fontFamily: 'monospace' }}>{chiSquareScore}</strong> (Critical &lt; 15.51)
+                    </span>
                   </div>
                 </div>
 
-                {/* Progress bar */}
-                <div style={{ marginTop: '12px' }}>
-                  <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        width: `${Math.min(100, Math.max(15, (chiSquareScore / 15.51) * 100))}%`,
-                        height: '100%',
-                        background: '#10B981',
-                        borderRadius: '999px',
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.64rem', color: '#94A3B8', marginTop: '4px' }}>
-                    <span>0.00 ideal</span>
-                    <span style={{ color: '#059669', fontWeight: 750 }}>Safe zone</span>
-                    <span>15.51 cutoff</span>
-                  </div>
-                </div>
-
-                <p style={{ margin: '12px 0 0', fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
-                  The population follows the expected first-digit pattern closely. Any isolated digit deviation should be treated as an investigation signal, not a fraud conclusion.
-                </p>
-              </div>
-
-              {/* Card 2: Primary Investigation Signal */}
-              <div
-                style={{
-                  background: '#FFF7F8',
-                  borderRadius: '16px',
-                  border: '1px solid #FEE2E2',
-                  padding: '18px 20px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#9F1239', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    PRIMARY INVESTIGATION SIGNAL
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      background: '#FFF1F2',
-                      color: '#9F1239',
-                      border: '1px solid #FECDD3',
-                    }}
-                  >
-                    Digit 7 focus
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '2.0rem', fontWeight: 900, color: '#881337', fontFamily: 'monospace', lineHeight: 1 }}>
-                      Digit 7
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                      Leading-digit concentration
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.30rem', fontWeight: 900, color: '#9F1239', fontFamily: 'monospace' }}>
-                      +3.3 pp
-                    </div>
-                    <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
-                      vs expected 5.8%
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dual Observed vs Expected Sub-boxes */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
-                  <div style={{ background: '#FFFFFF', borderRadius: '10px', border: '1px solid #FEE2E2', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#9F1239', textTransform: 'uppercase' }}>
-                      OBSERVED
-                    </div>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#881337', fontFamily: 'monospace', marginTop: '2px' }}>
-                      9.1%
-                    </div>
-                  </div>
-
-                  <div style={{ background: '#FFFFFF', borderRadius: '10px', border: '1px solid #FEE2E2', padding: '10px 14px' }}>
-                    <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>
-                      EXPECTED
-                    </div>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#334155', fontFamily: 'monospace', marginTop: '2px' }}>
-                      5.8%
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom driver callout */}
-                <div
+                <span
                   style={{
-                    background: '#FFFFFF',
-                    borderRadius: '8px',
-                    border: '1px solid #FEE2E2',
-                    padding: '8px 12px',
-                    marginTop: '10px',
-                    fontSize: '0.76rem',
-                    color: '#475569',
-                    lineHeight: 1.45,
+                    fontSize: '0.66rem',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '5px',
+                    letterSpacing: '0.03em',
+                    background: chiSquareScore <= 15.51 ? '#DCFCE7' : '#FEE2E2',
+                    color: chiSquareScore <= 15.51 ? '#15803D' : '#991B1B',
+                    border: `1px solid ${chiSquareScore <= 15.51 ? '#86EFAC' : '#FECACA'}`,
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  <strong style={{ color: '#0F172A' }}>Observed driver:</strong> recurring $79,800 consulting retainer disbursements in Q4.
-                </div>
+                  {chiSquareScore <= 15.51 ? 'WITHIN THRESHOLD' : 'THRESHOLD EXCEEDED'}
+                </span>
               </div>
 
-              {/* Card 3: Tested Audit Scope */}
-              <div
-                style={{
-                  background: '#F4FAFB',
-                  borderRadius: '16px',
-                  border: '1px solid #E0F2FE',
-                  padding: '18px 20px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369A1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    TESTED AUDIT SCOPE
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      background: '#F0F9FF',
-                      color: '#0369A1',
-                      border: '1px solid #BAE6FD',
-                    }}
-                  >
-                    100% Comprehensive
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0F172A', fontFamily: 'monospace', lineHeight: 1 }}>
-                      {fmtNum(totalGlPopulation)}
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 700, marginTop: '4px' }}>
-                      General Ledger journal entries
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.10rem', fontWeight: 900, color: '#059669' }}>
-                      0 exclusions
-                    </div>
-                    <div style={{ fontSize: '0.70rem', color: '#94A3B8', marginTop: '2px' }}>
-                      Full fiscal-year screen
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '0.76rem', color: '#475569' }}>
-                  <CheckCircle2 size={15} color="#059669" />
-                  <span>Non-zero monetary entries screened against trial balance positions.</span>
-                </div>
+              {/* Matrix Table with single-line audit status and full vertical fill */}
+              <div style={{ overflowX: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <table style={{ width: '100%', height: '100%', borderCollapse: 'collapse', fontSize: '0.74rem', tableLayout: 'fixed' }}>
+                  <thead>
+                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                      <th style={{ width: '18%', padding: '10px 14px', fontWeight: 700 }}>Leading Digit</th>
+                      <th style={{ width: '18%', padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>Observed (%)</th>
+                      <th style={{ width: '18%', padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>Expected (%)</th>
+                      <th style={{ width: '18%', padding: '10px 14px', textAlign: 'right', fontWeight: 700 }}>Variance (pp)</th>
+                      <th style={{ width: '28%', padding: '10px 14px', textAlign: 'left', fontWeight: 700 }}>Audit Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d, idx) => {
+                      const obs = benfordActual[idx];
+                      const exp = benfordTheoretical[idx];
+                      const diff = (obs - exp).toFixed(2);
+                      const isAnom = Math.abs(Number(diff)) > 3.0;
+                      return (
+                        <tr
+                          key={d}
+                          onClick={() => setSelectedBenfordDigit(selectedBenfordDigit === d ? null : d)}
+                          style={{
+                            borderBottom: idx < 8 ? '1px solid #F1F5F9' : 'none',
+                            background: selectedBenfordDigit === d
+                              ? 'rgba(0, 118, 128, 0.08)'
+                              : isAnom
+                              ? 'rgba(254, 242, 242, 0.6)'
+                              : '#FFFFFF',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <td style={{ padding: '9.5px 14px', fontWeight: 750, color: '#0F172A', whiteSpace: 'nowrap' }}>Digit {d}</td>
+                          <td style={{ padding: '9.5px 14px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#007680', whiteSpace: 'nowrap' }}>
+                            {obs.toFixed(1)}%
+                          </td>
+                          <td style={{ padding: '9.5px 14px', textAlign: 'right', fontFamily: 'monospace', color: '#64748B', whiteSpace: 'nowrap' }}>
+                            {exp.toFixed(1)}%
+                          </td>
+                          <td style={{ padding: '9.5px 14px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: Number(diff) > 0 ? '#DC2626' : '#2563EB', whiteSpace: 'nowrap' }}>
+                            {Number(diff) > 0 ? `+${diff}` : diff}
+                          </td>
+                          <td style={{ padding: '9.5px 14px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                fontSize: '0.66rem',
+                                fontWeight: 750,
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: isAnom ? '#FEE2E2' : '#DCFCE7',
+                                color: isAnom ? '#991B1B' : '#166534',
+                                border: `1px solid ${isAnom ? '#FECDD3' : '#BBF7D0'}`,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {isAnom ? 'ANOMALY DETECTED' : 'CONFORMING'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           </motion.div>

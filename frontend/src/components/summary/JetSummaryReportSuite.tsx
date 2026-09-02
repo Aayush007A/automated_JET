@@ -865,7 +865,20 @@ const ClosingEntriesTab: React.FC<{ fmtCurr: (v: number) => string; fmtNum: (v: 
           <div style={{ height: '260px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={95} innerRadius={55} label>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={95}
+                  innerRadius={55}
+                  isAnimationActive={true}
+                  animationBegin={100}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                  label
+                >
                   {data.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={PALETTE[index % PALETTE.length]} />
                   ))}

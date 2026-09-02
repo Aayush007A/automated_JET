@@ -734,20 +734,28 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', padding: '4px 10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-            <Filter size={13} color="#007680" />
-            <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748B' }}>Filter Quarter:</span>
-            <select
-              value={quarterFilter}
-              onChange={(e) => setQuarterFilter(e.target.value)}
-              style={{ border: 'none', background: 'transparent', fontSize: '0.76rem', fontWeight: 600, color: '#1E293B', outline: 'none', cursor: 'pointer' }}
-            >
-              <option value="ALL">All Quarters (Q1-Q4)</option>
-              <option value="Q1">Q1 Only</option>
-              <option value="Q2">Q2 Only</option>
-              <option value="Q3">Q3 Only</option>
-              <option value="Q4">Q4 Only</option>
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', padding: '4px 6px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#475569', padding: '0 6px' }}>Filter:</span>
+            {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => setQuarterFilter(q)}
+                style={{
+                  border: 'none',
+                  background: quarterFilter === q ? '#007680' : 'transparent',
+                  color: quarterFilter === q ? '#FFFFFF' : '#475569',
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: quarterFilter === q ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {q}
+              </button>
+            ))}
           </div>
 
           <a
@@ -899,7 +907,7 @@ const Sheet00EngagementDetails: React.FC<{
   const op = (config?.omniaParameters || {}) as Record<string, any>;
   const p = ((config as any)?.parameters || {}) as Record<string, any>;
 
-  const engName = sp.engagementName || op.engagementName || (config as any)?.engagementName || p.engagementName || 'Tangerine Skies Pvt Ltd - JET Audit';
+  const engName = sp.engagementName || op.engagementName || (config as any)?.engagementName || p.engagementName || (config?.workflow === 'OMNIA_JET' ? 'Omnia JET Engagement' : 'Spark JET Engagement');
   const sDate = sp.startDate || op.testingPeriodStart || p.startDate || '01-Apr-2025';
   const eDate = sp.endDate || op.testingPeriodEnd || p.endDate || '31-Mar-2026';
   const fyEnd = sp.financialYearEnd || op.fiscalYearEnd || p.financialYearEnd || '31-Dec';

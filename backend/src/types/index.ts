@@ -105,7 +105,86 @@ export interface SparkJetParameters {
   controlSampleCount?: number;
 }
 
+export interface OmniaExclusions {
+  excludeZeroLines?: boolean;
+  systemEntryTypes?: string[];
+  excludedAccounts?: string[];
+  excludedEntryTypes?: string[];
+  excludedUsers?: string[];
+  rationales?: Record<string, string>;
+}
+
+export interface OmniaTestItemConfig {
+  enabled: boolean;
+  threshold?: number;
+  rationale?: string;
+  [key: string]: any;
+}
+
+export interface OmniaTestsConfig {
+  seldomAccounts?: OmniaTestItemConfig & { thresholdCount?: number; customAccounts?: string[] };
+  keywords?: OmniaTestItemConfig & { keywordList?: string[] };
+  closingEntries?: OmniaTestItemConfig & { closingDate?: string; daysAfter?: number; daysBefore?: number };
+  unusualAccounts?: OmniaTestItemConfig & { thresholdCount?: number };
+  roundAmounts?: OmniaTestItemConfig & { roundMultiples?: string[]; recurringDigits?: string[] };
+  duplicateEntries?: OmniaTestItemConfig & { countThreshold?: number; amountThreshold?: number };
+  datesOfInterest?: OmniaTestItemConfig & { dates?: string[]; checkWeekends?: boolean };
+  debitsToRevenue?: OmniaTestItemConfig & { revenueAccounts?: string[] };
+  usersOfInterest?: OmniaTestItemConfig & { userList?: string[]; fewPostingsThreshold?: number };
+  benfordAnalysis?: OmniaTestItemConfig;
+  controlSample?: OmniaTestItemConfig & { sampleCount?: number };
+}
+
+export interface TickmarkItem {
+  id: string;
+  code?: string;
+  title: string;
+  explanation?: string;
+  rationale?: string;
+  entryIds?: string[];
+  appliedEntryIds?: string[];
+  sendForEvaluation: boolean;
+  createdAt?: string;
+  createdDate?: string;
+  createdBy?: string;
+}
+
+export interface EvaluationItem {
+  id?: string;
+  entryId: string;
+  documentNo?: string;
+  additionalEvidenceNeeded?: boolean;
+  additionalEvidenceRequired?: boolean;
+  evidenceDescription?: string;
+  conclusion: 'APPROPRIATE' | 'INAPPROPRIATE' | 'EXPLAINED' | 'PENDING';
+  auditorNotes?: string;
+  conclusionNotes?: string;
+  evaluatedBy?: string;
+  evaluatedAt?: string;
+}
+
+export interface BenfordDigitStat {
+  digit: number;
+  count: number;
+  actualPct: number;
+  expectedPct: number;
+  variancePct?: number;
+  diffPct?: number;
+  isAnomaly: boolean;
+}
+
+export interface BenfordSummary {
+  conformityScore: number;
+  conformityLevel?: 'HIGH' | 'ACCEPTABLE' | 'NON_CONFORMING';
+  totalTransactionsTested?: number;
+  totalAnalyzed?: number;
+  madScore?: number;
+  digitStats?: BenfordDigitStat[];
+  firstDigitDistribution?: BenfordDigitStat[];
+}
+
 export interface OmniaJetParameters {
+  engagementName?: string;
   fiscalYear: number;
   fiscalYearEnd: string;
   periodEndDateFormat?: string;
@@ -114,6 +193,7 @@ export interface OmniaJetParameters {
   currency: 'Entity Currency' | 'Group Currency' | 'Both';
   entityCurrencyCode?: string;
   groupCurrencyCode?: string;
+  materiality?: number;
   excludeZeroLines?: boolean;
   decimalSeparator?: 'Period' | 'Comma' | 'None';
   isStandardFormula?: string;
@@ -123,6 +203,10 @@ export interface OmniaJetParameters {
     toggleUserChecks?: boolean;
     toggleObservationChecks?: boolean;
   };
+  exclusions?: OmniaExclusions;
+  testsConfig?: OmniaTestsConfig;
+  tickmarks?: TickmarkItem[];
+  evaluations?: EvaluationItem[];
   controlSampleCount?: number;
 }
 
@@ -211,6 +295,35 @@ export interface RunSummary {
   parameterSummary?: Record<string, number>;
   controlSampleCount?: number;
   
+  benfordSummary?: BenfordSummary;
+  exclusionsSummary?: {
+    totalInputLines: number;
+    excludedZeroCount: number;
+    excludedSystemCount: number;
+    excludedAccountsCount: number;
+    excludedUsersCount: number;
+    totalExcludedLines: number;
+    remainingRefinedLines: number;
+  };
+  tickmarkSummary?: {
+    totalTickmarks: number;
+    totalEntriesResolved: number;
+    totalEntriesPending: number;
+  };
+  riskBreakdown?: {
+    highRisk: number;
+    mediumRisk: number;
+    lowRisk: number;
+    cleanEntries: number;
+  };
+  flaggedSummary?: {
+    totalFlagged?: number;
+    highRiskCount?: number;
+    medRiskCount?: number;
+    lowRiskCount?: number;
+  };
+  testOutputsSummary?: Record<string, number>;
+
   reconciliationSummary?: {
     totalAccounts: number;
     reconciledAccounts: number;

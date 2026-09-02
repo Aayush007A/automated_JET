@@ -723,4 +723,84 @@ export class FileDetector {
 
     return params;
   }
+
+  /**
+   * Omnia Parameter Parser.
+   * Scans uploaded files & Excel sheets for Omnia test configurations, exclusions, keywords, and dates.
+   */
+  public static parseOmniaParameters(files: UploadedFileInfo[], existingParams?: any): any {
+    const params: any = {
+      fiscalYear: existingParams?.fiscalYear || 2026,
+      fiscalYearEnd: existingParams?.fiscalYearEnd || '03/31/2026',
+      testingPeriodStart: existingParams?.testingPeriodStart || '04/01/2025',
+      testingPeriodEnd: existingParams?.testingPeriodEnd || '03/31/2026',
+      currency: existingParams?.currency || 'Entity Currency',
+      decimalSeparator: existingParams?.decimalSeparator || 'Period',
+      excludeZeroLines: existingParams?.excludeZeroLines !== undefined ? existingParams.excludeZeroLines : true,
+      exclusions: {
+        excludeZeroLines: true,
+        systemEntryTypes: [],
+        excludedAccounts: [],
+        excludedEntryTypes: [],
+        excludedUsers: [],
+        rationales: {},
+        ...(existingParams?.exclusions || {}),
+      },
+      testsConfig: {
+        seldomAccounts: { enabled: true, thresholdCount: 5, threshold: 0.0, customAccounts: [], rationale: '', ...(existingParams?.testsConfig?.seldomAccounts || {}) },
+        keywords: { enabled: true, threshold: 0.0, keywordList: ['plug', 'test', 'fictitious', 'reverse', 'manual', 'bribe', 'fraud', 'conceal', 'adjustment', 'mistake', 'misstatement', 'officer', 'prize', 'abuse', 'alter', 'seizure', 'bury', 'corrupt', 'demand', 'embezzle', 'theft', 'suspense', 'net to zero'], rationale: '', ...(existingParams?.testsConfig?.keywords || {}) },
+        closingEntries: { enabled: true, daysAfter: 10, daysBefore: 0, threshold: 0.0, rationale: '', ...(existingParams?.testsConfig?.closingEntries || {}) },
+        unusualAccounts: { enabled: true, thresholdCount: 3, threshold: 0.0, rationale: '', ...(existingParams?.testsConfig?.unusualAccounts || {}) },
+        roundAmounts: { enabled: true, roundMultiples: ['1000', '10000', '100000', '1000000'], recurringDigits: ['3', '4', '5'], threshold: 0.0, rationale: '', ...(existingParams?.testsConfig?.roundAmounts || {}) },
+        duplicateEntries: { enabled: true, countThreshold: 2, amountThreshold: 0.0, rationale: '', ...(existingParams?.testsConfig?.duplicateEntries || {}) },
+        datesOfInterest: { enabled: true, dates: ['2025-12-25', '2025-12-31', '2026-01-01', '2026-03-31'], checkWeekends: true, threshold: 0.0, rationale: '', ...(existingParams?.testsConfig?.datesOfInterest || {}) },
+        debitsToRevenue: { enabled: true, revenueAccounts: [], threshold: 0.0, rationale: '', ...(existingParams?.testsConfig?.debitsToRevenue || {}) },
+        usersOfInterest: { enabled: true, userList: ['ADMIN', 'SYSTEM', 'BATCH', 'SBPATIL', 'SUPERUSER'], fewPostingsThreshold: 2, threshold: 0.0, rationale: '', ...(existingParams?.testsConfig?.usersOfInterest || {}) },
+        benfordAnalysis: { enabled: true, rationale: '', ...(existingParams?.testsConfig?.benfordAnalysis || {}) },
+        controlSample: { enabled: true, sampleCount: 40, ...(existingParams?.testsConfig?.controlSample || {}) },
+      },
+      tickmarks: existingParams?.tickmarks || [],
+      evaluations: existingParams?.evaluations || [],
+      ...existingParams,
+    };
+
+    for (const fileInfo of files) {
+      if (!fileInfo.filePath || !fs.existsSync(fileInfo.filePath)) continue;
+      const ext = path.extname(fileInfo.filePath).toLowerCase();
+
+      if (ext === '.xlsx' || ext === '.xls') {
+        try {
+          const workbook = xlsx.readFile(fileInfo.filePath, { cellDates: true, dense: true });
+          for (const sheetName of workbook.SheetNames) {
+            const lowerSheet = sheetName.toLowerCase().replace(/[\s_-]/g, '');
+            const sheet = workbook.Sheets[sheetName];
+            const rows = xlsx.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+            if (!rows || rows.length === 0) continue;
+
+            if (lowerSheet.includes('exclusion')) {
+              rows.forEach((r) => {
+                const val = String(Object.values(r)[0] || '').trim();
+                if (val) {
+                  if (lowerSheet.includes('account')) params.exclusions.excludedAccounts.push(val);
+                  else if (lowerSheet.includes('user')) params.exclusions.excludedUsers.push(val);
+                  else if (lowerSheet.includes('system') || lowerSheet.includes('type')) params.exclusions.systemEntryTypes.push(val);
+                }
+              });
+            } else if (lowerSheet.includes('keyword')) {
+              const kwSet = new Set<string>(params.testsConfig.keywords.keywordList || []);
+              rows.forEach((r) => {
+                const val = String(Object.values(r)[0] || '').trim().toLowerCase();
+                if (val) kwSet.add(val);
+              });
+              params.testsConfig.keywords.keywordList = Array.from(kwSet);
+            }
+          }
+        } catch (err) {
+          LogService.log('WARN', 'OMNIA_PARAM_PARSER', `Error parsing Omnia parameter file ${fileInfo.originalName}: ${err}`);
+        }
+      }
+    }
+
+    return params;
+  }
 }

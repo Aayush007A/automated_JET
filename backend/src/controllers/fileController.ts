@@ -103,9 +103,11 @@ export class FileController {
       }
     }
 
-    // For SPARK_JET, parse any uploaded parameter exception input files/sheets into config.sparkParameters
+    // Parse parameter exceptions from uploaded files/sheets
     if (config.workflow === 'SPARK_JET') {
       config.sparkParameters = FileDetector.parseSparkParameters(config.files, config.sparkParameters);
+    } else if (config.workflow === 'OMNIA_JET') {
+      config.omniaParameters = FileDetector.parseOmniaParameters(config.files, config.omniaParameters);
     }
 
     RunManager.saveRunConfig(runId, config);
