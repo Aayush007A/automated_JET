@@ -243,12 +243,34 @@ How can I assist you with your current audit task?`,
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.96 }}
-          transition={{ type: 'spring', damping: 28, stiffness: 350 }}
-          style={{
+        <>
+          {/* Frosted Glass Blurred Backdrop */}
+          <motion.div
+            key="ai-assistant-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={onClose}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.25)',
+              backdropFilter: 'blur(5px)',
+              WebkitBackdropFilter: 'blur(5px)',
+              zIndex: 9998,
+              cursor: 'pointer',
+            }}
+          />
+
+          {/* AI Modal Window */}
+          <motion.div
+            key="ai-assistant-modal"
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.96 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+            style={{
             position: 'fixed',
             bottom: '96px',
             right: '24px',
@@ -923,6 +945,7 @@ How can I assist you with your current audit task?`,
             </button>
           </div>
         </motion.div>
+      </>
       )}
     </AnimatePresence>
   );
