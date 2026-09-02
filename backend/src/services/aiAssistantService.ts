@@ -274,6 +274,25 @@ I am your dedicated enterprise audit copilot, specialized in Journal Entry Testi
 - **Configuration**: Configurable during the workflow parameters step (typically defaulting to $500,000 or client-specific planning materiality).`;
     }
 
+    if (q.includes('12') && (q.includes('test') || q.includes('forensic') || q.includes('risk') || q.includes('overview') || q.includes('cover'))) {
+      return `### Overview of 12 Forensic Audit Risk Tests
+
+The Deloitte Automated JET platform executes 12 parametric fraud and integrity tests aligned with ISA 240 and PCAOB AS 2401:
+
+1. **Test 01: Seldom & Dormant Accounts** – Detects transactions booked to general ledger accounts with rare or inactive historical posting patterns.
+2. **Test 02: Suspect Keywords & Narrations** – Multi-pattern regex scanning of journal narrations for fraud terms (plug, true-up, error, correction, partner request).
+3. **Test 03: Post-Closing & Cutoff Adjustments** – Surveils adjusting journal entries posted within the period-end closing window (+/- 5 days from fiscal cutoff).
+4. **Test 04: Unusual Accounts & Conflicting Pairings** – Flags unnatural account class debit/credit relationships that breach double-entry rules.
+5. **Test 05: Round Sum Multiples** – Identifies entries recorded in exact round values ($10K, $50K, $100K) or just beneath approval thresholds.
+6. **Test 06: Duplicate Transactions** – Highlights repeated entries with matching amounts, accounts, dates, or preparers indicating split postings.
+7. **Test 07: Weekend & Holiday Postings** – Detects entries posted on non-business days, Saturdays, Sundays, or recognized holidays.
+8. **Test 08: Debits to Revenue Accounts** – Uncovers unusual debit transactions reducing sales or operating revenue accounts.
+9. **Test 09: Monitored & Rare Users** – Activity originated by privileged IT admin credentials, executive accounts, or infrequent preparers.
+10. **Test 10: Benford's Law First-Digit Conformity** – Evaluates natural logarithmic digit distributions and computes Mean Absolute Deviation (MAD).
+11. **Test 11: Population Funnel & Reconciliation** – Reconciles raw GL population against Trial Balance control totals.
+12. **Test 12: Engagement Scope & Control Sample** – Applies materiality benchmarks and generates representative audit sampling workpapers.`;
+    }
+
     return `### Deloitte JET Audit Guidance
 
 The Deloitte Automated JET platform delivers automated general ledger ingestion, exploratory column health diagnostics, and 12 forensic audit risk tests.
@@ -289,6 +308,7 @@ The Deloitte Automated JET platform delivers automated general ledger ingestion,
   // ── Main Process Method ─────────────────────────────────────────────
   public async processQuery(messages: AiMessage[], context?: ActivePageContext): Promise<AiResponse> {
     const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+    const q = lastUserMessage.toLowerCase().trim();
 
     // 1. Guardrail Validation
     const guardrailCheck = this.checkGuardrails(lastUserMessage);
@@ -300,7 +320,25 @@ The Deloitte Automated JET platform delivers automated general ledger ingestion,
       };
     }
 
-    // 2. Attempt Real Local Neural Model (Qwen2.5 on Port 5005)
+    // 2. Deterministic Commands & Core Canonicals (Instant High-Accuracy Execution)
+    if (
+      q === '/questions' ||
+      q === '/help' ||
+      q === '/prompts' ||
+      q.includes('sample question') ||
+      q.includes('prompt catalog') ||
+      q.includes('show questions') ||
+      q.includes('all questions') ||
+      (q.includes('12') && (q.includes('test') || q.includes('forensic') || q.includes('overview') || q.includes('cover')))
+    ) {
+      const canonicalResponse = this.generateStepAwareResponse(lastUserMessage, context);
+      return {
+        message: this.sanitizeText(canonicalResponse),
+        guardrailTriggered: false,
+      };
+    }
+
+    // 3. Attempt Real Local Neural Model (Qwen2.5 on Port 5005)
     try {
       const llmResult = await this.queryLocalNeuralModel(messages, context);
       return {
@@ -308,7 +346,7 @@ The Deloitte Automated JET platform delivers automated general ledger ingestion,
         guardrailTriggered: false,
       };
     } catch (err) {
-      // 3. Resilient Fallback to Step-Aware Dynamic Knowledge Engine
+      // 4. Resilient Fallback to Step-Aware Dynamic Knowledge Engine
       const fallbackResponse = this.generateStepAwareResponse(lastUserMessage, context);
       return {
         message: this.sanitizeText(fallbackResponse),

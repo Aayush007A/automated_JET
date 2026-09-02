@@ -8,10 +8,6 @@ import {
   Check,
   ChevronRight,
   ShieldCheck,
-  Sparkles,
-  HelpCircle,
-  ArrowRight,
-  Zap,
   BookOpen
 } from 'lucide-react';
 import { AiService, AiChatMessage } from '../../services/aiService';
@@ -32,9 +28,6 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pageContext, setPageContext] = useState<ActivePageContext>(PageContextService.getContext());
 
-  // Entrance holographic animation state
-  const [showEntranceAnimation, setShowEntranceAnimation] = useState<boolean>(true);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -46,17 +39,6 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
     });
     return unsubscribe;
   }, []);
-
-  // Reset or trigger entrance animation on open
-  useEffect(() => {
-    if (isOpen) {
-      setShowEntranceAnimation(true);
-      const timer = setTimeout(() => {
-        setShowEntranceAnimation(false);
-      }, 1800);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
 
   // Load chat history
   useEffect(() => {
@@ -90,17 +72,17 @@ How can I assist you with your current audit task?`,
 
   // Auto-scroll
   useEffect(() => {
-    if (isOpen && !showEntranceAnimation) {
+    if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isOpen, showEntranceAnimation, isLoading]);
+  }, [messages, isOpen, isLoading]);
 
-  // Focus input when opened and intro done
+  // Focus input when opened
   useEffect(() => {
-    if (isOpen && !showEntranceAnimation) {
+    if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 150);
     }
-  }, [isOpen, showEntranceAnimation]);
+  }, [isOpen]);
 
   const handleSend = async (textToSend?: string) => {
     const query = (textToSend !== undefined ? textToSend : inputValue).trim();
@@ -216,7 +198,7 @@ How can I assist you with your current audit task?`,
     if (step === 6) {
       return [
         { label: 'Explain the summary reconciliation', query: 'Explain how to review the executive summary reconciliation and download audit workpapers.' },
-        { label: 'What do the 12 risk tests indicate?', query: 'Provide a breakdown of the 12 forensic risk tests and how exceptions are evaluated.' },
+        { label: 'What do the 12 risk tests indicate?', query: 'Provide an overview of the 12 forensic risk tests in this platform.' },
         { label: 'Explain Benford conformity scoring', query: 'How is the Benford conformity score calculated and what does MAD indicate?' },
       ];
     }
@@ -230,26 +212,31 @@ How can I assist you with your current audit task?`,
 
   const currentPrompts = getContextualPrompts();
 
+  // Clean step subtitle
+  const cleanStepTitle = pageContext.currentStep
+    ? `Step ${pageContext.currentStep}: ${pageContext.stepTitle?.split('&')[0]?.trim() || 'Workflow'}`
+    : 'Dashboard • Engagement Overview';
+
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: 32, scale: 0.94 }}
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 24, scale: 0.94 }}
-          transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+          exit={{ opacity: 0, y: 20, scale: 0.96 }}
+          transition={{ type: 'spring', damping: 28, stiffness: 350 }}
           style={{
             position: 'fixed',
             bottom: '96px',
             right: '24px',
-            width: '560px',
-            maxWidth: 'calc(100vw - 36px)',
-            height: '730px',
+            width: '540px',
+            maxWidth: 'calc(100vw - 32px)',
+            height: '710px',
             maxHeight: 'calc(100vh - 110px)',
             background: '#FFFFFF',
-            borderRadius: '20px',
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 25px 65px -12px rgba(0, 118, 128, 0.16), 0 12px 30px -8px rgba(15, 23, 42, 0.10)',
+            borderRadius: '16px',
+            border: '1px solid #CBD5E1',
+            boxShadow: '0 20px 50px -10px rgba(0, 118, 128, 0.15), 0 10px 25px -5px rgba(15, 23, 42, 0.08)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -257,178 +244,30 @@ How can I assist you with your current audit task?`,
             fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
           }}
         >
-          {/* ENTRANCE HOLOGRAPHIC ANIMATION SCREEN */}
-          <AnimatePresence>
-            {showEntranceAnimation && (
-              <motion.div
-                initial={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.45 }}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(145deg, #FFFFFF 0%, #F0FDFA 60%, #E6F4F5 100%)',
-                  zIndex: 10,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '32px',
-                  textAlign: 'center',
-                }}
-              >
-                {/* Expanding Glowing Orb Portal */}
-                <div style={{ position: 'relative', width: '96px', height: '96px', marginBottom: '24px' }}>
-                  {/* Outer Ripple Wave 1 */}
-                  <motion.div
-                    animate={{ scale: [1, 1.7, 2.1], opacity: [0.6, 0.25, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.8, ease: 'easeOut' }}
-                    style={{
-                      position: 'absolute',
-                      inset: -12,
-                      borderRadius: '50%',
-                      border: '2px solid #007680',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                  {/* Outer Ripple Wave 2 */}
-                  <motion.div
-                    animate={{ scale: [1, 1.5, 1.8], opacity: [0.8, 0.35, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.8, delay: 0.4, ease: 'easeOut' }}
-                    style={{
-                      position: 'absolute',
-                      inset: -6,
-                      borderRadius: '50%',
-                      border: '2px solid #2DD4BF',
-                      pointerEvents: 'none',
-                    }}
-                  />
-
-                  {/* Core Holographic AI Orb */}
-                  <motion.div
-                    animate={{ scale: [0.85, 1.05, 1], rotate: [0, 6, 0] }}
-                    transition={{ duration: 1.2, ease: 'easeOut' }}
-                    style={{
-                      width: '96px',
-                      height: '96px',
-                      borderRadius: '50%',
-                      overflow: 'hidden',
-                      background: '#090D16',
-                      boxShadow: '0 0 35px rgba(0, 118, 128, 0.45), 0 0 60px rgba(45, 212, 191, 0.25)',
-                    }}
-                  >
-                    <img
-                      src="/ai-agent-avatar.png"
-                      alt="Deloitte AI"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  </motion.div>
-                </div>
-
-                {/* Animated Typography */}
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25, duration: 0.4 }}
-                >
-                  <div
-                    style={{
-                      fontSize: '1.28rem',
-                      fontWeight: 850,
-                      letterSpacing: '-0.02em',
-                      color: '#0F172A',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    Deloitte JET AI Copilot
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '0.80rem',
-                      color: '#007680',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      marginBottom: '14px',
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: '7px',
-                        height: '7px',
-                        borderRadius: '50%',
-                        background: '#10B981',
-                        boxShadow: '0 0 8px #10B981',
-                      }}
-                    />
-                    <span>Connected to {pageContext.stepTitle || pageContext.pageTitle || 'Platform'}</span>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: '0.78rem',
-                      color: '#64748B',
-                      maxWidth: '360px',
-                      margin: '0 auto 20px',
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Synchronizing real-time screen telemetry, schema constraints, and audit risk intelligence...
-                  </p>
-                </motion.div>
-
-                {/* Skip / Enter Now Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowEntranceAnimation(false)}
-                  style={{
-                    padding: '7px 18px',
-                    borderRadius: '20px',
-                    background: '#007680',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(0, 118, 128, 0.25)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#005A62')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '#007680')}
-                >
-                  <span>Enter Assistant</span>
-                  <ArrowRight size={13} />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* LIGHT THEMED EXECUTIVE HEADER */}
+          {/* COMPACT, CLEAN EXECUTIVE HEADER (NO TEXT WRAP) */}
           <div
             style={{
-              padding: '14px 20px',
+              padding: '12px 16px',
               background: '#FFFFFF',
               borderBottom: '1px solid #E2E8F0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+              minHeight: '56px',
+              boxSizing: 'border-box',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Left: Avatar & Title (Single Line) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
               <div
                 style={{
                   position: 'relative',
-                  width: '40px',
-                  height: '40px',
+                  width: '34px',
+                  height: '34px',
                   borderRadius: '50%',
                   overflow: 'hidden',
                   background: '#090D16',
-                  boxShadow: '0 0 16px rgba(0, 118, 128, 0.35)',
+                  boxShadow: '0 0 12px rgba(0, 118, 128, 0.35)',
                   flexShrink: 0,
                   border: '1.5px solid #CCFBF1',
                 }}
@@ -439,39 +278,51 @@ How can I assist you with your current audit task?`,
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.96rem', fontWeight: 800, letterSpacing: '-0.01em', color: '#0F172A' }}>
-                    Deloitte JET Assistant
+
+              <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.90rem', fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                    Deloitte JET AI
                   </span>
                   <span
                     style={{
-                      fontSize: '0.64rem',
+                      fontSize: '0.60rem',
                       fontWeight: 750,
                       color: '#059669',
                       background: '#ECFDF5',
                       border: '1px solid #A7F3D0',
-                      padding: '2px 7px',
-                      borderRadius: '12px',
+                      padding: '1px 6px',
+                      borderRadius: '10px',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '3px',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981' }} />
+                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#10B981' }} />
                     Active
                   </span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={12} color="#007680" />
-                  <span>Enterprise Audit Copilot • ISA 240 / PCAOB AS 2401</span>
+                <div
+                  style={{
+                    fontSize: '0.68rem',
+                    color: '#64748B',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <ShieldCheck size={11} color="#007680" />
+                  <span>Enterprise Audit Intelligence</span>
                 </div>
               </div>
             </div>
 
-            {/* Header Right Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {/* Question Catalog Quick Action Button */}
+            {/* Right: Actions (Single Line, Compact) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={handleShowPromptCatalog}
@@ -480,14 +331,15 @@ How can I assist you with your current audit task?`,
                   background: '#F0FDFA',
                   border: '1px solid #99F6E4',
                   color: '#007680',
-                  padding: '6px 12px',
-                  borderRadius: '16px',
+                  padding: '5px 10px',
+                  borderRadius: '14px',
                   cursor: 'pointer',
-                  fontSize: '0.72rem',
+                  fontSize: '0.70rem',
                   fontWeight: 700,
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  gap: '4px',
+                  whiteSpace: 'nowrap',
                   transition: 'all 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
@@ -499,8 +351,8 @@ How can I assist you with your current audit task?`,
                   e.currentTarget.style.borderColor = '#99F6E4';
                 }}
               >
-                <BookOpen size={13} />
-                <span>Sample Questions</span>
+                <BookOpen size={12} />
+                <span>Questions</span>
               </button>
 
               <button
@@ -511,8 +363,8 @@ How can I assist you with your current audit task?`,
                   background: 'transparent',
                   border: '1px solid #E2E8F0',
                   color: '#64748B',
-                  padding: '6px',
-                  borderRadius: '8px',
+                  padding: '5px 7px',
+                  borderRadius: '7px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -522,7 +374,7 @@ How can I assist you with your current audit task?`,
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#F1F5F9')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <Trash2 size={15} />
+                <Trash2 size={14} />
               </button>
 
               <button
@@ -533,8 +385,8 @@ How can I assist you with your current audit task?`,
                   background: 'transparent',
                   border: '1px solid #E2E8F0',
                   color: '#64748B',
-                  padding: '6px',
-                  borderRadius: '8px',
+                  padding: '5px 7px',
+                  borderRadius: '7px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -544,60 +396,63 @@ How can I assist you with your current audit task?`,
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#F1F5F9')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <X size={17} />
+                <X size={15} />
               </button>
             </div>
           </div>
 
-          {/* Current Page / Step Context Badge */}
-          {pageContext && (
+          {/* COMPACT CONTEXT TELEMETRY BAR */}
+          <div
+            style={{
+              background: '#F0FDFA',
+              borderBottom: '1px solid #CCFBF1',
+              padding: '6px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.72rem',
+              color: '#0F766E',
+            }}
+          >
             <div
               style={{
-                background: '#F0FDFA',
-                borderBottom: '1px solid #CCFBF1',
-                padding: '9px 20px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                fontSize: '0.74rem',
-                color: '#0F766E',
+                gap: '6px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ fontWeight: 800, color: '#007680', letterSpacing: '0.01em' }}>
-                  {pageContext.currentStep ? `Step ${pageContext.currentStep} of ${pageContext.totalSteps || 6}` : 'Active Screen'}
-                </span>
-                <span style={{ color: '#99F6E4' }}>•</span>
-                <span style={{ fontWeight: 650, color: '#134E4A' }}>
-                  {pageContext.stepTitle || pageContext.pageTitle || 'Audit Workspace'}
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.64rem',
-                  fontWeight: 750,
-                  color: '#007680',
-                  background: '#FFFFFF',
-                  border: '1px solid #99F6E4',
-                  padding: '2px 8px',
-                  borderRadius: '10px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Dynamic Telemetry
+              <span style={{ fontWeight: 800, color: '#007680' }}>
+                {cleanStepTitle}
               </span>
             </div>
-          )}
+            <span
+              style={{
+                fontSize: '0.62rem',
+                fontWeight: 700,
+                color: '#007680',
+                background: '#FFFFFF',
+                border: '1px solid #99F6E4',
+                padding: '1px 6px',
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Synced
+            </span>
+          </div>
 
-          {/* Message Stream */}
+          {/* MESSAGE STREAM (CLEAN SPACING, PROPORTIONATE BUBBLES) */}
           <div
             style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '20px',
+              padding: '14px 16px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '16px',
+              gap: '12px',
               background: '#F8FAFC',
             }}
           >
@@ -613,16 +468,16 @@ How can I assist you with your current audit task?`,
                 {/* Message Header Info */}
                 <div
                   style={{
-                    fontSize: '0.68rem',
+                    fontSize: '0.65rem',
                     color: '#94A3B8',
-                    marginBottom: '4px',
+                    marginBottom: '2px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '5px',
                     fontWeight: 600,
                   }}
                 >
-                  {msg.role === 'user' ? 'Auditor' : 'Deloitte JET Assistant'}
+                  {msg.role === 'user' ? 'You' : 'Deloitte JET AI'}
                   <span>•</span>
                   <span>{msg.timestamp}</span>
                   {msg.guardrailTriggered && (
@@ -630,13 +485,13 @@ How can I assist you with your current audit task?`,
                       style={{
                         background: '#FEF2F2',
                         color: '#DC2626',
-                        padding: '1px 6px',
+                        padding: '1px 5px',
                         borderRadius: '4px',
                         fontWeight: 750,
-                        fontSize: '0.62rem',
+                        fontSize: '0.60rem',
                       }}
                     >
-                      Scope Protected
+                      Protected
                     </span>
                   )}
                 </div>
@@ -644,26 +499,25 @@ How can I assist you with your current audit task?`,
                 {/* Message Bubble Card */}
                 <div
                   style={{
-                    maxWidth: '92%',
-                    padding: '14px 18px',
-                    borderRadius: msg.role === 'user' ? '16px 16px 2px 16px' : '16px 16px 16px 2px',
+                    maxWidth: msg.role === 'user' ? '82%' : '94%',
+                    padding: msg.role === 'user' ? '8px 13px' : '12px 15px',
+                    borderRadius: msg.role === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
                     background: msg.role === 'user' ? 'linear-gradient(135deg, #007680 0%, #0369A1 100%)' : '#FFFFFF',
                     color: msg.role === 'user' ? '#FFFFFF' : '#0F172A',
                     border: msg.role === 'user' ? 'none' : '1px solid #E2E8F0',
-                    boxShadow: msg.role === 'user' ? '0 4px 12px rgba(0, 118, 128, 0.20)' : '0 2px 8px rgba(15, 23, 42, 0.04)',
-                    fontSize: '0.82rem',
-                    lineHeight: 1.62,
+                    boxShadow: msg.role === 'user' ? '0 2px 6px rgba(0, 118, 128, 0.16)' : '0 1px 4px rgba(15, 23, 42, 0.04)',
+                    fontSize: '0.80rem',
+                    lineHeight: msg.role === 'user' ? 1.45 : 1.55,
                     position: 'relative',
                     wordBreak: 'break-word',
                   }}
                 >
                   <div
-                    style={{ whiteSpace: 'pre-wrap' }}
                     onClick={(e) => {
-                      // Click-to-ask delegation for sample question chips
                       const target = e.target as HTMLElement;
-                      if (target && target.tagName === 'CODE' && target.dataset.query) {
-                        handleSend(target.dataset.query);
+                      const query = target.getAttribute('data-query');
+                      if (query) {
+                        handleSend(query);
                       }
                     }}
                     dangerouslySetInnerHTML={{
@@ -672,7 +526,15 @@ How can I assist you with your current audit task?`,
                   />
 
                   {msg.role === 'assistant' && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', borderTop: '1px solid #F1F5F9', paddingTop: '6px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        marginTop: '6px',
+                        borderTop: '1px solid #F1F5F9',
+                        paddingTop: '4px',
+                      }}
+                    >
                       <button
                         type="button"
                         onClick={() => handleCopy(msg.content, msg.id)}
@@ -684,15 +546,15 @@ How can I assist you with your current audit task?`,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '0.68rem',
+                          gap: '3px',
+                          fontSize: '0.65rem',
                           fontWeight: 650,
-                          padding: '3px 6px',
+                          padding: '2px 4px',
                           borderRadius: '4px',
                         }}
                       >
-                        {copiedId === msg.id ? <Check size={13} /> : <Copy size={13} />}
-                        {copiedId === msg.id ? 'Copied to Clipboard' : 'Copy Text'}
+                        {copiedId === msg.id ? <Check size={12} /> : <Copy size={12} />}
+                        {copiedId === msg.id ? 'Copied' : 'Copy'}
                       </button>
                     </div>
                   )}
@@ -702,16 +564,16 @@ How can I assist you with your current audit task?`,
 
             {/* Thinking / Neural Generation Animation */}
             {isLoading && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px' }}>
                 <div
                   style={{
-                    width: '30px',
-                    height: '30px',
+                    width: '26px',
+                    height: '26px',
                     borderRadius: '50%',
                     overflow: 'hidden',
                     background: '#090D16',
                     flexShrink: 0,
-                    boxShadow: '0 0 10px rgba(0, 118, 128, 0.4)',
+                    boxShadow: '0 0 8px rgba(0, 118, 128, 0.3)',
                   }}
                 >
                   <img
@@ -724,31 +586,31 @@ How can I assist you with your current audit task?`,
                   style={{
                     background: '#FFFFFF',
                     border: '1px solid #E2E8F0',
-                    padding: '9px 16px',
-                    borderRadius: '14px',
+                    padding: '7px 14px',
+                    borderRadius: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)',
+                    gap: '6px',
+                    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)',
                   }}
                 >
                   <motion.span
                     animate={{ scale: [1, 1.4, 1] }}
                     transition={{ repeat: Infinity, duration: 0.8, delay: 0 }}
-                    style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#007680' }}
+                    style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#007680' }}
                   />
                   <motion.span
                     animate={{ scale: [1, 1.4, 1] }}
                     transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }}
-                    style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#0284C7' }}
+                    style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#0284C7' }}
                   />
                   <motion.span
                     animate={{ scale: [1, 1.4, 1] }}
                     transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }}
-                    style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366F1' }}
+                    style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#6366F1' }}
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#475569', marginLeft: '4px', fontWeight: 650 }}>
-                    Evaluating audit context & neural inference...
+                  <span style={{ fontSize: '0.72rem', color: '#475569', marginLeft: '3px', fontWeight: 650 }}>
+                    Evaluating audit context...
                   </span>
                 </div>
               </div>
@@ -757,44 +619,44 @@ How can I assist you with your current audit task?`,
             <div ref={messagesEndRef} />
           </div>
 
-          {/* CONTEXT-AWARE ACTION PROMPT CHIPS */}
+          {/* COMPACT SUGGESTED INQUIRIES */}
           {!isLoading && currentPrompts.length > 0 && (
             <div
               style={{
-                padding: '10px 18px',
+                padding: '8px 14px',
                 background: '#FFFFFF',
                 borderTop: '1px solid #F1F5F9',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '6px',
+                gap: '5px',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Recommended Inquiries
                 </span>
-                <span style={{ fontSize: '0.64rem', color: '#94A3B8' }}>
-                  Type <code style={{ color: '#007680' }}>/questions</code> for master catalog
+                <span style={{ fontSize: '0.62rem', color: '#94A3B8' }}>
+                  Type <code style={{ color: '#007680' }}>/questions</code> for full list
                 </span>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                 {currentPrompts.map((chip, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => handleSend(chip.query)}
                     style={{
-                      padding: '6px 12px',
-                      borderRadius: '16px',
+                      padding: '4px 10px',
+                      borderRadius: '12px',
                       background: '#F8FAFC',
                       border: '1px solid #E2E8F0',
                       color: '#334155',
-                      fontSize: '0.72rem',
+                      fontSize: '0.70rem',
                       fontWeight: 650,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
+                      gap: '4px',
                       transition: 'all 0.15s ease',
                       textAlign: 'left',
                     }}
@@ -810,7 +672,7 @@ How can I assist you with your current audit task?`,
                     }}
                   >
                     <span>{chip.label}</span>
-                    <ChevronRight size={12} />
+                    <ChevronRight size={11} />
                   </button>
                 ))}
               </div>
@@ -820,12 +682,12 @@ How can I assist you with your current audit task?`,
           {/* INPUT & SEND BAR */}
           <div
             style={{
-              padding: '14px 20px',
+              padding: '10px 14px',
               background: '#FFFFFF',
               borderTop: '1px solid #E2E8F0',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
+              gap: '8px',
             }}
           >
             <textarea
@@ -837,16 +699,16 @@ How can I assist you with your current audit task?`,
               rows={1}
               style={{
                 flex: 1,
-                padding: '11px 16px',
-                borderRadius: '12px',
+                padding: '9px 13px',
+                borderRadius: '10px',
                 border: '1.5px solid #E2E8F0',
                 background: '#F8FAFC',
                 color: '#0F172A',
-                fontSize: '0.82rem',
+                fontSize: '0.80rem',
                 fontFamily: 'inherit',
                 outline: 'none',
                 resize: 'none',
-                maxHeight: '110px',
+                maxHeight: '80px',
                 boxSizing: 'border-box',
                 transition: 'border-color 0.15s ease, background 0.15s ease',
               }}
@@ -866,9 +728,9 @@ How can I assist you with your current audit task?`,
               disabled={!inputValue.trim() || isLoading}
               aria-label="Send Message"
               style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
                 background: inputValue.trim() && !isLoading ? '#007680' : '#E2E8F0',
                 color: '#FFFFFF',
                 border: 'none',
@@ -878,10 +740,10 @@ How can I assist you with your current audit task?`,
                 justifyContent: 'center',
                 transition: 'all 0.2s ease',
                 flexShrink: 0,
-                boxShadow: inputValue.trim() && !isLoading ? '0 4px 12px rgba(0, 118, 128, 0.25)' : 'none',
+                boxShadow: inputValue.trim() && !isLoading ? '0 2px 8px rgba(0, 118, 128, 0.25)' : 'none',
               }}
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </div>
         </motion.div>
@@ -890,33 +752,57 @@ How can I assist you with your current audit task?`,
   );
 };
 
-// ── Beautiful Structured Markdown Formatter ─────────────────────────
+// ── Clean, Compact Markdown Parser (NO EXCESS SPACE) ────────────────
 function renderBeautifulMarkdown(raw: string): string {
   if (!raw) return '';
 
+  // 1. Sanitize & Normalize Whitespace
   let text = raw
-    // Clean out any Omnia occurrences
     .replace(/omnia/gi, 'Deloitte JET')
-    // Escape standard HTML tags
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // Headings (H3, H4, H2)
-    .replace(/^### (.*$)/gim, '<div style="font-size: 0.94rem; font-weight: 850; color: #0F172A; margin: 10px 0 6px; letter-spacing: -0.01em; border-bottom: 1px solid #F1F5F9; padding-bottom: 4px;">$1</div>')
-    .replace(/^#### (.*$)/gim, '<div style="font-size: 0.84rem; font-weight: 800; color: #007680; margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.03em;">$1</div>')
-    .replace(/^## (.*$)/gim, '<div style="font-size: 1.05rem; font-weight: 850; color: #0F172A; margin: 12px 0 6px;">$1</div>')
-    // Bold text
-    .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #0F172A; font-weight: 750;">$1</strong>')
-    // Highlight callout blocks (e.g. lines starting with >)
-    .replace(/^>\s?(.*$)/gim, '<div style="background: #F0FDFA; border-left: 3px solid #007680; padding: 8px 12px; border-radius: 6px; margin: 6px 0; font-size: 0.78rem; color: #134E4A;">$1</div>')
-    // Interactive code chips: if line matches a prompt, render as clickable chip
-    .replace(/`([^`]+)`/g, (_match, p1) => {
-      return `<code data-query="${p1.replace(/"/g, '&quot;')}" style="background: #F1F5F9; color: #007680; padding: 3px 7px; border-radius: 5px; font-size: 0.77rem; font-family: monospace; font-weight: 600; cursor: pointer; border: 1px solid #E2E8F0; display: inline-block; margin: 1px 0;" title="Click to ask this question">${p1}</code>`;
-    })
-    // Bullet points with teal dots
-    .replace(/^\s*-\s(.*$)/gim, '<div style="display: flex; gap: 8px; margin: 4px 0; align-items: flex-start;"><span style="color: #007680; font-weight: 800; line-height: 1.4;">•</span><div style="flex: 1;">$1</div></div>')
-    // Numbered lists
-    .replace(/^\s*(\d+)\.\s(.*$)/gim, '<div style="display: flex; gap: 8px; margin: 4px 0; align-items: flex-start;"><span style="color: #007680; font-weight: 750; font-size: 0.76rem; min-width: 16px;">$1.</span><div style="flex: 1;">$2</div></div>');
+    .replace(/>/g, '&gt;');
 
-  return text;
+  // 2. Headings (H3 & H4) with tight margins
+  text = text.replace(
+    /^### (.*$)/gim,
+    '<div style="font-size: 0.88rem; font-weight: 850; color: #0F172A; margin: 6px 0 3px; letter-spacing: -0.01em; border-bottom: 1px solid #F1F5F9; padding-bottom: 2px;">$1</div>'
+  );
+  text = text.replace(
+    /^#### (.*$)/gim,
+    '<div style="font-size: 0.78rem; font-weight: 800; color: #007680; margin: 6px 0 2px; text-transform: uppercase; letter-spacing: 0.03em;">$1</div>'
+  );
+
+  // 3. Bold text
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #0F172A; font-weight: 750;">$1</strong>');
+
+  // 4. Interactive Question Chips: `What is this step?`
+  text = text.replace(/`([^`]+)`/g, (_match, p1) => {
+    return `<code data-query="${p1.replace(/"/g, '&quot;')}" style="background: #F1F5F9; color: #007680; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-family: monospace; font-weight: 600; cursor: pointer; border: 1px solid #E2E8F0; display: inline-block; margin: 1px 0;" title="Click to ask this question">${p1}</code>`;
+  });
+
+  // 5. Bullet points with tight margins
+  text = text.replace(
+    /^\s*-\s(.*$)/gim,
+    '<div style="display: flex; gap: 6px; margin: 2px 0; align-items: flex-start; line-height: 1.45;"><span style="color: #007680; font-weight: 800; font-size: 0.82rem; line-height: 1.2;">•</span><div style="flex: 1;">$1</div></div>'
+  );
+
+  // 6. Numbered lists with tight margins
+  text = text.replace(
+    /^\s*(\d+)\.\s(.*$)/gim,
+    '<div style="display: flex; gap: 6px; margin: 2px 0; align-items: flex-start; line-height: 1.45;"><span style="color: #007680; font-weight: 750; font-size: 0.74rem; min-width: 16px;">$1.</span><div style="flex: 1;">$2</div></div>'
+  );
+
+  // 7. General paragraphs: convert double newlines to clean spacing
+  const paragraphs = text.split('\n\n');
+  return paragraphs
+    .map((p) => {
+      const trimmed = p.trim();
+      if (!trimmed) return '';
+      if (trimmed.startsWith('<div') || trimmed.startsWith('<code')) return trimmed;
+      return `<p style="margin: 3px 0 5px; line-height: 1.5; color: #334155;">${trimmed}</p>`;
+    })
+    .join('');
 }
