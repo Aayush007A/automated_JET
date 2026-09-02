@@ -21,7 +21,7 @@ export const AiAgentTrigger: React.FC<AiAgentTriggerProps> = ({
         position: 'fixed',
         bottom: '24px',
         right: '24px',
-        zIndex: 9990,
+        zIndex: 10000,
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
