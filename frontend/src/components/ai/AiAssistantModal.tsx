@@ -1057,22 +1057,20 @@ Please verify that your local Qwen service is running on port **5005**, then try
                                   : 'jet-ai-message-ai-bubble'
                               }`}
                             >
-                              <div className="jet-ai-message-meta">
-                                <span className="jet-ai-message-author">
-                                  {isUser
-                                    ? 'You'
-                                    : 'JET Copilot'}
-                                </span>
+                              {!isUser && (
+                                <div className="jet-ai-message-meta">
+                                  <span className="jet-ai-message-author">
+                                    JET Copilot
+                                  </span>
 
-                                {!isUser &&
-                                  message.agent
-                                    ?.contextUsed && (
+                                  {message.agent?.contextUsed && (
                                     <span className="jet-ai-message-context">
                                       <span />
                                       Context aware
                                     </span>
                                   )}
-                              </div>
+                                </div>
+                              )}
 
                               {message.guardrailTriggered && (
                                 <div className="jet-ai-guardrail">
