@@ -535,10 +535,144 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
     { id: '00_engagement_details', num: '12', title: 'Engagement Details', exKey: null, sub: 'Scope & Cover', icon: Building },
   ];
 
-  // Publish visual analytics context and exact chart data to AI Copilot
+  // Publish visual analytics context and exact dynamic chart data to AI Copilot
   useEffect(() => {
     const sheetInfo = sheets.find(s => s.id === activeTab);
     const sheetTitle = sheetInfo ? `${sheetInfo.num}. ${sheetInfo.title}` : activeTab;
+
+    const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
+
+    // 00 Engagement Details
+    const mappedScopeAccounts = Math.round(totalTbRows * 0.48);
+    const popTotal = totalGlRows + totalTbRows + mappedScopeAccounts;
+    const glShare = popTotal > 0 ? ((totalGlRows / popTotal) * 100).toFixed(1) + '%' : '0%';
+    const tbShare = popTotal > 0 ? ((totalTbRows / popTotal) * 100).toFixed(1) + '%' : '0%';
+    const scopeShare = popTotal > 0 ? ((mappedScopeAccounts / popTotal) * 100).toFixed(1) + '%' : '0%';
+
+    // 01 Account Wise
+    const fs01Base = [28940000, 19820500, 14280900, 8420100].map(v => Math.round(v * qMult));
+    const fs01Total = fs01Base.reduce((a, b) => a + b, 0);
+
+    // 02 Revenue Debits
+    const fs02Base = [4200000, 2800000, 1600000, 860000].map(v => Math.round(v * qMult));
+    const fs02Total = fs02Base.reduce((a, b) => a + b, 0);
+
+    // 03 User Wise
+    const autoAmt = Math.round(42800000 * qMult);
+    const stdAmt = Math.round(18500000 * qMult);
+    const riskAmt = Math.round(((exCounts.ex4 || 96) * 98541 + (exCounts.ex5 || 54) * 58333) * qMult);
+    const totalUserAmt = autoAmt + stdAmt + riskAmt;
+    const autoPct = totalUserAmt > 0 ? ((autoAmt / totalUserAmt) * 100).toFixed(1) + '%' : '0%';
+    const stdPct = totalUserAmt > 0 ? ((stdAmt / totalUserAmt) * 100).toFixed(1) + '%' : '0%';
+    const riskPct = totalUserAmt > 0 ? ((riskAmt / totalUserAmt) * 100).toFixed(1) + '%' : '0%';
+
+    // 04 Closing Entries
+    const c1 = Math.round(4200000 * qMult);
+    const c2 = Math.round(3100000 * qMult);
+    const c3 = Math.round(8400000 * qMult);
+    const c4 = Math.round(1900000 * qMult);
+    const c5 = Math.round(950000 * qMult);
+    const cTotal = c1 + c2 + c3 + c4 + c5;
+
+    const allSheetsCatalog: Record<string, any> = {
+      '01_account_wise': {
+        num: '01',
+        id: '01_account_wise',
+        title: 'Account Wise Analysis',
+        chartData: {
+          title: 'Financial Statement Line Debit Exposure',
+          chartType: 'Donut / Pie Chart',
+          totalExposure: fmtCurr(fs01Total),
+          slices: [
+            { category: 'Trade Receivables', percentage: `${((fs01Base[0] / fs01Total) * 100).toFixed(0)}%`, amount: fmtCurr(fs01Base[0]), insight: 'Primary debit volume from trade debtors' },
+            { category: 'Finished Goods', percentage: `${((fs01Base[1] / fs01Total) * 100).toFixed(0)}%`, amount: fmtCurr(fs01Base[1]), insight: 'Inventory movements and cost adjustments' },
+            { category: 'Cash Holdings', percentage: `${((fs01Base[2] / fs01Total) * 100).toFixed(0)}%`, amount: fmtCurr(fs01Base[2]), insight: 'Liquid treasury transfers and operational flows' },
+            { category: 'Accrued Liabilities', percentage: `${((fs01Base[3] / fs01Total) * 100).toFixed(0)}%`, amount: fmtCurr(fs01Base[3]), insight: 'Accrued payroll and period-end provision balances' },
+          ]
+        }
+      },
+      '02_revenue_debits': {
+        num: '02',
+        id: '02_revenue_debits',
+        title: 'Large Debits to Revenue',
+        chartData: {
+          title: 'Reversal Value Exposure by Category',
+          chartType: 'Bar / Exposure Chart',
+          totalExposure: fmtCurr(fs02Total),
+          slices: [
+            { category: 'Sales Returns', percentage: `${((fs02Base[0] / fs02Total) * 100).toFixed(1)}%`, amount: fmtCurr(fs02Base[0]), insight: 'Credit memos for customer product returns' },
+            { category: 'Price Adjustments', percentage: `${((fs02Base[1] / fs02Total) * 100).toFixed(1)}%`, amount: fmtCurr(fs02Base[1]), insight: 'Manual billing corrections and price adjustments' },
+            { category: 'Rebate Settlements', percentage: `${((fs02Base[2] / fs02Total) * 100).toFixed(1)}%`, amount: fmtCurr(fs02Base[2]), insight: 'Commercial rebate settlements and volume discounts' },
+            { category: 'Manual Overrides', percentage: `${((fs02Base[3] / fs02Total) * 100).toFixed(1)}%`, amount: fmtCurr(fs02Base[3]), insight: 'Exception manual revenue overrides' },
+          ]
+        }
+      },
+      '03_user_wise': {
+        num: '03',
+        id: '03_user_wise',
+        title: 'User Wise Analysis',
+        chartData: {
+          title: 'Posting Exposure by User Risk Profile',
+          chartType: 'Donut / Pie Chart',
+          totalExposure: fmtCurr(totalUserAmt),
+          slices: [
+            { category: 'Automated Feeds', percentage: autoPct, amount: fmtCurr(autoAmt), insight: 'Routine ERP batch and system interface postings' },
+            { category: 'Standard Operations', percentage: stdPct, amount: fmtCurr(stdAmt), insight: 'Standard day-to-day operations accountant entries' },
+            { category: 'High-Risk Admin/Temp', percentage: riskPct, amount: fmtCurr(riskAmt), insight: 'Privileged system admin and temporary audit access entries' },
+          ]
+        }
+      },
+      '04_closing_entries': {
+        num: '04',
+        id: '04_closing_entries',
+        title: 'Closing Entries Analysis',
+        chartData: {
+          title: 'Non-Standard Closing Entries by Financial Statement Category',
+          chartType: 'Donut / Pie Chart',
+          totalExposure: fmtCurr(cTotal),
+          slices: [
+            { category: 'Increase in Expense [Risk]', percentage: `${((c3 / cTotal) * 100).toFixed(1)}%`, amount: fmtCurr(c3), insight: 'High-risk expense accruals booked at fiscal close' },
+            { category: 'Increase in Assets', percentage: `${((c1 / cTotal) * 100).toFixed(1)}%`, amount: fmtCurr(c1), insight: 'Asset capitalizations and year-end inventory write-ups' },
+            { category: 'Decrease in Liabilities', percentage: `${((c2 / cTotal) * 100).toFixed(1)}%`, amount: fmtCurr(c2), insight: 'Liability releases and provision reversals' },
+            { category: 'Decrease in Revenue', percentage: `${((c4 / cTotal) * 100).toFixed(1)}%`, amount: fmtCurr(c4), insight: 'Year-end revenue deferrals and adjustments' },
+            { category: 'Equity Adjustments', percentage: `${((c5 / cTotal) * 100).toFixed(1)}%`, amount: fmtCurr(c5), insight: 'Direct equity reserves and retained earnings entries' },
+          ]
+        }
+      },
+      '10_unrelated_accounts': {
+        num: '10',
+        id: '10_unrelated_accounts',
+        title: 'Unrelated Accounts',
+        chartData: {
+          title: 'Unrelated Pairing Exposure Distribution',
+          chartType: 'Donut / Pie Chart',
+          totalExposure: '$26,100,000',
+          slices: [
+            { category: 'Intercompany vs Sales', percentage: '36.2%', amount: '$9,460,000', insight: 'Direct intercompany clearance against commercial revenue' },
+            { category: 'Suspense vs Retained Earnings', percentage: '29.1%', amount: '$7,600,000', insight: 'Unreconciled suspense cleared directly into equity' },
+            { category: 'Fixed Assets vs Payroll', percentage: '20.5%', amount: '$5,350,000', insight: 'Capitalized payroll entries bypassing clearing accounts' },
+            { category: 'Other Conflicting Classes', percentage: '14.2%', amount: '$3,690,000', insight: 'Residual anomalous cross-class debit/credit combinations' },
+          ]
+        }
+      },
+      '00_engagement_details': {
+        num: '12',
+        id: '00_engagement_details',
+        title: 'Engagement Details',
+        chartData: {
+          title: 'Audit Population Breakdown',
+          chartType: 'Donut / Pie Chart',
+          totalExposure: `${fmtNum(popTotal)} Items`,
+          slices: [
+            { category: 'General Ledger Rows', percentage: glShare, amount: `${fmtNum(totalGlRows)} Rows`, insight: 'Total journal entry population uploaded' },
+            { category: 'Trial Balance Accounts', percentage: tbShare, amount: `${fmtNum(totalTbRows)} Accounts`, insight: 'Active trial balance accounts verified' },
+            { category: 'Mapped Scope Accounts', percentage: scopeShare, amount: `${fmtNum(mappedScopeAccounts)} Accounts`, insight: 'Accounts mapped to Canonical Data Model' },
+          ]
+        }
+      }
+    };
+
+    const activeChart = allSheetsCatalog[activeTab]?.chartData;
 
     PageContextService.setContext({
       route: window.location.pathname,
@@ -555,20 +689,11 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
           title: s.title,
           count: s.exKey && (exCounts as any)[s.exKey] !== undefined ? `${(exCounts as any)[s.exKey]} Flags` : 'Visual Analytics'
         })),
-        pieChartData: activeTab === '01_account_wise' ? {
-          title: 'Financial Statement Line Debit Exposure',
-          chartType: 'Donut / Pie Chart',
-          totalExposure: '$71,461,500',
-          slices: [
-            { category: 'Trade Receivables', percentage: '40%', amount: '$28,940,000', color: '#007680' },
-            { category: 'Finished Goods', percentage: '28%', amount: '$19,820,500', color: '#38BDF8' },
-            { category: 'Cash Holdings', percentage: '20%', amount: '$14,280,900', color: '#FBBF24' },
-            { category: 'Accrued Liabilities', percentage: '12%', amount: '$8,420,100', color: '#34D399' },
-          ]
-        } : undefined,
+        pieChartData: activeChart,
+        allSheetsCatalog,
       }
     });
-  }, [activeTab, quarterFilter, exCounts]);
+  }, [activeTab, quarterFilter, exCounts, totalGlRows, totalTbRows]);
 
   // Professional Custom HTML Tooltip Handler
   const externalTooltipHandler = (context: any) => {
@@ -1505,8 +1630,12 @@ const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any
             <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Posting Exposure by User Risk Profile</h4>
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click profile slice</span>
           </div>
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
             <Doughnut key={`doughnut-03-${quarterFilter}`} data={userRiskPieData} options={interactivePieOptions} />
+            <div style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }} aria-label="Posting Exposure by User Risk Profile">
+              Posting Exposure by User Risk Profile Pie Chart Overall Split:
+              {userRiskPieData.labels?.join('; ') || 'Automated Feeds (57.9%), Standard Operations (25.0%), High-Risk Admin/Temp (17.1%)'}.
+            </div>
           </div>
         </div>
       </div>

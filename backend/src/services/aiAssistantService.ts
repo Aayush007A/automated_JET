@@ -708,41 +708,84 @@ The Deloitte Automated JET Platform executes an end-to-end 6-stage journal entry
   public handleChartBreakdownQuery(query: string, context?: ActivePageContext): string | null {
     const q = query.toLowerCase();
 
-    // Check if user is asking about pie chart, donut chart, overall split, account wise chart, or financial statement exposure
+    // Check if user is asking about a chart, pie chart, donut chart, split, or distribution
     const isAskingChart =
-      (q.includes('pie chart') || q.includes('donut chart') || q.includes('pie') || q.includes('donut') || q.includes('chart') || q.includes('split') || q.includes('exposure')) &&
-      (q.includes('account wise') || q.includes('01') || q.includes('financial statement') || q.includes('overall split') || q.includes('debit exposure') || q.includes('pie') || q.includes('category') || q.includes('slice'));
+      q.includes('pie chart') ||
+      q.includes('donut chart') ||
+      q.includes('pie') ||
+      q.includes('donut') ||
+      q.includes('chart') ||
+      q.includes('split') ||
+      q.includes('distribution') ||
+      q.includes('exposure');
 
     if (!isAskingChart) return null;
 
-    // Check if context has explicit pieChartData
-    if (context?.metadata?.pieChartData) {
-      const pcd = context.metadata.pieChartData;
-      const rows = Array.isArray(pcd.slices)
-        ? pcd.slices.map((s: any) => `| **${s.category}** | **${s.percentage}** | ${s.amount || '--'} |`).join('\n')
-        : '';
-      return `### ${pcd.title || 'Financial Statement Line Debit Exposure'}\n\nHere is the exact distribution from the **${pcd.title || 'Financial Statement Line Debit Exposure'}** chart (Total Exposure: **${pcd.totalExposure || '$71,461,500'}**):\n\n| Category | % of Total | Total Exposure ($) |\n| :--- | :--- | :--- |\n${rows}\n\n#### Key Observations:\n1. **Primary Concentration**: **Trade Receivables (40%)** and **Finished Goods (28%)** constitute **68%** of total debit exposure.\n2. **Reconciliation**: All 4 categories tie directly to the underlying G/L accounts in the Data Grid below the chart.\n3. **Interactive Cross-Filtering**: Clicking any slice in the chart dynamically filters the data table to that specific account category.`;
+    const allSheets = context?.metadata?.allSheetsCatalog as Record<string, any> | undefined;
+
+    // 1. Identify which sheet the user is asking about
+    let matchedSheetData: any = null;
+
+    if (allSheets && typeof allSheets === 'object') {
+      if (q.includes('03') || q.includes('user wise') || q.includes('user analysis')) {
+        matchedSheetData = allSheets['03_user_wise'];
+      } else if (q.includes('01') || q.includes('account wise') || q.includes('account analysis') || q.includes('financial statement')) {
+        matchedSheetData = allSheets['01_account_wise'];
+      } else if (q.includes('02') || q.includes('revenue debit') || q.includes('reversal')) {
+        matchedSheetData = allSheets['02_revenue_debits'];
+      } else if (q.includes('04') || q.includes('closing entries')) {
+        matchedSheetData = allSheets['04_closing_entries'];
+      } else if (q.includes('10') || q.includes('unrelated account') || q.includes('pairing')) {
+        matchedSheetData = allSheets['10_unrelated_accounts'];
+      } else if (q.includes('12') || q.includes('00') || q.includes('engagement details') || q.includes('population breakdown')) {
+        matchedSheetData = allSheets['00_engagement_details'];
+      } else if (context?.metadata?.activeSheet && allSheets[context.metadata.activeSheet]) {
+        matchedSheetData = allSheets[context.metadata.activeSheet];
+      }
     }
 
-    // Default authoritative grounded response for 01. Account Wise Analysis
-    if (q.includes('account wise') || q.includes('01') || q.includes('financial statement') || q.includes('overall split') || q.includes('debit exposure') || q.includes('pie')) {
-      return `### 01. Account Wise Analysis: Financial Statement Line Debit Exposure
+    // 2. Format matched sheet's dynamic chart data
+    if (matchedSheetData?.chartData?.slices && Array.isArray(matchedSheetData.chartData.slices)) {
+      const cd = matchedSheetData.chartData;
+      const rows = cd.slices
+        .map((s: any) => `| **${s.category}** | **${s.percentage || '--'}** | ${s.amount || '--'} | ${s.insight || '--'} |`)
+        .join('\n');
 
-Here is the exact distribution shown in the **Financial Statement Line Debit Exposure** donut chart on the **01. Account Wise Analysis** worksheet (Total Exposure: **$71,461,500**):
+      return `### ${matchedSheetData.num ? `${matchedSheetData.num}. ` : ''}${matchedSheetData.title}: ${cd.title}
 
-| Category | % of Total | Total Exposure ($) | Audit Insight |
+Here is the exact dynamic distribution from the **${cd.title}** (${cd.chartType || 'Chart'}) on the **${matchedSheetData.title}** sheet${cd.totalExposure ? ` (Total Exposure: **${cd.totalExposure}**)` : ''}:
+
+| Category / Slice | % of Total | Amount / Exposure ($) | Audit Insight |
 | :--- | :--- | :--- | :--- |
-| **Trade Receivables** | **40%** | $28,940,000 | Primary debit volume from domestic trade debtor transactions |
-| **Finished Goods** | **28%** | $19,820,500 | Inventory movements and standard cost adjustments |
-| **Cash Holdings** | **20%** | $14,280,900 | Liquid treasury transfers and operational bank flows |
-| **Accrued Liabilities** | **12%** | $8,420,100 | Accrued payroll, bonuses, and period-end provision balances |
+${rows}
 
 #### Key Audit Takeaways:
-1. **Core Exposure**: **Trade Receivables (40%)** and **Finished Goods (28%)** account for **68%** of total debit exposure, warranting primary substantive audit sampling.
-2. **Reconciliation**: All 4 categories reconcile directly with the accounts displayed in the **Summary 1 - Account Wise Analysis Data Grid** below the chart.
-3. **Interactive Filter**: Clicking any slice in the chart dynamically isolates that category's accounts in the grid below.`;
+1. **Primary Concentration**: **${cd.slices[0]?.category}** represents the primary share at **${cd.slices[0]?.percentage}** (${cd.slices[0]?.amount || ''}).
+2. **Reconciliation Alignment**: Slices reconcile directly with the corresponding transaction line items in the underlying Data Grid below the chart.
+3. **Interactive Cross-Filtering**: Clicking any slice dynamically isolates that category's accounts in the grid.`;
     }
 
+    // 3. Fallback to active screen's pieChartData if present
+    if (context?.metadata?.pieChartData && Array.isArray(context.metadata.pieChartData.slices)) {
+      const pcd = context.metadata.pieChartData;
+      const rows = pcd.slices
+        .map((s: any) => `| **${s.category}** | **${s.percentage || '--'}** | ${s.amount || '--'} | ${s.insight || '--'} |`)
+        .join('\n');
+
+      return `### ${pcd.title || 'Visual Analytics Chart Breakdown'}
+
+Here is the exact dynamic distribution from the **${pcd.title || 'chart'}** on the active screen${pcd.totalExposure ? ` (Total Exposure: **${pcd.totalExposure}**)` : ''}:
+
+| Category / Slice | % of Total | Amount / Exposure ($) | Audit Insight |
+| :--- | :--- | :--- | :--- |
+${rows}
+
+#### Key Audit Takeaways:
+1. **Primary Concentration**: **${pcd.slices[0]?.category}** is the primary contributor at **${pcd.slices[0]?.percentage}**.
+2. **Interactive Cross-Filtering**: Slices tie directly to the underlying data table on this screen.`;
+    }
+
+    // Never return a hardcoded fake string for an unrelated sheet!
     return null;
   }
 

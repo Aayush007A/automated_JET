@@ -50,6 +50,39 @@ describe('AI Assistant Service - Context Accuracy & Anti-Hallucination Tests', (
         'Active Sub-Tab': 'Exception Previews',
         'Active Exception Card': 'Seldom Used Accounts (31 Flags)',
       },
+      allSheetsCatalog: {
+        '01_account_wise': {
+          num: '01',
+          id: '01_account_wise',
+          title: 'Account Wise Analysis',
+          chartData: {
+            title: 'Financial Statement Line Debit Exposure',
+            chartType: 'Donut / Pie Chart',
+            totalExposure: '$71,461,500',
+            slices: [
+              { category: 'Trade Receivables', percentage: '40%', amount: '$28,940,000', insight: 'Primary debit volume' },
+              { category: 'Finished Goods', percentage: '28%', amount: '$19,820,500', insight: 'Inventory movements' },
+              { category: 'Cash Holdings', percentage: '20%', amount: '$14,280,900', insight: 'Treasury transfers' },
+              { category: 'Accrued Liabilities', percentage: '12%', amount: '$8,420,100', insight: 'Accrued payroll' },
+            ],
+          },
+        },
+        '03_user_wise': {
+          num: '03',
+          id: '03_user_wise',
+          title: 'User Wise Analysis',
+          chartData: {
+            title: 'Posting Exposure by User Risk Profile',
+            chartType: 'Donut / Pie Chart',
+            totalExposure: '$73,909,918',
+            slices: [
+              { category: 'Automated Feeds', percentage: '57.9%', amount: '$42,800,000', insight: 'Routine ERP batch interface postings' },
+              { category: 'Standard Operations', percentage: '25.0%', amount: '$18,500,000', insight: 'Standard day-to-day operations' },
+              { category: 'High-Risk Admin/Temp', percentage: '17.1%', amount: '$12,609,918', insight: 'Privileged admin access entries' },
+            ],
+          },
+        },
+      },
     },
     visibleContent: {
       headings: ['Parameter Exception Previews', 'Audit Overview', 'Executive Summary'],
@@ -180,5 +213,29 @@ describe('AI Assistant Service - Context Accuracy & Anti-Hallucination Tests', (
     expect(res.message).not.toContain('Equity Investments');
     expect(res.message).not.toContain('Other Current Liabilities');
     expect(res.message).not.toContain('Prepaid Expenses');
+  });
+
+  test("Query 6: Explain 03. User Wise Analysis pie chart's overall split should return the 3 User Wise slices and NOT Account Wise", async () => {
+    const res = await aiAssistantService.processQuery(
+      [{ role: 'user', content: "explain 03. User Wise Analysis pie chart's overall split" }],
+      mockOmniaContext
+    );
+
+    expect(res.guardrailTriggered).toBe(false);
+
+    // Must contain Sheet 03 data
+    expect(res.message).toContain('User Wise Analysis');
+    expect(res.message).toContain('Posting Exposure by User Risk Profile');
+    expect(res.message).toContain('Automated Feeds');
+    expect(res.message).toContain('57.9%');
+    expect(res.message).toContain('Standard Operations');
+    expect(res.message).toContain('25.0%');
+    expect(res.message).toContain('High-Risk Admin/Temp');
+    expect(res.message).toContain('17.1%');
+
+    // Must NOT return Sheet 01 categories
+    expect(res.message).not.toContain('Trade Receivables');
+    expect(res.message).not.toContain('Finished Goods');
+    expect(res.message).not.toContain('Financial Statement Line Debit Exposure');
   });
 });
