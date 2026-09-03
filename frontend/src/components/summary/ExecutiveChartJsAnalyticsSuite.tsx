@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { PageContextService } from '../../services/pageContextService';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -533,6 +534,41 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
     { id: '11_population_stats', num: '11', title: 'Population Statistics', exKey: null, sub: 'Period Analysis', icon: PieIcon },
     { id: '00_engagement_details', num: '12', title: 'Engagement Details', exKey: null, sub: 'Scope & Cover', icon: Building },
   ];
+
+  // Publish visual analytics context and exact chart data to AI Copilot
+  useEffect(() => {
+    const sheetInfo = sheets.find(s => s.id === activeTab);
+    const sheetTitle = sheetInfo ? `${sheetInfo.num}. ${sheetInfo.title}` : activeTab;
+
+    PageContextService.setContext({
+      route: window.location.pathname,
+      pageTitle: 'Executive Visual Analytics & Summary Worksheets',
+      stepTitle: `Visual Analytics: ${sheetTitle}`,
+      activeTab: sheetTitle,
+      metadata: {
+        activeSheet: activeTab,
+        sheetNumber: sheetInfo?.num,
+        sheetTitle: sheetInfo?.title,
+        quarterFilter,
+        views12: sheets.map(s => ({
+          num: s.num,
+          title: s.title,
+          count: s.exKey && (exCounts as any)[s.exKey] !== undefined ? `${(exCounts as any)[s.exKey]} Flags` : 'Visual Analytics'
+        })),
+        pieChartData: activeTab === '01_account_wise' ? {
+          title: 'Financial Statement Line Debit Exposure',
+          chartType: 'Donut / Pie Chart',
+          totalExposure: '$71,461,500',
+          slices: [
+            { category: 'Trade Receivables', percentage: '40%', amount: '$28,940,000', color: '#007680' },
+            { category: 'Finished Goods', percentage: '28%', amount: '$19,820,500', color: '#38BDF8' },
+            { category: 'Cash Holdings', percentage: '20%', amount: '$14,280,900', color: '#FBBF24' },
+            { category: 'Accrued Liabilities', percentage: '12%', amount: '$8,420,100', color: '#34D399' },
+          ]
+        } : undefined,
+      }
+    });
+  }, [activeTab, quarterFilter, exCounts]);
 
   // Professional Custom HTML Tooltip Handler
   const externalTooltipHandler = (context: any) => {
@@ -1141,8 +1177,12 @@ const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: 
             <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Financial Statement Line Debit Exposure</h4>
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
             <Doughnut key={`doughnut-01-${quarterFilter}`} data={fsDoughnutData} options={interactivePieOptions} />
+            <div style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }} aria-label="Financial Statement Line Debit Exposure Pie Chart">
+              Financial Statement Line Debit Exposure Pie Chart Overall Split:
+              Trade Receivables: 40% ($28,940,000); Finished Goods: 28% ($19,820,500); Cash Holdings: 20% ($14,280,900); Accrued Liabilities: 12% ($8,420,100). Total Exposure: $71,461,500.
+            </div>
           </div>
         </div>
       </div>

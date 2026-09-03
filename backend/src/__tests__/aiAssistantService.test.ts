@@ -156,4 +156,29 @@ describe('AI Assistant Service - Context Accuracy & Anti-Hallucination Tests', (
     expect(res.message).toContain('Stage 5: Integrity Testing & Automated Pipeline Execution');
     expect(res.message).toContain('Stage 6: Executive Summary, Exceptions & Audit Reconciliation');
   });
+
+  test("Query 5: Explain the 01. Account Wise Analysis pie chart's overall split should return the 4 real slices", async () => {
+    const res = await aiAssistantService.processQuery(
+      [{ role: 'user', content: "explain the 01. Account Wise Analysis pie chart's overall split" }],
+      mockOmniaContext
+    );
+
+    expect(res.guardrailTriggered).toBe(false);
+
+    // Must contain real categories and percentages from the on-screen donut chart
+    expect(res.message).toContain('Trade Receivables');
+    expect(res.message).toContain('40%');
+    expect(res.message).toContain('Finished Goods');
+    expect(res.message).toContain('28%');
+    expect(res.message).toContain('Cash Holdings');
+    expect(res.message).toContain('20%');
+    expect(res.message).toContain('Accrued Liabilities');
+    expect(res.message).toContain('12%');
+
+    // Must NOT contain hallucinated categories from Image 1
+    expect(res.message).not.toContain('Deferred Taxes');
+    expect(res.message).not.toContain('Equity Investments');
+    expect(res.message).not.toContain('Other Current Liabilities');
+    expect(res.message).not.toContain('Prepaid Expenses');
+  });
 });
