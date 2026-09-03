@@ -4,6 +4,8 @@ import {
   VisibleTableContext,
   VisibleCardContext,
   VisibleMetricContext,
+  VisibleInputContext,
+  VisibleFilterContext,
 } from './pageContextService';
 
 const MAX_TEXT_LENGTH = 16000;
@@ -296,6 +298,69 @@ function collectTables(
     });
 }
 
+function collectInputs(root: Element): VisibleInputContext[] {
+  const inputs: VisibleInputContext[] = [];
+  const elements = Array.from(root.querySelectorAll('input:not([type="hidden"]), textarea')).filter(isVisible).filter((el) => !shouldIgnore(el));
+
+  elements.forEach((el) => {
+    const input = el as HTMLInputElement | HTMLTextAreaElement;
+    let label = '';
+    if (input.id) {
+      const labelEl = root.querySelector(`label[for="${input.id}"]`);
+      if (labelEl) label = normalizeText(labelEl.textContent);
+    }
+    if (!label) {
+      const parentLabel = input.closest('label');
+      if (parentLabel) label = normalizeText(parentLabel.textContent);
+    }
+    if (!label) {
+      label = input.getAttribute('aria-label') || input.name || input.placeholder || '';
+    }
+
+    if (label || input.value) {
+      inputs.push({
+        label: label || 'Input Field',
+        value: input.type === 'password' ? '••••••••' : normalizeText(input.value),
+        type: input.type,
+        placeholder: input.placeholder || undefined,
+      });
+    }
+  });
+
+  return inputs.slice(0, 25);
+}
+
+function collectFilters(root: Element): VisibleFilterContext[] {
+  const filters: VisibleFilterContext[] = [];
+  const selects = Array.from(root.querySelectorAll('select')).filter(isVisible).filter((el) => !shouldIgnore(el));
+  selects.forEach((s) => {
+    const sel = s as HTMLSelectElement;
+    const label = sel.getAttribute('aria-label') || sel.name || sel.previousElementSibling?.textContent || 'Filter';
+    const activeOption = sel.options[sel.selectedIndex]?.text || sel.value;
+    const options = Array.from(sel.options).map((o) => o.text);
+    filters.push({
+      label: normalizeText(label),
+      activeValue: normalizeText(activeOption),
+      options: options.slice(0, 10),
+    });
+  });
+
+  const filterGroups = Array.from(root.querySelectorAll('[role="tablist"], [data-ai-context="filter-group"], .filter-pills')).filter(isVisible).filter((el) => !shouldIgnore(el));
+  filterGroups.forEach((fg) => {
+    const activeEl = fg.querySelector('[aria-selected="true"], .active, button[style*="background"]');
+    const allBtns = Array.from(fg.querySelectorAll('button, [role="tab"]')).map((b) => normalizeText(b.textContent)).filter(Boolean);
+    if (allBtns.length > 0) {
+      filters.push({
+        label: normalizeText(fg.getAttribute('aria-label') || 'Filter Selection'),
+        activeValue: normalizeText(activeEl?.textContent) || allBtns[0],
+        options: allBtns,
+      });
+    }
+  });
+
+  return filters.slice(0, 15);
+}
+
 function collectSelectedText(): string {
   try {
     return normalizeText(
@@ -337,6 +402,12 @@ export function collectVisiblePageContext(
   const tables =
     collectTables(pageRoot);
 
+  const inputs =
+    collectInputs(pageRoot);
+
+  const filters =
+    collectFilters(pageRoot);
+
   const selectedText =
     collectSelectedText();
 
@@ -367,6 +438,8 @@ export function collectVisiblePageContext(
     buttons,
     paragraphs,
     tables,
+    inputs,
+    filters,
     selectedText,
     text,
     url:

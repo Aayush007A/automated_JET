@@ -238,4 +238,58 @@ describe('AI Assistant Service - Context Accuracy & Anti-Hallucination Tests', (
     expect(res.message).not.toContain('Finished Goods');
     expect(res.message).not.toContain('Financial Statement Line Debit Exposure');
   });
+
+  test('Query 7: What are the 20 golden rules should return all 20 DQC rules', async () => {
+    const res = await aiAssistantService.processQuery(
+      [{ role: 'user', content: 'what are the 20 golden rules in this application' }],
+      mockOmniaContext
+    );
+
+    expect(res.guardrailTriggered).toBe(false);
+    expect(res.message).toContain('The 20 Golden Data Quality Control (DQC) Integrity Rules');
+    expect(res.message).toContain('DQC-01');
+    expect(res.message).toContain('DQC-03');
+    expect(res.message).toContain('DQC-18');
+    expect(res.message).toContain('DQC-20');
+  });
+
+  test('Query 8: Explain DQC-03 should return the Trial Balance Zero-Balance Equation details', async () => {
+    const res = await aiAssistantService.processQuery(
+      [{ role: 'user', content: 'explain DQC-03' }],
+      mockOmniaContext
+    );
+
+    expect(res.guardrailTriggered).toBe(false);
+    expect(res.message).toContain('DQC-03: Trial Balance Zero-Balance Equation');
+    expect(res.message).toContain('Debits');
+    expect(res.message).toContain('Credits');
+  });
+
+  test('Query 9: How does Test 10 Benford Law calculate conformity score should return mathematical formula and MAD thresholds', async () => {
+    const res = await aiAssistantService.processQuery(
+      [{ role: 'user', content: 'how does Test 10 Benford Law calculate conformity score' }],
+      mockOmniaContext
+    );
+
+    expect(res.guardrailTriggered).toBe(false);
+    expect(res.message).toContain("Test 10: Benford's Law First-Digit Conformity");
+    expect(res.message).toContain('\\log_{10}');
+    expect(res.message).toContain('Mean Absolute Deviation (MAD)');
+    expect(res.message).toContain('Close Conformity');
+  });
+
+  test('Query 10: What are the target CDM fields should return the Deloitte Canonical Data Model specification', async () => {
+    const res = await aiAssistantService.processQuery(
+      [{ role: 'user', content: 'what are the target CDM fields' }],
+      mockOmniaContext
+    );
+
+    expect(res.guardrailTriggered).toBe(false);
+    expect(res.message).toContain('Deloitte Canonical Data Model (CDM) Specification');
+    expect(res.message).toContain('Account_Number');
+    expect(res.message).toContain('Debit_Amount');
+    expect(res.message).toContain('Credit_Amount');
+    expect(res.message).toContain('Effective_Date');
+    expect(res.message).toContain('Preparer_ID');
+  });
 });

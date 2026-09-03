@@ -11,6 +11,7 @@ import { Footer } from './components/layout/Footer';
 import { AuthGuard } from './components/layout/AuthGuard';
 import { AiAgentTrigger } from './components/ai/AiAgentTrigger';
 import { AiAssistantModal } from './components/ai/AiAssistantModal';
+import { useApplicationContextSync } from './hooks/useApplicationContextSync';
 
 /* ── Scroll-Reveal Observer ───────────────────────────────────── */
 function ScrollRevealObserver() {
@@ -57,6 +58,9 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isWorkflowPage = location.pathname.includes('/jet') || location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
   const [isAiOpen, setIsAiOpen] = React.useState(false);
+
+  // Synchronize global application and page context
+  useApplicationContextSync();
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

@@ -1,5 +1,6 @@
 import http from 'http';
 import { URL } from 'url';
+import { findKnowledgeForQuery } from './jetApplicationKnowledge';
 
 export interface AiMessage {
   role:
@@ -30,6 +31,19 @@ export interface VisibleTableContext {
   rows: string[][];
 }
 
+export interface VisibleInputContext {
+  label: string;
+  value: string;
+  type?: string;
+  placeholder?: string;
+}
+
+export interface VisibleFilterContext {
+  label: string;
+  activeValue: string;
+  options?: string[];
+}
+
 export interface VisiblePageContext {
   headings: string[];
   labels: string[];
@@ -38,6 +52,8 @@ export interface VisiblePageContext {
   cards?: VisibleCardContext[];
   metrics?: VisibleMetricContext[];
   tables: VisibleTableContext[];
+  inputs?: VisibleInputContext[];
+  filters?: VisibleFilterContext[];
   selectedText: string;
   text: string;
   url: string;
@@ -281,6 +297,16 @@ class AiAssistantService {
     return metrics.map((m) => `- **${m.label}**: ${m.value}`).join('\n');
   }
 
+  private serializeInputs(inputs?: VisibleInputContext[]): string {
+    if (!inputs || inputs.length === 0) return 'None';
+    return inputs.map((i) => `- **${i.label}**: ${i.value || '(empty)'}${i.placeholder ? ` [Placeholder: ${i.placeholder}]` : ''}`).join('\n');
+  }
+
+  private serializeFilters(filters?: VisibleFilterContext[]): string {
+    if (!filters || filters.length === 0) return 'None';
+    return filters.map((f) => `- **${f.label}**: Active = **${f.activeValue}**${f.options && f.options.length > 0 ? ` (Options: ${f.options.join(', ')})` : ''}`).join('\n');
+  }
+
   private serializeTables(
     tables: VisibleTableContext[]
   ): string {
@@ -363,6 +389,12 @@ ${this.serializeCards(visible?.cards)}
 
 VISIBLE METRICS & KPIS
 ${this.serializeMetrics(visible?.metrics)}
+
+VISIBLE FORM INPUTS & VALUES
+${this.serializeInputs(visible?.inputs)}
+
+VISIBLE ACTIVE FILTERS & DROPDOWNS
+${this.serializeFilters(visible?.filters)}
 
 VISIBLE HEADINGS
 ${visible?.headings?.slice(0, 30)?.map((item) => `- ${item}`).join('\n') || 'None'}
@@ -948,6 +980,20 @@ Please ask a question related to the current application.`,
       };
     }
 
+    const domainKnowledgeAnswer = findKnowledgeForQuery(lastUserMessage);
+    if (domainKnowledgeAnswer) {
+      return {
+        message: domainKnowledgeAnswer,
+        guardrailTriggered: false,
+        agent: {
+          contextUsed: Boolean(context),
+          degraded: false,
+          model: 'JET Copilot (Authoritative Domain Knowledge Engine)',
+          contextSignals: this.buildContextSignals(context),
+        },
+      };
+    }
+
     try {
       const response =
         await this.queryLocalNeuralModel(
@@ -1186,6 +1232,10 @@ I am your dedicated enterprise audit copilot, specialized in Journal Entry Testi
     // Chart breakdown check
     const chartAnswer = this.handleChartBreakdownQuery(userQuery, context);
     if (chartAnswer) return chartAnswer;
+
+    // Comprehensive application domain knowledge check
+    const domainKnowledge = findKnowledgeForQuery(userQuery);
+    if (domainKnowledge) return domainKnowledge;
 
     // Default grounded context response
     const currentLoc = context?.stepTitle ? `Viewing **${context.stepTitle}** (Step ${context.currentStep || 1})` : 'Deloitte JET Workspace';

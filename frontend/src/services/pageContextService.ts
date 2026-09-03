@@ -80,6 +80,19 @@ export interface VisibleMetricContext {
   subtext?: string;
 }
 
+export interface VisibleInputContext {
+  label: string;
+  value: string;
+  type?: string;
+  placeholder?: string;
+}
+
+export interface VisibleFilterContext {
+  label: string;
+  activeValue: string;
+  options?: string[];
+}
+
 export interface VisiblePageContext {
   headings: string[];
   labels: string[];
@@ -88,6 +101,8 @@ export interface VisiblePageContext {
   cards?: VisibleCardContext[];
   metrics?: VisibleMetricContext[];
   tables: VisibleTableContext[];
+  inputs?: VisibleInputContext[];
+  filters?: VisibleFilterContext[];
   selectedText: string;
   text: string;
   url: string;
