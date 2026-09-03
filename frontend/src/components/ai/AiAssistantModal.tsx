@@ -87,6 +87,27 @@ function createWelcomeMessage(): AiChatMessage {
   };
 }
 
+const BOOT_SEQUENCE_STORAGE_KEY = 'deloitte_jet_ai_last_boot_date';
+
+function shouldShowDailyBootSequence(): boolean {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const lastBoot = localStorage.getItem(BOOT_SEQUENCE_STORAGE_KEY);
+    return lastBoot !== today;
+  } catch {
+    return false;
+  }
+}
+
+function markBootSequenceShownToday(): void {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(BOOT_SEQUENCE_STORAGE_KEY, today);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export const AiAssistantModal: React.FC<
   AiAssistantModalProps
 > = ({
@@ -169,10 +190,11 @@ export const AiAssistantModal: React.FC<
     }
 
     /*
-     * Every time the assistant is opened,
-     * run the premium boot sequence.
+     * Run the boot sequence only once per day.
+     * Subsequent opens on the same day open immediately.
      */
-    setBooting(true);
+    const needsDailyBoot = shouldShowDailyBootSequence();
+    setBooting(needsDailyBoot);
     setContextExpanded(false);
     setInputValue('');
     setShowThinking(false);
@@ -741,6 +763,7 @@ Please verify that your local Qwen service is running on port **5005**, then try
 
   const handleBootComplete =
     () => {
+      markBootSequenceShownToday();
       setBooting(false);
 
       /*
