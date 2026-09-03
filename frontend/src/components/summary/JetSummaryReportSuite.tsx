@@ -17,7 +17,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   ShieldCheck, CheckSquare, Layers, Archive, Download, Search,
   Calendar, Users, AlertTriangle, Copy, FileText, CheckCircle2,
@@ -193,7 +193,7 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
               Journal Entry Testing Summary Report
             </h2>
 
-            <p style={{ fontSize: '0.84rem', color: '#64748B', margin: 0 }}>
+            <p data-ai-context="description" style={{ fontSize: '0.84rem', color: '#64748B', margin: 0 }}>
               Comprehensive multi-sheet audit intelligence covering 12 assurance analyses, account bifurcations, and zero-sum balancing.
             </p>
           </div>
@@ -231,10 +231,10 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
           borderTop: '1px solid rgba(226, 232, 240, 0.8)',
         }}>
           <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div data-ai-context="label" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Audited Population
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A', marginTop: '4px' }}>
+            <div data-ai-context="metric" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A', marginTop: '4px' }}>
               {fmtNum(totalGlRows)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748B' }}>lines</span>
             </div>
             <div style={{ fontSize: '0.70rem', color: '#007680', fontWeight: 700, marginTop: '2px' }}>
@@ -243,10 +243,10 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
           </div>
 
           <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div data-ai-context="label" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Trial Balance Scope
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A', marginTop: '4px' }}>
+            <div data-ai-context="metric" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A', marginTop: '4px' }}>
               {fmtNum(totalTbRows)} <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748B' }}>accounts</span>
             </div>
             <div style={{ fontSize: '0.70rem', color: '#16A34A', fontWeight: 700, marginTop: '2px' }}>
@@ -255,10 +255,10 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
           </div>
 
           <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div data-ai-context="label" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               GL Net Zero-Sum Balance
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16A34A', marginTop: '4px' }}>
+            <div data-ai-context="metric" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16A34A', marginTop: '4px' }}>
               $0.00 <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#16A34A' }}>BALANCED</span>
             </div>
             <div style={{ fontSize: '0.70rem', color: '#64748B', fontWeight: 600, marginTop: '2px' }}>
@@ -267,10 +267,10 @@ export const JetSummaryReportSuite: React.FC<JetSummaryReportSuiteProps> = ({
           </div>
 
           <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div data-ai-context="label" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Assurance Deliverables
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#007680', marginTop: '4px' }}>
+            <div data-ai-context="metric" style={{ fontSize: '1.25rem', fontWeight: 900, color: '#007680', marginTop: '4px' }}>
               12 Sheets <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748B' }}>Ready</span>
             </div>
             <div style={{ fontSize: '0.70rem', color: '#86BC25', fontWeight: 800, marginTop: '2px' }}>

@@ -262,11 +262,14 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
           <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
             Active File Mapping:
           </span>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '4px 10px', borderRadius: '16px', background: 'rgba(5, 150, 105, 0.1)',
-            color: '#059669', fontSize: '0.78rem', fontWeight: 800, fontFamily: 'var(--font-mono)'
-          }}>
+          <div
+            data-ai-context="metric"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '4px 10px', borderRadius: '16px', background: 'rgba(5, 150, 105, 0.1)',
+              color: '#059669', fontSize: '0.78rem', fontWeight: 800, fontFamily: 'var(--font-mono)'
+            }}
+          >
             <CheckCircle2 size={14} />
             {percentMapped}% MAPPED
           </div>
@@ -296,7 +299,7 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
                 {currentDataset?.sourceHeaders?.length || 0} Source Headers Detected
               </span>
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
+            <p data-ai-context="description" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
               Assign source columns to the standard Deloitte CDM schema. Mandatory fields are highlighted with <span style={{ color: 'var(--deloitte-teal)', fontWeight: 700 }}>Required</span>.
             </p>
           </div>
@@ -400,12 +403,15 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
                       {/* Standard Field */}
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{
-                            fontSize: '0.82rem',
-                            fontWeight: 800,
-                            fontFamily: 'var(--font-mono)',
-                            color: 'var(--text-primary)'
-                          }}>
+                          <span
+                            data-ai-context="field"
+                            style={{
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              fontFamily: 'var(--font-mono)',
+                              color: 'var(--text-primary)'
+                            }}
+                          >
                             {item.standardField}
                           </span>
 
@@ -456,22 +462,25 @@ export const DataFileMappingWorkspace: React.FC<DataFileMappingWorkspaceProps> =
 
                       {/* Data Type */}
                       <td style={{ textAlign: 'center' }}>
-                        <span style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          background: '#F1F5F9',
-                          color: 'var(--text-secondary)',
-                          fontFamily: 'var(--font-mono)'
-                        }}>
+                        <span
+                          data-ai-context="label"
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: '#F1F5F9',
+                            color: 'var(--text-secondary)',
+                            fontFamily: 'var(--font-mono)'
+                          }}
+                        >
                           {item.fieldType || 'STRING'}
                         </span>
                       </td>
 
                       {/* Description & Guidance */}
                       <td>
-                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+                        <div data-ai-context="description" style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
                           {item.description || item.guidance || 'Standard general ledger field for data reconciliation'}
                         </div>
                       </td>

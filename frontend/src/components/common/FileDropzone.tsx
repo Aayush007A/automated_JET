@@ -615,6 +615,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span
+                            data-ai-context="field"
                             style={{
                               fontWeight: 800,
                               color: '#0F172A',
@@ -650,7 +651,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                         {/* Meta Tags: Rows • Size • Workbook */}
                         <div style={{ fontSize: '0.72rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                           {item.rowCount !== undefined && item.rowCount > 0 && (
-                            <span style={{ fontWeight: 700, color: '#0F172A', fontFamily: 'var(--font-mono, monospace)' }}>
+                            <span data-ai-context="metric" style={{ fontWeight: 700, color: '#0F172A', fontFamily: 'var(--font-mono, monospace)' }}>
                               {item.rowCount.toLocaleString()} rows
                             </span>
                           )}
@@ -679,6 +680,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                     {/* Middle: Classification Tag & Confidence Score */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                       <span
+                        data-ai-context="label"
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -706,6 +708,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
 
                       {/* Confidence Pill */}
                       <span
+                        data-ai-context="metric"
                         style={{
                           fontSize: '0.68rem',
                           fontWeight: 700,

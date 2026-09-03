@@ -27,7 +27,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'sm' })
   }
 
   return (
-    <span className={`badge ${badgeClass}`} style={{ fontSize: size === 'sm' ? '0.72rem' : '0.8rem', padding: size === 'sm' ? '3px 8px' : '5px 12px' }}>
+    <span data-ai-context="label" className={`badge ${badgeClass}`} style={{ fontSize: size === 'sm' ? '0.72rem' : '0.8rem', padding: size === 'sm' ? '3px 8px' : '5px 12px' }}>
       {icon}
       {status}
     </span>

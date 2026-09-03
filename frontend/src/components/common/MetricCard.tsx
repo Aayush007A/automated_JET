@@ -119,6 +119,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       {/* Card Header: Category Label & Optional Icon */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
         <span
+          data-ai-context="label"
           style={{
             fontSize: '0.82rem',
             fontWeight: 650,
@@ -158,6 +159,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         margin: '2px 0 6px',
       }}>
         <span
+          data-ai-context="metric"
           style={{
             fontSize,
             fontWeight: 850,
@@ -198,6 +200,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
         {subtitle && (
           <span
+            data-ai-context="description"
             style={{
               fontSize: '0.72rem',
               color: '#64748B',

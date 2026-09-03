@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Enterprise Journal Entry Testing (JET) Automation Platform",
   "scripts": {
+    "start": "node run_all.js",
+    "dev": "node run_all.js",
+    "dev:all": "node run_all.js",
+    "ai:server": "python pipeline/local_llm_server.py",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "test:backend": "cd backend && npm test",

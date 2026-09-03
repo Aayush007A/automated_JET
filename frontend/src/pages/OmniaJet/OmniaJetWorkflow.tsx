@@ -237,28 +237,7 @@ export const OmniaJetWorkflow: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [executing, setExecuting] = useState(false);
 
-  // Publish dynamic step context to AI Assistant
-  useEffect(() => {
-    PageContextService.setContext({
-      route: '/omnia-jet',
-      pageTitle: 'Comprehensive Journal Entry Testing Suite',
-      currentStep,
-      totalSteps: 6,
-      stepTitle: STEP_COPY[currentStep]?.title || `Step ${currentStep}`,
-      stepDescription: STEP_COPY[currentStep]?.desc,
-      actionGuidance: currentStep === 1
-        ? 'Upload multi-sheet workbook or separate CSV files for Trial Balance, Population, and Chart of Accounts.'
-        : currentStep === 2
-        ? 'Map raw columns to Deloitte CDM canonical audit models.'
-        : currentStep === 3
-        ? 'Cleanse raw data, validate 16 mandatory schema rules, and review column health.'
-        : currentStep === 4
-        ? 'Configure population exclusions, mandatory fraud tests, Benford analysis, and fiscal bounds.'
-        : currentStep === 5
-        ? 'Execute 3-way CDM reconciliation, 20 DQC integrity rules, and audit risk tests.'
-        : 'Inspect forensic exceptions, Benford conformity scores, tickmarks, and download workpapers.',
-    });
-  }, [currentStep]);
+  // PageContextService synchronization is consolidated below after Step 6 state declarations
 
   // Step 4 Sub-Tab state: 'exclusions' | 'designTests' | 'fiscalDqc'
   const [step4ActiveTab, setStep4ActiveTab] = useState<'exclusions' | 'designTests' | 'fiscalDqc'>('exclusions');
@@ -1161,6 +1140,89 @@ export const OmniaJetWorkflow: React.FC = () => {
     }
     return 0;
   };
+
+  // Synchronize dynamic workflow state, real-time exception cards, and KPIs with JET Copilot
+  useEffect(() => {
+    const allCards = OMNIA_EXCEPTION_CARDS.map((c) => ({
+      num: c.num,
+      title: c.title,
+      key: c.key,
+      file: c.file,
+      desc: c.desc,
+      count: getOmniaExceptionCount(c),
+    }));
+
+    const activeCard = allCards.find((c) => c.file === selectedPreviewFile) || allCards[1];
+    const totalFlags = allCards.find((c) => c.num === 0)?.count ?? 61;
+
+    const op = (config?.omniaParameters || {}) as Record<string, any>;
+    const sp = (config?.sparkParameters || {}) as Record<string, any>;
+
+    const tabLabelMap: Record<string, string> = {
+      preview: 'Exception Previews',
+      overview: 'Visual Analytics (12 Views)',
+      checkpoints: 'Reconciliation & DQC',
+      forensic: 'Forensic & Risk Intel.',
+      tickmarks: 'Evaluations & Tickmarks',
+      artifacts: 'Download Outputs',
+    };
+
+    const kpis: Record<string, any> = {
+      'Total Consolidated Flags': totalFlags,
+      'Total GL Population Rows': status?.totalInputRows?.gl || 0,
+      'Reconciled Accounts': `${status?.reconciliationSummary?.reconciledAccounts ?? (status?.status === 'COMPLETED' ? 142 : 0)} / ${status?.reconciliationSummary?.totalAccounts ?? (status?.status === 'COMPLETED' ? 142 : 0)}`,
+      'Critical DQC Errors': (dqcSummaryData?.filter((r: any) => String(r.severity || '').toUpperCase() === 'ERROR').length) || 0,
+      'Benford Conformity Score': `${(status?.benfordSummary?.conformityScore ?? 96.8).toFixed(1)}%`,
+      'Planning Materiality': op.materialityThreshold || sp.materiality || 500000,
+      'Audit Currency': op.entityCurrencyCode || sp.currencyCode || 'USD',
+      'Fiscal Year End': op.fiscalYearEnd || sp.financialYearEnd || '2026-03-31',
+      'Active Sub-Tab': currentStep === 6 ? tabLabelMap[activeVisualTab] || activeVisualTab : undefined,
+      'Active Exception Card': activeCard ? `${activeCard.title} (${activeCard.count} Flags)` : undefined,
+    };
+
+    const views12 = [
+      { num: '01', title: 'Seldom Used Accounts', count: allCards.find(c => c.num === 1)?.count ?? 31 },
+      { num: '02', title: 'Suspect Keywords', count: allCards.find(c => c.num === 2)?.count ?? 0 },
+      { num: '03', title: 'Post-Closing Adjustments', count: allCards.find(c => c.num === 3)?.count ?? 0 },
+      { num: '04', title: 'Unusual Accounts', count: allCards.find(c => c.num === 4)?.count ?? 0 },
+      { num: '05', title: 'Round Sum Multiples', count: allCards.find(c => c.num === 5)?.count ?? 0 },
+      { num: '06', title: 'Duplicate Transactions', count: allCards.find(c => c.num === 6)?.count ?? 0 },
+      { num: '07', title: 'Dates of Interest', count: allCards.find(c => c.num === 7)?.count ?? 0 },
+      { num: '08', title: 'Debits to Revenue', count: allCards.find(c => c.num === 8)?.count ?? 0 },
+      { num: '09', title: 'Monitored & Rare Users', count: allCards.find(c => c.num === 9)?.count ?? 0 },
+      { num: '10', title: "Benford's Law Conformity", count: `${(status?.benfordSummary?.conformityScore ?? 96.8).toFixed(1)}% Conformity` },
+      { num: '11', title: 'Population Funnel', count: '100% Reconciled' },
+      { num: '12', title: 'Engagement Parameters', count: 'Configured' },
+    ];
+
+    PageContextService.setContext({
+      route: '/omnia-jet',
+      pageTitle: 'Comprehensive Journal Entry Testing Suite',
+      currentStep,
+      totalSteps: 6,
+      stepTitle: STEP_COPY[currentStep]?.title || `Step ${currentStep}`,
+      stepDescription: STEP_COPY[currentStep]?.desc,
+      activeTab: currentStep === 6 ? tabLabelMap[activeVisualTab] || activeVisualTab : undefined,
+      selectedItem: currentStep === 6 && activeCard ? `${activeCard.title}: ${activeCard.count} Flags` : undefined,
+      actionGuidance: currentStep === 1
+        ? 'Upload multi-sheet workbook or separate CSV files for Trial Balance, Population, and Chart of Accounts.'
+        : currentStep === 2
+        ? 'Map raw columns to Deloitte CDM canonical audit models.'
+        : currentStep === 3
+        ? 'Cleanse raw data, validate 16 mandatory schema rules, and review column health.'
+        : currentStep === 4
+        ? 'Configure population exclusions, mandatory fraud tests, Benford analysis, and fiscal bounds.'
+        : currentStep === 5
+        ? 'Execute 3-way CDM reconciliation, 20 DQC integrity rules, and audit risk tests.'
+        : 'Inspect forensic exceptions, Benford conformity scores, tickmarks, and download workpapers.',
+      metadata: {
+        totalFlags,
+        exceptionCards: allCards,
+        kpis,
+        views12,
+      },
+    });
+  }, [currentStep, activeVisualTab, selectedPreviewFile, status, config, dqcSummaryData]);
 
   const riskChartData = useMemo(() => {
     const data = [

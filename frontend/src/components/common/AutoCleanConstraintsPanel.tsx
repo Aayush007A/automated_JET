@@ -459,10 +459,10 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
       <div className="constraints-kpi-grid">
         {/* Card 1: Total Rows Evaluated (Peach / Orange) */}
         <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#FFF4EC', border: '1px solid #FFE7D6', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+          <div data-ai-context="label" style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
             Total Evaluated Rows
           </div>
-          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div data-ai-context="metric" style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isCalculating ? (
               <>
                 <Loader2 size={18} className="spin" color="var(--deloitte-teal)" />
@@ -484,10 +484,10 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
         {/* Card 2: Checkpoints Evaluated (Light Green) */}
         <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#F0F9ED', border: '1px solid #DCFCE7', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+          <div data-ai-context="label" style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
             {isSpark ? 'Checkpoints Evaluated' : 'Rules Evaluated'}
           </div>
-          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div data-ai-context="metric" style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isCalculating ? (
               <>
                 <Loader2 size={18} className="spin" color="#2563EB" />
@@ -509,10 +509,10 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
         {/* Card 3: Passed Checkpoints (Soft Blue / Lavender) */}
         <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#EDF2FE', border: '1px solid #DBEAFE', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+          <div data-ai-context="label" style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
             {isSpark ? 'Passed Checkpoints' : 'Passed Constraints'}
           </div>
-          <div style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div data-ai-context="metric" style={{ fontSize: isCalculating ? '1.25rem' : '1.80rem', fontWeight: 850, fontFamily: 'monospace', color: '#0F172A', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isCalculating ? (
               <>
                 <Loader2 size={18} className="spin" color="#059669" />
@@ -534,10 +534,10 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
 
         {/* Card 4: Data Readiness Status (Soft Mint / Teal) */}
         <div style={{ padding: '16px 18px', borderRadius: '16px', background: '#EAF5F2', border: '1px solid #CCFBF1', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
+          <div data-ai-context="label" style={{ fontSize: '0.82rem', fontWeight: 650, color: '#475569' }}>
             Data Readiness Status
           </div>
-          <div style={{ fontSize: isCalculating ? '1.20rem' : '1.45rem', fontWeight: 850, color: isCalculating ? 'var(--deloitte-teal)' : allPassed ? '#007680' : '#DC2626', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div data-ai-context="metric" style={{ fontSize: isCalculating ? '1.20rem' : '1.45rem', fontWeight: 850, color: isCalculating ? 'var(--deloitte-teal)' : allPassed ? '#007680' : '#DC2626', margin: '4px 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isCalculating ? (
               <>
                 <Loader2 size={18} className="spin" color="var(--deloitte-teal)" />
@@ -712,25 +712,28 @@ export const AutoCleanConstraintsPanel: React.FC<AutoCleanConstraintsPanelProps>
                       <Loader2 size={10} className="spin" /> EVALUATING
                     </span>
                   ) : (
-                    <span style={{
-                      fontSize: '0.67rem', fontWeight: 800, padding: '2px 7px', borderRadius: '999px',
-                      background: hasFailedRows ? 'rgba(225, 29, 72, 0.10)' : isWarning ? 'rgba(217, 119, 6, 0.10)' : 'rgba(5, 150, 105, 0.10)',
-                      color: hasFailedRows ? '#E11D48' : isWarning ? '#D97706' : '#059669',
-                      border: hasFailedRows ? '1px solid rgba(225, 29, 72, 0.25)' : isWarning ? '1px solid rgba(217, 119, 6, 0.25)' : '1px solid rgba(5, 150, 105, 0.25)',
-                      display: 'inline-flex', alignItems: 'center', gap: '3px',
-                      letterSpacing: '0.02em', flexShrink: 0
-                    }}>
+                    <span
+                      data-ai-context="label"
+                      style={{
+                        fontSize: '0.67rem', fontWeight: 800, padding: '2px 7px', borderRadius: '999px',
+                        background: hasFailedRows ? 'rgba(225, 29, 72, 0.10)' : isWarning ? 'rgba(217, 119, 6, 0.10)' : 'rgba(5, 150, 105, 0.10)',
+                        color: hasFailedRows ? '#E11D48' : isWarning ? '#D97706' : '#059669',
+                        border: hasFailedRows ? '1px solid rgba(225, 29, 72, 0.25)' : isWarning ? '1px solid rgba(217, 119, 6, 0.25)' : '1px solid rgba(5, 150, 105, 0.25)',
+                        display: 'inline-flex', alignItems: 'center', gap: '3px',
+                        letterSpacing: '0.02em', flexShrink: 0
+                      }}
+                    >
                       {hasFailedRows ? <AlertTriangle size={10} /> : isWarning ? <AlertCircle size={10} /> : <CheckCircle2 size={10} />}
                       {hasFailedRows ? (c.failedRowsCount ? `${c.failedRowsCount} Failed` : 'FAILED') : isWarning ? (c.failedRowsCount ? `${c.failedRowsCount} Warn` : 'FLAGGED') : 'PASSED'}
                     </span>
                   )}
                 </div>
 
-                <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0F172A', marginBottom: '5px', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+                <div data-ai-context="field" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0F172A', marginBottom: '5px', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
                   {c.name}
                 </div>
 
-                <p style={{ fontSize: '0.72rem', color: hasFailedRows ? '#BE123C' : '#64748B', margin: '0 0 10px', lineHeight: 1.35, fontWeight: hasFailedRows ? 500 : 400 }}>
+                <p data-ai-context="description" style={{ fontSize: '0.72rem', color: hasFailedRows ? '#BE123C' : '#64748B', margin: '0 0 10px', lineHeight: 1.35, fontWeight: hasFailedRows ? 500 : 400 }}>
                   {c.details}
                 </p>
               </div>

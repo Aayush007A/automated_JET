@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { AuthService } from '../services/authService';
 import {
   ShieldCheck, Lock, User, AlertCircle, ArrowRight,

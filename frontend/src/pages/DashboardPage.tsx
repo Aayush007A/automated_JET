@@ -4,7 +4,7 @@ import { AuthService } from '../services/authService';
 import { RunService } from '../services/runService';
 import { RunSummary, RunStatus } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, Layers, ArrowRight, Play, FileSpreadsheet, RefreshCw,
   CheckCircle2, Database, FileText, Activity, Search, Zap, FileCheck,

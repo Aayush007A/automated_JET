@@ -85,7 +85,7 @@ export const DataTable: React.FC<DataTableProps> = ({
       }}>
         <div>
           {title && <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>{title}</h3>}
-          {subtitle && <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{subtitle}</p>}
+          {subtitle && <p data-ai-context="description" style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{subtitle}</p>}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -188,7 +188,7 @@ export const DataTable: React.FC<DataTableProps> = ({
         fontSize: '0.82rem',
         color: 'var(--text-muted)',
       }}>
-        <div>
+        <div data-ai-context="metric">
           Showing {filteredData.length > 0 ? (page - 1) * pageSize + 1 : 0} to{' '}
           {Math.min(page * pageSize, filteredData.length)} of {filteredData.length} entries
         </div>

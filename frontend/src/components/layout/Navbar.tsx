@@ -6,7 +6,7 @@ import {
   Sparkles, History, CheckCircle2, ChevronRight, FileSpreadsheet,
   Activity, ArrowUpRight
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();

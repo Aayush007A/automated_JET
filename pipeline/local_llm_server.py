@@ -1,24 +1,34 @@
 import sys
 import os
 import time
+import warnings
 from typing import List, Optional, Dict, Any
+from contextlib import asynccontextmanager
+
+# Suppress all Python runtime warnings cleanly
+warnings.filterwarnings("ignore")
+os.environ["PYTHONWARNINGS"] = "ignore"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import uvicorn
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-app = FastAPI(title="Deloitte JET Local AI Engine", version="1.0.0")
-
 MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
 tokenizer = None
 model = None
+ADAPTER_DIR = "pipeline/fine_tuned_jet_adapter"
 
 class Message(BaseModel):
     role: str
     content: str
 
 class PageContext(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     route: Optional[str] = None
     pageTitle: Optional[str] = None
     currentStep: Optional[int] = None
@@ -26,9 +36,13 @@ class PageContext(BaseModel):
     stepTitle: Optional[str] = None
     stepDescription: Optional[str] = None
     actionGuidance: Optional[str] = None
+    activeTab: Optional[str] = None
+    visibleContent: Optional[Any] = None
     metadata: Optional[Dict[str, Any]] = None
 
 class ChatRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     messages: List[Message]
     context: Optional[PageContext] = None
 
@@ -36,8 +50,6 @@ class ChatResponse(BaseModel):
     message: str
     guardrailTriggered: bool = False
     guardrailReason: Optional[str] = None
-
-ADAPTER_DIR = "pipeline/fine_tuned_jet_adapter"
 
 def init_model():
     global tokenizer, model
@@ -60,12 +72,19 @@ def init_model():
             model = base_model
             print(f"[Local AI] Base model loaded in {round(time.time() - t0, 2)}s")
 
-@app.on_event("startup")
-def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     try:
         init_model()
     except Exception as e:
-        print(f"[Local AI] Warning during model initialization: {e}")
+        print(f"[Local AI] Error during model initialization: {e}")
+    yield
+
+app = FastAPI(
+    title="Deloitte JET Local AI Engine",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 @app.get("/health")
 def health():
@@ -150,8 +169,11 @@ def chat(req: ChatRequest):
         system_prompt += f"\n\nCURRENT USER PLATFORM STATE:\n{ctx_info}"
 
     # Build messages
-    formatted_messages = [{"role": "system", "content": system_prompt}]
-    for m in req.messages[-6:]: # include up to 6 recent messages
+    has_system = any(m.role == "system" for m in req.messages)
+    formatted_messages = []
+    if not has_system:
+        formatted_messages.append({"role": "system", "content": system_prompt})
+    for m in req.messages[-10:]:
         formatted_messages.append({"role": m.role, "content": m.content})
 
     text = tokenizer.apply_chat_template(formatted_messages, tokenize=False, add_generation_prompt=True)
@@ -160,9 +182,8 @@ def chat(req: ChatRequest):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=512,
-            temperature=0.3,
-            do_sample=True,
+            max_new_tokens=384,
+            do_sample=False,
             pad_token_id=tokenizer.eos_token_id
         )
 

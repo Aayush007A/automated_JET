@@ -12,8 +12,9 @@ export default defineConfig({
         ws: true,
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
-            // Suppress benign socket reset on SSE client unmount
-            if ((err as any).code === 'ECONNRESET') return;
+            // Suppress benign socket reset or transient initial boot connection error
+            const code = (err as any)?.code;
+            if (code === 'ECONNRESET' || code === 'ECONNREFUSED') return;
             console.error('Proxy error:', err);
           });
         },

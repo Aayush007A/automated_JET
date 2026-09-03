@@ -66,6 +66,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <div
+      data-ai-ignore="true"
       style={{
         position: 'fixed',
         top: 0,

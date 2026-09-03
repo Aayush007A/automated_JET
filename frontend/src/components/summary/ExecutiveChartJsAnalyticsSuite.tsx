@@ -14,7 +14,7 @@ import {
   RadialLinearScale
 } from 'chart.js';
 import { Bar, Line, Doughnut, Pie, PolarArea } from 'react-chartjs-2';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, Layers, TrendingUp, Users, Lock, Calendar, BarChart3,
   Copy, FileText, AlertTriangle, Activity, PieChart as PieIcon, Archive,

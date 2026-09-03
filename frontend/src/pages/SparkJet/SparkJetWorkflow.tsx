@@ -284,28 +284,7 @@ export const SparkJetWorkflow: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [executing, setExecuting] = useState(false);
 
-  // Publish dynamic step context to AI Assistant
-  useEffect(() => {
-    PageContextService.setContext({
-      route: '/spark-jet',
-      pageTitle: 'JET Audit Workflow',
-      currentStep,
-      totalSteps: 6,
-      stepTitle: STEP_COPY[currentStep]?.title || `Step ${currentStep}`,
-      stepDescription: STEP_COPY[currentStep]?.desc,
-      actionGuidance: currentStep === 1
-        ? 'Upload the Trial Balance (TB) and General Ledger population files (CSV or Excel workbook). Preview sheets, inspect row counts, and verify schema before proceeding to data file mapping.'
-        : currentStep === 2
-        ? 'Map source data columns to standard Deloitte Canonical Data Model (CDM) fields for Trial Balance and Population, ensuring all required fields (Account, Amount, Date, Doc ID) are mapped.'
-        : currentStep === 3
-        ? 'Execute automated data cleansing, inspect column health diagnostics, verify negative accounting parentheses conversion, and ensure all 16 integrity constraints pass.'
-        : currentStep === 4
-        ? 'Execute and review Integrity & Data Readiness Tests (IR 1-4) including Trial Balance control totals, debit/credit balancing, and gap analysis.'
-        : currentStep === 5
-        ? 'Configure parametric fraud testing rules (Ex 1-12) such as suspect keywords, round sums, cutoff windows, and conflicting account pairings.'
-        : 'Inspect executive summary reconciliation, forensic exception dashboards, Benford conformity analysis, and download validated audit workpapers.',
-    });
-  }, [currentStep]);
+  // PageContextService synchronization is consolidated below after Step 6 state declarations
 
   // Sample Data Modal for raw inputs (Top 50 sample rows)
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
@@ -1557,6 +1536,79 @@ export const SparkJetWorkflow: React.FC = () => {
       isMounted = false;
     };
   }, [runId, selectedPreviewFile, currentStep, activeVisualTab]);
+
+  // Synchronize dynamic workflow state, live exception cards, and KPIs with JET Copilot
+  useEffect(() => {
+    const allCards = SPARK_EXCEPTION_CARDS.filter((card) => {
+      if (card.id === 'controlSample') return runControlSample;
+      return enabledExceptions[card.id as keyof typeof enabledExceptions];
+    }).map((card) => {
+      const count = card.num <= 12 ? getExceptionCount(card.num, card.key) : (status?.controlSampleCount || 4);
+      return { ...card, count };
+    });
+
+    const activeCard = allCards.find((c) => c.file === selectedPreviewFile) || allCards[0];
+    const totalFlags = allCards.reduce((acc, c) => acc + (c.count || 0), 0);
+
+    const tabLabelMap: Record<string, string> = {
+      preview: 'Exception Previews',
+      overview: 'Visual Analytics (12 Views)',
+      checkpoints: 'TB & GL Checkpoints',
+      forensic: 'Forensic & CFO Intel.',
+      artifacts: 'Download Outputs',
+    };
+
+    const kpis: Record<string, any> = {
+      'General Ledger Lines': status?.glCheckpointsSummary?.totalLines || (status?.totalInputRows?.gl || 0),
+      'Trial Balance Accounts': status?.totalInputRows?.tb || 0,
+      'IR Exceptions': getIRTestCount(1, 'test1TBNotInPopCount', 'IR_Exception_1.csv') + getIRTestCount(2, 'test2ActivityMismatchCount', 'IR_Exception_2.csv') + getIRTestCount(3, 'test3PopNotInTBCount', 'IR_Exception_3.csv'),
+      'Parameter Exceptions': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].reduce((acc, num) => acc + getExceptionCount(num, `Ex${num}`), 0),
+      'Audit Materiality': config?.sparkParameters?.materiality || 500000,
+      'Active Sub-Tab': currentStep === 6 ? tabLabelMap[activeVisualTab] || activeVisualTab : undefined,
+      'Active Selected Test': activeCard ? `${activeCard.title} (${activeCard.count} Flags)` : undefined,
+    };
+
+    PageContextService.setContext({
+      route: '/spark-jet',
+      pageTitle: 'JET Audit Workflow',
+      currentStep,
+      totalSteps: 6,
+      stepTitle: STEP_COPY[currentStep]?.title || `Step ${currentStep}`,
+      stepDescription: STEP_COPY[currentStep]?.desc,
+      activeTab: currentStep === 6 ? tabLabelMap[activeVisualTab] || activeVisualTab : undefined,
+      selectedItem: currentStep === 6 && activeCard ? `${activeCard.title}: ${activeCard.count} Flags` : undefined,
+      actionGuidance: currentStep === 1
+        ? 'Upload the Trial Balance (TB) and General Ledger population files (CSV or Excel workbook). Preview sheets, inspect row counts, and verify schema before proceeding to data file mapping.'
+        : currentStep === 2
+        ? 'Map source data columns to standard Deloitte Canonical Data Model (CDM) fields for Trial Balance and Population, ensuring all required fields (Account, Amount, Date, Doc ID) are mapped.'
+        : currentStep === 3
+        ? 'Execute automated data cleansing, inspect column health diagnostics, verify negative accounting parentheses conversion, and ensure all 16 integrity constraints pass.'
+        : currentStep === 4
+        ? 'Execute and review Integrity & Data Readiness Tests (IR 1-4) including Trial Balance control totals, debit/credit balancing, and gap analysis.'
+        : currentStep === 5
+        ? 'Configure parametric fraud testing rules (Ex 1-12) such as suspect keywords, round sums, cutoff windows, and conflicting account pairings.'
+        : 'Inspect executive summary reconciliation, forensic exception dashboards, Benford conformity analysis, and download validated audit workpapers.',
+      metadata: {
+        totalFlags,
+        exceptionCards: allCards,
+        kpis,
+        views12: allCards.slice(0, 12).map((c) => ({
+          num: c.num.toString().padStart(2, '0'),
+          title: c.title,
+          count: c.count,
+          desc: c.desc,
+        })),
+      },
+    });
+  }, [
+    currentStep,
+    activeVisualTab,
+    selectedPreviewFile,
+    status,
+    config,
+    enabledExceptions,
+    runControlSample,
+  ]);
 
   const currentExecutionStatus = useMemo(() => status?.status || 'CREATED', [status?.status]);
 

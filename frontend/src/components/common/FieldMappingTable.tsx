@@ -37,12 +37,13 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
           <h3 style={{ fontSize: '1.12rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
             {datasetTitle} Field Mapping
           </h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+          <p data-ai-context="description" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
             Review smart field assignments and override any column mappings as needed.
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span
+            data-ai-context="metric"
             style={{
               fontSize: '0.74rem',
               fontWeight: 800,
@@ -57,6 +58,7 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
             TOTAL MAPPED: {matchedCount}/{mappings.length}
           </span>
           <span
+            data-ai-context="metric"
             style={{
               fontSize: '0.74rem',
               fontWeight: 800,
@@ -104,7 +106,7 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
                   <td>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.80rem' }}>
+                        <span data-ai-context="field" style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.80rem' }}>
                           {item.standardField}
                         </span>
                         {item.required && (
@@ -112,7 +114,7 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
                         )}
                       </div>
                       {item.description && (
-                        <div style={{ fontSize: '0.70rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                        <div data-ai-context="description" style={{ fontSize: '0.70rem', color: 'var(--text-muted)', marginTop: '1px' }}>
                           {item.description}
                         </div>
                       )}
@@ -148,6 +150,7 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     <span
+                      data-ai-context="label"
                       style={{
                         fontSize: '0.72rem',
                         fontWeight: 800,
@@ -180,7 +183,7 @@ export const FieldMappingTable: React.FC<FieldMappingTableProps> = ({
                           }}
                         />
                       </div>
-                      <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      <span data-ai-context="metric" style={{ fontSize: '0.78rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-secondary)' }}>
                         {item.confidence || (isMatched ? 100 : 0)}%
                       </span>
                     </div>

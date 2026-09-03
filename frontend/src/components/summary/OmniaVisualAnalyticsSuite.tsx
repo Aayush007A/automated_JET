@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { PageContextService } from '../../services/pageContextService';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,7 +15,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Bar, Line, Doughnut, PolarArea, Radar } from 'react-chartjs-2';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, Layers, TrendingUp, Calendar, BarChart3,
   Copy, FileText, AlertTriangle, Activity, PieChart as PieIcon, Archive,
@@ -386,6 +387,30 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
     { id: '11_exclusions_funnel', num: '11', title: 'Population Funnel', icon: Filter, count: null },
     { id: '12_engagement_details', num: '12', title: 'Engagement Parameters', icon: Building, count: null },
   ];
+
+  // Synchronize 12 Views and active sheet with JET Copilot
+  useEffect(() => {
+    const viewsList = sheets.map((s) => ({
+      num: s.num,
+      title: s.title,
+      count: s.count !== null ? s.count : 'Qualitative / Analytical',
+    }));
+
+    const currentSheet = sheets.find((s) => s.id === activeTab) || sheets[0];
+
+    PageContextService.setContext({
+      activeTab: `Visual Analytics: ${currentSheet.title} (View ${currentSheet.num})`,
+      selectedItem: `View ${currentSheet.num}: ${currentSheet.title}${currentSheet.count !== null ? ` (${currentSheet.count} Flags)` : ''}`,
+      metadata: {
+        views12: viewsList,
+        activeVisualAnalyticsSheet: {
+          num: currentSheet.num,
+          title: currentSheet.title,
+          count: currentSheet.count,
+        },
+      },
+    });
+  }, [activeTab, exCounts]);
 
 function customImage2TooltipHandler(context: any) {
   let tooltipEl = document.getElementById('chartjs-tooltip-image2');
@@ -998,7 +1023,7 @@ const OmniaDualPaneTestSheet: React.FC<{
               {testTitle}
             </h3>
           </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, maxWidth: '780px' }}>
+          <p data-ai-context="description" style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, maxWidth: '780px' }}>
             {description}
           </p>
         </div>
@@ -1026,8 +1051,8 @@ const OmniaDualPaneTestSheet: React.FC<{
       {/* 4 KPI Metric Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
         <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>{primaryMetricLabel}</div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 850, color: flaggedCount > 0 ? '#DC2626' : '#007680', fontFamily: 'monospace', margin: '3px 0' }}>
+          <div data-ai-context="label" style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>{primaryMetricLabel}</div>
+          <div data-ai-context="metric" style={{ fontSize: '1.45rem', fontWeight: 850, color: flaggedCount > 0 ? '#DC2626' : '#007680', fontFamily: 'monospace', margin: '3px 0' }}>
             {fmtNum(flaggedCount)}
           </div>
           <div style={{ fontSize: '0.70rem', color: flaggedCount > 0 ? '#DC2626' : '#16A34A', fontWeight: 700 }}>
@@ -1036,24 +1061,24 @@ const OmniaDualPaneTestSheet: React.FC<{
         </div>
 
         <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Clean Population Rate</div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 850, color: '#16A34A', fontFamily: 'monospace', margin: '3px 0' }}>
+          <div data-ai-context="label" style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Clean Population Rate</div>
+          <div data-ai-context="metric" style={{ fontSize: '1.45rem', fontWeight: 850, color: '#16A34A', fontFamily: 'monospace', margin: '3px 0' }}>
             {cleanRate}%
           </div>
           <div style={{ fontSize: '0.70rem', color: '#16A34A', fontWeight: 700 }}>Passed Audit Testing</div>
         </div>
 
         <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Tested Scope Parameter</div>
-          <div style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: '6px 0 3px' }}>
+          <div data-ai-context="label" style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Tested Scope Parameter</div>
+          <div data-ai-context="metric" style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: '6px 0 3px' }}>
             {categoryLabel}
           </div>
           <div style={{ fontSize: '0.70rem', color: '#64748B' }}>Full Population Coverage</div>
         </div>
 
         <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Deliverable File</div>
-          <div style={{ fontSize: '0.80rem', fontWeight: 700, color: '#007680', fontFamily: 'monospace', margin: '8px 0 3px' }}>
+          <div data-ai-context="label" style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Deliverable File</div>
+          <div data-ai-context="field" style={{ fontSize: '0.80rem', fontWeight: 700, color: '#007680', fontFamily: 'monospace', margin: '8px 0 3px' }}>
             {fileName}
           </div>
           <div style={{ fontSize: '0.70rem', color: '#16A34A', fontWeight: 700 }}>Verified &amp; Ready for Workpapers</div>
@@ -1102,7 +1127,7 @@ const OmniaDualPaneTestSheet: React.FC<{
           <div style={{ fontSize: '0.78rem', fontWeight: 750, color: '#0F172A' }}>
             Audit Standard &amp; Testing Guidance (ISA 240 / PCAOB AS 2401)
           </div>
-          <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px', lineHeight: 1.45 }}>
+          <div data-ai-context="description" style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px', lineHeight: 1.45 }}>
             {auditGuidance}
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, useMotionValue, useAnimationFrame, animate } from 'framer-motion';
+import { motion, useMotionValue, useAnimationFrame, animate } from 'motion/react';
 import {
   UploadCloud, Table, Sparkles, Sliders, Activity, BarChart3,
   CheckCircle2, ChevronLeft, ChevronRight, ArrowRight, LucideIcon

@@ -6,7 +6,9 @@ import {
 
 export const Footer: React.FC = () => {
   return (
-    <footer style={{
+    <footer
+      data-ai-ignore="true"
+      style={{
       background: 'linear-gradient(160deg, #0A1628 0%, #0D1E35 30%, #0C2233 60%, #091820 100%)',
       color: '#94A3B8',
       borderTop: '1px solid rgba(0, 163, 173, 0.15)',
