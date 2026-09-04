@@ -18,12 +18,11 @@ import { Bar, Line, Doughnut, Pie, PolarArea } from 'react-chartjs-2';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, Layers, TrendingUp, Users, Lock, Calendar, BarChart3,
-  Copy, FileText, AlertTriangle, Activity, PieChart as PieIcon, Archive,
+  Copy, FileText, AlertTriangle, Activity, PieChart as PieIcon,
   ShieldCheck, CheckCircle2, Download, Search, Filter, Info, ChevronRight,
   HelpCircle, ArrowUpRight, CheckSquare, Hash, Tag, Building, Globe, DollarSign
 } from 'lucide-react';
 import { RunSummary, RunConfig } from '../../types';
-import { RunService } from '../../services/runService';
 import { TabSlider } from '../common/TabSlider';
 
 // Register Chart.js Modules
@@ -986,27 +985,6 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
               </span>
             )}
           </div>
-
-          <a
-            href={RunService.getDownloadAllZipUrl(runId)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '7px 14px',
-              borderRadius: '8px',
-              background: '#1E293B',
-              color: '#FFFFFF',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              textDecoration: 'none',
-              boxShadow: '0 1px 3px rgba(30, 41, 59, 0.15)',
-              transition: 'background 0.15s ease',
-            }}
-          >
-            <Archive size={14} color="#FFFFFF" />
-            <span style={{ color: '#FFFFFF' }}>Download All Workpapers (.ZIP)</span>
-          </a>
         </div>
       </div>
 

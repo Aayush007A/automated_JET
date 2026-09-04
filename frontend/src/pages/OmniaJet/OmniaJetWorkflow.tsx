@@ -3161,27 +3161,6 @@ export const OmniaJetWorkflow: React.FC = () => {
                           </span>
                         )}
                       </div>
-
-                      <a
-                        href={RunService.getDownloadAllZipUrl(runId!)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '7px 14px',
-                          borderRadius: '8px',
-                          background: '#1E293B',
-                          color: '#FFFFFF',
-                          fontSize: '0.76rem',
-                          fontWeight: 700,
-                          textDecoration: 'none',
-                          boxShadow: '0 1px 3px rgba(30, 41, 59, 0.15)',
-                          transition: 'background 0.15s ease',
-                        }}
-                      >
-                        <Archive size={14} color="#FFFFFF" />
-                        <span style={{ color: '#FFFFFF' }}>Download All Workpapers (.ZIP)</span>
-                      </a>
                     </div>
                   </div>
 
