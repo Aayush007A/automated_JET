@@ -58,9 +58,15 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isWorkflowPage = location.pathname.includes('/jet') || location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
   const [isAiOpen, setIsAiOpen] = React.useState(false);
+  const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const handleOpenAi = () => {
+    const handleOpenAi = (e: Event) => {
+      const customEvent = e as CustomEvent<{ prompt?: string; context?: string }>;
+      const prompt = customEvent.detail?.prompt;
+      if (prompt) {
+        setPendingPrompt(prompt);
+      }
       setIsAiOpen(true);
     };
     window.addEventListener('jet:open-ai', handleOpenAi);
@@ -94,6 +100,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <AiAssistantModal
         isOpen={isAiOpen}
         onClose={() => setIsAiOpen(false)}
+        autoPrompt={pendingPrompt}
+        onClearAutoPrompt={() => setPendingPrompt(null)}
       />
     </div>
   );

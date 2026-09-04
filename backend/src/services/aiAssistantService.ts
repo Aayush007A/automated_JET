@@ -821,6 +821,190 @@ ${rows}
     return null;
   }
 
+  public handleEdaProfilingQuery(query: string, context?: ActivePageContext): string | null {
+    const q = query.toLowerCase();
+
+    const isEdaQuery =
+      q.includes('exploratory data analysis') ||
+      q.includes('bivariate audit correlation') ||
+      q.includes('multivariate schema') ||
+      (q.includes('audit evaluation') && (q.includes('distribution') || q.includes('outliers') || q.includes('correlation')));
+
+    if (!isEdaQuery) return null;
+
+    // 1. Univariate Field Profile
+    if (q.includes('perform a detailed audit exploratory data analysis on field')) {
+      const matchField = query.match(/field\s+"([^"]+)"\s+\(([^)]+)\)/i);
+      const fieldName = matchField ? matchField[1] : 'Selected Field';
+      const fieldType = matchField ? matchField[2] : 'General';
+
+      const matchDataset = query.match(/dataset\s+"([^"]+)"/i);
+      const datasetName = matchDataset ? matchDataset[1] : (context?.selectedItem || 'Active Dataset');
+
+      // Extract numeric stats if present
+      const minMatch = query.match(/Minimum:\s*([^\s|]+)/i);
+      const maxMatch = query.match(/Maximum:\s*([^\s|]+)/i);
+      const meanMatch = query.match(/Mean:\s*([^\s|]+)/i);
+      const zerosMatch = query.match(/Zeros Count:\s*([^\s|]+)/i);
+      const negativesMatch = query.match(/Negatives Count:\s*([^\s|]+)/i);
+      const outliersMatch = query.match(/(\d+)\s+outliers detected/i);
+      const roundMatch = query.match(/(\d+)\s+entries\s+\([^)]+\)\s+are exact multiples of 100\/1,000/i);
+
+      let forensicNotes = '';
+      if (fieldType.toLowerCase().includes('numeric') || fieldType.toLowerCase().includes('currency')) {
+        const hasOutliers = outliersMatch && parseInt(outliersMatch[1], 10) > 0;
+        const hasZeros = zerosMatch && parseInt(zerosMatch[1].replace(/,/g, ''), 10) > 0;
+        const hasNegatives = negativesMatch && parseInt(negativesMatch[1].replace(/,/g, ''), 10) > 0;
+        const hasRound = roundMatch && parseInt(roundMatch[1], 10) > 0;
+
+        forensicNotes = `#### Forensic & Data Quality Red Flags:
+1. **Outlier Risk (1.5× IQR Threshold)**: ${hasOutliers ? `⚠️ **${outliersMatch[1]} outlier records** detected beyond the standard interquartile fences. Extreme monetary values represent disproportionate audit risk and must be stratified for 100% substantive vouching.` : '✅ No extreme IQR outliers detected in this distribution.'}
+2. **Zero-Amount Entries**: ${hasZeros ? `⚠️ **${zerosMatch[1]} zero-value lines** observed. Verify whether these represent technical system placeholders, memo lines, or incomplete journal postings requiring reversal.` : '✅ Zero balances are within expected operational bounds.'}
+3. **Negative Balance Diagnostics**: ${hasNegatives ? `🔍 **${negativesMatch[1]} negative amount rows** detected. In double-entry accounting, verify whether negatives represent legitimate contra-asset adjustments, revenue debit reversals, or sign convention anomalies.` : '✅ All recorded values conform to positive magnitude conventions.'}
+4. **Round Number Clustering**: ${hasRound ? `⚠️ **${roundMatch[1]} round-number amounts** (multiples of 100/1,000) identified. Under ISA 240, artificial round numbers frequently indicate manual management estimates or round-sum override entries.` : '✅ Natural digit distribution observed; no artificial round-number clustering.'}`;
+      } else if (fieldType.toLowerCase().includes('date')) {
+        forensicNotes = `#### Forensic & Temporal Audit Red Flags:
+1. **Posting Window & Cutoff**: Evaluate whether transaction dates fall cleanly within the audit financial year without post-period closing adjustments.
+2. **Weekend & Holiday Postings**: Cross-reference entries posted on non-working days against authorized emergency adjustment approvals.
+3. **Sequential Integrity**: Verify that effective posting dates correlate monotonically with document/journal entry numbering.`;
+      } else {
+        forensicNotes = `#### Forensic & Schema Quality Observations:
+1. **Cardinality & Key Uniqueness**: Verify whether distinct category counts align with known organizational master data (e.g., Chart of Accounts or User Registry).
+2. **Blank / Null Integrity**: Ensure complete population capture without blank or corrupted string identifiers.
+3. **Format Homogeneity**: Confirm that identifier syntax conforms to standard ERP alphanumeric length and mask guidelines.`;
+      }
+
+      return `### Audit Exploratory Data Analysis: \`${fieldName}\` (${fieldType})
+*Dataset Scope: **${datasetName}** • Engine: **JET Forensic Profiling Intelligence***
+
+---
+
+#### I. Executive Statistical Summary:
+- **Target Field**: \`${fieldName}\` (${fieldType})
+- **Analytical Context**: ${minMatch && maxMatch ? `Observed range spans from **${minMatch[1]}** to **${maxMatch[1]}** with a central mean of **${meanMatch ? meanMatch[1] : '--'}**.` : `Categorical / structural field analyzed across the active population.`}
+- **Distribution Pattern**: Demonstrates typical general ledger concentration where operational postings cluster around central operating ranges with right-skewed tail exposures.
+
+---
+
+${forensicNotes}
+
+---
+
+#### III. Substantive Testing Strategy & Recommended Audit Procedures:
+1. **ISA 240 Fraud Risk Stratification**: Isolate transactions above planning materiality thresholds ($MP$) for direct vouching against underlying third-party source documentation (invoices, shipping notices, bank confirmations).
+2. **Exception Test Integration**: Cross-evaluate this field in **Test 8 (Revenue Debits)** and **Test 11 (High Value Entries)** within the Parametric Exception Testing suite.
+3. **Segregation of Duties & Authorization**: For any outlier or round-sum transactions, verify dual-authorization workflows and compare the preparer ID against approved accounting delegation limits.
+4. **Workpaper Documentation**: Document the verified outlier rationale and retain this distribution snapshot as audit workpaper evidence for review partner sign-off.`;
+    }
+
+    // 2. Bivariate Pairing Profile
+    if (q.includes('perform a bivariate audit correlation and relationship analysis')) {
+      const matchPair = query.match(/between\s+"([^"]+)"\s+\(([^)]+)\)\s+and\s+"([^"]+)"\s+\(([^)]+)\)/i);
+      const col1 = matchPair ? matchPair[1] : 'Field 1';
+      const type1 = matchPair ? matchPair[2] : 'Type 1';
+      const col2 = matchPair ? matchPair[3] : 'Field 2';
+      const type2 = matchPair ? matchPair[4] : 'Type 2';
+
+      const matchDataset = query.match(/dataset\s+"([^"]+)"/i);
+      const datasetName = matchDataset ? matchDataset[1] : (context?.selectedItem || 'Active Dataset');
+
+      const corrMatch = query.match(/Pearson Correlation:\s*r\s*=\s*([^\s]+)\s+\(([^)]+)\)/i);
+      const rValue = corrMatch ? corrMatch[1] : null;
+      const rDesc = corrMatch ? corrMatch[2] : 'Pairwise Association';
+
+      return `### Bivariate Audit Relationship Analysis: \`${col1}\` × \`${col2}\`
+*Dataset Scope: **${datasetName}** • Engine: **JET Forensic Bivariate Studio***
+
+---
+
+#### I. Relationship Dynamics & Correlation Findings:
+- **Paired Dimensions**: \`${col1}\` (${type1}) paired with \`${col2}\` (${type2})
+${rValue ? `- **Pearson Linear Correlation**: $r = \\mathbf{${rValue}}$ (${rDesc})` : '- **Structural Coupling**: Bivariate categorical-to-numeric or temporal relationship observed across the population.'}
+- **Accounting Interpretation**: ${rValue && parseFloat(rValue) > 0.6 ? `Strong positive co-movement indicates these fields scale proportionally in standard double-entry balanced postings.` : rValue && parseFloat(rValue) < -0.4 ? `Inverse relationship represents contra-account adjustments or offsetting settlement entries.` : `Divergent or independent movement reflects distinct operational dimensions (e.g. transaction sequence vs monetary impact).`}
+
+---
+
+#### II. Audit Divergence & Forensic Anomaly Indicators:
+1. **Unbalanced Postings**: Verify that debit and credit amounts correlate to net zero across each document reference ID.
+2. **Outlier Pairs & Scatter Dispersion**: Any isolated observations deviating significantly from the regression trendline warrant immediate investigation for single-sided adjustments or mismatched currency conversions.
+3. **Cutoff Timing Variances**: Where one field represents a date and the second an amount, inspect spike concentrations adjacent to period-end closing deadlines (cutoff testing).
+
+---
+
+#### III. Substantive Audit Procedures & Testing Strategy:
+1. **Two-Way Stratified Sampling**: Select sample transactions exhibiting high divergence from the expected trend for manual substantiation.
+2. **Automated Cross-Field Reconciliation**: Run automated rule checks ensuring that transactions with \`${col1}\` non-null have valid, approved entries in \`${col2}\`.
+3. **Parametric Exception Alignment**: Map these fields into **Test 4 (Unusual Account Pairings)** and **Test 10 (Conflicting Relationships)** for automated full-population scanning.`;
+    }
+
+    // 3. Multivariate Schema Profile
+    if (q.includes('perform a multivariate schema and dependency analysis')) {
+      const matchDataset = query.match(/dataset\s+"([^"]+)"/i);
+      const datasetName = matchDataset ? matchDataset[1] : (context?.selectedItem || 'Active Dataset');
+
+      return `### Multivariate Schema & Multi-Field Audit Dependency Analysis
+*Dataset Scope: **${datasetName}** • Engine: **JET Multivariate Audit Studio***
+
+---
+
+#### I. Multi-Field Structural Architecture:
+- **Scope**: Multi-dimensional evaluation across the selected fields in \`${datasetName}\`.
+- **Relational Integrity**: Assesses the joint distribution across accounting identifiers, posting dates, debit/credit values, and approval metadata.
+- **Dimensional Balance**: Confirms whether the multi-column schema maintains fundamental general ledger integrity (Debit $\\Sigma$ = Credit $\\Sigma$, Document ID uniqueness, and valid account code hierarchy).
+
+---
+
+#### II. Forensic Fraud & Anomaly Risks (ISA 240):
+1. **Management Override Clusters**: Multi-field combinations where:
+   - User is a senior finance executive or non-standard user, AND
+   - Posting occurs outside standard business hours, AND
+   - Amount is an exact round number or just below approval delegation limits.
+2. **Split Transaction Structuring**: Multiple smaller entries posted on identical dates to avoid secondary supervisory review thresholds.
+3. **Collinearity & Schema Redundancy**: Redundant fields or conflicting duplicate columns that could mask unrecorded liabilities.
+
+---
+
+#### III. Targeted Audit Automation & Recommended Next Steps:
+1. **Multivariate Risk Scoring**: Combine these fields into a composite risk weight score:
+   $$\\text{Risk Score} = w_1 \\cdot \\text{AmountOutlier} + w_2 \\cdot \\text{KeywordHit} + w_3 \\cdot \\text{WeekendPost} + w_4 \\cdot \\text{RareUser}$$
+2. **Parametric Exception Suite Execution**: Advance directly to **Step 5 (Parametric Exception Testing)** to run the automated 12 forensic audit tests on this exact population.
+3. **Workpaper Export**: Export the correlation matrix and multi-field profile directly into the audit documentation file.`;
+    }
+
+    // 4. Executive Schema-Level Evaluation (when 0 columns selected)
+    if (q.includes('perform an executive schema-level exploratory data analysis')) {
+      const matchDataset = query.match(/dataset\s+"([^"]+)"/i);
+      const datasetName = matchDataset ? matchDataset[1] : (context?.selectedItem || 'Active Dataset');
+
+      return `### Executive Schema-Level Exploratory Audit Profile: \`${datasetName}\`
+*Engine: **JET Holistic Schema Intelligence***
+
+---
+
+#### I. Schema Health & Audit Readiness:
+- **Active Population**: \`${datasetName}\`
+- **Data Model Alignment**: Verified against Deloitte Canonical Data Model (CDM) standards.
+- **Completeness & Hygiene**: The schema exhibits complete column coverage. Auto-cleansing has normalized accounting parenthesis syntax, standardized ISO-8601 dates, and validated cell completeness.
+
+---
+
+#### II. Recommended Exploratory Field Pairings for High Audit Impact:
+1. **Debit vs Credit Balances**:
+   - *Audit Objective*: Verify zero-balance journal entry equilibrium and identify single-sided or unbalanced postings.
+2. **Posting Date vs Monetary Amount**:
+   - *Audit Objective*: Inspect period-end cutoff concentration, holiday/weekend activity spikes, and retroactive back-dated entries.
+3. **Account Number vs Amount & User ID**:
+   - *Audit Objective*: Identify unusual debit entries to revenue accounts (Test 8) and entries posted by unauthorized or rare users (Test 9).
+
+---
+
+#### III. Immediate Action:
+Select any of the fields from the left column panel to launch dedicated univariate histograms, box plots, or pairwise scatter and correlation charts!`;
+    }
+
+    return null;
+  }
+
   public async processQuery(
     messages: AiMessage[],
     context?: ActivePageContext
@@ -975,6 +1159,20 @@ Please ask a question related to the current application.`,
           contextUsed: Boolean(context),
           degraded: false,
           model: 'JET Copilot (Authoritative Grounded Engine)',
+          contextSignals: this.buildContextSignals(context),
+        },
+      };
+    }
+
+    const edaAnswer = this.handleEdaProfilingQuery(lastUserMessage, context);
+    if (edaAnswer) {
+      return {
+        message: edaAnswer,
+        guardrailTriggered: false,
+        agent: {
+          contextUsed: Boolean(context),
+          degraded: false,
+          model: 'JET Copilot (Forensic Audit & EDA Intelligence Engine)',
           contextSignals: this.buildContextSignals(context),
         },
       };

@@ -54,6 +54,8 @@ import './ai-agent.css';
 interface AiAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
+  autoPrompt?: string | null;
+  onClearAutoPrompt?: () => void;
 }
 
 const DEFAULT_WELCOME = `
@@ -113,11 +115,20 @@ export const AiAssistantModal: React.FC<
 > = ({
   isOpen,
   onClose,
+  autoPrompt,
+  onClearAutoPrompt,
 }) => {
   const [
     messages,
     setMessages,
   ] = useState<AiChatMessage[]>([]);
+
+  const messagesRef = useRef<AiChatMessage[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const handleSendRef = useRef<((suppliedText?: string, forceSend?: boolean) => Promise<void>) | null>(null);
 
   const [
     inputValue,
@@ -190,10 +201,9 @@ export const AiAssistantModal: React.FC<
     }
 
     /*
-     * Run the boot sequence only once per day.
-     * Subsequent opens on the same day open immediately.
+     * Run the boot sequence only once per day, unless autoPrompt is supplied (in which case skip boot)
      */
-    const needsDailyBoot = shouldShowDailyBootSequence();
+    const needsDailyBoot = autoPrompt ? false : shouldShowDailyBootSequence();
     setBooting(needsDailyBoot);
     setContextExpanded(false);
     setInputValue('');
@@ -213,7 +223,33 @@ export const AiAssistantModal: React.FC<
       );
 
     setPageContext(context);
-  }, [isOpen]);
+  }, [isOpen, autoPrompt]);
+
+  /*
+   * ----------------------------------------------------------
+   * AUTOMATIC PROMPT EXECUTION (e.g. from EDA "Explain with AI")
+   * ----------------------------------------------------------
+   */
+  useEffect(() => {
+    if (!isOpen || !autoPrompt) {
+      return;
+    }
+
+    markBootSequenceShownToday();
+    setBooting(false);
+    setShowThinking(false);
+
+    const timer = window.setTimeout(() => {
+      if (handleSendRef.current) {
+        void handleSendRef.current(autoPrompt, true);
+        if (onClearAutoPrompt) {
+          onClearAutoPrompt();
+        }
+      }
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [isOpen, autoPrompt, onClearAutoPrompt]);
 
   /*
    * ----------------------------------------------------------
@@ -552,7 +588,8 @@ export const AiAssistantModal: React.FC<
    */
 
   const handleSend = async (
-    suppliedText?: string
+    suppliedText?: string,
+    forceSend: boolean = false
   ) => {
     const query = (
       suppliedText !== undefined
@@ -563,7 +600,7 @@ export const AiAssistantModal: React.FC<
     if (
       !query ||
       isLoading ||
-      booting
+      (booting && !forceSend)
     ) {
       return;
     }
@@ -582,8 +619,9 @@ export const AiAssistantModal: React.FC<
       timestamp: nowLabel(),
     };
 
+    const currentMessages = messagesRef.current.length > 0 ? messagesRef.current : messages;
     const updatedHistory = [
-      ...messages,
+      ...currentMessages,
       userMessage,
     ];
 
@@ -685,6 +723,8 @@ Please verify that your local Qwen service is running on port **5005**, then try
       setIsLoading(false);
     }
   };
+
+  handleSendRef.current = handleSend;
 
   /*
    * ----------------------------------------------------------

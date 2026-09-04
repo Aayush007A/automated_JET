@@ -1560,12 +1560,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                           <button
                             type="button"
                             onClick={() => {
-                              const colName = selectedColumnObjects[0]?.name || 'current field';
-                              const colType = selectedColumnObjects[0]?.inferredType || 'field';
-                              const isSingle = selectedColumnObjects.length === 1;
-                              const promptText = isSingle
-                                ? `Analyze the statistical distribution, outliers, skewness, and data quality implications for column "${colName}" (${colType}) in dataset "${activeDataset.title}". Provide key audit observations and recommendations.`
-                                : `Analyze the correlation, relationships, and data dependencies between fields (${selectedColumnObjects.map(c => c.name).join(', ')}) in dataset "${activeDataset.title}". Provide audit risk signals and pattern findings.`;
+                              const promptText = generateIntelligentEdaPrompt(selectedColumnObjects, activeDataset);
+                              const colName = selectedColumnObjects[0]?.name || activeDataset.title;
 
                               window.dispatchEvent(new CustomEvent('jet:open-ai', {
                                 detail: {
@@ -1632,12 +1628,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                         <button
                           type="button"
                           onClick={() => {
-                            const colName = selectedColumnObjects[0]?.name || 'current field';
-                            const colType = selectedColumnObjects[0]?.inferredType || 'field';
-                            const isSingle = selectedColumnObjects.length === 1;
-                            const promptText = isSingle
-                              ? `Analyze the statistical distribution, outliers, skewness, and data quality implications for column "${colName}" (${colType}) in dataset "${activeDataset.title}". Provide key audit observations and recommendations.`
-                              : `Analyze the correlation, relationships, and data dependencies between fields (${selectedColumnObjects.map(c => c.name).join(', ')}) in dataset "${activeDataset.title}". Provide audit risk signals and pattern findings.`;
+                            const promptText = generateIntelligentEdaPrompt(selectedColumnObjects, activeDataset);
+                            const colName = selectedColumnObjects[0]?.name || activeDataset.title;
 
                             window.dispatchEvent(new CustomEvent('jet:open-ai', {
                               detail: {
@@ -2778,6 +2770,110 @@ function computeMissingCorrelation(cols: ColumnMetricItem[]): MissingCorrelation
   return { pairs: pairs.sort((x, y) => y.coOccurPct - x.coOccurPct).slice(0, 6) };
 }
 
+// ── Intelligent EDA Prompt Generator for AI Copilot ───────────────────────
+function generateIntelligentEdaPrompt(
+  selectedCols: ColumnMetricItem[],
+  dataset: ExtractedDatasetProfile
+): string {
+  if (!selectedCols || selectedCols.length === 0) {
+    return `Perform an executive schema-level exploratory data analysis (EDA) and forensic data quality evaluation for dataset "${dataset.title}" (${dataset.columns.length} columns, ${dataset.totalRows.toLocaleString()} rows, ${dataset.overallCompletenessPct}% overall completeness).
+Please evaluate:
+1. Primary schema structure: Key identifier fields, date ranges, and monetary/financial measure columns.
+2. Data quality & risk indicators: Missing values, high-cardinality flags, or potential formatting anomalies.
+3. Top Recommended Explorations: Identify the top 3 specific field pairings to profile in the Exploratory Studio for substantive Journal Entry Testing (JET) audit procedures.`;
+  }
+
+  if (selectedCols.length === 1) {
+    const col = selectedCols[0];
+    const kind = classify(col);
+    let statDetails = '';
+
+    if (kind === 'numeric' && col.numericStats) {
+      const vals = col.rawValues.map(parseNum).filter(Number.isFinite);
+      const outliers = computeIQROutliers(vals);
+      const roundClustering = computeRoundNumberClustering(col);
+      statDetails = `
+- Numeric Descriptive Statistics:
+  • Minimum: ${formatCompactNumber(col.numericStats.min)} | Maximum: ${formatCompactNumber(col.numericStats.max)}
+  • Mean: ${formatCompactNumber(col.numericStats.mean)} | Median: ${formatCompactNumber(col.numericStats.median)}
+  • Zeros Count: ${col.numericStats.zeros.toLocaleString()} | Negatives Count: ${col.numericStats.negatives.toLocaleString()}
+- Outlier Diagnostics (1.5× IQR Fence):
+  • ${outliers && outliers.outlierCount > 0 ? `${outliers.outlierCount.toLocaleString()} outliers detected (${outliers.outlierPct}% of values) outside [${formatCompactNumber(outliers.lowerFence)} to ${formatCompactNumber(outliers.upperFence)}]` : 'No significant IQR outliers detected'}
+${roundClustering && roundClustering.roundCount > 0 ? `- Round Number Clustering: ${roundClustering.roundCount.toLocaleString()} entries (${roundClustering.roundPct}%) are exact multiples of 100/1,000` : ''}`;
+    } else if (kind === 'categorical') {
+      statDetails = `
+- Categorical Dispersion & Distinct Entries:
+  • Distinct Values: ${col.uniqueCount.toLocaleString()} (${col.distinctPct}% unique)
+  • Top Sample Entries: ${col.sampleValues.slice(0, 6).join(', ')}`;
+    } else if (kind === 'date') {
+      statDetails = `
+- Temporal Coverage & Date Entries:
+  • Distinct Dates: ${col.uniqueCount.toLocaleString()} across ${col.validCount.toLocaleString()} valid rows
+  • Sample Dates: ${col.sampleValues.slice(0, 6).join(', ')}`;
+    } else {
+      statDetails = `
+- Identifier Dispersion & Unique Keys:
+  • Distinct Keys: ${col.uniqueCount.toLocaleString()} (${col.distinctPct}% unique)
+  • Sample Values: ${col.sampleValues.slice(0, 6).join(', ')}`;
+    }
+
+    return `Perform a detailed audit exploratory data analysis (EDA) on field "${col.name}" (${col.inferredType}) in dataset "${dataset.title}":
+- Dataset Context: ${dataset.title} (${dataset.totalRows.toLocaleString()} rows, ${col.completenessPct}% complete, ${col.missingCount} nulls)
+${statDetails}
+
+Please provide an authoritative audit evaluation covering:
+1. Distribution Profile & Operational Meaning: What does this distribution shape tell us about business activity recorded in this column?
+2. Forensic & Data Quality Anomalies: Are there audit red flags regarding zeros, negative values, artificial rounding, or extreme outliers?
+3. Journal Entry Testing (JET) Audit Impact: How should this field be stratified, filtered, or tested during substantive audit procedures under ISA 240?`;
+  }
+
+  if (selectedCols.length === 2) {
+    const [c1, c2] = selectedCols;
+    const kind1 = classify(c1);
+    const kind2 = classify(c2);
+    let pairDetails = '';
+
+    if (kind1 === 'numeric' && kind2 === 'numeric') {
+      const n = Math.min(c1.rawValues.length, c2.rawValues.length);
+      const x: number[] = [];
+      const y: number[] = [];
+      for (let i = 0; i < n; i++) {
+        const vx = parseNum(c1.rawValues[i]);
+        const vy = parseNum(c2.rawValues[i]);
+        if (Number.isFinite(vx) && Number.isFinite(vy)) {
+          x.push(vx);
+          y.push(vy);
+        }
+      }
+      const r = x.length > 2 ? pearsonCorrelation(x, y) : 0;
+      const corrStrength = Math.abs(r) >= 0.7 ? 'Strong' : Math.abs(r) >= 0.4 ? 'Moderate' : Math.abs(r) >= 0.15 ? 'Weak' : 'Negligible';
+      const corrDirection = r > 0 ? 'Direct Positive' : r < 0 ? 'Inverse Negative' : 'Zero / Uncorrelated';
+      pairDetails = `- Pearson Correlation: r = ${r.toFixed(3)} (${corrStrength} ${corrDirection} correlation based on ${x.length.toLocaleString()} observations)`;
+    } else {
+      pairDetails = `- Pairing Attributes: "${c1.name}" (${c1.inferredType}, ${c1.uniqueCount.toLocaleString()} distinct) paired with "${c2.name}" (${c2.inferredType}, ${c2.uniqueCount.toLocaleString()} distinct)`;
+    }
+
+    return `Perform a bivariate audit correlation and relationship analysis between "${c1.name}" (${c1.inferredType}) and "${c2.name}" (${c2.inferredType}) in dataset "${dataset.title}":
+- Dataset Context: ${dataset.title} (${dataset.totalRows.toLocaleString()} rows)
+${pairDetails}
+
+Please evaluate:
+1. Relationship & Co-movement: How do these two fields interact, and does the observed correlation make business/accounting sense?
+2. Audit Divergence & Anomaly Indicators: What transaction patterns (e.g. mismatched dates, unexpected debit/credit ratios, or unusual entity pairings) would constitute high-risk audit anomalies?
+3. Substantive Testing Strategy: How should the audit engagement team design automated tests or sampling thresholds targeting this specific pairing?`;
+  }
+
+  // 3+ Columns (Multivariate)
+  const colDescriptions = selectedCols.map(c => `"${c.name}" (${c.inferredType}, ${c.uniqueCount.toLocaleString()} unique)`).join(', ');
+  return `Perform a multivariate schema and dependency analysis across the ${selectedCols.length} selected fields [${colDescriptions}] in dataset "${dataset.title}":
+- Dataset Context: ${dataset.title} (${dataset.totalRows.toLocaleString()} rows, ${selectedCols.length} fields selected)
+
+Please evaluate:
+1. Multi-Field Dependencies: What structural accounting relationships exist between these variables (e.g. balanced entry integrity, transaction timing, approval hierarchies)?
+2. Forensic Red Flags: What combined multi-field conditions indicate high-risk journal entries, management override, or schema anomalies?
+3. Targeted Audit Automation: What specific multi-dimensional tests or risk scores should be applied to these fields in the JET pipeline?`;
+}
+
 // ── Render Function for Intelligent Semantic Exploratory Visual Studio (EDA) ──
 function renderEdaVisualContent(
   selectedCols: ColumnMetricItem[],
@@ -2818,7 +2914,7 @@ function renderEdaVisualContent(
         <p style={{ fontSize: '0.76rem', color: '#64748B', maxWidth: 480, margin: '0 0 16px', lineHeight: 1.5 }}>
           Choose columns from the left panel to dynamically visualize distributions, anomaly thresholds, correlations, and relationships.
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '16px' }}>
           <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#007680', background: '#F0FDFA', border: '1px solid #99F6E4', padding: '3px 10px', borderRadius: '20px' }}>
             1 Column: Univariate Distribution &amp; Outliers
           </span>
@@ -2829,6 +2925,39 @@ function renderEdaVisualContent(
             3+ Columns: Multivariate Matrix &amp; Dependencies
           </span>
         </div>
+
+        {/* AI Action to Analyze Full Schema */}
+        <button
+          type="button"
+          onClick={() => {
+            const promptText = generateIntelligentEdaPrompt([], dataset);
+            window.dispatchEvent(new CustomEvent('jet:open-ai', {
+              detail: {
+                prompt: promptText,
+                context: dataset.title,
+              }
+            }));
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 14px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #F0FDFA 0%, #E0F2FE 100%)',
+            border: '1.5px solid #99F6E4',
+            color: '#007680',
+            fontSize: '0.75rem',
+            fontWeight: 750,
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(0, 118, 128, 0.08)',
+            transition: 'all 0.15s ease',
+          }}
+          title="Ask AI Copilot to analyze dataset schema and recommend key fields to explore"
+        >
+          <Sparkles size={13} color="#007680" />
+          <span>Ask AI to Analyze Schema &amp; Suggest Key Audit Fields</span>
+        </button>
       </div>
     );
   }
