@@ -59,6 +59,14 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isWorkflowPage = location.pathname.includes('/jet') || location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
   const [isAiOpen, setIsAiOpen] = React.useState(false);
 
+  React.useEffect(() => {
+    const handleOpenAi = () => {
+      setIsAiOpen(true);
+    };
+    window.addEventListener('jet:open-ai', handleOpenAi);
+    return () => window.removeEventListener('jet:open-ai', handleOpenAi);
+  }, []);
+
   // Synchronize global application and page context
   useApplicationContextSync();
 

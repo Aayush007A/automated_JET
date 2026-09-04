@@ -255,7 +255,7 @@ export const AiAgentTrigger: React.FC<
             }}
           >
             <span className="jet-ai-trigger-status-dot" />
-            JET Copilot
+            Ask Data Agent
           </motion.div>
         )}
       </AnimatePresence>
