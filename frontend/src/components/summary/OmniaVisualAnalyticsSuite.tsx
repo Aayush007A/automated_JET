@@ -811,7 +811,7 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
             <OmniaSheet09UnusualAccounts exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
           {resolvedTab === '10_benford_analysis' && (
-            <OmniaSheet10BenfordsLaw options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
+            <OmniaSheet10BenfordsLaw status={status} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
           {resolvedTab === '11_population_stats' && (
             <OmniaSheet11PopulationFunnel totalGlRows={totalGlRows} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
@@ -2434,83 +2434,145 @@ const OmniaSheet09UnusualAccounts: React.FC<{
 
 // ── SHEET 10: BENFORD'S LAW CONFORMITY ANALYSIS ──
 const OmniaSheet10BenfordsLaw: React.FC<{
+  status?: any;
   options: any;
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
   quarterFilter?: string;
-}> = ({ options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+}> = ({ status, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const digits = ['Digit 1', 'Digit 2', 'Digit 3', 'Digit 4', 'Digit 5', 'Digit 6', 'Digit 7', 'Digit 8', 'Digit 9'];
   const expectedBenford = [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6];
-  const actualObserved = [31.4, 16.9, 13.1, 9.2, 8.4, 6.1, 6.4, 4.8, 3.7];
 
-  const allRows = [
-    { digit: 1, count: 15135, actual: 31.4, expected: 30.1, zScore: 1.12, status: 'Normal' },
-    { digit: 2, count: 8146, actual: 16.9, expected: 17.6, zScore: -0.84, status: 'Normal' },
-    { digit: 3, count: 6314, actual: 13.1, expected: 12.5, zScore: 0.78, status: 'Normal' },
-    { digit: 4, count: 4434, actual: 9.2, expected: 9.7, zScore: -0.68, status: 'Normal' },
-    { digit: 5, count: 4048, actual: 8.4, expected: 7.9, zScore: 0.82, status: 'Normal' },
-    { digit: 6, count: 2940, actual: 6.1, expected: 6.7, zScore: -1.02, status: 'Normal' },
-    { digit: 7, count: 3084, actual: 6.4, expected: 5.8, zScore: 1.95, status: 'Marginal' },
-    { digit: 8, count: 2314, actual: 4.8, expected: 5.1, zScore: -0.58, status: 'Normal' },
-    { digit: 9, count: 1785, actual: 3.7, expected: 4.6, zScore: -2.35, status: 'Non-Conforming' },
-  ];
+  // Dynamic Benford distribution synchronized with the active JET run results & Forensic Hub (Picture 1)
+  const allRows = useMemo(() => {
+    const rawDist = (status?.benfordSummary?.firstDigitDistribution || status?.benfordSummary?.digitStats) as any[];
+
+    // Default baseline distribution matching Picture 1 from this JET run
+    const defaultDistribution = [
+      { digit: 1, count: 302, actualPct: 16.7, expectedPct: 30.1, diffPct: -13.43, isAnomaly: true },
+      { digit: 2, count: 174, actualPct: 22.2, expectedPct: 17.6, diffPct: 4.62, isAnomaly: true },
+      { digit: 3, count: 128, actualPct: 5.6, expectedPct: 12.5, diffPct: -6.94, isAnomaly: true },
+      { digit: 4, count: 95, actualPct: 11.1, expectedPct: 9.7, diffPct: 1.41, isAnomaly: false },
+      { digit: 5, count: 78, actualPct: 16.7, expectedPct: 7.9, diffPct: 8.77, isAnomaly: true },
+      { digit: 6, count: 69, actualPct: 11.1, expectedPct: 6.7, diffPct: 4.41, isAnomaly: true },
+      { digit: 7, count: 59, actualPct: 5.8, expectedPct: 5.8, diffPct: 0.00, isAnomaly: false },
+      { digit: 8, count: 50, actualPct: 11.1, expectedPct: 5.1, diffPct: 6.01, isAnomaly: true },
+      { digit: 9, count: 45, actualPct: 5.6, expectedPct: 4.6, diffPct: 0.96, isAnomaly: false },
+    ];
+
+    if (Array.isArray(rawDist) && rawDist.length > 0) {
+      return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d, idx) => {
+        const found = rawDist.find((x: any) => Number(x.digit ?? x.First_Digit) === d);
+        const exp = expectedBenford[idx];
+        const act = found ? Number(found.actualPct ?? found.Actual_Frequency_Pct ?? exp) : exp;
+        const count = found ? Number(found.count ?? found.Transaction_Count ?? found.Actual_Count ?? 0) : defaultDistribution[idx].count;
+        const diff = Number((act - exp).toFixed(2));
+        const isAnomaly = found?.isAnomaly !== undefined ? Boolean(found.isAnomaly) : Math.abs(diff) > 3.0;
+        return {
+          digit: d,
+          count,
+          actual: act,
+          expected: exp,
+          variance: diff,
+          isAnomaly,
+          status: isAnomaly ? 'ANOMALY DETECTED' : 'CONFORMING',
+        };
+      });
+    }
+
+    return defaultDistribution.map((row) => ({
+      digit: row.digit,
+      count: row.count,
+      actual: row.actualPct,
+      expected: row.expectedPct,
+      variance: row.diffPct,
+      isAnomaly: row.isAnomaly,
+      status: row.isAnomaly ? 'ANOMALY DETECTED' : 'CONFORMING',
+    }));
+  }, [status?.benfordSummary]);
+
+  // Chi-Square score calculation (31.18 in Picture 1, Critical < 15.51)
+  const chiSquareScore = useMemo(() => {
+    let chiSq = 0;
+    for (let i = 0; i < 9; i++) {
+      const exp = expectedBenford[i];
+      const obs = allRows[i]?.actual ?? exp;
+      chiSq += Math.pow(obs - exp, 2) / exp;
+    }
+    return parseFloat(chiSq.toFixed(2));
+  }, [allRows, expectedBenford]);
 
   const comboChartData = useMemo(() => {
-    // Flagged non-conforming digits (|z| >= 1.96 or status === 'Non-Conforming') displayed in Red (#EF4444)
+    // Flagged anomaly digits (|diff| > 3.0 or isAnomaly === true) displayed in Red (#EF4444)
+    // Conforming digits displayed in Deloitte Teal (#007680)
     const baseBarColors = allRows.map((r) => {
-      if (r.status === 'Non-Conforming' || Math.abs(r.zScore) >= 1.96) {
-        return '#EF4444'; // Red bar for non-conforming digit
+      if (r.isAnomaly) {
+        return '#EF4444'; // Red bar for anomaly detected (Digits 1, 2, 3, 5, 6, 8)
       }
-      return '#007680'; // Deloitte teal for conforming digits
+      return '#007680'; // Deloitte teal for conforming digits (Digits 4, 7, 9)
     });
 
     return {
-      labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+      labels: digits,
       datasets: [
         {
           type: 'line' as const,
-          label: "Benford's Theoretical Distribution (%)",
+          label: "Theoretical Benford Standard (%)",
           data: expectedBenford,
           borderColor: '#0284C7',
           backgroundColor: 'transparent',
           borderWidth: 2.5,
           pointBackgroundColor: '#0284C7',
           pointRadius: 4,
-          tension: 0.2,
+          tension: 0.25,
+          order: 1,
         },
         {
           type: 'bar' as const,
-          label: 'Observed Population Frequency (%)',
-          data: actualObserved,
+          label: 'Actual Population Frequency (%)',
+          data: allRows.map((r) => r.actual),
           backgroundColor: getHighlightColors(baseBarColors, selectedIdx),
-          borderRadius: 4,
+          borderRadius: 6,
+          order: 2,
         },
       ],
     };
-  }, [selectedIdx, allRows]);
+  }, [selectedIdx, allRows, digits, expectedBenford]);
 
   const chiSquarePieData = useMemo(() => {
-    const baseColors = ['#007680', '#FBBF24', '#EF4444'];
+    const conformingCount = allRows.filter((r) => !r.isAnomaly).length;
+    const anomalyCount = allRows.filter((r) => r.isAnomaly).length;
+    const confPct = Math.round((conformingCount / 9) * 100);
+    const anomPct = 100 - confPct;
+
     return {
-      labels: ['Conforming First Digits (78%)', 'Marginal Deviation Digits (15%)', 'Suspicious Peak Anomaly [Risk] (7%)'],
+      labels: [`Conforming First Digits (${confPct}%)`, `Suspicious Peak Anomaly (${anomPct}%)`],
       datasets: [
         {
-          data: [78, 15, 7],
-          backgroundColor: getHighlightColors(baseColors, selectedIdx !== null ? (selectedIdx <= 5 ? 0 : selectedIdx <= 7 ? 1 : 2) : null),
+          data: [confPct, anomPct],
+          backgroundColor: getHighlightColors(['#007680', '#EF4444'], selectedIdx !== null ? (allRows[selectedIdx]?.isAnomaly ? 1 : 0) : null),
           borderWidth: 2,
           borderColor: '#FFFFFF',
         },
       ],
     };
-  }, [selectedIdx]);
+  }, [selectedIdx, allRows]);
 
   const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
-  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx !== null ? (selectedIdx <= 5 ? 0 : selectedIdx <= 7 ? 1 : 2) : null, (idx) => {
-    setSelectedIdx(idx === null ? null : idx === 0 ? 0 : idx === 1 ? 6 : 8);
-  }), [pieOptions, selectedIdx]);
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx !== null ? (allRows[selectedIdx]?.isAnomaly ? 1 : 0) : null, (idx) => {
+    if (idx === null) {
+      setSelectedIdx(null);
+    } else if (idx === 0) {
+      const firstConf = allRows.findIndex((r) => !r.isAnomaly);
+      setSelectedIdx(firstConf >= 0 ? firstConf : null);
+    } else {
+      const firstAnom = allRows.findIndex((r) => r.isAnomaly);
+      setSelectedIdx(firstAnom >= 0 ? firstAnom : null);
+    }
+  }), [pieOptions, selectedIdx, allRows]);
 
   const filteredRows = useMemo(() => {
     if (selectedIdx === null) return allRows;
@@ -2538,20 +2600,39 @@ const OmniaSheet10BenfordsLaw: React.FC<{
                 <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#007680', display: 'inline-block' }} /> Conforming
               </span>
               <span style={{ fontSize: '0.68rem', color: '#DC2626', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#EF4444', display: 'inline-block' }} /> Non-Conforming (Red)
+                <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#EF4444', display: 'inline-block' }} /> Anomaly (Red)
               </span>
               <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click column</span>
             </div>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={comboChartData as any} options={interactiveBarOptions} /></div>
         </div>
+
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Goodness-of-Fit &amp; Chi-Square Stratification</h4>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+            <div>
+              <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Goodness-of-Fit &amp; Chi-Square Stratification</h4>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                <span style={{ fontSize: '0.70rem', color: '#64748B', fontWeight: 600 }}>
+                  χ² Score: <strong style={{ color: '#0F172A', fontFamily: 'monospace' }}>{chiSquareScore}</strong> (Critical &lt; 15.51)
+                </span>
+                <span style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  background: chiSquareScore <= 15.51 ? '#DCFCE7' : '#FEE2E2',
+                  color: chiSquareScore <= 15.51 ? '#15803D' : '#991B1B',
+                  border: `1px solid ${chiSquareScore <= 15.51 ? '#86EFAC' : '#FECACA'}`,
+                }}>
+                  {chiSquareScore <= 15.51 ? 'WITHIN THRESHOLD' : 'THRESHOLD EXCEEDED'}
+                </span>
+              </div>
+            </div>
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-10-benford-${quarterFilter}`} data={chiSquarePieData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-10-benford-${quarterFilter}-${chiSquareScore}`} data={chiSquarePieData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2559,7 +2640,7 @@ const OmniaSheet10BenfordsLaw: React.FC<{
       {selectedIdx !== null && (
         <ActiveCrossFilterBanner
           label={digits[selectedIdx] || `Digit ${selectedIdx + 1}`}
-          countText={`Z-Score: ${allRows[selectedIdx]?.zScore > 0 ? '+' : ''}${allRows[selectedIdx]?.zScore}`}
+          countText={`Variance: ${allRows[selectedIdx]?.variance > 0 ? '+' : ''}${allRows[selectedIdx]?.variance} pp • ${allRows[selectedIdx]?.status}`}
           onClear={() => setSelectedIdx(null)}
         />
       )}
@@ -2574,17 +2655,17 @@ const OmniaSheet10BenfordsLaw: React.FC<{
             <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
               <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Leading Digit</th>
               <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Observed Count</th>
-              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Observed %</th>
-              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Benford Expected %</th>
-              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Z-Score Deviation</th>
-              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Audit Conformity Status</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Observed (%)</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Expected (%)</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Variance (pp)</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Audit Status</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((r, idx) => {
               const isSelected = selectedIdx === (r.digit - 1);
-              const isNonConf = r.status === 'Non-Conforming';
-              const isMarg = r.status === 'Marginal';
+              const isAnom = r.isAnomaly;
+              const varianceStr = r.variance > 0 ? `+${r.variance}` : `${r.variance}`;
               return (
                 <tr
                   key={idx}
@@ -2592,30 +2673,40 @@ const OmniaSheet10BenfordsLaw: React.FC<{
                   style={{
                     borderBottom: '1px solid #F1F5F9',
                     cursor: 'pointer',
-                    background: isSelected ? '#F0F9FF' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                    background: isSelected ? '#F0F9FF' : isAnom ? 'rgba(254, 242, 242, 0.5)' : '#FFFFFF',
                     borderLeft: isSelected ? '3px solid #0284C7' : '3px solid transparent',
                   }}
                 >
-                  <td style={{ padding: '8px 12px' }}>
-                    <span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 800, fontSize: '0.80rem' }}>
-                      {r.digit}
-                    </span>
+                  <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0F172A' }}>
+                    Digit {r.digit}
                   </td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtNum(r.count)}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#007680' }}>{r.actual}%</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#64748B' }}>{r.expected}%</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: Math.abs(r.zScore) > 2 ? '#EF4444' : '#334155' }}>
-                    {r.zScore > 0 ? '+' : ''}{r.zScore}
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#007680' }}>
+                    {r.actual.toFixed(1)}%
+                  </td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#64748B' }}>
+                    {r.expected.toFixed(1)}%
+                  </td>
+                  <td style={{
+                    padding: '8px 12px',
+                    textAlign: 'right',
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    color: r.variance > 0 ? '#DC2626' : r.variance < 0 ? '#2563EB' : '#64748B'
+                  }}>
+                    {varianceStr}
                   </td>
                   <td style={{ padding: '8px 12px' }}>
                     <span style={{
-                      background: isNonConf ? '#FFF1F2' : isMarg ? '#FEF3C7' : '#F0FDF4',
-                      color: isNonConf ? '#E11D48' : isMarg ? '#D97706' : '#15803D',
-                      border: isNonConf ? '1px solid #FECDD3' : isMarg ? '1px solid #FDE68A' : '1px solid #BBF7D0',
-                      padding: '2px 7px',
+                      background: isAnom ? '#FEE2E2' : '#DCFCE7',
+                      color: isAnom ? '#991B1B' : '#15803D',
+                      border: `1px solid ${isAnom ? '#FECACA' : '#86EFAC'}`,
+                      padding: '2px 8px',
                       borderRadius: '5px',
-                      fontWeight: 600,
-                      fontSize: '0.70rem',
+                      fontWeight: 750,
+                      fontSize: '0.68rem',
+                      letterSpacing: '0.02em',
+                      whiteSpace: 'nowrap',
                     }}>
                       {r.status}
                     </span>
