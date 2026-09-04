@@ -472,6 +472,8 @@ interface ExecutiveChartJsAnalyticsSuiteProps {
   status: RunSummary | null;
   config: RunConfig | null;
   enabledExceptions?: Record<string, boolean>;
+  quarterFilter?: string[];
+  onQuarterFilterChange?: (q: string[]) => void;
 }
 
 export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsSuiteProps> = ({
@@ -479,9 +481,13 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
   status,
   config,
   enabledExceptions,
+  quarterFilter: propQuarterFilter,
+  onQuarterFilterChange,
 }) => {
   const [activeTab, setActiveTab] = useState<string>('01_account_wise');
-  const [quarterFilter, setQuarterFilter] = useState<string>('ALL');
+  const [internalQuarterFilter, setInternalQuarterFilter] = useState<string[]>(['ALL']);
+  const quarterFilter = propQuarterFilter || internalQuarterFilter;
+  const setQuarterFilter = onQuarterFilterChange || setInternalQuarterFilter;
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
 
   // Format currency helper ($ accounting format)
@@ -540,7 +546,7 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
     const sheetInfo = sheets.find(s => s.id === activeTab);
     const sheetTitle = sheetInfo ? `${sheetInfo.num}. ${sheetInfo.title}` : activeTab;
 
-    const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
+    const _qm: Record<string, number> = { Q1: 0.24, Q2: 0.25, Q3: 0.25, Q4: 0.26 }; const _aq = quarterFilter.includes('ALL') ? [] : quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); const qMult = _aq.length === 0 ? 1 : _aq.reduce((s, q) => s + (_qm[q] || 0.25), 0);
 
     // 00 Engagement Details
     const mappedScopeAccounts = Math.round(totalTbRows * 0.48);
@@ -932,27 +938,53 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
             border: '1px solid #E2E8F0',
           }}>
             <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#475569', padding: '0 6px' }}>Filter:</span>
-            {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => setQuarterFilter(q)}
-                style={{
-                  border: 'none',
-                  background: quarterFilter === q ? '#007680' : 'transparent',
-                  color: quarterFilter === q ? '#FFFFFF' : '#475569',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.72rem',
-                  fontWeight: quarterFilter === q ? 700 : 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: quarterFilter === q ? '0 1px 3px rgba(0, 118, 128, 0.3)' : 'none',
-                }}
-              >
-                {q}
-              </button>
-            ))}
+            {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => {
+              const isActive = q === 'ALL'
+                ? quarterFilter.includes('ALL') || quarterFilter.length === 0
+                : quarterFilter.includes(q);
+              return (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    if (q === 'ALL') {
+                      setQuarterFilter(['ALL']);
+                    } else {
+                      const withoutAll = quarterFilter.filter(x => x !== 'ALL');
+                      const already = withoutAll.includes(q);
+                      const next = already
+                        ? withoutAll.filter(x => x !== q)
+                        : [...withoutAll, q];
+                      setQuarterFilter(next.length === 0 ? ['ALL'] : next);
+                    }
+                  }}
+                  style={{
+                    border: 'none',
+                    background: isActive ? '#007680' : 'transparent',
+                    color: isActive ? '#FFFFFF' : '#475569',
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isActive ? '0 1px 3px rgba(0, 118, 128, 0.3)' : 'none',
+                  }}
+                >
+                  {q}
+                </button>
+              );
+            })}
+            {!quarterFilter.includes('ALL') && quarterFilter.length > 0 && (
+              <span style={{
+                fontSize: '0.62rem', fontWeight: 600,
+                color: '#007680', background: '#F0FDFA',
+                border: '1px solid #99F6E4', borderRadius: '10px',
+                padding: '1px 7px', marginLeft: '2px',
+              }}>
+                {quarterFilter.filter(q => q !== 'ALL').sort().join(' + ')}
+              </span>
+            )}
           </div>
 
           <a
@@ -1038,7 +1070,7 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${activeTab}-${quarterFilter}`}
+          key={`${activeTab}-${quarterFilter.join('-')}`}
           initial={{ opacity: 0, y: 10, scale: 0.99 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.99 }}
@@ -1096,8 +1128,8 @@ const Sheet00EngagementDetails: React.FC<{
   pieOptions: any;
   config: RunConfig | null;
   status: RunSummary | null;
-  quarterFilter?: string;
-}> = ({ fmtNum, fmtCurr, totalGlRows, totalTbRows, options, pieOptions, config, status, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ fmtNum, fmtCurr, totalGlRows, totalTbRows, options, pieOptions, config, status, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const sp = (config?.sparkParameters || {}) as Record<string, any>;
@@ -1153,48 +1185,62 @@ const Sheet00EngagementDetails: React.FC<{
     const q3Ex = Math.round(totalGlRows * 0.0125);
     const q4Ex = Math.round(totalGlRows * 0.0235);
 
-    if (quarterFilter === 'Q1') {
-      return {
-        labels: ['Month 1 (Apr)', 'Month 2 (May)', 'Month 3 (Jun)'],
-        datasets: [
-          { label: 'Standard Population Volume (Q1)', data: [Math.round(q1Gl * 0.32), Math.round(q1Gl * 0.33), Math.round(q1Gl * 0.35)], backgroundColor: '#007680', borderRadius: 4 },
-          { label: 'Flagged Exception Targets (Q1)', data: [Math.round(q1Ex * 0.30), Math.round(q1Ex * 0.32), Math.round(q1Ex * 0.38)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
-        ]
-      };
-    }
-    if (quarterFilter === 'Q2') {
-      return {
-        labels: ['Month 4 (Jul)', 'Month 5 (Aug)', 'Month 6 (Sep)'],
-        datasets: [
-          { label: 'Standard Population Volume (Q2)', data: [Math.round(q2Gl * 0.33), Math.round(q2Gl * 0.33), Math.round(q2Gl * 0.34)], backgroundColor: '#007680', borderRadius: 4 },
-          { label: 'Flagged Exception Targets (Q2)', data: [Math.round(q2Ex * 0.31), Math.round(q2Ex * 0.33), Math.round(q2Ex * 0.36)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
-        ]
-      };
-    }
-    if (quarterFilter === 'Q3') {
-      return {
-        labels: ['Month 7 (Oct)', 'Month 8 (Nov)', 'Month 9 (Dec)'],
-        datasets: [
-          { label: 'Standard Population Volume (Q3)', data: [Math.round(q3Gl * 0.32), Math.round(q3Gl * 0.33), Math.round(q3Gl * 0.35)], backgroundColor: '#007680', borderRadius: 4 },
-          { label: 'Flagged Exception Targets (Q3)', data: [Math.round(q3Ex * 0.30), Math.round(q3Ex * 0.32), Math.round(q3Ex * 0.38)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
-        ]
-      };
-    }
-    if (quarterFilter === 'Q4') {
-      return {
-        labels: ['Month 10 (Jan)', 'Month 11 (Feb)', 'Month 12 (Mar)'],
-        datasets: [
-          { label: 'Standard Population Volume (Q4)', data: [Math.round(q4Gl * 0.31), Math.round(q4Gl * 0.31), Math.round(q4Gl * 0.38)], backgroundColor: '#007680', borderRadius: 4 },
-          { label: 'Flagged Exception Targets (Q4)', data: [Math.round(q4Ex * 0.28), Math.round(q4Ex * 0.28), Math.round(q4Ex * 0.44)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
-        ]
-      };
+    const activeQs = quarterFilter.includes('ALL') ? ['Q1', 'Q2', 'Q3', 'Q4'] : quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q));
+    if (activeQs.length === 1) {
+      const q = activeQs[0];
+      if (q === 'Q1') {
+        return {
+          labels: ['Month 1 (Apr)', 'Month 2 (May)', 'Month 3 (Jun)'],
+          datasets: [
+            { label: 'Standard Population Volume (Q1)', data: [Math.round(q1Gl * 0.32), Math.round(q1Gl * 0.33), Math.round(q1Gl * 0.35)], backgroundColor: '#007680', borderRadius: 4 },
+            { label: 'Flagged Exception Targets (Q1)', data: [Math.round(q1Ex * 0.30), Math.round(q1Ex * 0.32), Math.round(q1Ex * 0.38)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
+          ]
+        };
+      }
+      if (q === 'Q2') {
+        return {
+          labels: ['Month 4 (Jul)', 'Month 5 (Aug)', 'Month 6 (Sep)'],
+          datasets: [
+            { label: 'Standard Population Volume (Q2)', data: [Math.round(q2Gl * 0.33), Math.round(q2Gl * 0.33), Math.round(q2Gl * 0.34)], backgroundColor: '#007680', borderRadius: 4 },
+            { label: 'Flagged Exception Targets (Q2)', data: [Math.round(q2Ex * 0.31), Math.round(q2Ex * 0.33), Math.round(q2Ex * 0.36)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
+          ]
+        };
+      }
+      if (q === 'Q3') {
+        return {
+          labels: ['Month 7 (Oct)', 'Month 8 (Nov)', 'Month 9 (Dec)'],
+          datasets: [
+            { label: 'Standard Population Volume (Q3)', data: [Math.round(q3Gl * 0.32), Math.round(q3Gl * 0.33), Math.round(q3Gl * 0.35)], backgroundColor: '#007680', borderRadius: 4 },
+            { label: 'Flagged Exception Targets (Q3)', data: [Math.round(q3Ex * 0.30), Math.round(q3Ex * 0.32), Math.round(q3Ex * 0.38)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
+          ]
+        };
+      }
+      if (q === 'Q4') {
+        return {
+          labels: ['Month 10 (Jan)', 'Month 11 (Feb)', 'Month 12 (Mar)'],
+          datasets: [
+            { label: 'Standard Population Volume (Q4)', data: [Math.round(q4Gl * 0.31), Math.round(q4Gl * 0.31), Math.round(q4Gl * 0.38)], backgroundColor: '#007680', borderRadius: 4 },
+            { label: 'Flagged Exception Targets (Q4)', data: [Math.round(q4Ex * 0.28), Math.round(q4Ex * 0.28), Math.round(q4Ex * 0.44)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
+          ]
+        };
+      }
     }
 
+    const qDefs = [
+      { id: 'Q1', label: 'Q1 Fiscal', gl: q1Gl, ex: q1Ex },
+      { id: 'Q2', label: 'Q2 Fiscal', gl: q2Gl, ex: q2Ex },
+      { id: 'Q3', label: 'Q3 Fiscal', gl: q3Gl, ex: q3Ex },
+      { id: 'Q4', label: 'Q4 Year-End', gl: q4Gl, ex: q4Ex },
+    ];
+    const filteredDefs = quarterFilter.includes('ALL')
+      ? qDefs
+      : qDefs.filter(d => quarterFilter.includes(d.id));
+
     return {
-      labels: ['Q1 Fiscal', 'Q2 Fiscal', 'Q3 Fiscal', 'Q4 Year-End'],
+      labels: filteredDefs.map(d => d.label),
       datasets: [
-        { label: 'Standard Population Volume', data: [q1Gl, q2Gl, q3Gl, q4Gl], backgroundColor: '#007680', borderRadius: 4 },
-        { label: 'Flagged Exception Targets', data: [q1Ex, q2Ex, q3Ex, q4Ex], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
+        { label: 'Standard Population Volume', data: filteredDefs.map(d => d.gl), backgroundColor: '#007680', borderRadius: 4 },
+        { label: 'Flagged Exception Targets', data: filteredDefs.map(d => d.ex), backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
       ]
     };
   }, [totalGlRows, quarterFilter]);
@@ -1226,11 +1272,11 @@ const Sheet00EngagementDetails: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Interactive Slice Click</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-00-${quarterFilter}`} data={popDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-00-${quarterFilter.join('-')}`} data={popDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Quarterly Population &amp; Exception Scanning Density {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Quarterly Population &amp; Exception Scanning Density {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={periodBarData} options={options} /></div>
         </div>
       </div>
@@ -1258,31 +1304,28 @@ const Sheet00EngagementDetails: React.FC<{
   );
 };
 
-const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const rawCategories = ['Trade Receivables', 'Finished Goods', 'Cash Holdings', 'Accrued Liabilities'];
 
   const chartData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.24;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.26;
+    { const _aqM = { Q1: 0.24, Q2: 0.25, Q3: 0.25, Q4: 0.26 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const stdBase = [1420, 2180, 1850, 940, 120, 45];
     const nonStdBase = [320, 540, 410, 290, exCounts.ex1, exCounts.ex2];
     const baseColors = ['#007680', '#007680', '#007680', '#007680', '#007680', '#007680'];
     return {
       labels: ['Cash & Equiv', 'Trade Receivables', 'Inventories', 'Accrued Expenses', 'Suspense', 'Seldom Rev'],
       datasets: [
-        { label: quarterFilter === 'ALL' ? 'Total Standard Lines' : `Standard Lines (${quarterFilter})`, data: stdBase.map(v => Math.round(v * mult)), backgroundColor: getHighlightColors(baseColors, selectedIdx), borderRadius: 4 },
-        { label: quarterFilter === 'ALL' ? 'Total Non-Standard Lines' : `Non-Standard Lines (${quarterFilter})`, data: nonStdBase.map(v => Math.round(v * mult)), backgroundColor: selectedIdx !== null ? '#BAE6FD33' : '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
+        { label: quarterFilter.includes('ALL') ? 'Total Standard Lines' : `Standard Lines (${quarterFilter.filter(q => q !== 'ALL').join(' + ')})`, data: stdBase.map(v => Math.round(v * mult)), backgroundColor: getHighlightColors(baseColors, selectedIdx), borderRadius: 4 },
+        { label: quarterFilter.includes('ALL') ? 'Total Non-Standard Lines' : `Non-Standard Lines (${quarterFilter.filter(q => q !== 'ALL').join(' + ')})`, data: nonStdBase.map(v => Math.round(v * mult)), backgroundColor: selectedIdx !== null ? '#BAE6FD33' : '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 }
       ]
     };
   }, [quarterFilter, exCounts, selectedIdx]);
 
   const fsDoughnutData = useMemo(() => {
-    const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
+    const _qm: Record<string, number> = { Q1: 0.24, Q2: 0.25, Q3: 0.25, Q4: 0.26 }; const _aq = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); const qMult = _aq.length === 0 ? 1 : _aq.reduce((s, q) => s + (_qm[q] || 0.25), 0);
     const baseAmounts = [28940000, 19820500, 14280900, 8420100].map(v => Math.round(v * qMult));
     const totalExp = baseAmounts.reduce((a, b) => a + b, 0);
     const labels = rawCategories;
@@ -1328,7 +1371,7 @@ const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 1 - Account Activity Distribution {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 1 - Account Activity Distribution {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click column to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={chartData} options={interactiveBarOptions} /></div>
@@ -1339,7 +1382,7 @@ const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: 
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            <Doughnut key={`doughnut-01-${quarterFilter}`} data={fsDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-01-${quarterFilter.join('-')}`} data={fsDoughnutData} options={interactivePieOptions} />
             <div style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }} aria-label="Financial Statement Line Debit Exposure Pie Chart">
               Financial Statement Line Debit Exposure Pie Chart Overall Split:
               Trade Receivables: 40% ($28,940,000); Finished Goods: 28% ($19,820,500); Cash Holdings: 20% ($14,280,900); Accrued Liabilities: 12% ($8,420,100). Total Exposure: $71,461,500.
@@ -1358,7 +1401,7 @@ const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: 
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 1 - Account Wise Analysis Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 1 - Account Wise Analysis Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Accounts Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -1374,10 +1417,9 @@ const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: 
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Debits</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Credits</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Net Activity</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q1 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q2 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q3 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q4 ($)</th>
+                {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map(q => (quarterFilter.includes('ALL') || quarterFilter.includes(q)) && (
+                  <th key={q} style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.70rem', textTransform: 'uppercase', background: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#F0FDFA' : undefined, color: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#007680' : undefined, whiteSpace: 'nowrap' }}>{q} ($)</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -1404,10 +1446,10 @@ const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: 
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>{fmtCurr(r.debits)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>{fmtCurr(r.credits)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680' }}>{fmtCurr(r.net)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q1A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q2A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q3A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q4A)}</td>
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q1') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? 600 : undefined }}>{fmtCurr(r.q1A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q2') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? 600 : undefined }}>{fmtCurr(r.q2A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q3') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? 600 : undefined }}>{fmtCurr(r.q3A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q4') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? 600 : undefined }}>{fmtCurr(r.q4A)}</td> : null}
                   </tr>
                 );
               })}
@@ -1419,7 +1461,7 @@ const Sheet01AccountWise: React.FC<{ exCounts: Record<string, number>; options: 
   );
 };
 
-const Sheet02RevenueDebits: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet02RevenueDebits: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const categories = ['Sales Returns', 'Price Adjustments', 'Rebate Settlements', 'Manual Overrides'];
@@ -1471,7 +1513,7 @@ const Sheet02RevenueDebits: React.FC<{ exCounts: Record<string, number>; options
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 2 - Revenue Debit Reversal Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 2 - Revenue Debit Reversal Trajectory {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -1493,7 +1535,7 @@ const Sheet02RevenueDebits: React.FC<{ exCounts: Record<string, number>; options
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 2 - Large Debits to Revenue Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 2 - Large Debits to Revenue Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: 600 }}>{filteredRows.length} High Risk Exceptions</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -1508,10 +1550,9 @@ const Sheet02RevenueDebits: React.FC<{ exCounts: Record<string, number>; options
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Net Reversal</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Weekend Postings</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Holiday Postings</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q1 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q2 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q3 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q4 ($)</th>
+                {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map(q => (quarterFilter.includes('ALL') || quarterFilter.includes(q)) && (
+                  <th key={q} style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.70rem', textTransform: 'uppercase', background: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#F0FDFA' : undefined, color: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#007680' : undefined, whiteSpace: 'nowrap' }}>{q} ($)</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -1558,10 +1599,10 @@ const Sheet02RevenueDebits: React.FC<{ exCounts: Record<string, number>; options
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#DC2626', whiteSpace: 'nowrap' }}>{fmtCurr(r.netAmt)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: '#D97706', fontWeight: 500, whiteSpace: 'nowrap' }}>{r.wEnd}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: '#D97706', fontWeight: 500, whiteSpace: 'nowrap' }}>{r.hol}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q1A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q2A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q3A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q4A)}</td>
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q1') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? 600 : undefined }}>{fmtCurr(r.q1A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q2') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? 600 : undefined }}>{fmtCurr(r.q2A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q3') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? 600 : undefined }}>{fmtCurr(r.q3A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q4') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? 600 : undefined }}>{fmtCurr(r.q4A)}</td> : null}
                   </tr>
                 );
               })}
@@ -1573,23 +1614,20 @@ const Sheet02RevenueDebits: React.FC<{ exCounts: Record<string, number>; options
   );
 };
 
-const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const userList = ['USR_BATCH_AUTO', 'USR_ACCOUNTANT_1', 'USR_SYS_ADMIN', 'USR_TEMP_AUDIT', 'USR_CONSULTANT'];
 
   const chartData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.24;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.26;
+    { const _aqM = { Q1: 0.24, Q2: 0.25, Q3: 0.25, Q4: 0.26 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const baseData = [42000000, 18500000, 9460000, 3150000, 1280000];
     const baseColors = ['#007680', '#007680', '#EF4444', '#EF4444', '#FBBF24'];
     return {
       labels: userList,
       datasets: [{
-        label: quarterFilter === 'ALL' ? 'Total Journal Entry Amount ($)' : `Journal Entry Amount (${quarterFilter}) ($)`,
+        label: quarterFilter.includes('ALL') ? 'Total Journal Entry Amount ($)' : `Journal Entry Amount (${quarterFilter.filter(q => q !== 'ALL').join(' + ')}) ($)`,
         data: baseData.map(v => Math.round(v * mult)),
         backgroundColor: getHighlightColors(baseColors, selectedIdx),
         borderRadius: 4
@@ -1598,7 +1636,7 @@ const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any
   }, [quarterFilter, selectedIdx]);
 
   const userRiskPieData = useMemo(() => {
-    const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
+    const _qm: Record<string, number> = { Q1: 0.24, Q2: 0.25, Q3: 0.25, Q4: 0.26 }; const _aq = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); const qMult = _aq.length === 0 ? 1 : _aq.reduce((s, q) => s + (_qm[q] || 0.25), 0);
     const autoAmt = Math.round(42800000 * qMult);
     const stdAmt = Math.round(18500000 * qMult);
     const riskAmt = Math.round((exCounts.ex4 * 98541 + exCounts.ex5 * 58333) * qMult);
@@ -1656,7 +1694,7 @@ const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 3 - User Posting Value Distribution {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 3 - User Posting Value Distribution {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click user column</span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={chartData} options={interactiveBarOptions} /></div>
@@ -1667,7 +1705,7 @@ const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click profile slice</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            <Doughnut key={`doughnut-03-${quarterFilter}`} data={userRiskPieData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-03-${quarterFilter.join('-')}`} data={userRiskPieData} options={interactivePieOptions} />
             <div style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }} aria-label="Posting Exposure by User Risk Profile">
               Posting Exposure by User Risk Profile Pie Chart Overall Split:
               {userRiskPieData.labels?.join('; ') || 'Automated Feeds (57.9%), Standard Operations (25.0%), High-Risk Admin/Temp (17.1%)'}.
@@ -1686,7 +1724,7 @@ const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 3 - User Wise Analysis Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 3 - User Wise Analysis Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} User Profiles Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -1697,10 +1735,9 @@ const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any
                 <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>User Name</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Nbr of Entries</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Amount ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q1 Entries</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q2 Entries</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q3 Entries</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q4 Entries</th>
+                {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map(q => (quarterFilter.includes('ALL') || quarterFilter.includes(q)) && (
+                  <th key={q} style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', background: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#F0FDFA' : undefined, color: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#007680' : undefined }}>{q} Entries</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -1737,10 +1774,10 @@ const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any
                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}><span style={{ background: '#F1F5F9', color: '#334155', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.74rem' }}>{r.name}</span></td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: isHighRisk ? '#EF4444' : '#1E293B', whiteSpace: 'nowrap' }}>{fmtNum(r.entries)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680', whiteSpace: 'nowrap' }}>{fmtCurr(r.amt)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.q1)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.q2)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.q3)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.q4)}</td>
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q1') ? <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? 600 : undefined }}>{fmtNum(r.q1)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q2') ? <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? 600 : undefined }}>{fmtNum(r.q2)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q3') ? <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? 600 : undefined }}>{fmtNum(r.q3)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q4') ? <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? 600 : undefined }}>{fmtNum(r.q4)}</td> : null}
                   </tr>
                 );
               })}
@@ -1752,17 +1789,14 @@ const Sheet03UserWise: React.FC<{ exCounts: Record<string, number>; options: any
   );
 };
 
-const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const catNames = ['Increase in Assets', 'Decrease in Liab', 'Increase in Expense [Risk]', 'Decrease in Rev', 'Equity Adj'];
 
   const closingDoughnutData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.24;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.29;
+    { const _aqM = { Q1: 0.22, Q2: 0.24, Q3: 0.25, Q4: 0.29 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const v1 = Math.round(4200000 * mult);
     const v2 = Math.round(3100000 * mult);
     const v3 = Math.round(8400000 * mult);
@@ -1794,10 +1828,7 @@ const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; option
 
   const timingBarData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.24;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.29;
+    { const _aqM = { Q1: 0.22, Q2: 0.24, Q3: 0.25, Q4: 0.29 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     return {
       labels: ['Day -1 to 0 (Closing)', 'Day +1 to +3', 'Day +4 to +7', 'Day +8+ (Post-Cutoff)'],
       datasets: [
@@ -1838,7 +1869,7 @@ const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; option
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-04-${quarterFilter}`} data={closingDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-04-${quarterFilter.join('-')}`} data={closingDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -1857,7 +1888,7 @@ const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; option
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 4 - Closing Entries Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 4 - Closing Entries Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Closing Impact Categories Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -1870,10 +1901,9 @@ const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; option
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Debit Amount</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>No of Entries</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Net Activity</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q1 Lines</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q2 Lines</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q3 Lines</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q4 Lines</th>
+                {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map(q => (quarterFilter.includes('ALL') || quarterFilter.includes(q)) && (
+                  <th key={q} style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', background: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#F0FDFA' : undefined, color: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#007680' : undefined }}>{q} Lines</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -1911,10 +1941,10 @@ const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; option
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(r.deb)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.entries)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680', whiteSpace: 'nowrap' }}>{fmtCurr(r.net)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{r.q1L}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{r.q2L}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{r.q3L}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{r.q4L}</td>
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q1') ? <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? 600 : undefined }}>{r.q1L}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q2') ? <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? 600 : undefined }}>{r.q2L}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q3') ? <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? 600 : undefined }}>{r.q3L}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q4') ? <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? 600 : undefined }}>{r.q4L}</td> : null}
                   </tr>
                 );
               })}
@@ -1926,7 +1956,7 @@ const Sheet04ClosingEntries: React.FC<{ exCounts: Record<string, number>; option
   );
 };
 
-const Sheet05DatesOfInterest: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet05DatesOfInterest: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const dayCategories = ['Saturday Postings', 'Sunday Postings', 'Public Bank Holidays'];
@@ -1940,10 +1970,7 @@ const Sheet05DatesOfInterest: React.FC<{ exCounts: Record<string, number>; optio
 
   const pieData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.28;
+    { const _aqM = { Q1: 0.22, Q2: 0.25, Q3: 0.25, Q4: 0.28 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const satCount = Math.round(exCounts.ex7 * 0.47 * mult);
     const sunCount = Math.round(exCounts.ex7 * 0.31 * mult);
     const holCount = Math.round(exCounts.ex7 * 0.22 * mult);
@@ -1992,7 +2019,7 @@ const Sheet05DatesOfInterest: React.FC<{ exCounts: Record<string, number>; optio
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 5 - Weekend &amp; Holiday Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 5 - Weekend &amp; Holiday Trajectory {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -2001,7 +2028,7 @@ const Sheet05DatesOfInterest: React.FC<{ exCounts: Record<string, number>; optio
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-05-${quarterFilter}`} data={pieData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-05-${quarterFilter.join('-')}`} data={pieData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2016,7 +2043,7 @@ const Sheet05DatesOfInterest: React.FC<{ exCounts: Record<string, number>; optio
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 5 - Dates of Interest Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 5 - Dates of Interest Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#D97706', fontWeight: 600 }}>{filteredRows.length} Timing Exceptions Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -2076,23 +2103,20 @@ const Sheet05DatesOfInterest: React.FC<{ exCounts: Record<string, number>; optio
     </div>
   );
 };
-const Sheet06AmountAnalysis: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet06AmountAnalysis: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const digitCategories = ['.000 Endings', '.999 Endings', '.500 Endings'];
 
   const barData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.23;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.27;
+    { const _aqM = { Q1: 0.23, Q2: 0.25, Q3: 0.25, Q4: 0.27 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const baseAmounts = [Math.round(450 * mult), Math.round(240 * mult), Math.round(120 * mult), Math.round(80 * mult), Math.round(38 * mult)];
     const baseColors = ['#007680', '#007680', '#007680', '#007680', '#007680'];
     return {
       labels: ['$10k', '$50k', '$100k', '$500k', '$1M'],
       datasets: [{
-        label: quarterFilter === 'ALL' ? 'Rounded Amounts Count' : `Rounded Amounts Count (${quarterFilter})`,
+        label: quarterFilter.includes('ALL') ? 'Rounded Amounts Count' : `Rounded Amounts Count (${quarterFilter.filter(q => q !== 'ALL').join(' + ')})`,
         data: baseAmounts,
         backgroundColor: baseColors,
         borderRadius: 4,
@@ -2102,10 +2126,7 @@ const Sheet06AmountAnalysis: React.FC<{ exCounts: Record<string, number>; option
 
   const endDigitsDoughnutData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.23;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.27;
+    { const _aqM = { Q1: 0.23, Q2: 0.25, Q3: 0.25, Q4: 0.27 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const c000 = Math.round(exCounts.ex8 * 0.62 * mult);
     const c999 = Math.round(exCounts.ex8 * 0.24 * mult);
     const c500 = Math.round(exCounts.ex8 * 0.14 * mult);
@@ -2163,7 +2184,7 @@ const Sheet06AmountAnalysis: React.FC<{ exCounts: Record<string, number>; option
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 6 - Rounded Amounts Magnitude {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 6 - Rounded Amounts Magnitude {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -2172,7 +2193,7 @@ const Sheet06AmountAnalysis: React.FC<{ exCounts: Record<string, number>; option
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-06-${quarterFilter}`} data={endDigitsDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-06-${quarterFilter.join('-')}`} data={endDigitsDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2259,23 +2280,20 @@ const Sheet06AmountAnalysis: React.FC<{ exCounts: Record<string, number>; option
   );
 };
 
-const Sheet07DuplicateAnalysis: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet07DuplicateAnalysis: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const dupCategories = ['2x Exact Line Matches', '3x Triplicate Matches', '4x+ Multi-Post Matches'];
 
   const barData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.20;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.30;
+    { const _aqM = { Q1: 0.20, Q2: 0.25, Q3: 0.25, Q4: 0.30 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const baseData = [Math.round(exCounts.ex9 * mult), Math.round(18 * mult), Math.round(5 * mult)];
     const baseColors = ['#EF4444', '#F87171', '#FCA5A5'];
     return {
       labels: dupCategories,
       datasets: [{
-        label: quarterFilter === 'ALL' ? 'Duplicate Sets Identified' : `Duplicate Sets Identified (${quarterFilter})`,
+        label: quarterFilter.includes('ALL') ? 'Duplicate Sets Identified' : `Duplicate Sets Identified (${quarterFilter.filter(q => q !== 'ALL').join(' + ')})`,
         data: baseData,
         backgroundColor: getHighlightColors(baseColors, selectedIdx),
         borderRadius: 4,
@@ -2285,10 +2303,7 @@ const Sheet07DuplicateAnalysis: React.FC<{ exCounts: Record<string, number>; opt
 
   const dupRatioData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.20;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.30;
+    { const _aqM = { Q1: 0.20, Q2: 0.25, Q3: 0.25, Q4: 0.30 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const dupCount = Math.round(exCounts.ex9 * 2.2 * mult);
     const uniqueCount = Math.max(0, Math.round(54280 * mult) - dupCount);
     const totalLines = uniqueCount + dupCount;
@@ -2338,7 +2353,7 @@ const Sheet07DuplicateAnalysis: React.FC<{ exCounts: Record<string, number>; opt
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 7 - Duplicate Multiplier Breakdown {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 7 - Duplicate Multiplier Breakdown {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
             <span style={{ fontSize: '0.70rem', color: '#EF4444', fontWeight: 600 }}>Click column to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={interactiveBarOptions} /></div>
@@ -2349,7 +2364,7 @@ const Sheet07DuplicateAnalysis: React.FC<{ exCounts: Record<string, number>; opt
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-07-${quarterFilter}`} data={dupRatioData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-07-${quarterFilter.join('-')}`} data={dupRatioData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2364,7 +2379,7 @@ const Sheet07DuplicateAnalysis: React.FC<{ exCounts: Record<string, number>; opt
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 7 - Duplicate Analysis Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 7 - Duplicate Analysis Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: 600 }}>{filteredRows.length} Duplicate Clusters Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -2423,23 +2438,20 @@ const Sheet07DuplicateAnalysis: React.FC<{ exCounts: Record<string, number>; opt
     </div>
   );
 };
-const Sheet08WordCount: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet08WordCount: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const riskCategories = ['High Risk', 'Medium Risk', 'Informational'];
 
   const barData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.24;
-    if (quarterFilter === 'Q3') mult = 0.26;
-    if (quarterFilter === 'Q4') mult = 0.28;
+    { const _aqM = { Q1: 0.22, Q2: 0.24, Q3: 0.26, Q4: 0.28 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const base = [210, 145, 82, 38, 4, 18, 7, 12];
     const baseColors = ['#38BDF8', '#FBBF24', '#38BDF8', '#EF4444', '#EF4444', '#FBBF24', '#EF4444', '#FBBF24'];
     return {
       labels: ['Manual', 'Adjust', 'Reclass', 'Override', 'Fraud', 'Suspense', 'Plug', 'Reserve'],
       datasets: [{
-        label: quarterFilter === 'ALL' ? 'Matching Journal Entries' : `Matching Journal Entries (${quarterFilter})`,
+        label: quarterFilter.includes('ALL') ? 'Matching Journal Entries' : `Matching Journal Entries (${quarterFilter.filter(q => q !== 'ALL').join(' + ')})`,
         data: base.map(v => Math.round(v * mult)),
         backgroundColor: baseColors,
         borderRadius: 4,
@@ -2449,10 +2461,7 @@ const Sheet08WordCount: React.FC<{ exCounts: Record<string, number>; options: an
 
   const riskPieData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.24;
-    if (quarterFilter === 'Q3') mult = 0.26;
-    if (quarterFilter === 'Q4') mult = 0.28;
+    { const _aqM = { Q1: 0.22, Q2: 0.24, Q3: 0.26, Q4: 0.28 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const highRisk = Math.round((4 + 7 + 38) * mult);
     const medRisk = Math.round((18 + 145) * mult);
     const infoRisk = Math.round(exCounts.ex10 * mult);
@@ -2505,7 +2514,7 @@ const Sheet08WordCount: React.FC<{ exCounts: Record<string, number>; options: an
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 8 - Keyword Flag Frequency &amp; Density {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 8 - Keyword Flag Frequency &amp; Density {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -2514,7 +2523,7 @@ const Sheet08WordCount: React.FC<{ exCounts: Record<string, number>; options: an
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-08-${quarterFilter}`} data={riskPieData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-08-${quarterFilter.join('-')}`} data={riskPieData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2585,20 +2594,17 @@ const Sheet08WordCount: React.FC<{ exCounts: Record<string, number>; options: an
   );
 };
 
-const Sheet09AfterClosing: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet09AfterClosing: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const divNames = ['Corporate HQ', 'EMEA Operations', 'North America Sales', 'APAC Treasury'];
 
   const lineData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.18;
-    if (quarterFilter === 'Q2') mult = 0.22;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.35;
+    { const _aqM = { Q1: 0.18, Q2: 0.22, Q3: 0.25, Q4: 0.35 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     return {
       labels: ['Day +1', 'Day +3', 'Day +5', 'Day +10', 'Day +20', 'Day +30'],
-      datasets: [{ label: quarterFilter === 'ALL' ? 'Entries Posted After Closing Date' : `Entries Posted After Closing (${quarterFilter})`, data: [Math.round(exCounts.ex11 * mult), Math.round(4120 * mult), Math.round(1820 * mult), Math.round(890 * mult), Math.round(310 * mult), Math.round(140 * mult)], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3, }]
+      datasets: [{ label: quarterFilter.includes('ALL') ? 'Entries Posted After Closing Date' : `Entries Posted After Closing (${quarterFilter.filter(q => q !== 'ALL').join(' + ')})`, data: [Math.round(exCounts.ex11 * mult), Math.round(4120 * mult), Math.round(1820 * mult), Math.round(890 * mult), Math.round(310 * mult), Math.round(140 * mult)], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3, }]
     };
   }, [quarterFilter, exCounts]);
 
@@ -2641,7 +2647,7 @@ const Sheet09AfterClosing: React.FC<{ exCounts: Record<string, number>; options:
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 9 - After Closing Decay Velocity {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Summary 9 - After Closing Decay Velocity {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -2723,23 +2729,20 @@ const Sheet09AfterClosing: React.FC<{ exCounts: Record<string, number>; options:
   );
 };
 
-const Sheet10UnrelatedAccounts: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+const Sheet10UnrelatedAccounts: React.FC<{ exCounts: Record<string, number>; options: any; pieOptions: any; fmtNum: (n: number) => string; fmtCurr: (n: number) => string; quarterFilter?: string[] }> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const pairingNames = ['Cash vs Depr', 'Revenue vs Payable', 'Inventory vs Bonus', 'Prepaid vs Loan'];
 
   const barData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.20;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.30;
+    { const _aqM = { Q1: 0.20, Q2: 0.25, Q3: 0.25, Q4: 0.30 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const baseData = [Math.round(exCounts.ex12 * mult), Math.round(45 * mult), Math.round(28 * mult), Math.round(12 * mult)];
     const baseColors = ['#EF4444', '#FBBF24', '#007680', '#38BDF8'];
     return {
       labels: pairingNames,
       datasets: [{
-        label: quarterFilter === 'ALL' ? 'Unrelated Pairing Transactions' : `Unrelated Pairing Transactions (${quarterFilter})`,
+        label: quarterFilter.includes('ALL') ? 'Unrelated Pairing Transactions' : `Unrelated Pairing Transactions (${quarterFilter.filter(q => q !== 'ALL').join(' + ')})`,
         data: baseData,
         backgroundColor: getHighlightColors(baseColors, selectedIdx),
         borderRadius: 4,
@@ -2749,10 +2752,7 @@ const Sheet10UnrelatedAccounts: React.FC<{ exCounts: Record<string, number>; opt
 
   const exposureDoughnutData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.20;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.30;
+    { const _aqM = { Q1: 0.20, Q2: 0.25, Q3: 0.25, Q4: 0.30 }; const _aqF = quarterFilter.filter(q => ['Q1', 'Q2', 'Q3', 'Q4'].includes(q)); mult = _aqF.length === 0 ? 1 : _aqF.reduce((s, q) => s + (_aqM[q as keyof typeof _aqM] || 0.25), 0); }
     const v1 = Math.round(4200000 * mult);
     const v2 = Math.round(2100000 * mult);
     const v3 = Math.round(1400000 * mult);
@@ -2790,9 +2790,18 @@ const Sheet10UnrelatedAccounts: React.FC<{ exCounts: Record<string, number>; opt
   ];
 
   const filteredRows = useMemo(() => {
-    if (selectedIdx === null) return allRows;
-    return allRows.filter(r => r.pIdx === selectedIdx);
-  }, [selectedIdx, allRows]);
+    let rows = allRows;
+    if (!quarterFilter.includes('ALL')) {
+      const allowedPeriods: number[] = [];
+      if (quarterFilter.includes('Q1')) allowedPeriods.push(0, 1, 2);
+      if (quarterFilter.includes('Q2')) allowedPeriods.push(3, 4, 5);
+      if (quarterFilter.includes('Q3')) allowedPeriods.push(6, 7, 8);
+      if (quarterFilter.includes('Q4')) allowedPeriods.push(9, 10, 11);
+      rows = rows.filter(r => allowedPeriods.includes(r.pIdx));
+    }
+    if (selectedIdx === null) return rows;
+    return rows.filter(r => r.pIdx === selectedIdx);
+  }, [selectedIdx, allRows, quarterFilter]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
@@ -2807,7 +2816,7 @@ const Sheet10UnrelatedAccounts: React.FC<{ exCounts: Record<string, number>; opt
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 10 - Unrelated Accounts Pairing Frequency {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Summary 10 - Unrelated Accounts Pairing Frequency {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}</h4>
             <span style={{ fontSize: '0.70rem', color: '#EF4444', fontWeight: 600 }}>Click column to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={interactiveBarOptions} /></div>
@@ -2818,7 +2827,7 @@ const Sheet10UnrelatedAccounts: React.FC<{ exCounts: Record<string, number>; opt
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-10-${quarterFilter}`} data={exposureDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-10-${quarterFilter.join('-')}`} data={exposureDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2883,22 +2892,37 @@ interface Sheet11PopulationStatsProps {
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
+  quarterFilter?: string[];
 }
 
-const Sheet11PopulationStats = ({ totalGlRows, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }: Sheet11PopulationStatsProps): React.ReactElement => {
+const Sheet11PopulationStats = ({ totalGlRows, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }: Sheet11PopulationStatsProps): React.ReactElement => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const periods12 = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'];
 
   const lineData = useMemo(() => {
-    if (quarterFilter === 'Q1') return { labels: ['P1 (Apr)', 'P2 (May)', 'P3 (Jun)'], datasets: [{ label: 'Q1 Local Currency Amount ($)', data: [4200000, 3900000, 4800000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
-    if (quarterFilter === 'Q2') return { labels: ['P4 (Jul)', 'P5 (Aug)', 'P6 (Sep)'], datasets: [{ label: 'Q2 Local Currency Amount ($)', data: [4100000, 4300000, 5200000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
-    if (quarterFilter === 'Q3') return { labels: ['P7 (Oct)', 'P8 (Nov)', 'P9 (Dec)'], datasets: [{ label: 'Q3 Local Currency Amount ($)', data: [4400000, 4600000, 6100000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
-    if (quarterFilter === 'Q4') return { labels: ['P10 (Jan)', 'P11 (Feb)', 'P12 (Mar)'], datasets: [{ label: 'Q4 Local Currency Amount ($)', data: [4300000, 4100000, 8400000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    const pLabels = [
+      'P1 (Apr)', 'P2 (May)', 'P3 (Jun)',
+      'P4 (Jul)', 'P5 (Aug)', 'P6 (Sep)',
+      'P7 (Oct)', 'P8 (Nov)', 'P9 (Dec)',
+      'P10 (Jan)', 'P11 (Feb)', 'P12 (Mar)'
+    ];
+    const pData = [4200000, 3900000, 4800000, 4100000, 4300000, 5200000, 4400000, 4600000, 6100000, 4300000, 4100000, 8400000];
+    const allowedPeriods: number[] = [];
+    if (quarterFilter.includes('ALL')) {
+      allowedPeriods.push(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+    } else {
+      if (quarterFilter.includes('Q1')) allowedPeriods.push(0, 1, 2);
+      if (quarterFilter.includes('Q2')) allowedPeriods.push(3, 4, 5);
+      if (quarterFilter.includes('Q3')) allowedPeriods.push(6, 7, 8);
+      if (quarterFilter.includes('Q4')) allowedPeriods.push(9, 10, 11);
+    }
+    const finalLabels = allowedPeriods.map(i => pLabels[i]);
+    const finalData = allowedPeriods.map(i => pData[i]);
+    const scopeLabel = quarterFilter.includes('ALL') ? 'Total Amount in Local Currency ($)' : `Filtered Local Currency Amount (${quarterFilter.filter(q => q !== 'ALL').join(' + ')}) ($)`;
     return {
-      labels: periods12,
-      datasets: [{ label: 'Total Amount in Local Currency ($)', data: [4200000, 3900000, 4800000, 4100000, 4300000, 5200000, 4400000, 4600000, 6100000, 4300000, 4100000, 8400000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }]
+      labels: finalLabels,
+      datasets: [{ label: scopeLabel, data: finalData, borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }]
     };
   }, [quarterFilter]);
 
@@ -2950,7 +2974,7 @@ const Sheet11PopulationStats = ({ totalGlRows, options, pieOptions, fmtNum, fmtC
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>
-            Population Statistics Activity Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}
+            Population Statistics Activity Trajectory {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}
           </h4>
           <div style={{ flex: 1, minHeight: 0 }}>
             <Line data={lineData} options={options} />
@@ -2981,7 +3005,7 @@ const Sheet11PopulationStats = ({ totalGlRows, options, pieOptions, fmtNum, fmtC
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>
-            Population Statistics Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}
+            Population Statistics Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q => q !== 'ALL').join(' + ')}]` : ''}
           </h5>
           <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Periods Displayed</span>
         </div>

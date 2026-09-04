@@ -430,6 +430,7 @@ export const SparkJetWorkflow: React.FC = () => {
 
   // Results View Tabs in Step 5
   const [activeVisualTab, setActiveVisualTab] = useState<'preview' | 'overview' | 'checkpoints' | 'forensic' | 'artifacts'>('preview');
+  const [quarterFilter, setQuarterFilter] = useState<string[]>(['ALL']);
   const [exceptionCategoryFilter, setExceptionCategoryFilter] = useState<'flagged' | 'clean'>('flagged');
   const [artifactCategoryFilter, setArtifactCategoryFilter] = useState<string>('PARAMETER');
   const [artifactSearch, setArtifactSearch] = useState('');
@@ -3971,6 +3972,8 @@ export const SparkJetWorkflow: React.FC = () => {
                   status={status}
                   config={config}
                   enabledExceptions={enabledExceptions}
+                  quarterFilter={quarterFilter}
+                  onQuarterFilterChange={setQuarterFilter}
                 />
               </div>
             )}
