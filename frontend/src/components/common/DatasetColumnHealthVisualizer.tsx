@@ -610,52 +610,53 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
       {/* ── Top Header Banner with Balanced Executive Information & Actions ── */}
       <div
         style={{
-          padding: '16px 20px',
+          padding: '18px 24px',
           background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 60%, #F0FDFA 100%)',
           borderBottom: '1px solid #E2E8F0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '14px',
+          gap: '20px',
         }}
       >
         {/* Left: Icon, Title, Verification Badge & Subtitle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '280px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '320px' }}>
           <div
             style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
+              width: '42px',
+              height: '42px',
+              borderRadius: '11px',
               background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 3px 10px rgba(0, 118, 128, 0.22)',
+              boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)',
               flexShrink: 0,
             }}
           >
-            <BarChart2 size={19} color="#FFFFFF" strokeWidth={2.2} />
+            <BarChart2 size={20} color="#FFFFFF" strokeWidth={2.2} />
           </div>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: '1.02rem', fontWeight: 750, color: '#0F172A', margin: 0, letterSpacing: '-0.015em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 750, color: '#0F172A', margin: 0, letterSpacing: '-0.015em' }}>
                 Automated Ingestion Quality &amp; Column Profiler
               </h3>
               <span
                 style={{
                   fontSize: '0.66rem',
                   fontWeight: 750,
-                  padding: '2px 8px',
+                  padding: '3px 9px',
                   borderRadius: '20px',
                   background: isCleaningPassed ? '#F0FDFA' : '#FFFBEB',
                   color: isCleaningPassed ? '#007680' : '#D97706',
                   border: isCleaningPassed ? '1px solid #99F6E4' : '1px solid #FDE68A',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '5px',
+                  letterSpacing: '0.02em',
                 }}
               >
                 {isCleaningPassed ? (
@@ -669,23 +670,24 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                 )}
               </span>
             </div>
-            <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '2px 0 0', fontWeight: 500 }}>
+            <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>
               Deep column completeness metrics, data type inferences, cardinality signals, and automated sanitization delta.
             </p>
           </div>
         </div>
 
         {/* Right: Action Button with generous breathing room */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
           <button
             type="button"
             onClick={onRunAutoClean}
             disabled={autoCleaning}
             className="btn-deloitte-action"
             style={{
-              padding: '9px 20px',
+              padding: '10px 22px',
               fontSize: '0.82rem',
               letterSpacing: '-0.01em',
+              boxShadow: '0 3px 10px rgba(0, 118, 128, 0.18)',
             }}
           >
             <Sparkles size={14} color="#6EE7B7" className={autoCleaning ? 'spin-slow' : ''} />
@@ -700,226 +702,91 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
         </div>
       </div>
 
-      {/* ── Sub-Header: Unified Executive Command Deck (Zero Wasted Space) ── */}
+      {/* ── Dedicated Dataset Scope Selector (Clean, Focused, Zero Redundant Telemetry) ── */}
       <div
         style={{
-          padding: '12px 20px',
-          background: 'linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%)',
+          padding: '10px 24px',
+          background: '#F8FAFC',
           borderBottom: '1px solid #E2E8F0',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
+          alignItems: 'center',
+          gap: '12px',
+          flexWrap: 'wrap',
         }}
       >
-        {/* Row 1: Target Dataset Selector Deck (Edge-to-Edge with Telemetry) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          {/* Left: Dataset Selection Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#475569', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-              <Database size={13} color="#007680" /> DATASETS ({datasets.length}):
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', padding: '3px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
-              {datasets.map((d) => {
-                const isSelected = d.id === activeDataset.id;
-                return (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedDatasetId(d.id);
-                      setSelectedColumnNames([]);
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '5px 12px',
-                      borderRadius: '6px',
-                      border: isSelected ? '1px solid #007680' : '1px solid transparent',
-                      background: isSelected ? 'linear-gradient(135deg, #F0FDFA 0%, #FFFFFF 100%)' : 'transparent',
-                      color: isSelected ? '#005A60' : '#475569',
-                      fontSize: '0.74rem',
-                      fontWeight: isSelected ? 800 : 600,
-                      cursor: 'pointer',
-                      boxShadow: isSelected ? '0 1px 3px rgba(0, 118, 128, 0.12)' : 'none',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <Database size={13} color={isSelected ? '#007680' : '#94A3B8'} />
-                    <span>{d.title}</span>
-                    <span
-                      style={{
-                        fontSize: '0.62rem',
-                        fontWeight: isSelected ? 750 : 500,
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        background: isSelected ? '#007680' : 'transparent',
-                        color: isSelected ? '#FFFFFF' : '#64748B',
-                      }}
-                    >
-                      {d.headers.length} Cols • {d.totalRows} Rows
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right: Active Dataset Telemetry (Quieter, single cohesive status note) */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.72rem',
-              color: '#64748B',
-              padding: '4px 10px',
-              background: '#FFFFFF',
-              borderRadius: '6px',
-              border: '1px solid #E2E8F0',
-            }}
-          >
-            <span>Viewing <strong style={{ color: '#0F172A' }}>{activeDataset.title}</strong></span>
-            <span style={{ color: '#CBD5E1' }}>•</span>
-            <span><strong style={{ color: '#0F172A' }}>{activeDataset.headers.length}</strong> fields</span>
-            <span style={{ color: '#CBD5E1' }}>•</span>
-            <span><strong style={{ color: '#007680' }}>{activeDataset.overallCompletenessPct.toFixed(1)}%</strong> complete</span>
-            <span style={{ color: '#CBD5E1' }}>•</span>
-            <span style={{ color: isCleaningPassed ? '#16A34A' : '#D97706', fontWeight: 700 }}>
-              {isCleaningPassed ? 'Clean' : `${activeDataset.anomaliesDetectedCount} Issues`}
-            </span>
-          </div>
-        </div>
-
-        {/* Row 2: Studio View Switcher (Edge-to-Edge with Context Guide) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          {/* Left: Studio Segmented Tabs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#475569', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-              <Sliders size={13} color="#007680" /> STUDIO VIEW:
-            </span>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                background: '#FFFFFF',
-                padding: '3px',
-                borderRadius: '8px',
-                border: '1px solid #CBD5E1',
-                gap: '3px',
-              }}
-            >
+        <span
+          style={{
+            fontSize: '0.68rem',
+            fontWeight: 800,
+            color: '#475569',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+          }}
+        >
+          <Database size={13} color="#007680" /> SELECT DATASET:
+        </span>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: '#FFFFFF',
+            padding: '3px',
+            borderRadius: '8px',
+            border: '1px solid #CBD5E1',
+          }}
+        >
+          {datasets.map((d) => {
+            const isSelected = d.id === activeDataset.id;
+            return (
               <button
+                key={d.id}
                 type="button"
-                onClick={() => setActiveVisualSubTab('eda')}
+                onClick={() => {
+                  setSelectedDatasetId(d.id);
+                  setSelectedColumnNames([]);
+                }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  gap: '6px',
                   padding: '5px 12px',
                   borderRadius: '6px',
-                  border: activeVisualSubTab === 'eda' ? '1px solid #007680' : '1px solid transparent',
-                  background: activeVisualSubTab === 'eda' ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)' : 'transparent',
-                  color: activeVisualSubTab === 'eda' ? '#FFFFFF' : '#475569',
+                  border: isSelected ? '1px solid #007680' : '1px solid transparent',
+                  background: isSelected ? 'linear-gradient(135deg, #F0FDFA 0%, #FFFFFF 100%)' : 'transparent',
+                  color: isSelected ? '#005A60' : '#475569',
                   fontSize: '0.74rem',
-                  fontWeight: activeVisualSubTab === 'eda' ? 800 : 600,
+                  fontWeight: isSelected ? 800 : 600,
                   cursor: 'pointer',
-                  boxShadow: activeVisualSubTab === 'eda' ? '0 2px 6px rgba(0, 118, 128, 0.25)' : 'none',
+                  boxShadow: isSelected ? '0 1px 3px rgba(0, 118, 128, 0.12)' : 'none',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <Zap size={13} /> Exploratory Studio (EDA)
+                <Database size={13} color={isSelected ? '#007680' : '#94A3B8'} />
+                <span>{d.title}</span>
+                <span
+                  style={{
+                    fontSize: '0.62rem',
+                    fontWeight: isSelected ? 750 : 500,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: isSelected ? '#007680' : 'transparent',
+                    color: isSelected ? '#FFFFFF' : '#64748B',
+                  }}
+                >
+                  {d.headers.length} Cols • {d.totalRows} Rows
+                </span>
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveVisualSubTab('charts')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  border: activeVisualSubTab === 'charts' ? '1px solid #007680' : '1px solid transparent',
-                  background: activeVisualSubTab === 'charts' ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)' : 'transparent',
-                  color: activeVisualSubTab === 'charts' ? '#FFFFFF' : '#475569',
-                  fontSize: '0.74rem',
-                  fontWeight: activeVisualSubTab === 'charts' ? 800 : 600,
-                  cursor: 'pointer',
-                  boxShadow: activeVisualSubTab === 'charts' ? '0 2px 6px rgba(0, 118, 128, 0.25)' : 'none',
-                }}
-              >
-                <BarChart2 size={13} /> Macro Quality Charts
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveVisualSubTab('table')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  border: activeVisualSubTab === 'table' ? '1px solid #007680' : '1px solid transparent',
-                  background: activeVisualSubTab === 'table' ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)' : 'transparent',
-                  color: activeVisualSubTab === 'table' ? '#FFFFFF' : '#475569',
-                  fontSize: '0.74rem',
-                  fontWeight: activeVisualSubTab === 'table' ? 800 : 600,
-                  cursor: 'pointer',
-                  boxShadow: activeVisualSubTab === 'table' ? '0 2px 6px rgba(0, 118, 128, 0.25)' : 'none',
-                }}
-              >
-                <Table size={13} /> Column Matrix Table ({activeDataset.columns.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveVisualSubTab('delta')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  border: activeVisualSubTab === 'delta' ? '1px solid #007680' : '1px solid transparent',
-                  background: activeVisualSubTab === 'delta' ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)' : 'transparent',
-                  color: activeVisualSubTab === 'delta' ? '#FFFFFF' : '#475569',
-                  fontSize: '0.74rem',
-                  fontWeight: activeVisualSubTab === 'delta' ? 800 : 600,
-                  cursor: 'pointer',
-                  boxShadow: activeVisualSubTab === 'delta' ? '0 2px 6px rgba(0, 118, 128, 0.25)' : 'none',
-                }}
-              >
-                <Sparkles size={13} /> Sanitization Delta
-              </button>
-            </div>
-          </div>
-
-          {/* Right: Contextual Mode Description */}
-          <div style={{ fontSize: '0.70rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {activeVisualSubTab === 'eda' && (
-              <>
-                <Zap size={12} color="#007680" /> Select 1 field for distribution, 2+ for intelligent correlations
-              </>
-            )}
-            {activeVisualSubTab === 'charts' && (
-              <>
-                <BarChart2 size={12} color="#007680" /> Full schema health breakdown &amp; cardinality curves
-              </>
-            )}
-            {activeVisualSubTab === 'table' && (
-              <>
-                <Table size={12} color="#007680" /> Searchable field dictionary with sample values
-              </>
-            )}
-            {activeVisualSubTab === 'delta' && (
-              <>
-                <Sparkles size={12} color="#007680" /> Audit trail of cleansing transformations applied
-              </>
-            )}
-          </div>
+            );
+          })}
         </div>
       </div>
 
       {/* ── 4 Executive KPI Metric Cards with Visual Depth & Pastel Accents ── */}
-      <div style={{ padding: '14px 20px 0' }}>
+      <div style={{ padding: '14px 24px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
           {/* Tile 1: Overall Completeness (Quality Signal - Deep Teal Solid Shield) */}
           <div
@@ -948,37 +815,100 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#FFFFFF',
-                  boxShadow: '0 2px 6px rgba(0, 118, 128, 0.25)',
+                  boxShadow: '0 2px 5px rgba(0, 118, 128, 0.2)',
                 }}
               >
-                <ShieldCheck size={14} color="#FFFFFF" strokeWidth={2.4} />
+                <CheckCircle2 size={13} color="#FFFFFF" strokeWidth={2.4} />
               </div>
             </div>
-            <div style={{ fontSize: '1.40rem', fontWeight: 800, color: '#0F172A', margin: '2px 0 3px', letterSpacing: '-0.02em' }}>
-              {activeDataset.overallCompletenessPct.toFixed(1)}%
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0 2px' }}>
+              <span style={{ fontSize: '1.45rem', fontWeight: 850, color: '#0F172A', letterSpacing: '-0.02em', fontFamily: 'monospace' }}>
+                {activeDataset.overallCompletenessPct.toFixed(1)}%
+              </span>
             </div>
-            {/* Micro Progress Bar */}
             <div style={{ height: '4px', background: '#E2E8F0', borderRadius: '2px', overflow: 'hidden', margin: '2px 0 6px' }}>
-              <div style={{ height: '100%', width: `${activeDataset.overallCompletenessPct}%`, background: '#007680', borderRadius: '2px' }} />
+              <div
+                style={{
+                  height: '100%',
+                  width: `${activeDataset.overallCompletenessPct}%`,
+                  background: activeDataset.overallCompletenessPct >= 95 ? '#007680' : '#D97706',
+                  borderRadius: '2px',
+                }}
+              />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#007680', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#007680' }} />
-                {activeDataset.totalMissingCells === 0 ? '0 Missing Cells' : `${activeDataset.totalMissingCells} missing`}
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: activeDataset.overallCompletenessPct === 100 ? '#007680' : '#D97706' }}>
+                {activeDataset.overallCompletenessPct === 100 ? '✓ Zero Null Cells' : `${(100 - activeDataset.overallCompletenessPct).toFixed(1)}% Missing`}
               </span>
               <span style={{ fontSize: '0.66rem', color: '#64748B' }}>
-                {isCleaningPassed ? '100% pop.' : 'Evaluated'}
+                {activeDataset.totalMissingCells} empty of {activeDataset.totalCells.toLocaleString()}
               </span>
             </div>
           </div>
 
-          {/* Tile 2: Schema Shape (Structure - Slate / Sky Grid) */}
+          {/* Tile 2: Schema Dimension (Structure Signal - Crisp Sky White Tile with Slate Dot) */}
           <div
             style={{
               padding: '12px 14px',
-              background: 'linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%)',
+              background: 'linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%)',
               borderRadius: '12px',
-              border: '1px solid #BAE6FD',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+              <span style={{ fontSize: '0.66rem', fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                SCHEMA DIMENSION
+              </span>
+              <div
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '50%',
+                  background: '#F1F5F9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid #CBD5E1',
+                }}
+              >
+                <Table size={13} color="#475569" strokeWidth={2.4} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0 2px' }}>
+              <span style={{ fontSize: '1.45rem', fontWeight: 850, color: '#0F172A', letterSpacing: '-0.02em', fontFamily: 'monospace' }}>
+                {activeDataset.columns.length}
+              </span>
+              <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600 }}>Cols</span>
+              <span style={{ fontSize: '0.74rem', color: '#CBD5E1' }}>•</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'monospace' }}>
+                {activeDataset.totalRows}
+              </span>
+              <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600 }}>Rows</span>
+            </div>
+            <div style={{ height: '4px', background: '#E2E8F0', borderRadius: '2px', overflow: 'hidden', margin: '2px 0 6px' }}>
+              <div style={{ height: '100%', width: '100%', background: '#0284C7', borderRadius: '2px' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0284C7' }}>
+                {activeDataset.totalCells.toLocaleString()} Matrix Cells
+              </span>
+              <span style={{ fontSize: '0.66rem', color: '#64748B' }}>
+                Across {datasets.length} files
+              </span>
+            </div>
+          </div>
+
+          {/* Tile 3: Type Inferences (Inference Signal - Soft Blue Gradient Accent) */}
+          <div
+            style={{
+              padding: '12px 14px',
+              background: 'linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%)',
+              borderRadius: '12px',
+              border: '1px solid #DBEAFE',
               boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)',
               display: 'flex',
               flexDirection: 'column',
@@ -986,137 +916,91 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-              <span style={{ fontSize: '0.66rem', fontWeight: 750, color: '#0369A1', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                SCHEMA SHAPE
-              </span>
-              <div
-                style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '6px',
-                  background: '#F0F9FF',
-                  border: '1.5px solid #BAE6FD',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#0284C7',
-                }}
-              >
-                <Grid size={14} strokeWidth={2.2} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.24rem', fontWeight: 800, color: '#0F172A', margin: '2px 0 4px', letterSpacing: '-0.02em' }}>
-              {activeDataset.headers.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748B' }}>Cols</span> × {activeDataset.totalRows.toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748B' }}>Rows</span>
-            </div>
-            <div style={{ height: '4px', background: '#E2E8F0', borderRadius: '2px', overflow: 'hidden', margin: '2px 0 6px' }}>
-              <div style={{ height: '100%', width: '100%', background: '#0284C7', borderRadius: '2px' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0284C7' }}>
-                {activeDataset.totalCells.toLocaleString()} data points
-              </span>
-              <span style={{ fontSize: '0.66rem', color: '#64748B' }}>
-                {datasets.length} datasets loaded
-              </span>
-            </div>
-          </div>
-
-          {/* Tile 3: Type Inferences (Intelligence - Indigo Sparkles & Multi-Type Distribution) */}
-          <div
-            style={{
-              padding: '12px 14px',
-              background: 'linear-gradient(135deg, #FAF5FF 0%, #FFFFFF 100%)',
-              borderRadius: '12px',
-              border: '1px solid #E9D5FF',
-              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.04)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-              <span style={{ fontSize: '0.66rem', fontWeight: 750, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: '0.66rem', fontWeight: 750, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 TYPE INFERENCES
               </span>
               <div
                 style={{
                   width: '26px',
                   height: '26px',
-                  borderRadius: '6px',
-                  background: '#F5F3FF',
-                  border: '1.5px solid #DDD6FE',
+                  borderRadius: '50%',
+                  background: '#2563EB',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#6366F1',
+                  color: '#FFFFFF',
+                  boxShadow: '0 2px 5px rgba(37, 99, 235, 0.2)',
                 }}
               >
-                <Sparkles size={14} strokeWidth={2.2} />
+                <Zap size={13} color="#FFFFFF" strokeWidth={2.4} />
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 3px' }}>
-              <span style={{ fontSize: '0.78rem', color: '#0F172A', fontWeight: 800 }}>
-                <strong style={{ color: '#007680' }}>{activeDataset.typeDistribution.numeric}</strong> <span style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: 600 }}>Num</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 2px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 750, color: '#1E40AF', background: '#DBEAFE', padding: '2px 7px', borderRadius: '4px' }}>
+                {activeDataset.columns.filter(c => c.inferredType === 'Numeric').length} Numeric
               </span>
-              <span style={{ color: '#CBD5E1' }}>•</span>
-              <span style={{ fontSize: '0.78rem', color: '#0F172A', fontWeight: 800 }}>
-                <strong style={{ color: '#0284C7' }}>{activeDataset.typeDistribution.date}</strong> <span style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: 600 }}>Date</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 750, color: '#047857', background: '#D1FAE5', padding: '2px 7px', borderRadius: '4px' }}>
+                {activeDataset.columns.filter(c => c.inferredType === 'Text').length} Text
               </span>
-              <span style={{ color: '#CBD5E1' }}>•</span>
-              <span style={{ fontSize: '0.78rem', color: '#0F172A', fontWeight: 800 }}>
-                <strong style={{ color: '#6366F1' }}>{activeDataset.typeDistribution.text + activeDataset.typeDistribution.identifier}</strong> <span style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: 600 }}>Text/Key</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 750, color: '#6D28D9', background: '#EDE9FE', padding: '2px 7px', borderRadius: '4px' }}>
+                {activeDataset.columns.filter(c => c.inferredType === 'Date').length} Date
               </span>
             </div>
-            <div style={{ height: '4px', background: '#E2E8F0', borderRadius: '2px', overflow: 'hidden', margin: '2px 0 6px', display: 'flex' }}>
-              <div style={{ height: '100%', width: `${numPct}%`, background: '#007680' }} />
-              <div style={{ height: '100%', width: `${datePct}%`, background: '#0284C7' }} />
-              <div style={{ height: '100%', width: `${textPct + idPct}%`, background: '#6366F1' }} />
+            <div style={{ height: '4px', background: '#E2E8F0', borderRadius: '2px', overflow: 'hidden', margin: '2px 0 6px' }}>
+              <div style={{ height: '100%', width: '100%', background: 'linear-gradient(90deg, #2563EB 50%, #10B981 75%, #8B5CF6 100%)', borderRadius: '2px' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6366F1' }}>
-                Autonomous Detection
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1E40AF' }}>
+                100% Inferred
               </span>
               <span style={{ fontSize: '0.66rem', color: '#64748B' }}>
-                100% mapped
+                Zero Ambiguous Types
               </span>
             </div>
           </div>
 
-          {/* Tile 4: Sanitization State (System State / Audit Readiness - Emerald or Amber Pill) */}
+          {/* Tile 4: Cleansing State (Engine Signal - Emerald / Amber State) */}
           <div
             style={{
               padding: '12px 14px',
-              background: isCleaningPassed ? 'linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%)' : 'linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%)',
+              background: isCleaningPassed
+                ? 'linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%)'
+                : 'linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%)',
               borderRadius: '12px',
               border: isCleaningPassed ? '1px solid #BBF7D0' : '1px solid #FDE68A',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+              boxShadow: isCleaningPassed ? '0 2px 8px rgba(22, 163, 74, 0.04)' : '0 2px 8px rgba(217, 119, 6, 0.04)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-              <span style={{ fontSize: '0.66rem', fontWeight: 750, color: isCleaningPassed ? '#166534' : '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                SYSTEM STATE
+              <span style={{ fontSize: '0.66rem', fontWeight: 750, color: isCleaningPassed ? '#15803D' : '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                SANITIZATION STATE
               </span>
               <div
                 style={{
                   width: '26px',
                   height: '26px',
                   borderRadius: '50%',
-                  background: isCleaningPassed ? '#DCFCE7' : '#FEF3C7',
-                  border: `1.5px solid ${isCleaningPassed ? '#86EFAC' : '#FCD34D'}`,
+                  background: isCleaningPassed ? '#16A34A' : '#D97706',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: isCleaningPassed ? '#16A34A' : '#D97706',
+                  color: '#FFFFFF',
+                  boxShadow: isCleaningPassed ? '0 2px 5px rgba(22, 163, 74, 0.2)' : '0 2px 5px rgba(217, 119, 6, 0.2)',
                 }}
               >
-                {isCleaningPassed ? <CheckCircle2 size={15} strokeWidth={2.4} /> : <AlertTriangle size={15} strokeWidth={2.2} />}
+                {isCleaningPassed ? <ShieldCheck size={13} color="#FFFFFF" strokeWidth={2.4} /> : <AlertTriangle size={13} color="#FFFFFF" strokeWidth={2.4} />}
               </div>
             </div>
-            <div style={{ fontSize: '1.22rem', fontWeight: 800, color: isCleaningPassed ? '#15803D' : '#D97706', margin: '2px 0 4px', letterSpacing: '-0.02em' }}>
-              {isCleaningPassed ? 'Sanitized & Verified' : `${activeDataset.anomaliesDetectedCount} Format Issues`}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '4px 0 2px' }}>
+              <span style={{ fontSize: '1.45rem', fontWeight: 850, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                {isCleaningPassed ? 'Sanitized' : 'Pending'}
+              </span>
+              <span style={{ fontSize: '0.74rem', color: isCleaningPassed ? '#16A34A' : '#D97706', fontWeight: 700 }}>
+                {isCleaningPassed ? '100% Rules' : `${activeDataset.anomaliesDetectedCount} Warnings`}
+              </span>
             </div>
             <div style={{ height: '4px', background: '#E2E8F0', borderRadius: '2px', overflow: 'hidden', margin: '2px 0 6px' }}>
               <div style={{ height: '100%', width: isCleaningPassed ? '100%' : '40%', background: isCleaningPassed ? '#16A34A' : '#D97706', borderRadius: '2px' }} />
@@ -1133,8 +1017,147 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
         </div>
       </div>
 
+      {/* ── Studio View Navigation Deck (Directly Above Workspace) ── */}
+      <div
+        style={{
+          margin: '14px 24px 0',
+          padding: '10px 14px',
+          background: 'linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%)',
+          borderRadius: '10px',
+          border: '1px solid #E2E8F0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px',
+        }}
+      >
+        {/* Left: Studio Segmented Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#475569', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <Sliders size={13} color="#007680" /> STUDIO VIEW:
+          </span>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: '#FFFFFF',
+              padding: '3px',
+              borderRadius: '8px',
+              border: '1px solid #CBD5E1',
+              gap: '3px',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveVisualSubTab('eda')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                border: activeVisualSubTab === 'eda' ? '1px solid #007680' : '1px solid transparent',
+                background: activeVisualSubTab === 'eda' ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)' : 'transparent',
+                color: activeVisualSubTab === 'eda' ? '#FFFFFF' : '#475569',
+                fontSize: '0.74rem',
+                fontWeight: activeVisualSubTab === 'eda' ? 800 : 600,
+                cursor: 'pointer',
+                boxShadow: activeVisualSubTab === 'eda' ? '0 2px 6px rgba(0, 118, 128, 0.25)' : 'none',
+              }}
+            >
+              <Zap size={13} /> Exploratory Studio (EDA)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveVisualSubTab('charts')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                border: activeVisualSubTab === 'charts' ? '1px solid #007680' : '1px solid transparent',
+                background: activeVisualSubTab === 'charts' ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)' : 'transparent',
+                color: activeVisualSubTab === 'charts' ? '#FFFFFF' : '#475569',
+                fontSize: '0.74rem',
+                fontWeight: activeVisualSubTab === 'charts' ? 800 : 600,
+                cursor: 'pointer',
+                boxShadow: activeVisualSubTab === 'charts' ? '0 2px 6px rgba(0, 118, 128, 0.25)' : 'none',
+              }}
+            >
+              <BarChart2 size={13} /> Macro Quality Charts
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveVisualSubTab('table')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                border: activeVisualSubTab === 'table' ? '1px solid #007680' : '1px solid transparent',
+                background: activeVisualSubTab === 'table' ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)' : 'transparent',
+                color: activeVisualSubTab === 'table' ? '#FFFFFF' : '#475569',
+                fontSize: '0.74rem',
+                fontWeight: activeVisualSubTab === 'table' ? 800 : 600,
+                cursor: 'pointer',
+                boxShadow: activeVisualSubTab === 'table' ? '0 2px 6px rgba(0, 118, 128, 0.25)' : 'none',
+              }}
+            >
+              <Table size={13} /> Column Matrix Table ({activeDataset.columns.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveVisualSubTab('delta')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                border: activeVisualSubTab === 'delta' ? '1px solid #007680' : '1px solid transparent',
+                background: activeVisualSubTab === 'delta' ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)' : 'transparent',
+                color: activeVisualSubTab === 'delta' ? '#FFFFFF' : '#475569',
+                fontSize: '0.74rem',
+                fontWeight: activeVisualSubTab === 'delta' ? 800 : 600,
+                cursor: 'pointer',
+                boxShadow: activeVisualSubTab === 'delta' ? '0 2px 6px rgba(0, 118, 128, 0.25)' : 'none',
+              }}
+            >
+              <Sparkles size={13} /> Sanitization Delta
+            </button>
+          </div>
+        </div>
+
+        {/* Right: Contextual Mode Description */}
+        <div style={{ fontSize: '0.70rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {activeVisualSubTab === 'eda' && (
+            <>
+              <Zap size={12} color="#007680" /> Select 1 field for distribution, 2+ for intelligent correlations
+            </>
+          )}
+          {activeVisualSubTab === 'charts' && (
+            <>
+              <BarChart2 size={12} color="#007680" /> Full schema health breakdown &amp; cardinality curves
+            </>
+          )}
+          {activeVisualSubTab === 'table' && (
+            <>
+              <Table size={12} color="#007680" /> Searchable field dictionary with sample values
+            </>
+          )}
+          {activeVisualSubTab === 'delta' && (
+            <>
+              <Sparkles size={12} color="#007680" /> Audit trail of cleansing transformations applied
+            </>
+          )}
+        </div>
+      </div>
+
       {/* ── Content View Area ── */}
-      <div style={{ padding: '16px 20px 20px' }}>
+      <div style={{ padding: '16px 24px 24px' }}>
         {/* VIEW 0: INTERACTIVE EXPLORATORY DATA ANALYSIS (EDA) & MULTI-VARIATE STUDIO */}
         {activeVisualSubTab === 'eda' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -1460,12 +1483,13 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                                 color: '#6366F1',
                                 background: '#F5F3FF',
                                 border: '1px solid #DDD6FE',
-                                padding: '1px 4px',
+                                padding: '1px 5px',
                                 borderRadius: '3px',
+                                cursor: 'help',
                               }}
-                              title="High Cardinality (distinct values >= 70% of records)"
+                              title="High Cardinality: Distinct values account for ≥ 70% of total records (e.g. unique keys or transaction IDs)"
                             >
-                              Hi-Card
+                              High Card
                             </span>
                           )}
                           {isFlagged && (
@@ -1476,12 +1500,13 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                                 color: '#D97706',
                                 background: '#FFFBEB',
                                 border: '1px solid #FDE68A',
-                                padding: '1px 4px',
+                                padding: '1px 5px',
                                 borderRadius: '3px',
+                                cursor: 'help',
                               }}
-                              title="Potential outliers or format variances detected"
+                              title="Quality Flag: Potential format variances, outliers, or zero/negative anomalies detected"
                             >
-                              Flag
+                              Flagged
                             </span>
                           )}
                           <span
@@ -2573,10 +2598,55 @@ function pearsonCorrelation(x: number[], y: number[]): number {
 
 function correlationColor(r: number): string {
   const abs = Math.abs(r);
-  if (abs >= 0.7) return r > 0 ? '#007680' : '#DC2626';
-  if (abs >= 0.4) return r > 0 ? '#0D9488' : '#EA580C';
-  if (abs >= 0.2) return r > 0 ? '#5EEAD4' : '#FDBA74';
-  return '#E2E8F0';
+  if (abs >= 0.65) return r > 0 ? '#007680' : '#E11D48';
+  if (abs >= 0.35) return r > 0 ? '#0D9488' : '#EA580C';
+  if (abs >= 0.15) return r > 0 ? '#14B8A6' : '#F97316';
+  return '#64748B';
+}
+
+/** Computes continuous alpha and color intensity for pairwise correlation cells.
+ *  Values like 0.12 -> 0.47 -> 0.82 -> 0.98 scale smoothly and are instantly distinguishable. */
+function getCorrelationCellStyle(r: number, isDiag: boolean): {
+  background: string;
+  color: string;
+  border: string;
+  boxShadow?: string;
+} {
+  if (isDiag) {
+    return {
+      background: '#F8FAFC',
+      color: '#94A3B8',
+      border: '1px solid #E2E8F0',
+    };
+  }
+
+  const abs = Math.min(1, Math.abs(r));
+  if (abs < 0.04) {
+    return {
+      background: '#FAFAFA',
+      color: '#64748B',
+      border: '1px solid #E2E8F0',
+    };
+  }
+
+  // Continuous alpha intensity: smooth scaling from 0.08 to 0.96
+  const alpha = Math.min(0.96, Math.max(0.08, 0.08 + Math.pow(abs, 1.15) * 0.88));
+
+  if (r >= 0) {
+    // Deloitte Teal: rgb(0, 118, 128)
+    const background = `rgba(0, 118, 128, ${alpha.toFixed(3)})`;
+    const color = abs >= 0.48 ? '#FFFFFF' : '#004D54';
+    const border = `1px solid rgba(0, 118, 128, ${(0.15 + abs * 0.55).toFixed(2)})`;
+    const boxShadow = abs >= 0.8 ? '0 1px 4px rgba(0, 118, 128, 0.22)' : undefined;
+    return { background, color, border, boxShadow };
+  } else {
+    // Inverse/Negative: Rose/Crimson rgb(225, 29, 72)
+    const background = `rgba(225, 29, 72, ${alpha.toFixed(3)})`;
+    const color = abs >= 0.48 ? '#FFFFFF' : '#881337';
+    const border = `1px solid rgba(225, 29, 72, ${(0.15 + abs * 0.55).toFixed(2)})`;
+    const boxShadow = abs >= 0.8 ? '0 1px 4px rgba(225, 29, 72, 0.22)' : undefined;
+    return { background, color, border, boxShadow };
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -4089,14 +4159,14 @@ function renderCorrelationMatrix(numericCols: ColumnMetricItem[]) {
         description="No categorical field discriminated these measures strongly, so JET shows how each pair of numeric fields moves together instead."
       />
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'separate', borderSpacing: '3px', fontSize: '0.64rem' }}>
+      <div style={{ overflowX: 'auto', padding: '2px 0' }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: '4px', fontSize: '0.66rem' }}>
           <thead>
             <tr>
-              <th style={{ padding: '2px 6px' }} />
+              <th style={{ padding: '2px 8px' }} />
               {cols.map((c) => (
-                <th key={c.name} title={c.name} style={{ padding: '4px 4px', fontWeight: 750, color: CHART_SLATE, fontSize: '0.6rem' }}>
-                  {truncate(c.name, 10)}
+                <th key={c.name} title={c.name} style={{ padding: '4px 6px', fontWeight: 750, color: CHART_SLATE, fontSize: '0.62rem' }}>
+                  {truncate(c.name, 11)}
                 </th>
               ))}
             </tr>
@@ -4104,29 +4174,34 @@ function renderCorrelationMatrix(numericCols: ColumnMetricItem[]) {
           <tbody>
             {cols.map((rowCol, ri) => (
               <tr key={rowCol.name}>
-                <td title={rowCol.name} style={{ padding: '4px 8px', fontWeight: 750, color: CHART_NAVY, fontFamily: 'monospace', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                <td title={rowCol.name} style={{ padding: '4px 10px', fontWeight: 750, color: CHART_NAVY, fontFamily: 'monospace', whiteSpace: 'nowrap', textAlign: 'right' }}>
                   {truncate(rowCol.name, 16)}
                 </td>
                 {cols.map((colCol, ci) => {
                   const r = matrix[ri][ci];
                   const isDiag = ri === ci;
+                  const cellStyle = getCorrelationCellStyle(r, isDiag);
                   return (
                     <td
                       key={colCol.name}
-                      title={isDiag ? rowCol.name : `${rowCol.name} × ${colCol.name}: r = ${r.toFixed(2)}`}
+                      title={isDiag ? `${rowCol.name} (Identity = 1.00)` : `${rowCol.name} × ${colCol.name}: Pearson r = ${r.toFixed(2)}`}
                       style={{
-                        width: 48,
-                        height: 32,
+                        width: 52,
+                        height: 34,
                         textAlign: 'center',
                         verticalAlign: 'middle',
-                        borderRadius: 4,
-                        background: isDiag ? '#F1F5F9' : correlationColor(r),
-                        color: isDiag ? '#94A3B8' : Math.abs(r) >= 0.4 ? '#FFFFFF' : '#334155',
+                        borderRadius: 5,
+                        background: cellStyle.background,
+                        color: cellStyle.color,
+                        border: cellStyle.border,
+                        boxShadow: cellStyle.boxShadow,
                         fontWeight: 750,
-                        fontSize: '0.64rem',
+                        fontSize: '0.66rem',
+                        fontFamily: 'var(--font-mono, monospace)',
+                        transition: 'all 0.15s ease',
                       }}
                     >
-                      {isDiag ? '—' : r.toFixed(2)}
+                      {isDiag ? '1.00' : r.toFixed(2)}
                     </td>
                   );
                 })}
@@ -4134,6 +4209,46 @@ function renderCorrelationMatrix(numericCols: ColumnMetricItem[]) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Continuous Statistical Intensity Scale Legend */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+          padding: '8px 14px',
+          background: '#F8FAFC',
+          borderRadius: '8px',
+          border: '1px solid #E2E8F0',
+          fontSize: '0.66rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#9F1239', fontWeight: 750 }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#E11D48', display: 'inline-block' }} />
+          <span>-1.00 (Inverse)</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: '280px', minWidth: '160px', margin: '0 8px' }}>
+          <span style={{ color: '#94A3B8', fontSize: '0.60rem', fontFamily: 'monospace' }}>-1.0</span>
+          <div
+            style={{
+              flex: 1,
+              height: '8px',
+              borderRadius: '4px',
+              background: 'linear-gradient(90deg, #E11D48 0%, rgba(225,29,72,0.18) 40%, #E2E8F0 50%, rgba(0,118,128,0.18) 60%, #007680 100%)',
+              border: '1px solid #CBD5E1',
+            }}
+          />
+          <span style={{ color: '#94A3B8', fontSize: '0.60rem', fontFamily: 'monospace' }}>+1.0</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#005A60', fontWeight: 750 }}>
+          <span>+1.00 (Direct)</span>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#007680', display: 'inline-block' }} />
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(cols.length, 4)}, 1fr)`, gap: 8 }}>
