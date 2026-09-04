@@ -59,13 +59,16 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isWorkflowPage = location.pathname.includes('/jet') || location.pathname.includes('/spark-jet') || location.pathname.includes('/omnia-jet');
   const [isAiOpen, setIsAiOpen] = React.useState(false);
   const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
+  const [pendingDisplayText, setPendingDisplayText] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const handleOpenAi = (e: Event) => {
-      const customEvent = e as CustomEvent<{ prompt?: string; context?: string }>;
+      const customEvent = e as CustomEvent<{ prompt?: string; context?: string; displayText?: string }>;
       const prompt = customEvent.detail?.prompt;
+      const displayText = customEvent.detail?.displayText;
       if (prompt) {
         setPendingPrompt(prompt);
+        setPendingDisplayText(displayText || null);
       }
       setIsAiOpen(true);
     };
@@ -101,7 +104,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         isOpen={isAiOpen}
         onClose={() => setIsAiOpen(false)}
         autoPrompt={pendingPrompt}
-        onClearAutoPrompt={() => setPendingPrompt(null)}
+        autoDisplayText={pendingDisplayText}
+        onClearAutoPrompt={() => { setPendingPrompt(null); setPendingDisplayText(null); }}
       />
     </div>
   );

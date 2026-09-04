@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -119,6 +119,12 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
   // Pin/compare mode: a pinned selection snapshot rendered side-by-side with the live selection
   const [pinnedSelection, setPinnedSelection] = useState<{ names: string[]; datasetId: string } | null>(null);
 
+  // Natural Language Visual Query Bar
+  const [nlQuery, setNlQuery] = useState('');
+  const [nlQueryResult, setNlQueryResult] = useState<{ matched: string[]; message: string; type: 'success' | 'partial' | 'none' } | null>(null);
+  const [nlQueryFocused, setNlQueryFocused] = useState(false);
+  const nlInputRef = useRef<HTMLInputElement>(null);
+
   // Compute rich column profiles for every dataset across all files and sheets
   const datasets: ExtractedDatasetProfile[] = useMemo(() => {
     if (!files || files.length === 0) return [];
@@ -207,6 +213,99 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
     const found = datasets.find((d) => d.id === selectedDatasetId);
     return found || datasets[0];
   }, [datasets, selectedDatasetId]);
+
+  // ─── Natural Language Query Handler ───────────────────────────────────────
+  const handleNlQuery = useCallback((rawQuery: string) => {
+    if (!activeDataset || !rawQuery.trim()) {
+      setNlQueryResult(null);
+      return;
+    }
+
+    const q = rawQuery.toLowerCase();
+    const cols = activeDataset.columns;
+
+    // Tokenize query into meaningful words (3+ chars, ignoring stopwords)
+    const stopwords = new Set(['the', 'and', 'for', 'with', 'give', 'show', 'plot', 'me', 'vs', 'versus', 'get', 'find', 'display', 'view', 'between', 'of', 'in', 'on', 'at', 'to', 'a', 'an', 'is', 'are', 'was', 'were', 'will', 'can']);
+    const queryTokens = q.split(/[\s,]+/).filter(t => t.length >= 2 && !stopwords.has(t));
+
+    // Score each column by how many query word-tokens overlap with its name tokens
+    const score = (col: ColumnMetricItem): number => {
+      const nameTokens = col.name.toLowerCase().split(/[_\s\-]+/);
+      let s = 0;
+      for (const qt of queryTokens) {
+        for (const nt of nameTokens) {
+          if (nt === qt) { s += 3; break; }         // exact word match
+          if (nt.startsWith(qt) || qt.startsWith(nt)) { s += 1; break; } // prefix match
+        }
+      }
+      return s;
+    };
+
+    // Type-keyword matching
+    const wantsNumeric = /\b(amount|numeric|number|currency|financial|monetary|value|sum|total|debit|credit|balance)\b/.test(q);
+    const wantsDate = /\b(date|time|period|day|month|year|when|posting|effective)\b/.test(q);
+    const wantsIdentifier = /\b(id|identifier|key|code|account|user|preparer|approver|document|reference|voucher)\b/.test(q);
+    const wantsText = /\b(text|category|description|narrative|name|label|categorical)\b/.test(q);
+
+    const wantsCompare = /\b(compare|vs|versus|correlation|correl|against|relationship|scatter|bivariate)\b/.test(q);
+    const wantsAll = /\b(all|every|full|entire|complete|overview|schema)\b/.test(q);
+    const wantsOutlier = /\b(outlier|outliers|anomaly|anomalies|extreme|unusual)\b/.test(q);
+    const wantsHighCard = /\b(unique|cardinality|distinct|high.?card)\b/.test(q);
+
+    // Get scored direct matches (score > 0)
+    const scored = cols
+      .map(c => ({ col: c, s: score(c) }))
+      .filter(x => x.s > 0)
+      .sort((a, b) => b.s - a.s);
+
+    let matched: string[] = [];
+
+    if (scored.length > 0) {
+      // Use top scored columns
+      if (wantsCompare || wantsAll) {
+        matched = scored.slice(0, 2).map(x => x.col.name);
+      } else {
+        matched = [scored[0].col.name];
+      }
+    } else if (wantsAll) {
+      matched = cols.map(c => c.name);
+    } else if (wantsOutlier) {
+      const outlierCols = cols.filter(c => c.numericStats && (c.numericStats.zeros > 0 || c.numericStats.negatives > 0));
+      matched = outlierCols.slice(0, 4).map(c => c.name);
+    } else if (wantsHighCard) {
+      const hc = cols.filter(c => c.distinctPct >= 70 || c.uniqueCount >= activeDataset.totalRows * 0.7);
+      matched = hc.slice(0, 4).map(c => c.name);
+    } else {
+      // Fall back to type-based matching
+      const typeCols: ColumnMetricItem[] = [];
+      if (wantsNumeric) typeCols.push(...cols.filter(c => c.inferredType === 'Numeric' || c.inferredType === 'Currency'));
+      if (wantsDate) typeCols.push(...cols.filter(c => c.inferredType === 'Date'));
+      if (wantsIdentifier) typeCols.push(...cols.filter(c => c.inferredType === 'Identifier'));
+      if (wantsText) typeCols.push(...cols.filter(c => c.inferredType === 'Text'));
+      const seen = new Set<string>();
+      typeCols.forEach(c => { if (!seen.has(c.name)) { seen.add(c.name); matched.push(c.name); } });
+      if (!wantsAll) {
+        matched = wantsCompare ? matched.slice(0, 2) : matched.slice(0, 1);
+      }
+    }
+
+    if (matched.length > 0) {
+      setSelectedColumnNames(matched);
+      setNlQueryResult({
+        matched,
+        message: matched.length === 1
+          ? `Showing: ${matched[0]}`
+          : `Comparing: ${matched.join(' \u00d7 ')}`,
+        type: 'success',
+      });
+    } else {
+      setNlQueryResult({
+        matched: [],
+        message: 'No matching columns found. Try field names or keywords like "amount", "date", "account".',
+        type: 'none',
+      });
+    }
+  }, [activeDataset]);
 
   const categoryCounts = useMemo(() => {
     if (!activeDataset) {
@@ -623,8 +722,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
               {autoCleaning
                 ? 'Sanitizing & Standardizing...'
                 : isCleaningPassed
-                ? 'Re-Run Auto-Clean Engine'
-                : 'Run Auto-Clean & Sanitize Data'}
+                  ? 'Re-Run Auto-Clean Engine'
+                  : 'Run Auto-Clean & Sanitize Data'}
             </span>
           </button>
         </div>
@@ -1089,6 +1188,207 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
         {/* VIEW 0: INTERACTIVE EXPLORATORY DATA ANALYSIS (EDA) & MULTI-VARIATE STUDIO */}
         {activeVisualSubTab === 'eda' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+            {/* ── Natural Language Visual Query Bar ── */}
+            {activeDataset && (
+              <div
+                style={{
+                  background: nlQueryFocused
+                    ? 'linear-gradient(135deg, #ECFDF5 0%, #F0F9FF 100%)'
+                    : 'linear-gradient(135deg, #F8FAFC 0%, #F0FDFA 60%, #EFF6FF 100%)',
+                  border: nlQueryFocused ? '1.5px solid #007680' : '1.5px solid #CBD5E1',
+                  borderRadius: '14px',
+                  padding: '10px 14px',
+                  boxShadow: nlQueryFocused
+                    ? '0 0 0 3px rgba(0, 118, 128, 0.10), 0 4px 16px rgba(0, 118, 128, 0.08)'
+                    : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                {/* Bar header label */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '6px',
+                    background: 'linear-gradient(135deg, #007680 0%, #005A60 100%)',
+                    color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <Sparkles size={11} />
+                  </div>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                    Visual Query Bar
+                  </span>
+                  <span style={{ fontSize: '0.65rem', color: '#64748B', marginLeft: '2px' }}>
+                    — type what you want to see, press Enter
+                  </span>
+                  {nlQueryResult && (
+                    <button
+                      type="button"
+                      onClick={() => { setNlQuery(''); setNlQueryResult(null); setSelectedColumnNames([]); }}
+                      style={{
+                        marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer',
+                        color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '3px',
+                        fontSize: '0.65rem', fontWeight: 600, padding: '2px 4px', borderRadius: '4px',
+                      }}
+                      title="Clear query"
+                    >
+                      Clear <X size={11} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Input row */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <Search
+                      size={14}
+                      color={nlQueryFocused ? '#007680' : '#94A3B8'}
+                      style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', transition: 'color 0.2s' }}
+                    />
+                    <input
+                      ref={nlInputRef}
+                      type="text"
+                      value={nlQuery}
+                      onChange={(e) => setNlQuery(e.target.value)}
+                      onFocus={() => setNlQueryFocused(true)}
+                      onBlur={() => setNlQueryFocused(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && nlQuery.trim()) {
+                          handleNlQuery(nlQuery);
+                        }
+                      }}
+                      placeholder={`e.g. "show amount distribution", "compare account vs date", "find outliers"`}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        paddingLeft: '32px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px',
+                        fontSize: '0.78rem', fontWeight: 500, color: '#0F172A',
+                        background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '9px',
+                        outline: 'none', fontFamily: 'inherit',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                        transition: 'border-color 0.15s',
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => nlQuery.trim() && handleNlQuery(nlQuery)}
+                    style={{
+                      padding: '8px 16px',
+                      background: nlQuery.trim()
+                        ? 'linear-gradient(135deg, #007680 0%, #005A60 100%)'
+                        : '#E2E8F0',
+                      color: nlQuery.trim() ? '#FFFFFF' : '#94A3B8',
+                      border: 'none', borderRadius: '9px', cursor: nlQuery.trim() ? 'pointer' : 'not-allowed',
+                      fontSize: '0.74rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap', flexShrink: 0,
+                      boxShadow: nlQuery.trim() ? '0 2px 8px rgba(0, 118, 128, 0.25)' : 'none',
+                    }}
+                  >
+                    <Zap size={13} /> Visualize
+                  </button>
+                </div>
+
+                {/* Example query pills */}
+                {!nlQueryResult && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {[
+                      'show amount distribution',
+                      'compare amount vs date',
+                      'find outliers in numeric fields',
+                      'show all date columns',
+                      'profile account codes',
+                      'show currency field trends',
+                    ].map((example) => (
+                      <button
+                        key={example}
+                        type="button"
+                        onClick={() => { setNlQuery(example); handleNlQuery(example); }}
+                        style={{
+                          padding: '3px 9px',
+                          background: '#F1F5F9',
+                          border: '1px solid #E2E8F0',
+                          borderRadius: '20px',
+                          fontSize: '0.64rem',
+                          fontWeight: 600,
+                          color: '#475569',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.background = '#E0F2FE';
+                          (e.currentTarget as HTMLButtonElement).style.color = '#0369A1';
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = '#BAE6FD';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9';
+                          (e.currentTarget as HTMLButtonElement).style.color = '#475569';
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0';
+                        }}
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Result feedback chip */}
+                {nlQueryResult && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px',
+                  }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '5px',
+                      padding: '4px 10px',
+                      background: nlQueryResult.type === 'success' ? '#ECFDF5' : '#FFF7ED',
+                      border: `1px solid ${nlQueryResult.type === 'success' ? '#86EFAC' : '#FED7AA'}`,
+                      borderRadius: '20px',
+                      fontSize: '0.70rem', fontWeight: 700,
+                      color: nlQueryResult.type === 'success' ? '#15803D' : '#C2410C',
+                    }}>
+                      {nlQueryResult.type === 'success' ? <CheckCircle2 size={11} /> : <AlertTriangle size={11} />}
+                      {nlQueryResult.message}
+                    </div>
+                    {nlQueryResult.matched.length > 1 && (
+                      <span style={{ fontSize: '0.64rem', color: '#64748B', fontStyle: 'italic' }}>
+                        Bivariate correlation view activated
+                      </span>
+                    )}
+                    {nlQueryResult.type === 'success' && activeDataset && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matchedCols = activeDataset.columns.filter(c => nlQueryResult.matched.includes(c.name));
+                          const prompt = generateIntelligentEdaPrompt(matchedCols, activeDataset);
+                          const displayText = matchedCols.length === 1
+                            ? `Analyze field: ${matchedCols[0].name}`
+                            : `Analyze: ${matchedCols.map(c => c.name).join(' × ')}`;
+                          window.dispatchEvent(new CustomEvent('jet:open-ai', { detail: { prompt, displayText } }));
+                        }}
+                        style={{
+                          padding: '4px 10px',
+                          background: 'linear-gradient(135deg, #007680 0%, #005A60 100%)',
+                          color: '#FFFFFF',
+                          border: 'none', borderRadius: '20px',
+                          fontSize: '0.68rem', fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          boxShadow: '0 2px 6px rgba(0, 118, 128, 0.25)',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <Sparkles size={10} /> Explain with AI
+                      </button>
+                    )}
+                  </div>
+
+                )}
+              </div>
+            )}
+
             {/* ── Friendly, Streamlined EDA Action Guide (Easy to Understand, Not Overly Complex) ── */}
             {showEdaGuide && (
               <div
@@ -1282,10 +1582,10 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                       {selectedColumnNames.length === 0
                         ? 'No Selection'
                         : selectedColumnNames.length === 1
-                        ? 'Univariate (1)'
-                        : selectedColumnNames.length === 2
-                        ? 'Bivariate (2)'
-                        : `Multivariate (${selectedColumnNames.length})`}
+                          ? 'Univariate (1)'
+                          : selectedColumnNames.length === 2
+                            ? 'Bivariate (2)'
+                            : `Multivariate (${selectedColumnNames.length})`}
                     </span>
                   </div>
                   <p style={{ fontSize: '0.67rem', color: '#64748B', margin: 0 }}>
@@ -1384,7 +1684,7 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                           <input
                             type="checkbox"
                             checked={isSelected}
-                            onChange={() => {}}
+                            onChange={() => { }}
                             style={{ accentColor: '#007680', cursor: 'pointer', width: '14px', height: '14px', flexShrink: 0 }}
                           />
                           <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
@@ -1562,12 +1862,11 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                             onClick={() => {
                               const promptText = generateIntelligentEdaPrompt(selectedColumnObjects, activeDataset);
                               const colName = selectedColumnObjects[0]?.name || activeDataset.title;
-
+                              const displayText = selectedColumnObjects.length === 1
+                                ? `Analyze field: ${colName}`
+                                : `Analyze: ${selectedColumnObjects.map(c => c.name).join(' × ')}`;
                               window.dispatchEvent(new CustomEvent('jet:open-ai', {
-                                detail: {
-                                  prompt: promptText,
-                                  context: colName,
-                                }
+                                detail: { prompt: promptText, context: colName, displayText },
                               }));
                             }}
                             style={{
@@ -1608,7 +1907,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
-                    minHeight: '480px',
+                    height: '100%',
+                    alignSelf: 'stretch',
                     justifyContent: selectedColumnObjects.length === 0 ? 'center' : 'flex-start',
                   }}
                 >
@@ -1630,12 +1930,11 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                           onClick={() => {
                             const promptText = generateIntelligentEdaPrompt(selectedColumnObjects, activeDataset);
                             const colName = selectedColumnObjects[0]?.name || activeDataset.title;
-
+                            const displayText = selectedColumnObjects.length === 1
+                              ? `Analyze field: ${colName}`
+                              : `Analyze: ${selectedColumnObjects.map(c => c.name).join(' × ')}`;
                             window.dispatchEvent(new CustomEvent('jet:open-ai', {
-                              detail: {
-                                prompt: promptText,
-                                context: colName,
-                              }
+                              detail: { prompt: promptText, context: colName, displayText },
                             }));
                           }}
                           style={{
@@ -1660,8 +1959,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                             {selectedColumnObjects.length === 1
                               ? 'Explain this distribution'
                               : selectedColumnObjects.length === 2
-                              ? 'Explain correlation'
-                              : 'Explain schema relationship'}
+                                ? 'Explain correlation'
+                                : 'Explain schema relationship'}
                           </span>
                         </button>
                       </div>

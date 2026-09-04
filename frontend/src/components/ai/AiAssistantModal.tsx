@@ -55,6 +55,7 @@ interface AiAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
   autoPrompt?: string | null;
+  autoDisplayText?: string | null;
   onClearAutoPrompt?: () => void;
 }
 
@@ -116,6 +117,7 @@ export const AiAssistantModal: React.FC<
   isOpen,
   onClose,
   autoPrompt,
+  autoDisplayText,
   onClearAutoPrompt,
 }) => {
   const [
@@ -128,7 +130,7 @@ export const AiAssistantModal: React.FC<
     messagesRef.current = messages;
   }, [messages]);
 
-  const handleSendRef = useRef<((suppliedText?: string, forceSend?: boolean) => Promise<void>) | null>(null);
+  const handleSendRef = useRef<((suppliedText?: string, forceSend?: boolean, displayText?: string) => Promise<void>) | null>(null);
 
   const [
     inputValue,
@@ -241,7 +243,7 @@ export const AiAssistantModal: React.FC<
 
     const timer = window.setTimeout(() => {
       if (handleSendRef.current) {
-        void handleSendRef.current(autoPrompt, true);
+        void handleSendRef.current(autoPrompt, true, autoDisplayText || undefined);
         if (onClearAutoPrompt) {
           onClearAutoPrompt();
         }
@@ -589,7 +591,8 @@ export const AiAssistantModal: React.FC<
 
   const handleSend = async (
     suppliedText?: string,
-    forceSend: boolean = false
+    forceSend: boolean = false,
+    displayText?: string
   ) => {
     const query = (
       suppliedText !== undefined
@@ -612,21 +615,27 @@ export const AiAssistantModal: React.FC<
       currentContext
     );
 
+    // Use displayText for the bubble (short label), full query goes to API
     const userMessage: AiChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: query,
+      content: displayText || query,
       timestamp: nowLabel(),
     };
 
+    // Build API history: use real query content (not display label) for API
+    const apiMessage = displayText ? { ...userMessage, content: query } : userMessage;
     const currentMessages = messagesRef.current.length > 0 ? messagesRef.current : messages;
-    const updatedHistory = [
+    const historyForDisplay = [
       ...currentMessages,
       userMessage,
     ];
+    const historyForApi = displayText
+      ? [...currentMessages, apiMessage]
+      : historyForDisplay;
 
     setMessages(
-      updatedHistory
+      historyForDisplay
     );
 
     setInputValue('');
@@ -645,7 +654,7 @@ export const AiAssistantModal: React.FC<
     try {
       const response =
         await AiService.sendMessage(
-          updatedHistory.map(
+          historyForApi.map(
             (message) => ({
               role:
                 message.role,

@@ -828,12 +828,41 @@ ${rows}
       q.includes('exploratory data analysis') ||
       q.includes('bivariate audit correlation') ||
       q.includes('multivariate schema') ||
+      q.includes('executive schema-level') ||
       (q.includes('audit evaluation') && (q.includes('distribution') || q.includes('outliers') || q.includes('correlation')));
 
     if (!isEdaQuery) return null;
 
-    // 1. Univariate Field Profile
-    if (q.includes('perform a detailed audit exploratory data analysis on field')) {
+    // 0. Schema-level (no columns selected) prompt
+    if (q.includes('executive schema-level exploratory data analysis') || q.includes('executive schema-level')) {
+      const matchDataset = query.match(/dataset\s+"([^"]+)"/i);
+      const datasetName = matchDataset ? matchDataset[1] : (context?.selectedItem || 'Active Dataset');
+      const colMatch = query.match(/(\d+)\s+columns/i);
+      const rowMatch = query.match(/(\d[\d,]*)\s+rows/i);
+      const complMatch = query.match(/(\d+(?:\.\d+)?)%\s+overall\s+completeness/i);
+      const numColumns = colMatch ? colMatch[1] : '?';
+      const numRows = rowMatch ? rowMatch[1] : '?';
+      const completeness = complMatch ? complMatch[1] : '?';
+      return `**Schema Analysis — ${datasetName}**
+*${numColumns} columns · ${numRows} rows · ${completeness}% complete*
+
+**Data Integrity**: ${Number(completeness) >= 95 ? 'High — suitable for substantive testing without imputation risk.' : Number(completeness) >= 85 ? 'Moderate — completeness gaps should be assessed for missing-data bias before stratified testing.' : 'Below threshold — extensive null analysis required before relying on statistical inference.'}
+
+**Priority Field Categories**
+1. **Amount/Monetary**: Primary targets for ISA 240 fraud stratification, round-number clustering, and outlier profiling.
+2. **Date Fields**: Validate posting cutoffs, weekend entries, and sequential integrity across the period.
+3. **Identifier Fields** (Account, Cost Centre, User ID): Profile cardinality and cross-reference against master data.
+
+**Recommended Bivariate Pairings**
+1. Amount × Posting Date — detect time-clustered entries near period-end.
+2. Account Code × Amount — identify concentration risk across ledger accounts.
+3. Preparer ID × Amount — surface user-level posting patterns.
+
+**Next Steps**: Select individual fields in the column panel to begin profiling, or choose two fields for bivariate correlation analysis.`;
+    }
+
+    // 1. Univariate Field Profile – handle both "...analysis on field" and "...analysis (EDA) on field"
+    if (/perform a detailed audit exploratory data analysis(\s+\([^)]*\))?\s+on field/i.test(q)) {
       const matchField = query.match(/field\s+"([^"]+)"\s+\(([^)]+)\)/i);
       const fieldName = matchField ? matchField[1] : 'Selected Field';
       const fieldType = matchField ? matchField[2] : 'General';
@@ -857,44 +886,37 @@ ${rows}
         const hasNegatives = negativesMatch && parseInt(negativesMatch[1].replace(/,/g, ''), 10) > 0;
         const hasRound = roundMatch && parseInt(roundMatch[1], 10) > 0;
 
-        forensicNotes = `#### Forensic & Data Quality Red Flags:
-1. **Outlier Risk (1.5× IQR Threshold)**: ${hasOutliers ? `⚠️ **${outliersMatch[1]} outlier records** detected beyond the standard interquartile fences. Extreme monetary values represent disproportionate audit risk and must be stratified for 100% substantive vouching.` : '✅ No extreme IQR outliers detected in this distribution.'}
-2. **Zero-Amount Entries**: ${hasZeros ? `⚠️ **${zerosMatch[1]} zero-value lines** observed. Verify whether these represent technical system placeholders, memo lines, or incomplete journal postings requiring reversal.` : '✅ Zero balances are within expected operational bounds.'}
-3. **Negative Balance Diagnostics**: ${hasNegatives ? `🔍 **${negativesMatch[1]} negative amount rows** detected. In double-entry accounting, verify whether negatives represent legitimate contra-asset adjustments, revenue debit reversals, or sign convention anomalies.` : '✅ All recorded values conform to positive magnitude conventions.'}
-4. **Round Number Clustering**: ${hasRound ? `⚠️ **${roundMatch[1]} round-number amounts** (multiples of 100/1,000) identified. Under ISA 240, artificial round numbers frequently indicate manual management estimates or round-sum override entries.` : '✅ Natural digit distribution observed; no artificial round-number clustering.'}`;
+        forensicNotes = `**Forensic & Data Quality Findings**
+1. **Outlier Risk (1.5× IQR)**: ${hasOutliers ? `${outliersMatch[1]} records fall outside the IQR fences. Stratify these for substantive vouching against source documents.` : 'No IQR outliers detected. Distribution is within expected bounds.'}
+2. **Zero-Amount Entries**: ${hasZeros ? `${zerosMatch[1]} zero-value lines present. Confirm whether these are memo entries, placeholders, or incomplete postings.` : 'No unexpected zero balances.'}
+3. **Negative Balances**: ${hasNegatives ? `${negativesMatch[1]} negative-value rows. Verify these represent valid reversals or contra-entries, not sign errors.` : 'All values are positive with no sign anomalies.'}
+4. **Round Number Clustering**: ${hasRound ? `${roundMatch[1]} round-number entries (multiples of 100/1,000). Elevated round-number concentration may indicate management estimates or manual overrides (ISA 240).` : 'No unusual round-number clustering observed.'}`;
       } else if (fieldType.toLowerCase().includes('date')) {
-        forensicNotes = `#### Forensic & Temporal Audit Red Flags:
-1. **Posting Window & Cutoff**: Evaluate whether transaction dates fall cleanly within the audit financial year without post-period closing adjustments.
-2. **Weekend & Holiday Postings**: Cross-reference entries posted on non-working days against authorized emergency adjustment approvals.
-3. **Sequential Integrity**: Verify that effective posting dates correlate monotonically with document/journal entry numbering.`;
+        forensicNotes = `**Temporal Audit Findings**
+1. **Posting Cutoff**: Confirm all transaction dates fall within the audit period and no post-period adjustments are present.
+2. **Non-Working Day Entries**: Cross-reference entries posted on weekends or public holidays against authorised emergency approvals.
+3. **Sequential Integrity**: Verify posting date sequence aligns with journal entry numbering and document flow.`;
       } else {
-        forensicNotes = `#### Forensic & Schema Quality Observations:
-1. **Cardinality & Key Uniqueness**: Verify whether distinct category counts align with known organizational master data (e.g., Chart of Accounts or User Registry).
-2. **Blank / Null Integrity**: Ensure complete population capture without blank or corrupted string identifiers.
-3. **Format Homogeneity**: Confirm that identifier syntax conforms to standard ERP alphanumeric length and mask guidelines.`;
+        forensicNotes = `**Schema Quality Observations**
+1. **Cardinality**: Verify distinct value counts align with master data (e.g. Chart of Accounts, User Registry).
+2. **Null Integrity**: Confirm no blank or corrupted identifiers that would undermine population completeness.
+3. **Format Consistency**: Confirm identifier syntax conforms to ERP alphanumeric length and format standards.`;
       }
 
-      return `### Audit Exploratory Data Analysis: \`${fieldName}\` (${fieldType})
-*Dataset Scope: **${datasetName}** • Engine: **JET Forensic Profiling Intelligence***
+      return `**Audit EDA — \`${fieldName}\` (${fieldType})**
+*${datasetName}*
 
----
-
-#### I. Executive Statistical Summary:
-- **Target Field**: \`${fieldName}\` (${fieldType})
-- **Analytical Context**: ${minMatch && maxMatch ? `Observed range spans from **${minMatch[1]}** to **${maxMatch[1]}** with a central mean of **${meanMatch ? meanMatch[1] : '--'}**.` : `Categorical / structural field analyzed across the active population.`}
-- **Distribution Pattern**: Demonstrates typical general ledger concentration where operational postings cluster around central operating ranges with right-skewed tail exposures.
-
----
+**Statistical Profile**
+- Range: ${minMatch && maxMatch ? `${minMatch[1]} to ${maxMatch[1]}` : 'N/A'} · Mean: ${meanMatch ? meanMatch[1] : 'N/A'}
+- Zeros: ${zerosMatch ? zerosMatch[1] : '—'} · Negatives: ${negativesMatch ? negativesMatch[1] : '—'}
 
 ${forensicNotes}
 
----
-
-#### III. Substantive Testing Strategy & Recommended Audit Procedures:
-1. **ISA 240 Fraud Risk Stratification**: Isolate transactions above planning materiality thresholds ($MP$) for direct vouching against underlying third-party source documentation (invoices, shipping notices, bank confirmations).
-2. **Exception Test Integration**: Cross-evaluate this field in **Test 8 (Revenue Debits)** and **Test 11 (High Value Entries)** within the Parametric Exception Testing suite.
-3. **Segregation of Duties & Authorization**: For any outlier or round-sum transactions, verify dual-authorization workflows and compare the preparer ID against approved accounting delegation limits.
-4. **Workpaper Documentation**: Document the verified outlier rationale and retain this distribution snapshot as audit workpaper evidence for review partner sign-off.`;
+**Recommended Procedures**
+1. Stratify entries above planning materiality for direct vouching against source documents.
+2. Include this field in Exception Tests 8 (Revenue Debits) and 11 (High-Value Entries).
+3. For outlier or round-sum entries, confirm dual-authorisation and preparer delegation limits.
+4. Retain this profile as workpaper evidence for partner sign-off.`;
     }
 
     // 2. Bivariate Pairing Profile
@@ -1035,6 +1057,21 @@ Select any of the fields from the left column panel to launch dedicated univaria
             this.buildContextSignals(
               context
             ),
+        },
+      };
+    }
+
+    // ── EDA Forensic Intelligence (runs BEFORE guardrail so auto-generated EDA prompts always succeed) ──
+    const earlyEdaAnswer = this.handleEdaProfilingQuery(lastUserMessage, context);
+    if (earlyEdaAnswer) {
+      return {
+        message: earlyEdaAnswer,
+        guardrailTriggered: false,
+        agent: {
+          contextUsed: Boolean(context),
+          degraded: false,
+          model: 'JET Copilot (Forensic Audit & EDA Intelligence Engine)',
+          contextSignals: this.buildContextSignals(context),
         },
       };
     }
