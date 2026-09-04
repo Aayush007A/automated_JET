@@ -379,7 +379,7 @@ export const OmniaJetWorkflow: React.FC = () => {
   // Step 6 Standard 6-Tab Executive Workspace Selector
   const [activeVisualTab, setActiveVisualTab] = useState<'preview' | 'overview' | 'checkpoints' | 'forensic' | 'tickmarks' | 'artifacts'>('preview');
   const [overviewSubTab, setOverviewSubTab] = useState<'parameter_analytics' | 'risk_breakdown'>('parameter_analytics');
-  const [quarterFilter, setQuarterFilter] = useState<string>('ALL');
+  const [quarterFilter, setQuarterFilter] = useState<string[]>(['ALL']);
   const [forensicMainSubTab, setForensicMainSubTab] = useState<'forensic_hub' | 'tickmarks'>('forensic_hub');
   const [checkpointSubTab, setCheckpointSubTab] = useState<'reconciliation' | 'dqc' | 'controlTotals'>('reconciliation');
   const [forensicSubTab, setForensicSubTab] = useState<'benford' | 'tickmarks'>('benford');
@@ -3100,6 +3100,7 @@ export const OmniaJetWorkflow: React.FC = () => {
 
                     {/* Right: Quarter Filter + Workpapers Download Button */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      {/* Quarter Multi-Select Filter */}
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -3110,27 +3111,55 @@ export const OmniaJetWorkflow: React.FC = () => {
                         border: '1px solid #E2E8F0',
                       }}>
                         <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#475569', padding: '0 6px' }}>Filter:</span>
-                        {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => (
-                          <button
-                            key={q}
-                            type="button"
-                            onClick={() => setQuarterFilter(q)}
-                            style={{
-                              border: 'none',
-                              background: quarterFilter === q ? '#007680' : 'transparent',
-                              color: quarterFilter === q ? '#FFFFFF' : '#475569',
-                              padding: '3px 10px',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: quarterFilter === q ? 700 : 500,
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                              boxShadow: quarterFilter === q ? '0 1px 3px rgba(0, 118, 128, 0.3)' : 'none',
-                            }}
-                          >
-                            {q}
-                          </button>
-                        ))}
+                        {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => {
+                          const isActive = q === 'ALL'
+                            ? quarterFilter.includes('ALL') || quarterFilter.length === 0
+                            : quarterFilter.includes(q);
+                          return (
+                            <button
+                              key={q}
+                              type="button"
+                              onClick={() => {
+                                if (q === 'ALL') {
+                                  setQuarterFilter(['ALL']);
+                                } else {
+                                  setQuarterFilter((prev) => {
+                                    const withoutAll = prev.filter(x => x !== 'ALL');
+                                    const already = withoutAll.includes(q);
+                                    const next = already
+                                      ? withoutAll.filter(x => x !== q)
+                                      : [...withoutAll, q];
+                                    return next.length === 0 ? ['ALL'] : next;
+                                  });
+                                }
+                              }}
+                              style={{
+                                border: 'none',
+                                background: isActive ? '#007680' : 'transparent',
+                                color: isActive ? '#FFFFFF' : '#475569',
+                                padding: '3px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: isActive ? 700 : 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                boxShadow: isActive ? '0 1px 3px rgba(0, 118, 128, 0.3)' : 'none',
+                              }}
+                            >
+                              {q}
+                            </button>
+                          );
+                        })}
+                        {!quarterFilter.includes('ALL') && quarterFilter.length > 0 && (
+                          <span style={{
+                            fontSize: '0.62rem', fontWeight: 600,
+                            color: '#007680', background: '#F0FDFA',
+                            border: '1px solid #99F6E4', borderRadius: '10px',
+                            padding: '1px 7px', marginLeft: '2px',
+                          }}>
+                            {quarterFilter.sort().join(' + ')}
+                          </span>
+                        )}
                       </div>
 
                       <a

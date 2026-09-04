@@ -458,8 +458,8 @@ interface OmniaVisualAnalyticsSuiteProps {
   runId: string;
   status: RunSummary | null;
   config: RunConfig | null;
-  quarterFilter?: string;
-  onQuarterFilterChange?: (q: string) => void;
+  quarterFilter?: string[];
+  onQuarterFilterChange?: (q: string[]) => void;
 }
 
 export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps> = ({
@@ -470,9 +470,18 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
   onQuarterFilterChange,
 }) => {
   const [activeTab, setActiveTab] = useState<string>('01_seldom_accounts');
-  const [internalQuarterFilter, setInternalQuarterFilter] = useState<string>('ALL');
+  const [internalQuarterFilter, setInternalQuarterFilter] = useState<string[]>(['ALL']);
   const quarterFilter = propQuarterFilter || internalQuarterFilter;
   const setQuarterFilter = onQuarterFilterChange || setInternalQuarterFilter;
+
+  // Helper: derive which specific quarters are active (empty = ALL)
+  const activeQuarters = quarterFilter.includes('ALL') ? [] : quarterFilter.filter(q => ['Q1','Q2','Q3','Q4'].includes(q));
+  const isAllActive = activeQuarters.length === 0;
+  // Multiplier: average of selected quarter share (Q1=0.24, Q2=0.25, Q3=0.25, Q4=0.26)
+  const qMultiplierMap: Record<string, number> = { Q1: 0.24, Q2: 0.25, Q3: 0.25, Q4: 0.26 };
+  const effectiveMult = isAllActive ? 1 : activeQuarters.reduce((sum, q) => sum + (qMultiplierMap[q] || 0.25), 0);
+  // Label for chart titles
+  const quarterLabel = isAllActive ? '' : `[${activeQuarters.join(' + ')}]`;
 
   // Format currency helper ($ accounting format)
   const fmtCurr = (val: number) =>
@@ -776,7 +785,7 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
       {/* Dynamic Sheet Body Container */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${resolvedTab}-${quarterFilter}`}
+          key={`${resolvedTab}-${quarterFilter.join('-')}`}
           initial={{ opacity: 0, y: 8, scale: 0.995 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.995 }}
@@ -832,18 +841,15 @@ const OmniaSheet01SeldomAccounts: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const rawCategories = ['Current Assets', 'Inventories & RM', 'Liquid Cash & Bank', 'Accrued Liabilities', 'Suspense Clearing', 'Operating Revenue'];
 
   const chartData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.24;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.26;
+    { const _aqM={Q1:0.24,Q2:0.25,Q3:0.25,Q4:0.26}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const stdBase = [1420, 2180, 1850, 940, 120, 45];
     const seldomBase = [320, 540, 410, 290, Math.round(exCounts.seldomAccounts * 0.65), Math.round(exCounts.seldomAccounts * 0.35)];
     const baseColors = ['#007680', '#007680', '#007680', '#007680', '#007680', '#007680'];
@@ -851,13 +857,13 @@ const OmniaSheet01SeldomAccounts: React.FC<{
       labels: ['Cash & Equiv', 'Trade Receivables', 'Inventories', 'Accruals & Payables', 'Suspense Clearing', 'Seldom Revenue'],
       datasets: [
         {
-          label: quarterFilter === 'ALL' ? 'Total Standard Lines' : `Standard Lines (${quarterFilter})`,
+          label: quarterFilter.includes('ALL') ? 'Total Standard Lines' : `Standard Lines (${quarterFilter})`,
           data: stdBase.map((v) => Math.round(v * mult)),
           backgroundColor: getHighlightColors(baseColors, selectedIdx),
           borderRadius: 4,
         },
         {
-          label: quarterFilter === 'ALL' ? 'Seldom Flagged Lines' : `Seldom Flagged (${quarterFilter})`,
+          label: quarterFilter.includes('ALL') ? 'Seldom Flagged Lines' : `Seldom Flagged (${quarterFilter})`,
           data: seldomBase.map((v) => Math.round(v * mult)),
           backgroundColor: selectedIdx !== null ? '#BAE6FD33' : '#BAE6FD',
           borderColor: '#0284C7',
@@ -869,7 +875,7 @@ const OmniaSheet01SeldomAccounts: React.FC<{
   }, [quarterFilter, exCounts, selectedIdx]);
 
   const fsDoughnutData = useMemo(() => {
-    const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
+    const _qm: Record<string,number> = {Q1:0.24,Q2:0.25,Q3:0.25,Q4:0.26}; const _aq = quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); const qMult = _aq.length===0 ? 1 : _aq.reduce((s,q)=>s+(_qm[q]||0.25),0);
     const baseAmounts = [28940000, 19820500, 14280900, 8420100].map((v) => Math.round(v * qMult));
     const labels = ['Trade Receivables', 'Inventories & FG', 'Cash Holdings', 'Accrued Liabilities'];
     const baseColors = ['#007680', '#38BDF8', '#FBBF24', '#34D399'];
@@ -918,7 +924,7 @@ const OmniaSheet01SeldomAccounts: React.FC<{
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 1 - Account Activity Distribution {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 1 - Account Activity Distribution {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click column to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={chartData} options={interactiveBarOptions} /></div>
@@ -929,7 +935,7 @@ const OmniaSheet01SeldomAccounts: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-01-${quarterFilter}`} data={fsDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-01-${quarterFilter.join('-')}`} data={fsDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -944,7 +950,7 @@ const OmniaSheet01SeldomAccounts: React.FC<{
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 1 - Seldom Used Accounts Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 1 - Seldom Used Accounts Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Accounts Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -961,10 +967,9 @@ const OmniaSheet01SeldomAccounts: React.FC<{
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Debits</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Credits</th>
                 <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Net Activity</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q1 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q2 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q3 ($)</th>
-                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q4 ($)</th>
+                {(['Q1','Q2','Q3','Q4'] as const).map(q => (quarterFilter.includes('ALL') || quarterFilter.includes(q)) && (
+                  <th key={q} style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.70rem', textTransform: 'uppercase', background: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#F0FDFA' : undefined, color: quarterFilter.includes(q) && !quarterFilter.includes('ALL') ? '#007680' : undefined, whiteSpace: 'nowrap' }}>{q} ($)</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -998,10 +1003,10 @@ const OmniaSheet01SeldomAccounts: React.FC<{
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>{fmtCurr(r.debits)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>{fmtCurr(r.credits)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680' }}>{fmtCurr(r.net)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q1A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q2A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q3A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q4A)}</td>
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q1') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? 600 : undefined }}>{fmtCurr(r.q1A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q2') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? 600 : undefined }}>{fmtCurr(r.q2A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q3') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? 600 : undefined }}>{fmtCurr(r.q3A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q4') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? 600 : undefined }}>{fmtCurr(r.q4A)}</td> : null}
                   </tr>
                 );
               })}
@@ -1020,8 +1025,8 @@ const OmniaSheet02RevenueDebits: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const categories = ['Sales Returns', 'Price Adjustments', 'Rebate Settlements', 'Manual Overrides'];
@@ -1086,7 +1091,7 @@ const OmniaSheet02RevenueDebits: React.FC<{
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 8 - Revenue Debit Reversal Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 8 - Revenue Debit Reversal Trajectory {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -1108,7 +1113,7 @@ const OmniaSheet02RevenueDebits: React.FC<{
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 8 - Large Debits to Revenue Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 8 - Large Debits to Revenue Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: 600 }}>{filteredRows.length} High Risk Exceptions</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -1172,10 +1177,10 @@ const OmniaSheet02RevenueDebits: React.FC<{
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#DC2626', whiteSpace: 'nowrap' }}>{fmtCurr(r.netAmt)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: '#D97706', fontWeight: 500, whiteSpace: 'nowrap' }}>{r.wEnd}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: '#D97706', fontWeight: 500, whiteSpace: 'nowrap' }}>{r.hol}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q1A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q2A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q3A)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q4A)}</td>
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q1') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q1') ? 600 : undefined }}>{fmtCurr(r.q1A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q2') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q2') ? 600 : undefined }}>{fmtCurr(r.q2A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q3') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q3') ? 600 : undefined }}>{fmtCurr(r.q3A)}</td> : null}
+                    {quarterFilter.includes('ALL') || quarterFilter.includes('Q4') ? <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap', background: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? '#F0FDF4' : undefined, fontWeight: !quarterFilter.includes('ALL') && quarterFilter.includes('Q4') ? 600 : undefined }}>{fmtCurr(r.q4A)}</td> : null}
                   </tr>
                 );
               })}
@@ -1194,25 +1199,22 @@ const OmniaSheet03UsersInterest: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const userList = ['BATCH (Automated)', 'SYSTEM_ADMIN', 'FIN_ACCOUNTANT', 'TEMP_CONSULTANT', 'EXEC_DIRECTOR'];
 
   const chartData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.24;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.26;
+    { const _aqM={Q1:0.24,Q2:0.25,Q3:0.25,Q4:0.26}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const baseData = [42000000, 18500000, 9460000, 3150000, 1280000];
     const baseColors = ['#007680', '#007680', '#EF4444', '#EF4444', '#FBBF24'];
     return {
       labels: userList,
       datasets: [
         {
-          label: quarterFilter === 'ALL' ? 'Total Journal Entry Amount ($)' : `Journal Entry Amount (${quarterFilter}) ($)`,
+          label: quarterFilter.includes('ALL') ? 'Total Journal Entry Amount ($)' : `Journal Entry Amount (${quarterFilter}) ($)`,
           data: baseData.map((v) => Math.round(v * mult)),
           backgroundColor: getHighlightColors(baseColors, selectedIdx),
           borderRadius: 4,
@@ -1222,7 +1224,7 @@ const OmniaSheet03UsersInterest: React.FC<{
   }, [quarterFilter, selectedIdx]);
 
   const userRiskPieData = useMemo(() => {
-    const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
+    const _qm: Record<string,number> = {Q1:0.24,Q2:0.25,Q3:0.25,Q4:0.26}; const _aq = quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); const qMult = _aq.length===0 ? 1 : _aq.reduce((s,q)=>s+(_qm[q]||0.25),0);
     const autoAmt = Math.round(42800000 * qMult);
     const stdAmt = Math.round(18500000 * qMult);
     const riskAmt = Math.round(exCounts.usersOfInterest * 125000 * qMult);
@@ -1284,7 +1286,7 @@ const OmniaSheet03UsersInterest: React.FC<{
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 9 - User Posting Value Distribution {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 9 - User Posting Value Distribution {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click user column</span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={chartData} options={interactiveBarOptions} /></div>
@@ -1295,7 +1297,7 @@ const OmniaSheet03UsersInterest: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click profile slice</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-03-${quarterFilter}`} data={userRiskPieData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-03-${quarterFilter.join('-')}`} data={userRiskPieData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -1310,7 +1312,7 @@ const OmniaSheet03UsersInterest: React.FC<{
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 9 - Monitored Users Analysis Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 9 - Monitored Users Analysis Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} User Profiles Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -1383,18 +1385,15 @@ const OmniaSheet04ClosingEntries: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const catNames = ['Increase in Assets', 'Decrease in Liab', 'Increase in Expense [Risk]', 'Decrease in Rev', 'Equity Adj'];
 
   const closingDoughnutData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.24;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.29;
+    { const _aqM={Q1:0.22,Q2:0.24,Q3:0.25,Q4:0.29}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const v1 = Math.round(4200000 * mult);
     const v2 = Math.round(3100000 * mult);
     const v3 = Math.round(8400000 * mult);
@@ -1416,10 +1415,7 @@ const OmniaSheet04ClosingEntries: React.FC<{
 
   const timingBarData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.24;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.29;
+    { const _aqM={Q1:0.22,Q2:0.24,Q3:0.25,Q4:0.29}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     return {
       labels: ['Day -1 to 0 (Closing)', 'Day +1 to +3', 'Day +4 to +7', 'Day +8+ (Post-Cutoff)'],
       datasets: [
@@ -1462,7 +1458,7 @@ const OmniaSheet04ClosingEntries: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-04-${quarterFilter}`} data={closingDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-04-${quarterFilter.join('-')}`} data={closingDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -1481,7 +1477,7 @@ const OmniaSheet04ClosingEntries: React.FC<{
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 3 - Closing Entries Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 3 - Closing Entries Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Closing Impact Categories Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -1557,8 +1553,8 @@ const OmniaSheet05DatesOfInterest: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const dayCategories = ['Saturday Postings', 'Sunday Postings', 'Public Bank Holidays'];
@@ -1581,10 +1577,7 @@ const OmniaSheet05DatesOfInterest: React.FC<{
 
   const pieData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.28;
+    { const _aqM={Q1:0.22,Q2:0.25,Q3:0.25,Q4:0.28}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const satCount = Math.round(exCounts.datesOfInterest * 0.47 * mult);
     const sunCount = Math.round(exCounts.datesOfInterest * 0.31 * mult);
     const holCount = Math.round(exCounts.datesOfInterest * 0.22 * mult);
@@ -1637,7 +1630,7 @@ const OmniaSheet05DatesOfInterest: React.FC<{
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 7 - Weekend &amp; Holiday Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 7 - Weekend &amp; Holiday Trajectory {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -1646,7 +1639,7 @@ const OmniaSheet05DatesOfInterest: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-05-${quarterFilter}`} data={pieData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-05-${quarterFilter.join('-')}`} data={pieData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -1661,7 +1654,7 @@ const OmniaSheet05DatesOfInterest: React.FC<{
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 7 - Dates of Interest Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 7 - Dates of Interest Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#D97706', fontWeight: 600 }}>{filteredRows.length} Timing Exceptions Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -1729,25 +1722,22 @@ const OmniaSheet06RoundAmounts: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const digitCategories = ['.000 Endings', '.999 Endings', '.500 Endings'];
 
   const barData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.23;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.27;
+    { const _aqM={Q1:0.23,Q2:0.25,Q3:0.25,Q4:0.27}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const baseAmounts = [Math.round(450 * mult), Math.round(240 * mult), Math.round(120 * mult), Math.round(80 * mult), Math.round(38 * mult)];
     const baseColors = ['#007680', '#007680', '#007680', '#007680', '#007680'];
     return {
       labels: ['$10k', '$50k', '$100k', '$500k', '$1M'],
       datasets: [
         {
-          label: quarterFilter === 'ALL' ? 'Rounded Amounts Count' : `Rounded Amounts Count (${quarterFilter})`,
+          label: quarterFilter.includes('ALL') ? 'Rounded Amounts Count' : `Rounded Amounts Count (${quarterFilter})`,
           data: baseAmounts,
           backgroundColor: baseColors,
           borderRadius: 4,
@@ -1758,10 +1748,7 @@ const OmniaSheet06RoundAmounts: React.FC<{
 
   const endDigitsDoughnutData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.23;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.27;
+    { const _aqM={Q1:0.23,Q2:0.25,Q3:0.25,Q4:0.27}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const c000 = Math.round(exCounts.roundAmounts * 0.62 * mult);
     const c999 = Math.round(exCounts.roundAmounts * 0.24 * mult);
     const c500 = Math.round(exCounts.roundAmounts * 0.14 * mult);
@@ -1823,7 +1810,7 @@ const OmniaSheet06RoundAmounts: React.FC<{
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 5 - Rounded Amounts Magnitude {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 5 - Rounded Amounts Magnitude {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -1832,7 +1819,7 @@ const OmniaSheet06RoundAmounts: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-06-${quarterFilter}`} data={endDigitsDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-06-${quarterFilter.join('-')}`} data={endDigitsDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -1926,25 +1913,22 @@ const OmniaSheet07DuplicateEntries: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const dupCategories = ['2x Exact Line Matches', '3x Triplicate Matches', '4x+ Multi-Post Matches'];
 
   const barData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.20;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.30;
+    { const _aqM={Q1:0.20,Q2:0.25,Q3:0.25,Q4:0.30}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const baseData = [Math.round(exCounts.duplicateEntries * mult), Math.round(18 * mult), Math.round(5 * mult)];
     const baseColors = ['#EF4444', '#F87171', '#FCA5A5'];
     return {
       labels: dupCategories,
       datasets: [
         {
-          label: quarterFilter === 'ALL' ? 'Duplicate Sets Identified' : `Duplicate Sets Identified (${quarterFilter})`,
+          label: quarterFilter.includes('ALL') ? 'Duplicate Sets Identified' : `Duplicate Sets Identified (${quarterFilter})`,
           data: baseData,
           backgroundColor: getHighlightColors(baseColors, selectedIdx),
           borderRadius: 4,
@@ -1955,10 +1939,7 @@ const OmniaSheet07DuplicateEntries: React.FC<{
 
   const dupRatioData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.20;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.30;
+    { const _aqM={Q1:0.20,Q2:0.25,Q3:0.25,Q4:0.30}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const dupCount = Math.round(exCounts.duplicateEntries * 2.2 * mult);
     const uniqueCount = Math.max(0, Math.round(48200 * mult) - dupCount);
     const totalLines = uniqueCount + dupCount;
@@ -2012,7 +1993,7 @@ const OmniaSheet07DuplicateEntries: React.FC<{
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 6 - Duplicate Multiplier Breakdown {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 6 - Duplicate Multiplier Breakdown {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
             <span style={{ fontSize: '0.70rem', color: '#EF4444', fontWeight: 600 }}>Click column to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={interactiveBarOptions} /></div>
@@ -2023,7 +2004,7 @@ const OmniaSheet07DuplicateEntries: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-07-${quarterFilter}`} data={dupRatioData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-07-${quarterFilter.join('-')}`} data={dupRatioData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2038,7 +2019,7 @@ const OmniaSheet07DuplicateEntries: React.FC<{
 
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 6 - Duplicate Analysis Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 6 - Duplicate Analysis Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h5>
           <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: 600 }}>{filteredRows.length} Duplicate Clusters Displayed</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -2105,25 +2086,22 @@ const OmniaSheet08KeywordsScan: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const riskCategories = ['High Risk', 'Medium Risk', 'Informational'];
 
   const barData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.24;
-    if (quarterFilter === 'Q3') mult = 0.26;
-    if (quarterFilter === 'Q4') mult = 0.28;
+    { const _aqM={Q1:0.22,Q2:0.24,Q3:0.26,Q4:0.28}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const base = [210, 145, 82, 38, 4, 18, 7, 12];
     const baseColors = ['#38BDF8', '#FBBF24', '#38BDF8', '#EF4444', '#EF4444', '#FBBF24', '#EF4444', '#FBBF24'];
     return {
       labels: ['Manual', 'Adjust', 'Reclass', 'Override', 'Fraud', 'Suspense', 'Plug', 'Reserve'],
       datasets: [
         {
-          label: quarterFilter === 'ALL' ? 'Matching Journal Entries' : `Matching Journal Entries (${quarterFilter})`,
+          label: quarterFilter.includes('ALL') ? 'Matching Journal Entries' : `Matching Journal Entries (${quarterFilter})`,
           data: base.map((v) => Math.round(v * mult)),
           backgroundColor: baseColors,
           borderRadius: 4,
@@ -2134,10 +2112,7 @@ const OmniaSheet08KeywordsScan: React.FC<{
 
   const riskPieData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.22;
-    if (quarterFilter === 'Q2') mult = 0.24;
-    if (quarterFilter === 'Q3') mult = 0.26;
-    if (quarterFilter === 'Q4') mult = 0.28;
+    { const _aqM={Q1:0.22,Q2:0.24,Q3:0.26,Q4:0.28}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const highRisk = Math.round((4 + 7 + 38) * mult);
     const medRisk = Math.round((18 + 145) * mult);
     const infoRisk = Math.round(exCounts.keywords * mult);
@@ -2194,7 +2169,7 @@ const OmniaSheet08KeywordsScan: React.FC<{
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 2 - Keyword Flag Frequency &amp; Density {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 2 - Keyword Flag Frequency &amp; Density {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={options} /></div>
         </div>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
@@ -2203,7 +2178,7 @@ const OmniaSheet08KeywordsScan: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-08-${quarterFilter}`} data={riskPieData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-08-${quarterFilter.join('-')}`} data={riskPieData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2281,25 +2256,22 @@ const OmniaSheet09UnusualAccounts: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const pairingNames = ['Cash vs Depr', 'Revenue vs Payable', 'Inventory vs Bonus', 'Prepaid vs Loan'];
 
   const barData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.20;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.30;
+    { const _aqM={Q1:0.20,Q2:0.25,Q3:0.25,Q4:0.30}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const baseData = [Math.round(exCounts.unusualAccounts * mult), Math.round(45 * mult), Math.round(28 * mult), Math.round(12 * mult)];
     const baseColors = ['#EF4444', '#FBBF24', '#007680', '#38BDF8'];
     return {
       labels: pairingNames,
       datasets: [
         {
-          label: quarterFilter === 'ALL' ? 'Unusual Pairing Transactions' : `Unusual Pairing Transactions (${quarterFilter})`,
+          label: quarterFilter.includes('ALL') ? 'Unusual Pairing Transactions' : `Unusual Pairing Transactions (${quarterFilter})`,
           data: baseData,
           backgroundColor: getHighlightColors(baseColors, selectedIdx),
           borderRadius: 4,
@@ -2310,10 +2282,7 @@ const OmniaSheet09UnusualAccounts: React.FC<{
 
   const exposureDoughnutData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.20;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.30;
+    { const _aqM={Q1:0.20,Q2:0.25,Q3:0.25,Q4:0.30}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
     const v1 = Math.round(4200000 * mult);
     const v2 = Math.round(2100000 * mult);
     const v3 = Math.round(1400000 * mult);
@@ -2362,7 +2331,7 @@ const OmniaSheet09UnusualAccounts: React.FC<{
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 4 - Unusual Accounts Pairing Frequency {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 4 - Unusual Accounts Pairing Frequency {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
             <span style={{ fontSize: '0.70rem', color: '#EF4444', fontWeight: 600 }}>Click column to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={interactiveBarOptions} /></div>
@@ -2373,7 +2342,7 @@ const OmniaSheet09UnusualAccounts: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-10-${quarterFilter}`} data={exposureDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-10-${quarterFilter.join('-')}`} data={exposureDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
@@ -2439,8 +2408,8 @@ const OmniaSheet10BenfordsLaw: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ status, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ status, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const digits = ['Digit 1', 'Digit 2', 'Digit 3', 'Digit 4', 'Digit 5', 'Digit 6', 'Digit 7', 'Digit 8', 'Digit 9'];
@@ -2716,7 +2685,7 @@ const OmniaSheet10BenfordsLaw: React.FC<{
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 10 - First-Digit Actual vs Expected Curve {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 10 - First-Digit Actual vs Expected Curve {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}</h4>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.68rem', color: '#007680', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#007680', display: 'inline-block' }} /> Conforming
@@ -2850,17 +2819,17 @@ const OmniaSheet11PopulationFunnel: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ totalGlRows, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ totalGlRows, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const periods12 = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'];
 
   const lineData = useMemo(() => {
-    if (quarterFilter === 'Q1') return { labels: ['P1 (Apr)', 'P2 (May)', 'P3 (Jun)'], datasets: [{ label: 'Q1 Local Currency Amount ($)', data: [4200000, 3900000, 4800000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
-    if (quarterFilter === 'Q2') return { labels: ['P4 (Jul)', 'P5 (Aug)', 'P6 (Sep)'], datasets: [{ label: 'Q2 Local Currency Amount ($)', data: [4100000, 4300000, 5200000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
-    if (quarterFilter === 'Q3') return { labels: ['P7 (Oct)', 'P8 (Nov)', 'P9 (Dec)'], datasets: [{ label: 'Q3 Local Currency Amount ($)', data: [4400000, 4600000, 6100000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
-    if (quarterFilter === 'Q4') return { labels: ['P10 (Jan)', 'P11 (Feb)', 'P12 (Mar)'], datasets: [{ label: 'Q4 Local Currency Amount ($)', data: [4300000, 4100000, 8400000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    if (quarterFilter.includes('Q1')) return { labels: ['P1 (Apr)', 'P2 (May)', 'P3 (Jun)'], datasets: [{ label: 'Q1 Local Currency Amount ($)', data: [4200000, 3900000, 4800000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    if (quarterFilter.includes('Q2')) return { labels: ['P4 (Jul)', 'P5 (Aug)', 'P6 (Sep)'], datasets: [{ label: 'Q2 Local Currency Amount ($)', data: [4100000, 4300000, 5200000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    if (quarterFilter.includes('Q3')) return { labels: ['P7 (Oct)', 'P8 (Nov)', 'P9 (Dec)'], datasets: [{ label: 'Q3 Local Currency Amount ($)', data: [4400000, 4600000, 6100000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    if (quarterFilter.includes('Q4')) return { labels: ['P10 (Jan)', 'P11 (Feb)', 'P12 (Mar)'], datasets: [{ label: 'Q4 Local Currency Amount ($)', data: [4300000, 4100000, 8400000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
     return {
       labels: periods12,
       datasets: [{ label: 'Total Amount in Local Currency ($)', data: [4200000, 3900000, 4800000, 4100000, 4300000, 5200000, 4400000, 4600000, 6100000, 4300000, 4100000, 8400000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }]
@@ -2915,7 +2884,7 @@ const OmniaSheet11PopulationFunnel: React.FC<{
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>
-            Population Statistics Activity Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}
+            Population Statistics Activity Trajectory {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}
           </h4>
           <div style={{ flex: 1, minHeight: 0 }}>
             <Line data={lineData} options={options} />
@@ -2946,7 +2915,7 @@ const OmniaSheet11PopulationFunnel: React.FC<{
       <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>
-            Population Statistics Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}
+            Population Statistics Data Grid {!quarterFilter.includes('ALL') ? `[Scope: ${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}
           </h5>
           <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Periods Displayed</span>
         </div>
@@ -3019,18 +2988,15 @@ const OmniaSheet12CoaMasterSuite: React.FC<{
   pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  quarterFilter?: string;
-}> = ({ config, status, totalGlRows, totalTbRows, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  quarterFilter?: string[];
+}> = ({ config, status, totalGlRows, totalTbRows, options, pieOptions, fmtNum, fmtCurr, quarterFilter = ['ALL'] }) => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const coaClasses = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Operating Expenses'];
 
   const coaClassBarData = useMemo(() => {
     let mult = 1;
-    if (quarterFilter === 'Q1') mult = 0.24;
-    if (quarterFilter === 'Q2') mult = 0.25;
-    if (quarterFilter === 'Q3') mult = 0.25;
-    if (quarterFilter === 'Q4') mult = 0.26;
+    { const _aqM={Q1:0.24,Q2:0.25,Q3:0.25,Q4:0.26}; const _aqF=quarterFilter.filter(q=>['Q1','Q2','Q3','Q4'].includes(q)); mult = _aqF.length===0 ? 1 : _aqF.reduce((s,q)=>s+(_aqM[q as keyof typeof _aqM]||0.25),0); }
 
     // Account counts and balances across COA classes
     const acctCounts = [10, 5, 2, 4, 5];
@@ -3133,7 +3099,7 @@ const OmniaSheet12CoaMasterSuite: React.FC<{
         <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>
-              COA Class Distribution &amp; Account Counts {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}
+              COA Class Distribution &amp; Account Counts {!quarterFilter.includes('ALL') ? `[${quarterFilter.filter(q=>q!=='ALL').join(' + ')}\]` : ''}
             </h4>
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click bar to filter</span>
           </div>
@@ -3150,7 +3116,7 @@ const OmniaSheet12CoaMasterSuite: React.FC<{
             <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Doughnut key={`doughnut-12-coa-${quarterFilter}`} data={coaAllocationDoughnutData} options={interactivePieOptions} />
+            <Doughnut key={`doughnut-12-coa-${quarterFilter.join('-')}`} data={coaAllocationDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
