@@ -1144,7 +1144,7 @@ def run_omnia_jet(config_path):
             exp_pct = benford_expected[d]
             diff_pct = round(actual_pct - exp_pct, 4)
             mad_sum += abs(diff_pct)
-            is_anomaly = abs(diff_pct) > 0.05
+            is_anomaly = abs(diff_pct) > 0.03
             benford_digit_stats.append({
                 'digit': d,
                 'count': cnt,
