@@ -2446,33 +2446,19 @@ const OmniaSheet10BenfordsLaw: React.FC<{
   const digits = ['Digit 1', 'Digit 2', 'Digit 3', 'Digit 4', 'Digit 5', 'Digit 6', 'Digit 7', 'Digit 8', 'Digit 9'];
   const expectedBenford = [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6];
 
-  // Dynamic Benford distribution synchronized with the active JET run results & Forensic Hub (Picture 1)
+  // Dynamic Benford distribution calculated directly from active run client data in real-time
   const allRows = useMemo(() => {
     const rawDist = (status?.benfordSummary?.firstDigitDistribution || status?.benfordSummary?.digitStats) as any[];
-
-    // Default baseline distribution matching Picture 1 from this JET run
-    const defaultDistribution = [
-      { digit: 1, count: 6, actualPct: 16.7, expectedPct: 30.1, diffPct: -13.43, isAnomaly: true },
-      { digit: 2, count: 8, actualPct: 22.2, expectedPct: 17.6, diffPct: 4.62, isAnomaly: true },
-      { digit: 3, count: 2, actualPct: 5.6, expectedPct: 12.5, diffPct: -6.94, isAnomaly: true },
-      { digit: 4, count: 4, actualPct: 11.1, expectedPct: 9.7, diffPct: 1.41, isAnomaly: false },
-      { digit: 5, count: 6, actualPct: 16.7, expectedPct: 7.9, diffPct: 8.77, isAnomaly: true },
-      { digit: 6, count: 4, actualPct: 11.1, expectedPct: 6.7, diffPct: 4.41, isAnomaly: true },
-      { digit: 7, count: 2, actualPct: 5.8, expectedPct: 5.8, diffPct: 0.00, isAnomaly: false },
-      { digit: 8, count: 4, actualPct: 11.1, expectedPct: 5.1, diffPct: 6.01, isAnomaly: true },
-      { digit: 9, count: 2, actualPct: 5.6, expectedPct: 4.6, diffPct: 0.96, isAnomaly: false },
-    ];
 
     if (Array.isArray(rawDist) && rawDist.length > 0) {
       return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d, idx) => {
         const found = rawDist.find((x: any) => Number(x.digit ?? x.First_Digit) === d);
         const exp = expectedBenford[idx];
-        const rawAct = found ? Number(found.actualPct ?? found.Actual_Frequency_Pct ?? 0) : exp;
-        // When digit is 7 and rawAct is 0, fall back to exp (5.8%) exactly like ExecutiveForensicIntelligenceHub
-        const act = rawAct === 0 ? exp : rawAct;
-        const count = found && Number(found.count) > 0 ? Number(found.count) : (rawAct === 0 ? 2 : defaultDistribution[idx].count);
+        const val = found ? (found.actualPct ?? found.Actual_Frequency_Pct) : undefined;
+        const act = val !== undefined && val !== null ? Number(val) : 0;
+        const count = found ? Number(found.count ?? found.Transaction_Count ?? found.Actual_Count ?? 0) : 0;
         const diff = Number((act - exp).toFixed(2));
-        // Strict Deloitte 3.0 percentage points anomaly detection
+        // Real-time anomaly detection based on Deloitte 3.0 percentage points threshold
         const isAnomaly = Math.abs(diff) > 3.0;
         return {
           digit: d,
@@ -2486,15 +2472,40 @@ const OmniaSheet10BenfordsLaw: React.FC<{
       });
     }
 
-    return defaultDistribution.map((row) => ({
-      digit: row.digit,
-      count: row.count,
-      actual: row.actualPct,
-      expected: row.expectedPct,
-      variance: row.diffPct,
-      isAnomaly: row.isAnomaly,
-      status: row.isAnomaly ? 'ANOMALY DETECTED' : 'CONFORMING',
-    }));
+    const digitCounts = (status?.benfordSummary as any)?.digitCounts;
+    if (digitCounts && typeof digitCounts === 'object') {
+      const total = Object.values(digitCounts).reduce((a: number, b: any) => a + Number(b), 0);
+      return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d, idx) => {
+        const count = Number((digitCounts as any)[d] || (digitCounts as any)[String(d)] || 0);
+        const act = total > 0 ? parseFloat(((count / total) * 100).toFixed(2)) : 0;
+        const exp = expectedBenford[idx];
+        const diff = Number((act - exp).toFixed(2));
+        const isAnomaly = Math.abs(diff) > 3.0;
+        return {
+          digit: d,
+          count,
+          actual: act,
+          expected: exp,
+          variance: diff,
+          isAnomaly,
+          status: isAnomaly ? 'ANOMALY DETECTED' : 'CONFORMING',
+        };
+      });
+    }
+
+    // Zero baseline before run outputs are loaded
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d, idx) => {
+      const exp = expectedBenford[idx];
+      return {
+        digit: d,
+        count: 0,
+        actual: 0,
+        expected: exp,
+        variance: -exp,
+        isAnomaly: false,
+        status: 'CONFORMING',
+      };
+    });
   }, [status?.benfordSummary]);
 
   // Chi-Square score calculation (31.18 in Picture 1, Critical < 15.51)

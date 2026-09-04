@@ -509,8 +509,12 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
     const dist = (status?.benfordSummary?.firstDigitDistribution || status?.benfordSummary?.digitStats) as any[];
     if (Array.isArray(dist) && dist.length > 0) {
       return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => {
-        const found = dist.find((x: any) => x.digit === d || x.First_Digit === d);
-        return found ? (Number(found.actualPct || found.Actual_Frequency_Pct || 0) || benfordTheoretical[d - 1]) : benfordTheoretical[d - 1];
+        const found = dist.find((x: any) => Number(x.digit ?? x.First_Digit) === d);
+        if (found) {
+          const val = found.actualPct !== undefined ? found.actualPct : found.Actual_Frequency_Pct;
+          return val !== undefined && val !== null ? Number(val) : 0;
+        }
+        return 0;
       });
     }
     const digitCounts = (status?.benfordSummary as any)?.digitCounts;
@@ -523,18 +527,8 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
         });
       }
     }
-    return [
-      29.4, // 1
-      18.2, // 2
-      11.9, // 3
-      10.3, // 4
-      8.4,  // 5
-      6.2,  // 6
-      9.1,  // 7: Focus Signal
-      4.2,  // 8
-      2.3,  // 9
-    ];
-  }, [status?.benfordSummary, benfordTheoretical]);
+    return [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  }, [status?.benfordSummary]);
 
   const chiSquareScore = useMemo(() => {
     let chiSq = 0;

@@ -78,18 +78,16 @@ export const OmniaBenfordChart: React.FC<OmniaBenfordChartProps> = ({
       return stats;
     }
 
-    // Default distribution
-    return [
-      { digit: 1, count: 302, actualPct: 16.7, expectedPct: 30.1, variancePct: -13.4, diffPct: -13.4, isAnomaly: true },
-      { digit: 2, count: 174, actualPct: 22.2, expectedPct: 17.6, variancePct: 4.6, diffPct: 4.6, isAnomaly: true },
-      { digit: 3, count: 128, actualPct: 5.6, expectedPct: 12.5, variancePct: -6.9, diffPct: -6.9, isAnomaly: true },
-      { digit: 4, count: 95, actualPct: 11.1, expectedPct: 9.7, variancePct: 1.4, diffPct: 1.4, isAnomaly: false },
-      { digit: 5, count: 78, actualPct: 16.7, expectedPct: 7.9, variancePct: 8.8, diffPct: 8.8, isAnomaly: true },
-      { digit: 6, count: 69, actualPct: 11.1, expectedPct: 6.7, variancePct: 4.4, diffPct: 4.4, isAnomaly: true },
-      { digit: 7, count: 59, actualPct: 5.8, expectedPct: 5.8, variancePct: 0.0, diffPct: 0.0, isAnomaly: false },
-      { digit: 8, count: 50, actualPct: 11.1, expectedPct: 5.1, variancePct: 6.0, diffPct: 6.0, isAnomaly: true },
-      { digit: 9, count: 45, actualPct: 5.6, expectedPct: 4.6, variancePct: 1.0, diffPct: 1.0, isAnomaly: false },
-    ];
+    // Zero baseline before data is loaded
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => ({
+      digit: d,
+      count: 0,
+      actualPct: 0,
+      expectedPct: THEORETICAL_BENFORD[d],
+      variancePct: -THEORETICAL_BENFORD[d],
+      diffPct: -THEORETICAL_BENFORD[d],
+      isAnomaly: false,
+    }));
   }, [summary, rawRows]);
 
   const totalTested = summary?.totalTransactionsTested || summary?.totalAnalyzed || digitStats.reduce((acc: number, curr: BenfordDigitStat) => acc + curr.count, 0);
