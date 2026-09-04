@@ -1055,7 +1055,7 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* ── TOP HERO HEADER: EXECUTIVE COMMAND BAR (CLEAN, HIGH-CONTRAST) ── */}
+      {/* ── TOP HERO HEADER: UNIFIED FORENSIC & CFO INTELLIGENCE COMMAND BAR ── */}
       <div
         style={{
           background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
@@ -1063,53 +1063,83 @@ export const ExecutiveForensicIntelligenceHub: React.FC<ExecutiveForensicIntelli
           border: '1px solid #E2E8F0',
           padding: '18px 24px',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
           gap: '16px',
           boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
           position: 'relative',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '280px' }}>
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)',
-              flexShrink: 0,
-            }}
-          >
-            <Scale size={20} color="#FFFFFF" />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
-                Forensic &amp; Risk Intelligence Suite
-              </h3>
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 750,
-                  color: '#007680',
-                  background: '#E6F4F5',
-                  border: '1px solid #B2DFE2',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                }}
-              >
-                {engagementName.split(' - ')[0] || 'Engagement'}
-              </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '280px' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)',
+                flexShrink: 0,
+              }}
+            >
+              <Scale size={20} color="#FFFFFF" />
             </div>
-            <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
-              CFO briefing memo, Benford's Law distribution, transaction risk triage, client behavioral DNA, and SOX 404 matrix.
-            </p>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
+                <span
+                  style={{
+                    background: '#E0F2FE',
+                    color: '#0369A1',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #BAE6FD',
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  FORENSIC &amp; RISK INTELLIGENCE
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 750,
+                    color: '#007680',
+                    background: '#E6F4F5',
+                    border: '1px solid #B2DFE2',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                  }}
+                >
+                  Risk Stratification
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 750,
+                    color: '#0F172A',
+                    background: '#F1F5F9',
+                    border: '1px solid #CBD5E1',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                  }}
+                >
+                  {engagementName.split(' - ')[0] || 'Engagement'}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>
+                  Run ID: <strong style={{ color: '#007680', fontFamily: 'monospace' }}>{runId}</strong>
+                </span>
+              </div>
+              <h3 style={{ fontSize: '1.20rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                Forensic &amp; CFO Intelligence Hub
+              </h3>
+              <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
+                Executive-level forensic risk breakdown, population funnel analytics, Benford's Law distribution, user-of-interest profiling, and SOX 404 matrix.
+              </p>
+            </div>
           </div>
         </div>
 

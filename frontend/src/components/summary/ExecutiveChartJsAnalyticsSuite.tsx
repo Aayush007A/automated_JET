@@ -853,49 +853,84 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', fontFamily: "'Inter', sans-serif" }}>
+      {/* ── UNIFIED MASTER HEADER: EXECUTIVE VISUAL ANALYTICS & SUMMARY WORKSHEETS ── */}
       <div style={{
-        background: '#FFFFFF',
-        borderRadius: '14px',
+        background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
+        borderRadius: '16px',
         border: '1px solid #E2E8F0',
-        padding: '20px 24px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+        padding: '18px 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '16px',
+        boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {/* Left: Icon + Badges + Title + Description */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '280px' }}>
           <div style={{
             width: '42px',
             height: '42px',
-            borderRadius: '10px',
+            borderRadius: '12px',
             background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#FFFFFF',
-            boxShadow: '0 2px 8px rgba(0, 118, 128, 0.20)',
+            boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)',
+            flexShrink: 0,
           }}>
-            <Sparkles size={20} />
+            <BarChart3 size={20} color="#FFFFFF" />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-              <span style={{ background: '#E0F2FE', color: '#0369A1', fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', border: '1px solid #E0F2FE' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
+              <span style={{
+                background: '#E0F2FE',
+                color: '#0369A1',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '4px',
+                border: '1px solid #BAE6FD',
+                letterSpacing: '0.03em',
+              }}>
                 EXECUTIVE AUDIT INTELLIGENCE SUITE
+              </span>
+              <span style={{
+                fontSize: '0.68rem',
+                fontWeight: 750,
+                color: '#007680',
+                background: '#E6F4F5',
+                border: '1px solid #B2DFE2',
+                padding: '2px 8px',
+                borderRadius: '6px',
+              }}>
+                SparkJet Suite
               </span>
               <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>
                 Run ID: <strong style={{ color: '#007680', fontFamily: 'monospace' }}>{runId}</strong>
               </span>
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1E293B', margin: 0, letterSpacing: '-0.015em' }}>
+            <h2 style={{ fontSize: '1.20rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
               Executive Visual Analytics &amp; Summary Worksheets
             </h2>
+            <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
+              Parametric exception analytics, risk stratification charts and trend heatmaps across the full GL population.
+            </p>
           </div>
         </div>
 
+        {/* Right: Quarter Filter + Workpapers Download Button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', padding: '4px 6px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            background: '#F8FAFC',
+            padding: '3px 5px',
+            borderRadius: '8px',
+            border: '1px solid #E2E8F0',
+          }}>
             <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#475569', padding: '0 6px' }}>Filter:</span>
             {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => (
               <button
@@ -912,6 +947,7 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
                   fontWeight: quarterFilter === q ? 700 : 500,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
+                  boxShadow: quarterFilter === q ? '0 1px 3px rgba(0, 118, 128, 0.3)' : 'none',
                 }}
               >
                 {q}
@@ -930,14 +966,14 @@ export const ExecutiveChartJsAnalyticsSuite: React.FC<ExecutiveChartJsAnalyticsS
               background: '#1E293B',
               color: '#FFFFFF',
               fontSize: '0.76rem',
-              fontWeight: 600,
+              fontWeight: 700,
               textDecoration: 'none',
               boxShadow: '0 1px 3px rgba(30, 41, 59, 0.15)',
               transition: 'background 0.15s ease',
             }}
           >
             <Archive size={14} color="#FFFFFF" />
-            <span>Download All Workpapers (.ZIP)</span>
+            <span style={{ color: '#FFFFFF' }}>Download All Workpapers (.ZIP)</span>
           </a>
         </div>
       </div>

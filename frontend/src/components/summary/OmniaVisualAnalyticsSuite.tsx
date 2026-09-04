@@ -598,50 +598,35 @@ function customImage2TooltipHandler(context: any) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', fontFamily: "'Inter', sans-serif" }}>
-      {/* Executive Header Banner */}
+      {/* View Header & Quarter Filter Bar */}
       <div style={{
-        background: '#FFFFFF',
-        borderRadius: '14px',
-        border: '1px solid #E2E8F0',
-        padding: '20px 24px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '16px',
+        gap: '12px',
+        padding: '0 4px',
+        marginBottom: '2px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#FFFFFF',
-            boxShadow: '0 2px 8px rgba(0, 118, 128, 0.20)',
-          }}>
-            <Sparkles size={20} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-              <span style={{ background: '#E0F2FE', color: '#0369A1', fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #BAE6FD' }}>
-                EXECUTIVE AUDIT INTELLIGENCE SUITE
-              </span>
-              <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>
-                Run ID: <strong style={{ color: '#007680', fontFamily: 'monospace' }}>{runId}</strong>
-              </span>
-            </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E293B', margin: 0, letterSpacing: '-0.015em' }}>
-              {engagementName} — Financial Forensic Analytics
-            </h2>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '0.90rem', fontWeight: 800, color: '#1E293B' }}>
+            {engagementName} — Financial Forensic Analytics
+          </span>
+          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>
+            (12 Analytical Views)
+          </span>
         </div>
 
         {/* Global Quarter Filter Pill Group */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', padding: '4px 6px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          background: '#F8FAFC',
+          padding: '3px 5px',
+          borderRadius: '8px',
+          border: '1px solid #E2E8F0',
+        }}>
           <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#475569', padding: '0 6px' }}>Filter:</span>
           {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => (
             <button
@@ -658,6 +643,7 @@ function customImage2TooltipHandler(context: any) {
                 fontWeight: quarterFilter === q ? 700 : 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                boxShadow: quarterFilter === q ? '0 1px 3px rgba(0, 118, 128, 0.3)' : 'none',
               }}
             >
               {q}

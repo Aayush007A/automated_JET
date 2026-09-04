@@ -3966,38 +3966,6 @@ export const SparkJetWorkflow: React.FC = () => {
 
             {activeVisualTab === 'overview' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Hero Header */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
-                  borderRadius: '16px', border: '1px solid #E2E8F0',
-                  padding: '18px 24px', display: 'flex', alignItems: 'center',
-                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
-                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{
-                      width: '42px', height: '42px', borderRadius: '12px',
-                      background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)', flexShrink: 0,
-                    }}>
-                      <BarChart3 size={20} color="#FFFFFF" />
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
-                          Executive Visual Analytics
-                        </h3>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 750, color: '#007680', background: '#E6F4F5', border: '1px solid #B2DFE2', padding: '2px 8px', borderRadius: '6px' }}>
-                          SparkJet Suite
-                        </span>
-                      </div>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
-                        Parametric exception analytics, risk stratification charts and trend heatmaps across the full GL population.
-                      </p>
-                    </div>
-                  </div>
-                </div>
                 <ExecutiveChartJsAnalyticsSuite
                   runId={runId!}
                   status={status}
@@ -4063,38 +4031,6 @@ export const SparkJetWorkflow: React.FC = () => {
 
             {activeVisualTab === 'forensic' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Hero Header */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 70%, #F0FDFA 100%)',
-                  borderRadius: '16px', border: '1px solid #E2E8F0',
-                  padding: '18px 24px', display: 'flex', alignItems: 'center',
-                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px',
-                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{
-                      width: '42px', height: '42px', borderRadius: '12px',
-                      background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 4px 12px rgba(0, 118, 128, 0.24)', flexShrink: 0,
-                    }}>
-                      <Scale size={20} color="#FFFFFF" />
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
-                          Forensic & CFO Intelligence Hub
-                        </h3>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 750, color: '#007680', background: '#E6F4F5', border: '1px solid #B2DFE2', padding: '2px 8px', borderRadius: '6px' }}>
-                          Risk Stratification
-                        </span>
-                      </div>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.4 }}>
-                        Executive-level forensic risk breakdown, population funnel analytics, user-of-interest profiling and period-over-period trends.
-                      </p>
-                    </div>
-                  </div>
-                </div>
                 <ExecutiveForensicIntelligenceHub
                   runId={runId!}
                   status={status}
