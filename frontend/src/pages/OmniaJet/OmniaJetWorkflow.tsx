@@ -379,6 +379,7 @@ export const OmniaJetWorkflow: React.FC = () => {
   // Step 6 Standard 6-Tab Executive Workspace Selector
   const [activeVisualTab, setActiveVisualTab] = useState<'preview' | 'overview' | 'checkpoints' | 'forensic' | 'tickmarks' | 'artifacts'>('preview');
   const [overviewSubTab, setOverviewSubTab] = useState<'parameter_analytics' | 'risk_breakdown'>('parameter_analytics');
+  const [quarterFilter, setQuarterFilter] = useState<string>('ALL');
   const [forensicMainSubTab, setForensicMainSubTab] = useState<'forensic_hub' | 'tickmarks'>('forensic_hub');
   const [checkpointSubTab, setCheckpointSubTab] = useState<'reconciliation' | 'dqc' | 'controlTotals'>('reconciliation');
   const [forensicSubTab, setForensicSubTab] = useState<'benford' | 'tickmarks'>('benford');
@@ -3093,50 +3094,39 @@ export const OmniaJetWorkflow: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Right: Compact 2-tab Sub-Switcher + Workpapers Download Button */}
+                  {/* Right: Quarter Filter + Workpapers Download Button (EXACT MATCH TO IMAGE 1) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     <div style={{
-                      display: 'inline-flex', alignItems: 'center',
-                      background: '#F1F5F9', padding: '3px', borderRadius: '11px',
-                      border: '1px solid #E2E8F0', gap: '3px', flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: '#F8FAFC',
+                      padding: '3px 5px',
+                      borderRadius: '8px',
+                      border: '1px solid #E2E8F0',
                     }}>
-                      {[
-                        { id: 'parameter_analytics', label: 'Parameter Visual Analytics Suite (12 Views)' },
-                        { id: 'risk_breakdown', label: 'Risk Stratification & Population Funnel' },
-                      ].map((btn, idx) => {
-                        const isSel = overviewSubTab === btn.id;
-                        return (
-                          <button
-                            key={btn.id}
-                            type="button"
-                            onClick={() => setOverviewSubTab(btn.id as any)}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '7px',
-                              whiteSpace: 'nowrap', padding: '7px 14px', fontSize: '0.76rem',
-                              fontWeight: isSel ? 750 : 500,
-                              color: isSel ? '#007680' : '#475569',
-                              background: isSel ? '#FFFFFF' : 'transparent',
-                              border: isSel ? '1px solid #CBD5E1' : '1px solid transparent',
-                              borderRadius: '8px', cursor: 'pointer',
-                              boxShadow: isSel ? '0 2px 8px rgba(0, 118, 128, 0.10)' : 'none',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <span style={{
-                              width: '18px', height: '18px', borderRadius: '50%',
-                              background: isSel ? '#007680' : '#E2E8F0',
-                              color: isSel ? '#FFFFFF' : '#64748B',
-                              fontSize: '0.68rem', fontWeight: 800,
-                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              flexShrink: 0, fontFamily: 'var(--font-mono, monospace)',
-                              transition: 'all 0.15s ease',
-                            }}>
-                              {idx + 1}
-                            </span>
-                            <span>{btn.label}</span>
-                          </button>
-                        );
-                      })}
+                      <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#475569', padding: '0 6px' }}>Filter:</span>
+                      {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => (
+                        <button
+                          key={q}
+                          type="button"
+                          onClick={() => setQuarterFilter(q)}
+                          style={{
+                            border: 'none',
+                            background: quarterFilter === q ? '#007680' : 'transparent',
+                            color: quarterFilter === q ? '#FFFFFF' : '#475569',
+                            padding: '3px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: quarterFilter === q ? 700 : 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            boxShadow: quarterFilter === q ? '0 1px 3px rgba(0, 118, 128, 0.3)' : 'none',
+                          }}
+                        >
+                          {q}
+                        </button>
+                      ))}
                     </div>
 
                     <a
@@ -3162,11 +3152,60 @@ export const OmniaJetWorkflow: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Sub-Switcher for View Mode */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    background: '#F1F5F9', padding: '3px', borderRadius: '11px',
+                    border: '1px solid #E2E8F0', gap: '3px', flexShrink: 0,
+                  }}>
+                    {[
+                      { id: 'parameter_analytics', label: 'Parameter Visual Analytics Suite (12 Views)' },
+                      { id: 'risk_breakdown', label: 'Risk Stratification & Population Funnel' },
+                    ].map((btn, idx) => {
+                      const isSel = overviewSubTab === btn.id;
+                      return (
+                        <button
+                          key={btn.id}
+                          type="button"
+                          onClick={() => setOverviewSubTab(btn.id as any)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '7px',
+                            whiteSpace: 'nowrap', padding: '6px 14px', fontSize: '0.75rem',
+                            fontWeight: isSel ? 750 : 500,
+                            color: isSel ? '#007680' : '#475569',
+                            background: isSel ? '#FFFFFF' : 'transparent',
+                            border: isSel ? '1px solid #CBD5E1' : '1px solid transparent',
+                            borderRadius: '8px', cursor: 'pointer',
+                            boxShadow: isSel ? '0 2px 8px rgba(0, 118, 128, 0.10)' : 'none',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <span style={{
+                            width: '18px', height: '18px', borderRadius: '50%',
+                            background: isSel ? '#007680' : '#E2E8F0',
+                            color: isSel ? '#FFFFFF' : '#64748B',
+                            fontSize: '0.68rem', fontWeight: 800,
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0, fontFamily: 'var(--font-mono, monospace)',
+                            transition: 'all 0.15s ease',
+                          }}>
+                            {idx + 1}
+                          </span>
+                          <span>{btn.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {overviewSubTab === 'parameter_analytics' ? (
                   <OmniaVisualAnalyticsSuite
                     runId={runId!}
                     status={status}
                     config={config}
+                    quarterFilter={quarterFilter}
+                    onQuarterFilterChange={setQuarterFilter}
                   />
                 ) : (
                   <div className="glass-panel" style={{ padding: '24px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '22px' }}>

@@ -318,15 +318,21 @@ interface OmniaVisualAnalyticsSuiteProps {
   status: RunSummary | null;
   config: RunConfig | null;
   enabledExceptions?: Record<string, boolean>;
+  quarterFilter?: string;
+  onQuarterFilterChange?: (q: string) => void;
 }
 
 export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps> = ({
   runId,
   status,
   config,
+  quarterFilter: propQuarterFilter,
+  onQuarterFilterChange,
 }) => {
   const [activeTab, setActiveTab] = useState<string>('01_seldom_accounts');
-  const [quarterFilter, setQuarterFilter] = useState<string>('ALL');
+  const [internalQuarterFilter, setInternalQuarterFilter] = useState<string>('ALL');
+  const quarterFilter = propQuarterFilter || internalQuarterFilter;
+  const setQuarterFilter = onQuarterFilterChange || setInternalQuarterFilter;
 
   // Client parameters from config
   const op = (config?.omniaParameters || {}) as Record<string, any>;
@@ -598,60 +604,6 @@ function customImage2TooltipHandler(context: any) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', fontFamily: "'Inter', sans-serif" }}>
-      {/* View Header & Quarter Filter Bar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        padding: '0 4px',
-        marginBottom: '2px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.90rem', fontWeight: 800, color: '#1E293B' }}>
-            {engagementName} — Financial Forensic Analytics
-          </span>
-          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>
-            (12 Analytical Views)
-          </span>
-        </div>
-
-        {/* Global Quarter Filter Pill Group */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          background: '#F8FAFC',
-          padding: '3px 5px',
-          borderRadius: '8px',
-          border: '1px solid #E2E8F0',
-        }}>
-          <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#475569', padding: '0 6px' }}>Filter:</span>
-          {['ALL', 'Q1', 'Q2', 'Q3', 'Q4'].map((q) => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => setQuarterFilter(q)}
-              style={{
-                border: 'none',
-                background: quarterFilter === q ? '#007680' : 'transparent',
-                color: quarterFilter === q ? '#FFFFFF' : '#475569',
-                padding: '3px 10px',
-                borderRadius: '6px',
-                fontSize: '0.72rem',
-                fontWeight: quarterFilter === q ? 700 : 500,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: quarterFilter === q ? '0 1px 3px rgba(0, 118, 128, 0.3)' : 'none',
-              }}
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* 12-Tab Analytical Navigation Slider */}
       <TabSlider>
         {sheets.map((s) => {
