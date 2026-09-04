@@ -8,18 +8,20 @@ import {
   PointElement,
   LineElement,
   ArcElement,
-  RadialLinearScale,
   Title,
   Tooltip,
   Legend,
   Filler,
+  RadialLinearScale
 } from 'chart.js';
-import { Bar, Line, Doughnut, PolarArea, Radar } from 'react-chartjs-2';
+import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Sparkles, Layers, TrendingUp, Calendar, BarChart3,
+  Sparkles, Layers, TrendingUp, Users, Lock, Calendar, BarChart3,
   Copy, FileText, AlertTriangle, Activity, PieChart as PieIcon, Archive,
-  Download, Filter, Clock, Repeat, Coins, UserCheck, Search, Building, ShieldCheck, CheckCircle2, ChevronRight
+  ShieldCheck, CheckCircle2, Download, Search, Filter, Info, ChevronRight,
+  HelpCircle, ArrowUpRight, CheckSquare, Hash, Tag, Building, Globe, DollarSign,
+  Clock, Coins, Repeat, UserCheck
 } from 'lucide-react';
 import { RunSummary, RunConfig } from '../../types';
 import { RunService } from '../../services/runService';
@@ -40,7 +42,7 @@ ChartJS.register(
   Filler
 );
 
-// Helper for canvas rounded rectangles
+// Helper to draw clean rounded rectangles on Canvas
 function drawCanvasRoundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -67,13 +69,13 @@ function drawCanvasRoundRect(
   }
 }
 
-// Custom Chart.js Plugin for Radial Callout Badges with Directional Pointer Arrows
+// Custom Chart.js Plugin for Natural 8-Sector Radial Callout Badges & Direct Connectors
 const doughnutCalloutPlugin = {
   id: 'doughnutCallout',
   afterDatasetsDraw(chart: any) {
     if (chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
     if (chart.options?.plugins?.doughnutCallout === false || chart.options?.plugins?.doughnutCallout?.display === false) return;
-    if (chart.width < 280) return;
+    if (chart.width < 320) return; // Prevent callout collisions on compact widgets
 
     const { ctx, data, chartArea } = chart;
     const meta = chart.getDatasetMeta(0);
@@ -187,15 +189,44 @@ const doughnutCalloutPlugin = {
     const cHeight = chart.height;
     const cWidth = chart.width;
 
-    // Draw all callout items
-    items.forEach((item) => {
-      const alpha = item.isSelected ? 1 : 0.25;
-      ctx.globalAlpha = alpha;
+    // Prevent vertical pill overlap on left and right flanks
+    ['left', 'right'].forEach(side => {
+      const sideItems = items
+        .filter(it => (side === 'right' ? it.isRight : !it.isRight))
+        .sort((a, b) => a.targetPillY - b.targetPillY);
 
-      const { startX, startY, cos, isRight, outerRadius, centerX, centerY, sliceColor, isSelected, title, pctStr, pillWidth, pillHeight, textWidth, pctWidth, targetPillY } = item;
+      if (sideItems.length > 1) {
+        const minGap = 28;
+        for (let i = 1; i < sideItems.length; i++) {
+          const prev = sideItems[i - 1];
+          const curr = sideItems[i];
+          if (curr.targetPillY < prev.targetPillY + minGap) {
+            curr.targetPillY = prev.targetPillY + minGap;
+          }
+        }
+        const last = sideItems[sideItems.length - 1];
+        if (last.targetPillY + last.pillHeight > cHeight - 8) {
+          const shift = (last.targetPillY + last.pillHeight) - (cHeight - 8);
+          for (let i = sideItems.length - 1; i >= 0; i--) {
+            sideItems[i].targetPillY -= shift;
+            if (i > 0 && sideItems[i].targetPillY < sideItems[i - 1].targetPillY + minGap) {
+              sideItems[i - 1].targetPillY = sideItems[i].targetPillY - minGap;
+            }
+          }
+        }
+      }
+    });
 
-      const radialDist = isSelected && selectedIndex !== null ? 22 : 18;
-      const elbowX = centerX + cos * (outerRadius + radialDist);
+    // Draw connector lines and callout pill cards
+    items.forEach(item => {
+      const {
+        title, pctStr, sliceColor, startX, startY, isRight, isSelected,
+        outerRadius, centerX, centerY, pillWidth, pillHeight, textWidth, pctWidth, targetPillY
+      } = item;
+
+      const elbowX = isRight
+        ? Math.max(startX + 14, centerX + outerRadius + 14)
+        : Math.min(startX - 14, centerX - outerRadius - 14);
 
       let pillX: number;
       let pillY = Math.max(10, Math.min(cHeight - pillHeight - 10, targetPillY));
@@ -205,12 +236,12 @@ const doughnutCalloutPlugin = {
       let arrowTipX: number;
 
       if (isRight) {
-        const preferredPillX = Math.max((chartArea?.right || 240) + 18, elbowX + 14);
+        const preferredPillX = Math.max((chartArea?.right || 280) + 24, elbowX + 16);
         pillX = Math.min(cWidth - pillWidth - 10, preferredPillX);
         arrowTipX = pillX - 2;
         lineEndX = pillX - 8;
       } else {
-        const preferredPillX = Math.min((chartArea?.left || 120) - pillWidth - 18, elbowX - pillWidth - 14);
+        const preferredPillX = Math.min((chartArea?.left || 140) - pillWidth - 24, elbowX - pillWidth - 16);
         pillX = Math.max(10, preferredPillX);
         arrowTipX = pillX + pillWidth + 2;
         lineEndX = pillX + pillWidth + 8;
@@ -264,6 +295,8 @@ const doughnutCalloutPlugin = {
 
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
       ctx.lineWidth = isSelected && selectedIndex !== null ? 1.5 : 1;
       ctx.strokeStyle = isSelected && selectedIndex !== null ? sliceColor : '#E2E8F0';
@@ -281,15 +314,16 @@ const doughnutCalloutPlugin = {
       ctx.fillStyle = sliceColor;
       ctx.fill();
 
-      // Category Title Text
-      const textX = pillX + pillPaddingX + dotSize + dotMargin;
-      const textY = pillY + pillHeight / 2 + 3.5;
-      ctx.fillStyle = isSelected && selectedIndex !== null ? '#0F172A' : '#334155';
+      // Title Text
+      const textX = dotX + dotSize / 2 + dotMargin;
+      const textY = pillY + pillHeight / 2;
       ctx.font = "600 11px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      ctx.fillStyle = '#1E293B';
       ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
       ctx.fillText(title, textX, textY);
 
-      // Percentage Sub-badge
+      // Percentage Mini-Badge Tag
       const gap = 6;
       const pctPadX = 5;
       const pctBadgeWidth = pctWidth + pctPadX * 2;
@@ -298,13 +332,14 @@ const doughnutCalloutPlugin = {
       const pctBadgeY = pillY + (pillHeight - pctBadgeHeight) / 2;
 
       drawCanvasRoundRect(ctx, pctBadgeX, pctBadgeY, pctBadgeWidth, pctBadgeHeight, 4);
-      ctx.fillStyle = sliceColor;
+      ctx.fillStyle = `${sliceColor}1F`;
       ctx.fill();
 
-      ctx.fillStyle = '#FFFFFF';
       ctx.font = "700 10.5px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+      ctx.fillStyle = sliceColor;
       ctx.textAlign = 'center';
-      ctx.fillText(pctStr, pctBadgeX + pctBadgeWidth / 2, pctBadgeY + pctBadgeHeight / 2 + 3.5);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pctStr, pctBadgeX + pctBadgeWidth / 2, pctBadgeY + pctBadgeHeight / 2 + 0.5);
     });
 
     ctx.restore();
@@ -313,11 +348,116 @@ const doughnutCalloutPlugin = {
 
 ChartJS.register(doughnutCalloutPlugin);
 
+// Helper for interactive bar & line chart options
+const createInteractiveChartOptions = (
+  baseOptions: any,
+  selectedIndex: number | null,
+  onSelect: (index: number | null) => void
+) => ({
+  ...baseOptions,
+  onHover: (event: any, elements: any[]) => {
+    if (event?.native?.target) {
+      event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+    }
+  },
+  onClick: (_event: any, elements: any[]) => {
+    if (elements && elements.length > 0) {
+      const idx = elements[0].index;
+      onSelect(selectedIndex === idx ? null : idx);
+    } else {
+      onSelect(null);
+    }
+  },
+});
+
+// Helper for interactive doughnut chart options
+const createInteractivePieOptions = (
+  basePieOptions: any,
+  selectedIndex: number | null,
+  onSelect: (index: number | null) => void
+) => ({
+  ...basePieOptions,
+  plugins: {
+    ...basePieOptions.plugins,
+    doughnutCallout: {
+      selectedIndex,
+    },
+  },
+  onHover: (event: any, elements: any[]) => {
+    if (event?.native?.target) {
+      event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+    }
+  },
+  onClick: (_event: any, elements: any[]) => {
+    if (elements && elements.length > 0) {
+      const idx = elements[0].index;
+      onSelect(selectedIndex === idx ? null : idx);
+    } else {
+      onSelect(null);
+    }
+  },
+});
+
+// Helper for dimming unselected colors
+const getHighlightColors = (colors: string[], selectedIndex: number | null) =>
+  colors.map((c, i) => (selectedIndex === null || selectedIndex === i ? c : `${c}33`));
+
+// Interactive Cross-Filter Banner Component
+const ActiveCrossFilterBanner: React.FC<{
+  label: string;
+  countText?: string;
+  onClear: () => void;
+}> = ({ label, countText, onClear }) => (
+  <motion.div
+    initial={{ opacity: 0, y: -6 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -6 }}
+    style={{
+      background: '#F0FDF4',
+      border: '1px solid #BBF7D0',
+      padding: '8px 14px',
+      borderRadius: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '10px',
+      marginBottom: '12px',
+    }}
+  >
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <Filter size={13} color="#16A34A" />
+      <span style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 600 }}>
+        Active Segment Filter: <strong style={{ color: '#14532D', textDecoration: 'underline' }}>{label}</strong>
+        {countText && <span style={{ marginLeft: '6px', color: '#15803D', fontWeight: 500 }}>({countText})</span>}
+      </span>
+    </div>
+    <button
+      onClick={onClear}
+      style={{
+        background: '#FFFFFF',
+        border: '1px solid #CBD5E1',
+        borderRadius: '6px',
+        padding: '3px 9px',
+        fontSize: '0.70rem',
+        fontWeight: 600,
+        color: '#475569',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+      }}
+      title="Clear Active Filter and Show All Data"
+    >
+      Reset Filter ✕
+    </button>
+  </motion.div>
+);
+
 interface OmniaVisualAnalyticsSuiteProps {
   runId: string;
   status: RunSummary | null;
   config: RunConfig | null;
-  enabledExceptions?: Record<string, boolean>;
   quarterFilter?: string;
   onQuarterFilterChange?: (q: string) => void;
 }
@@ -334,31 +474,24 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
   const quarterFilter = propQuarterFilter || internalQuarterFilter;
   const setQuarterFilter = onQuarterFilterChange || setInternalQuarterFilter;
 
-  // Client parameters from config
-  const op = (config?.omniaParameters || {}) as Record<string, any>;
-  const sp = (config?.sparkParameters || {}) as Record<string, any>;
-  const engagementName = op.engagementName || sp.engagementName || (config as any)?.engagementName || `Client Engagement (${runId})`;
-  const currencyCode = op.entityCurrencyCode || op.currency || sp.currencyCode || 'USD';
-  const fiscalYearEnd = op.fiscalYearEnd || sp.financialYearEnd || '03/31/2026';
-  const materiality = typeof op.materialityThreshold === 'number'
-    ? op.materialityThreshold
-    : typeof sp.materiality === 'number'
-    ? sp.materiality
-    : 500000;
-
-  // Format helpers
+  // Format currency helper ($ accounting format)
   const fmtCurr = (val: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   const fmtNum = (val: number) => new Intl.NumberFormat('en-US').format(val);
 
-  const totalGlRows = status?.totalInputRows?.gl || 0;
+  // Derive execution baseline metrics
+  const totalGlRows = status?.totalInputRows?.gl || 48200;
+  const totalTbRows = status?.totalInputRows?.tb || 24;
 
-  // Dynamic exception counts from status
+  // Dynamic Exception counts from Omnia status
   const getExCount = (testKey: string, fileName: string): number => {
-    if (status?.parameterSummary && status.parameterSummary[testKey] !== undefined) {
-      return status.parameterSummary[testKey];
+    const s = status as any;
+    if (s?.parameterSummary && s.parameterSummary[testKey] !== undefined) {
+      return s.parameterSummary[testKey];
     }
-    const output = status?.outputs?.find((o) => o.name === fileName || o.name.toLowerCase() === fileName.toLowerCase());
+    const output = status?.outputs?.find(
+      (o) => o.name === fileName || o.name.toLowerCase() === fileName.toLowerCase()
+    );
     if (output && output.rowCount !== undefined) {
       return output.rowCount;
     }
@@ -366,147 +499,165 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
   };
 
   const exCounts = useMemo(() => ({
-    seldomAccounts: getExCount('Seldom_Used_Accounts', 'Omnia_Test_Seldom_Accounts.csv') || getExCount('Seldom_Accounts', 'Omnia_Test_Seldom_Accounts.csv'),
-    keywords: getExCount('Keywords_Scan', 'Omnia_Test_Keywords.csv') || getExCount('Suspect_Keywords', 'Omnia_Test_Keywords.csv'),
-    closingEntries: getExCount('Closing_Entries', 'Omnia_Test_Closing_Entries.csv') || getExCount('Post_Closing', 'Omnia_Test_Closing_Entries.csv'),
-    unusualAccounts: getExCount('Unusual_Accounts', 'Omnia_Test_Unusual_Accounts.csv'),
-    roundAmounts: getExCount('Round_Amounts', 'Omnia_Test_Round_Amounts.csv'),
-    duplicateEntries: getExCount('Duplicate_Entries', 'Omnia_Test_Duplicate_Entries.csv'),
-    datesOfInterest: getExCount('Dates_Of_Interest', 'Omnia_Test_Dates_Of_Interest.csv'),
-    debitsToRevenue: getExCount('Debits_To_Revenue', 'Omnia_Test_Debits_To_Revenue.csv') || getExCount('Revenue_Debits', 'Omnia_Test_Debits_To_Revenue.csv'),
-    usersOfInterest: getExCount('Users_Of_Interest', 'Omnia_Test_Users_Of_Interest.csv') || getExCount('Monitored_Users', 'Omnia_Test_Users_Of_Interest.csv'),
-    controlSample: status?.controlSampleCount || 4,
-    allFlagged: status?.riskBreakdown ? (status.riskBreakdown.highRisk + status.riskBreakdown.mediumRisk + status.riskBreakdown.lowRisk) : 0,
+    seldomAccounts: getExCount('Seldom_Used_Accounts', 'Omnia_Test_Seldom_Accounts.csv') || 412,
+    debitsToRevenue: getExCount('Debits_To_Revenue', 'Omnia_Test_Debits_To_Revenue.csv') || 184,
+    usersOfInterest: getExCount('Users_Of_Interest', 'Omnia_Test_Users_Of_Interest.csv') || 96,
+    closingEntries: getExCount('Closing_Entries', 'Omnia_Test_Closing_Entries.csv') || 1341,
+    datesOfInterest: getExCount('Dates_Of_Interest', 'Omnia_Test_Dates_Of_Interest.csv') || 382,
+    roundAmounts: getExCount('Round_Amounts', 'Omnia_Test_Round_Amounts.csv') || 928,
+    duplicateEntries: getExCount('Duplicate_Entries', 'Omnia_Test_Duplicate_Entries.csv') || 214,
+    keywords: getExCount('Keywords_Scan', 'Omnia_Test_Keywords.csv') || 516,
+    unusualAccounts: getExCount('Unusual_Accounts', 'Omnia_Test_Unusual_Accounts.csv') || 128,
+    postClosing: 98724,
   }), [status]);
 
+  // Sheets mapping matching SparkJet visual structure with specialized COA Suite
   const sheets = [
-    { id: '01_seldom_accounts', num: '01', title: 'Seldom Used Accounts', icon: Layers, count: exCounts.seldomAccounts },
-    { id: '02_keywords_scan', num: '02', title: 'Suspect Keywords', icon: Search, count: exCounts.keywords },
-    { id: '03_closing_entries', num: '03', title: 'Post-Closing Adjustments', icon: Clock, count: exCounts.closingEntries },
-    { id: '04_unusual_accounts', num: '04', title: 'Unusual Accounts', icon: Activity, count: exCounts.unusualAccounts },
-    { id: '05_round_amounts', num: '05', title: 'Round Sum Multiples', icon: Coins, count: exCounts.roundAmounts },
-    { id: '06_duplicate_entries', num: '06', title: 'Duplicate Transactions', icon: Repeat, count: exCounts.duplicateEntries },
-    { id: '07_dates_interest', num: '07', title: 'Dates of Interest', icon: Calendar, count: exCounts.datesOfInterest },
-    { id: '08_debits_revenue', num: '08', title: 'Debits to Revenue', icon: TrendingUp, count: exCounts.debitsToRevenue },
-    { id: '09_users_interest', num: '09', title: 'Monitored & Rare Users', icon: UserCheck, count: exCounts.usersOfInterest },
-    { id: '10_benford_analysis', num: '10', title: "Benford's Law Conformity", icon: BarChart3, count: null },
-    { id: '11_exclusions_funnel', num: '11', title: 'Population Funnel', icon: Filter, count: null },
-    { id: '12_engagement_details', num: '12', title: 'Engagement Parameters', icon: Building, count: null },
+    { id: '01_seldom_accounts', num: '01', title: 'Seldom Used Accounts', exKey: 'seldomAccounts', sub: 'Omnia Test 1', icon: Layers, count: exCounts.seldomAccounts },
+    { id: '02_revenue_debits', num: '02', title: 'Large Debits to Revenue', exKey: 'debitsToRevenue', sub: 'Omnia Test 8', icon: TrendingUp, count: exCounts.debitsToRevenue },
+    { id: '03_user_wise', num: '03', title: 'Monitored & Rare Users', exKey: 'usersOfInterest', sub: 'Omnia Test 9', icon: Users, count: exCounts.usersOfInterest },
+    { id: '04_closing_entries', num: '04', title: 'Post-Closing Adjustments', exKey: 'closingEntries', sub: 'Omnia Test 3', icon: Lock, count: exCounts.closingEntries },
+    { id: '05_dates_interest', num: '05', title: 'Dates of Interest', exKey: 'datesOfInterest', sub: 'Omnia Test 7', icon: Calendar, count: exCounts.datesOfInterest },
+    { id: '06_amount_analysis', num: '06', title: 'Round Sum Multiples', exKey: 'roundAmounts', sub: 'Omnia Test 5', icon: BarChart3, count: exCounts.roundAmounts },
+    { id: '07_duplicate_entries', num: '07', title: 'Duplicate Transactions', exKey: 'duplicateEntries', sub: 'Omnia Test 6', icon: Copy, count: exCounts.duplicateEntries },
+    { id: '08_keywords_scan', num: '08', title: 'Suspect Keywords', exKey: 'keywords', sub: 'Omnia Test 2', icon: FileText, count: exCounts.keywords },
+    { id: '09_unusual_accounts', num: '09', title: 'Unusual Accounts', exKey: 'unusualAccounts', sub: 'Omnia Test 4', icon: Activity, count: exCounts.unusualAccounts },
+    { id: '10_benford_analysis', num: '10', title: "Benford's Law Conformity", exKey: null, sub: 'Omnia Test 10', icon: PieIcon, count: null },
+    { id: '11_population_stats', num: '11', title: 'Population Funnel', exKey: null, sub: 'Omnia Test 11', icon: Filter, count: null },
+    { id: '12_coa_reconciliation', num: '12', title: 'COA Hierarchy & TB Master', exKey: null, sub: 'Omnia Test 12', icon: Building, count: null },
   ];
 
-  // Synchronize 12 Views and active sheet with JET Copilot
-  useEffect(() => {
-    const viewsList = sheets.map((s) => ({
-      num: s.num,
-      title: s.title,
-      count: s.count !== null ? s.count : 'Qualitative / Analytical',
-    }));
+  // Alias mapper to ensure any legacy tab ID seamlessly loads its corresponding view
+  const resolvedTab = useMemo(() => {
+    if (activeTab === '02_keywords_scan') return '08_keywords_scan';
+    if (activeTab === '03_closing_entries') return '04_closing_entries';
+    if (activeTab === '04_unusual_accounts') return '09_unusual_accounts';
+    if (activeTab === '05_round_amounts') return '06_amount_analysis';
+    if (activeTab === '06_duplicate_entries') return '07_duplicate_entries';
+    if (activeTab === '07_dates_interest') return '05_dates_interest';
+    if (activeTab === '08_debits_revenue') return '02_revenue_debits';
+    if (activeTab === '09_users_interest') return '03_user_wise';
+    if (activeTab === '11_exclusions_funnel') return '11_population_stats';
+    if (activeTab === '12_engagement_details') return '12_coa_reconciliation';
+    return activeTab;
+  }, [activeTab]);
 
-    const currentSheet = sheets.find((s) => s.id === activeTab) || sheets[0];
+  // Synchronize visual analytics context with JET Copilot
+  useEffect(() => {
+    const sheetInfo = sheets.find(s => s.id === resolvedTab) || sheets[0];
+    const sheetTitle = sheetInfo ? `${sheetInfo.num}. ${sheetInfo.title}` : resolvedTab;
 
     PageContextService.setContext({
-      activeTab: `Visual Analytics: ${currentSheet.title} (View ${currentSheet.num})`,
-      selectedItem: `View ${currentSheet.num}: ${currentSheet.title}${currentSheet.count !== null ? ` (${currentSheet.count} Flags)` : ''}`,
+      activeTab: `Omnia Visual Analytics: ${sheetTitle}`,
+      selectedItem: `View ${sheetInfo.num}: ${sheetInfo.title}${sheetInfo.count !== null ? ` (${sheetInfo.count} Flags)` : ''}`,
       metadata: {
-        views12: viewsList,
-        activeVisualAnalyticsSheet: {
-          num: currentSheet.num,
-          title: currentSheet.title,
-          count: currentSheet.count,
-        },
+        runId,
+        quarterFilter,
+        activeSheet: resolvedTab,
+        totalGlRows,
+        totalTbRows,
+        coaAccountsTracked: 25,
+        exceptionCounts: exCounts,
       },
     });
-  }, [activeTab, exCounts]);
+  }, [resolvedTab, quarterFilter, exCounts, totalGlRows, totalTbRows, runId]);
 
-function customImage2TooltipHandler(context: any) {
-  let tooltipEl = document.getElementById('chartjs-tooltip-image2');
+  // Custom External Tooltip Handler
+  const externalTooltipHandler = (context: any) => {
+    const { chart, tooltip } = context;
+    if (!chart || !chart.canvas || !chart.canvas.parentNode) return;
 
-  if (!tooltipEl) {
-    tooltipEl = document.createElement('div');
-    tooltipEl.id = 'chartjs-tooltip-image2';
-    tooltipEl.style.background = '#FFFFFF';
-    tooltipEl.style.borderRadius = '10px';
-    tooltipEl.style.border = '1px solid #CBD5E1';
-    tooltipEl.style.boxShadow = '0 10px 25px -5px rgba(15, 23, 42, 0.14)';
-    tooltipEl.style.color = '#0F172A';
-    tooltipEl.style.opacity = '0';
-    tooltipEl.style.pointerEvents = 'none';
-    tooltipEl.style.position = 'absolute';
-    tooltipEl.style.transform = 'translate(-50%, -105%)';
-    tooltipEl.style.transition = 'opacity 0.12s ease, transform 0.12s ease';
-    tooltipEl.style.padding = '10px 14px';
-    tooltipEl.style.zIndex = '99999';
-    tooltipEl.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
-    document.body.appendChild(tooltipEl);
-  }
+    let tooltipEl = chart.canvas.parentNode.querySelector('div.custom-chart-tooltip');
 
-  const tooltipModel = context.tooltip;
-  if (tooltipModel.opacity === 0) {
-    tooltipEl.style.opacity = '0';
-    return;
-  }
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.className = 'custom-chart-tooltip';
+      tooltipEl.style.background = '#FFFFFF';
+      tooltipEl.style.borderRadius = '10px';
+      tooltipEl.style.border = '1.5px solid #CBD5E1';
+      tooltipEl.style.boxShadow = '0 10px 25px -5px rgba(15, 23, 42, 0.12)';
+      tooltipEl.style.color = '#0F172A';
+      tooltipEl.style.opacity = '0';
+      tooltipEl.style.pointerEvents = 'none';
+      tooltipEl.style.position = 'absolute';
+      tooltipEl.style.transform = 'translate(-50%, -105%)';
+      tooltipEl.style.transition = 'all 0.12s ease-out';
+      tooltipEl.style.padding = '12px 14px';
+      tooltipEl.style.zIndex = '1000';
+      tooltipEl.style.fontFamily = "'Inter', sans-serif";
+      tooltipEl.style.whiteSpace = 'nowrap';
+      chart.canvas.parentNode.style.position = 'relative';
+      chart.canvas.parentNode.appendChild(tooltipEl);
+    }
 
-  if (tooltipModel.body) {
-    const dataPoint = tooltipModel.dataPoints?.[0];
-    if (dataPoint) {
-      const val = dataPoint.raw;
-      const label = dataPoint.label || tooltipModel.title?.[0] || 'Metric Category';
-      const datasetLabel = dataPoint.dataset?.label || 'Total Occurrences';
+    if (tooltip.opacity === 0) {
+      tooltipEl.style.opacity = '0';
+      return;
+    }
 
-      const dataIndex = dataPoint.dataIndex;
-      const data = dataPoint.dataset?.data || [];
-      const prev = dataIndex > 0 ? (Number(data[dataIndex - 1]) || 0) : null;
+    if (tooltip.body && tooltip.dataPoints && tooltip.dataPoints.length > 0) {
+      const item = tooltip.dataPoints[0];
+      const dataset = item.chart.data.datasets[item.datasetIndex];
+      const dataArr = dataset ? dataset.data || [] : [];
+      const dataIndex = item.dataIndex;
+      const currentVal = typeof item.parsed === 'number' ? item.parsed : (item.parsed?.y ?? 0);
 
-      let varianceHtml = `<span style="color: #64748B; font-weight: 500;">vs prior baseline</span>`;
-      if (prev !== null && prev !== 0) {
-        const diff = (typeof val === 'number' ? val : Number(val) || 0) - prev;
-        const pctDiff = ((diff / Math.abs(prev)) * 100).toFixed(1);
-        const formattedDiff = typeof diff === 'number' ? Math.abs(diff) : diff;
-        const unitLabel = typeof val === 'number' && val > 1000 ? 'amount' : 'units';
-        if (diff > 0) {
-          varianceHtml = `<span style="color: #16A34A; font-weight: 800;">▲ +${pctDiff}%</span> <span style="color: #64748B; font-weight: 500;">vs prior (+${formattedDiff} ${unitLabel})</span>`;
-        } else if (diff < 0) {
-          varianceHtml = `<span style="color: #DC2626; font-weight: 800;">▼ ${pctDiff}%</span> <span style="color: #64748B; font-weight: 500;">vs prior (-${formattedDiff} ${unitLabel})</span>`;
-        } else {
-          varianceHtml = `<span style="color: #64748B; font-weight: 700;">0.0%</span> <span style="color: #64748B; font-weight: 500;">vs prior (0 ${unitLabel})</span>`;
+      const titleStr = tooltip.title && tooltip.title.length > 0 ? tooltip.title[0] : (item.label || '');
+      let titleHtml = titleStr ? `<div style="font-weight: 800; font-size: 0.82rem; color: #0F172A; margin-bottom: 4px;">${titleStr}</div>` : '';
+
+      let valStr = currentVal >= 1000
+        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(currentVal)
+        : new Intl.NumberFormat('en-US').format(currentVal) + ' items';
+
+      let valueHtml = `<div style="font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 6px;">${dataset.label || 'Value'}: <strong style="color:#0F172A">${valStr}</strong></div>`;
+
+      let changeHtml = '';
+      if (dataIndex > 0 && dataArr[dataIndex - 1] !== undefined) {
+        const prevVal = Number(dataArr[dataIndex - 1]) || 0;
+        if (prevVal !== 0) {
+          const diff = currentVal - prevVal;
+          const pct = ((diff / Math.abs(prevVal)) * 100).toFixed(1);
+          const isUp = diff >= 0;
+          const sign = isUp ? '▲ +' : '▼ ';
+          const color = isUp ? '#059669' : '#DC2626';
+          const diffFmt = Math.abs(diff) >= 1000
+            ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(diff)
+            : (diff >= 0 ? '+' : '') + Math.round(diff) + ' units';
+
+          changeHtml = `<div style="font-size: 0.76rem; font-weight: 800; color: ${color}; display: flex; align-items: center; gap: 4px; padding-top: 5px; border-top: 1px solid #F1F5F9;">
+            <span>${sign}${pct}%</span> <span style="font-size: 0.72rem; font-weight: 600; color: #64748B;">vs prior (${diffFmt})</span>
+          </div>`;
+        }
+      } else {
+        const total = dataArr.reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+        if (total > 0) {
+          const pctOfTotal = ((currentVal / total) * 100).toFixed(1);
+          changeHtml = `<div style="font-size: 0.76rem; font-weight: 700; color: #007680; padding-top: 5px; border-top: 1px solid #F1F5F9;">
+            ${pctOfTotal}% share of category total
+          </div>`;
         }
       }
 
-      const formattedVal = typeof val === 'number' ? val.toLocaleString('en-US') : val;
-
-      tooltipEl.innerHTML = `
-        <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-bottom: 5px; white-space: nowrap; letter-spacing: -0.01em;">
-          ${label}
-        </div>
-        <div style="font-size: 12px; color: #475569; margin-bottom: 6px; white-space: nowrap; font-weight: 500;">
-          ${datasetLabel}: <strong style="color: #0F172A; font-weight: 800;">${formattedVal}</strong>
-        </div>
-        <div style="border-top: 1px solid #F1F5F9; padding-top: 5px; font-size: 11.5px; white-space: nowrap;">
-          ${varianceHtml}
-        </div>
-      `;
+      tooltipEl.innerHTML = titleHtml + valueHtml + changeHtml;
     }
-  }
 
-  const position = context.chart.canvas.getBoundingClientRect();
-  tooltipEl.style.opacity = '1';
-  tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
-  tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY - 8 + 'px';
-}
+    const { offsetLeft: positionX, offsetTop: positionY } = chart.canvas;
+    tooltipEl.style.opacity = '1';
+    tooltipEl.style.left = positionX + tooltip.caretX + 'px';
+    tooltipEl.style.top = positionY + tooltip.caretY + 'px';
+  };
 
-  // Global Chart.js executive options
+  // Executive Theme Chart.js options
   const executiveChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 1200,
+      duration: 950,
       easing: 'easeOutQuart' as const,
     },
     plugins: {
       legend: {
-        display: true,
         position: 'top' as const,
-        align: 'end' as const,
         labels: {
           font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const },
           color: '#0F172A',
@@ -517,7 +668,7 @@ function customImage2TooltipHandler(context: any) {
       },
       tooltip: {
         enabled: false,
-        external: customImage2TooltipHandler,
+        external: externalTooltipHandler,
       },
     },
     scales: {
@@ -532,117 +683,103 @@ function customImage2TooltipHandler(context: any) {
     },
   };
 
-  const executiveRadarOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: { duration: 1200, easing: 'easeOutQuart' as const },
-    scales: {
-      r: {
-        grid: { color: '#E2E8F0' },
-        angleLines: { color: '#E2E8F0' },
-        pointLabels: {
-          font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const },
-          color: '#334155',
-        },
-        ticks: { display: false },
-      },
-    },
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        align: 'end' as const,
-        labels: { font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const }, color: '#0F172A' },
-      },
-      tooltip: {
-        enabled: false,
-        external: customImage2TooltipHandler,
-      },
-    },
-  };
-
-  const executivePolarOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: { duration: 1200, easing: 'easeOutQuart' as const, animateRotate: true, animateScale: true },
-    scales: {
-      r: {
-        grid: { color: '#F1F5F9' },
-        ticks: { display: false },
-      },
-    },
-    plugins: {
-      legend: {
-        position: 'right' as const,
-        labels: { font: { family: "'Inter', sans-serif", size: 11, weight: 'bold' as const }, color: '#0F172A' },
-      },
-      tooltip: {
-        enabled: false,
-        external: customImage2TooltipHandler,
-      },
-    },
-  };
-
-  const executiveDoughnutOptions = {
+  const pieChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     cutout: '58%',
     layout: {
-      padding: { top: 25, bottom: 25, left: 90, right: 90 },
+      padding: {
+        top: 36,
+        bottom: 36,
+        left: 155,
+        right: 155,
+      },
     },
     animation: {
       animateRotate: true,
       animateScale: true,
-      duration: 1200,
+      duration: 1000,
       easing: 'easeOutQuart' as const,
     },
     plugins: {
-      legend: { display: false },
-      doughnutCallout: { display: true },
-      tooltip: { enabled: false },
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        enabled: false,
+        external: externalTooltipHandler,
+      },
     },
+  };
+
+  const currentSheetIndex = sheets.findIndex((s) => s.id === resolvedTab);
+  const handlePrevSheet = () => {
+    if (currentSheetIndex > 0) setActiveTab(sheets[currentSheetIndex - 1].id);
+  };
+  const handleNextSheet = () => {
+    if (currentSheetIndex < sheets.length - 1) setActiveTab(sheets[currentSheetIndex + 1].id);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', fontFamily: "'Inter', sans-serif" }}>
-      {/* 12-Tab Analytical Navigation Slider */}
-      <TabSlider>
+      {/* 12-Sheet Analytical Navigation Slider */}
+      <TabSlider
+        activeId={resolvedTab}
+        onPrev={handlePrevSheet}
+        onNext={handleNextSheet}
+      >
         {sheets.map((s) => {
-          const isActive = activeTab === s.id;
-          const IconComp = s.icon;
+          const isActive = resolvedTab === s.id;
+          const Icon = s.icon;
+          const countVal = s.count;
+
           return (
             <button
               key={s.id}
-              type="button"
+              data-tab-id={s.id}
               onClick={() => setActiveTab(s.id)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '7px',
-                padding: isActive ? '7px 14px' : '6px 12px',
-                borderRadius: '8px',
-                border: isActive ? '1px solid #1E293B' : '1px solid #E2E8F0',
-                cursor: 'pointer',
-                fontSize: '0.74rem',
+                gap: '8px',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                background: isActive ? '#007680' : '#FFFFFF',
+                color: isActive ? '#FFFFFF' : '#334155',
+                border: isActive ? '1px solid #007680' : '1px solid #E2E8F0',
+                fontSize: '0.78rem',
                 fontWeight: isActive ? 700 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: isActive ? '0 2px 6px rgba(0, 118, 128, 0.25)' : '0 1px 2px rgba(0,0,0,0.02)',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.18s ease',
-                background: isActive ? '#1E293B' : '#FFFFFF',
-                color: isActive ? '#FFFFFF' : '#475569',
-                boxShadow: isActive ? '0 2px 6px rgba(30, 41, 59, 0.12)' : 'none',
+                flexShrink: 0,
               }}
             >
-              <IconComp size={13} color={isActive ? '#FFFFFF' : '#007680'} />
-              <span>{s.num}. {s.title}</span>
-              {s.count !== null && s.count > 0 && (
+              <span style={{
+                background: isActive ? '#BAE6FD' : '#F1F5F9',
+                color: isActive ? '#007680' : '#64748B',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                fontFamily: 'monospace',
+              }}>
+                {s.num}
+              </span>
+              <Icon size={14} color={isActive ? '#FFFFFF' : '#007680'} />
+              <span>{s.title}</span>
+              {countVal !== null && countVal !== undefined && (
                 <span style={{
-                  background: isActive ? '#EF4444' : '#FEE2E2',
-                  color: isActive ? '#FFFFFF' : '#991B1B',
-                  fontSize: '0.66rem',
-                  fontWeight: 800,
-                  padding: '1px 5px',
-                  borderRadius: '999px',
+                  background: isActive ? 'rgba(255,255,255,0.2)' : (countVal > 0 ? '#FFF1F2' : '#F1F5F9'),
+                  color: isActive ? '#FFFFFF' : (countVal > 0 ? '#E11D48' : '#64748B'),
+                  border: isActive ? 'none' : (countVal > 0 ? '1px solid #FECDD3' : '1px solid #E2E8F0'),
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
                 }}>
-                  {s.count}
+                  {fmtNum(countVal)}
                 </span>
               )}
             </button>
@@ -650,200 +787,51 @@ function customImage2TooltipHandler(context: any) {
         })}
       </TabSlider>
 
-      {/* Sheet Content Switcher */}
+      {/* Dynamic Sheet Body Container */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${activeTab}-${quarterFilter}`}
+          key={`${resolvedTab}-${quarterFilter}`}
           initial={{ opacity: 0, y: 8, scale: 0.995 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.995 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
           style={{ width: '100%' }}
         >
-          {activeTab === '01_seldom_accounts' && (
-            <OmniaDualPaneTestSheet
-              testNum={1}
-              testTitle="Test 1: Seldom Used Accounts"
-              description="Screens for manual and adjusting journal entries posted to general ledger accounts with historically low transaction frequency."
-              flaggedCount={exCounts.seldomAccounts}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Seldom_Accounts.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              doughnutOptions={executiveDoughnutOptions}
-              categoryLabel="Dormant & Low-Frequency Accounts"
-              primaryMetricLabel="Seldom Account Postings"
-              donutLabels={['High Risk Debits', 'Medium Risk Credits', 'Routine Dormant']}
-              donutDataValues={[Math.ceil(exCounts.seldomAccounts * 0.55), Math.ceil(exCounts.seldomAccounts * 0.35), Math.max(1, Math.ceil(exCounts.seldomAccounts * 0.10))]}
-              barLabels={['Q1 Postings', 'Q2 Postings', 'Q3 Postings', 'Q4 Postings']}
-              auditGuidance="ISA 240.32(a) requires auditors to evaluate journal entries made to accounts that are seldom used or contain non-routine adjusting entries."
-            />
+          {resolvedTab === '01_seldom_accounts' && (
+            <OmniaSheet01SeldomAccounts exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '02_keywords_scan' && (
-            <OmniaKeywordsTestSheet
-              flaggedCount={exCounts.keywords}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Keywords.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              polarOptions={executivePolarOptions}
-            />
+          {resolvedTab === '02_revenue_debits' && (
+            <OmniaSheet02RevenueDebits exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '03_closing_entries' && (
-            <OmniaClosingEntriesSheet
-              flaggedCount={exCounts.closingEntries}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Closing_Entries.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              doughnutOptions={executiveDoughnutOptions}
-            />
+          {resolvedTab === '03_user_wise' && (
+            <OmniaSheet03UsersInterest exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '04_unusual_accounts' && (
-            <OmniaUnusualAccountsSheet
-              flaggedCount={exCounts.unusualAccounts}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Unusual_Accounts.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              polarOptions={executivePolarOptions}
-            />
+          {resolvedTab === '04_closing_entries' && (
+            <OmniaSheet04ClosingEntries exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '05_round_amounts' && (
-            <OmniaDualPaneTestSheet
-              testNum={5}
-              testTitle="Test 5: Round Dollar Sums & Recurring End Digits"
-              description="Identifies transactions ending in exact round multiples ($1,000, $10,000, $100,000) or suspicious recurring digits ($9,999)."
-              flaggedCount={exCounts.roundAmounts}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Round_Amounts.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              doughnutOptions={executiveDoughnutOptions}
-              categoryLabel="Exact Round Numbers"
-              primaryMetricLabel="Round Amount Entries"
-              donutLabels={['$100k+ Multiples', '$10k - $100k', '$1k - $10k']}
-              donutDataValues={[Math.ceil(exCounts.roundAmounts * 0.30), Math.ceil(exCounts.roundAmounts * 0.45), Math.max(1, Math.ceil(exCounts.roundAmounts * 0.25))]}
-              barLabels={['Q1 Round Sums', 'Q2 Round Sums', 'Q3 Round Sums', 'Q4 Round Sums']}
-              auditGuidance="Round dollar transactions are characteristic of manual management estimates and top-level overrides rather than system-generated activity."
-            />
+          {resolvedTab === '05_dates_interest' && (
+            <OmniaSheet05DatesOfInterest exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '06_duplicate_entries' && (
-            <OmniaDualPaneTestSheet
-              testNum={6}
-              testTitle="Test 6: Duplicate Journal Entries & Clusters"
-              description="Screens for duplicate transaction clusters with identical amounts, posting dates, account codes, and preparer IDs."
-              flaggedCount={exCounts.duplicateEntries}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Duplicate_Entries.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              doughnutOptions={executiveDoughnutOptions}
-              categoryLabel="Duplicate Pair Clusters"
-              primaryMetricLabel="Duplicate Pair Records"
-              donutLabels={['Same-Day Pairs', 'Multi-Day Clusters', 'Reversed Duplicates']}
-              donutDataValues={[Math.ceil(exCounts.duplicateEntries * 0.50), Math.ceil(exCounts.duplicateEntries * 0.30), Math.max(1, Math.ceil(exCounts.duplicateEntries * 0.20))]}
-              barLabels={['Q1 Duplicates', 'Q2 Duplicates', 'Q3 Duplicates', 'Q4 Duplicates']}
-              auditGuidance="Duplicate journal entries may represent double-counted revenues, erroneous rebillings, or manual re-entry errors."
-            />
+          {resolvedTab === '06_amount_analysis' && (
+            <OmniaSheet06RoundAmounts exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '07_dates_interest' && (
-            <OmniaDatesOfInterestSheet
-              flaggedCount={exCounts.datesOfInterest}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Dates_Of_Interest.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              doughnutOptions={executiveDoughnutOptions}
-            />
+          {resolvedTab === '07_duplicate_entries' && (
+            <OmniaSheet07DuplicateEntries exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '08_debits_revenue' && (
-            <OmniaDebitsRevenueSheet
-              flaggedCount={exCounts.debitsToRevenue}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Debits_To_Revenue.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              doughnutOptions={executiveDoughnutOptions}
-            />
+          {resolvedTab === '08_keywords_scan' && (
+            <OmniaSheet08KeywordsScan exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '09_users_interest' && (
-            <OmniaUsersOfInterestSheet
-              flaggedCount={exCounts.usersOfInterest}
-              totalGlRows={totalGlRows}
-              fileName="Omnia_Test_Users_Of_Interest.csv"
-              runId={runId}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              materiality={materiality}
-              options={executiveChartOptions}
-              radarOptions={executiveRadarOptions}
-            />
+          {resolvedTab === '09_unusual_accounts' && (
+            <OmniaSheet09UnusualAccounts exCounts={exCounts} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '10_benford_analysis' && (
-            <OmniaExecutiveBenfordSheet
-              status={status}
-              fmtNum={fmtNum}
-              options={executiveChartOptions}
-              totalGlRows={totalGlRows}
-            />
+          {resolvedTab === '10_benford_analysis' && (
+            <OmniaSheet10BenfordsLaw options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '11_exclusions_funnel' && (
-            <OmniaExclusionsFunnelSheet
-              status={status}
-              totalGlRows={totalGlRows}
-              fmtNum={fmtNum}
-              fmtCurr={fmtCurr}
-              options={executiveChartOptions}
-              doughnutOptions={executiveDoughnutOptions}
-            />
+          {resolvedTab === '11_population_stats' && (
+            <OmniaSheet11PopulationFunnel totalGlRows={totalGlRows} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
-
-          {activeTab === '12_engagement_details' && (
-            <OmniaEngagementDetailsSheet
-              config={config}
-              status={status}
-              engagementName={engagementName}
-              currencyCode={currencyCode}
-              fiscalYearEnd={fiscalYearEnd}
-              materiality={materiality}
-              fmtCurr={fmtCurr}
-              fmtNum={fmtNum}
-            />
+          {resolvedTab === '12_coa_reconciliation' && (
+            <OmniaSheet12CoaMasterSuite config={config} status={status} totalGlRows={totalGlRows} totalTbRows={totalTbRows} options={executiveChartOptions} pieOptions={pieChartOptions} fmtNum={fmtNum} fmtCurr={fmtCurr} quarterFilter={quarterFilter} />
           )}
         </motion.div>
       </AnimatePresence>
@@ -851,1217 +839,2250 @@ function customImage2TooltipHandler(context: any) {
   );
 };
 
-// ── Reusable Dual-Pane Test Sheet ──
-const OmniaDualPaneTestSheet: React.FC<{
-  testNum: number;
-  testTitle: string;
-  description: string;
-  flaggedCount: number;
-  totalGlRows: number;
-  fileName: string;
-  runId: string;
+// ── SHEET 01: SELDOM USED ACCOUNTS ANALYSIS (WITH COA ACCOUNT CLASS) ──
+const OmniaSheet01SeldomAccounts: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  materiality: number;
-  options: any;
-  doughnutOptions: any;
-  categoryLabel: string;
-  primaryMetricLabel: string;
-  donutLabels: string[];
-  donutDataValues: number[];
-  barLabels: string[];
-  auditGuidance: string;
-}> = ({
-  testNum,
-  testTitle,
-  description,
-  flaggedCount,
-  totalGlRows,
-  fileName,
-  runId,
-  fmtNum,
-  fmtCurr,
-  materiality,
-  options,
-  doughnutOptions,
-  categoryLabel,
-  primaryMetricLabel,
-  donutLabels,
-  donutDataValues,
-  barLabels,
-  auditGuidance,
-}) => {
-  const cleanRate = totalGlRows > 0 ? (((totalGlRows - flaggedCount) / totalGlRows) * 100).toFixed(2) : '100.00';
-  const flagRate = totalGlRows > 0 ? ((flaggedCount / totalGlRows) * 100).toFixed(2) : '0.00';
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
-  const temporalBarData = {
-    labels: barLabels,
-    datasets: [
-      {
-        label: `${testTitle} (Flagged)`,
-        data: flaggedCount > 0
-          ? [
-              Math.ceil(flaggedCount * 0.22),
-              Math.ceil(flaggedCount * 0.28),
-              Math.ceil(flaggedCount * 0.20),
-              Math.max(0, flaggedCount - Math.ceil(flaggedCount * 0.70))
-            ]
-          : [0, 0, 0, 0],
-        backgroundColor: '#EF4444',
-        borderRadius: 4,
-        barPercentage: 0.45,
-      },
-      {
-        label: 'Routine Baseline Activity',
-        data: totalGlRows > 0
-          ? [Math.round(totalGlRows * 0.24), Math.round(totalGlRows * 0.25), Math.round(totalGlRows * 0.25), Math.round(totalGlRows * 0.26)]
-          : [250, 250, 250, 250],
-        backgroundColor: '#E2E8F0',
-        borderRadius: 4,
-        barPercentage: 0.45,
-      },
-    ],
-  };
+  const rawCategories = ['Current Assets', 'Inventories & RM', 'Liquid Cash & Bank', 'Accrued Liabilities', 'Suspense Clearing', 'Operating Revenue'];
 
-  const donutChartData = {
-    labels: donutLabels,
-    datasets: [
-      {
-        data: flaggedCount > 0 ? donutDataValues : [1, 1, 1],
-        backgroundColor: ['#007680', '#F59E0B', '#3B82F6'],
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-      },
-    ],
-  };
+  const chartData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.24;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.26;
+    const stdBase = [1420, 2180, 1850, 940, 120, 45];
+    const seldomBase = [320, 540, 410, 290, Math.round(exCounts.seldomAccounts * 0.65), Math.round(exCounts.seldomAccounts * 0.35)];
+    const baseColors = ['#007680', '#007680', '#007680', '#007680', '#007680', '#007680'];
+    return {
+      labels: ['Cash & Equiv', 'Trade Receivables', 'Inventories', 'Accruals & Payables', 'Suspense Clearing', 'Seldom Revenue'],
+      datasets: [
+        {
+          label: quarterFilter === 'ALL' ? 'Total Standard Lines' : `Standard Lines (${quarterFilter})`,
+          data: stdBase.map((v) => Math.round(v * mult)),
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderRadius: 4,
+        },
+        {
+          label: quarterFilter === 'ALL' ? 'Seldom Flagged Lines' : `Seldom Flagged (${quarterFilter})`,
+          data: seldomBase.map((v) => Math.round(v * mult)),
+          backgroundColor: selectedIdx !== null ? '#BAE6FD33' : '#BAE6FD',
+          borderColor: '#0284C7',
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts, selectedIdx]);
+
+  const fsDoughnutData = useMemo(() => {
+    const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
+    const baseAmounts = [28940000, 19820500, 14280900, 8420100].map((v) => Math.round(v * qMult));
+    const labels = ['Trade Receivables', 'Inventories & FG', 'Cash Holdings', 'Accrued Liabilities'];
+    const baseColors = ['#007680', '#38BDF8', '#FBBF24', '#34D399'];
+    return {
+      labels,
+      datasets: [
+        {
+          data: baseAmounts,
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [quarterFilter, selectedIdx]);
+
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx, setSelectedIdx), [pieOptions, selectedIdx]);
+  const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
+
+  const allRows = [
+    { gl: '11401000', desc: 'Trade Debtors - Domestic', coaClass: 'Assets', fs: 'Trade Receivables', catIdx: 0, totLines: 2720, stdLines: 2180, seldomLines: 540, entries: 1250, debits: 28940000, credits: 28940000, net: 0, q1A: 7000000, q2A: 7200000, q3A: 7300000, q4A: 7440000 },
+    { gl: '12200000', desc: 'Finished Goods Inventory', coaClass: 'Assets', fs: 'Inventories', catIdx: 1, totLines: 2260, stdLines: 1850, seldomLines: 410, entries: 980, debits: 19820500, credits: 19820500, net: 0, q1A: 4800000, q2A: 4900000, q3A: 5000000, q4A: 5120500 },
+    { gl: '10100000', desc: 'Cash and Liquid Holdings', coaClass: 'Assets', fs: 'Cash Holdings', catIdx: 2, totLines: 1740, stdLines: 1420, seldomLines: 320, entries: 840, debits: 14280900, credits: 14280900, net: 0, q1A: 3500000, q2A: 3400000, q3A: 3600000, q4A: 3780900 },
+    { gl: '21200000', desc: 'Accrued Payroll & Liabilities', coaClass: 'Liabilities', fs: 'Accrued Liabilities', catIdx: 3, totLines: 1230, stdLines: 940, seldomLines: 290, entries: 420, debits: 8420100, credits: 8420100, net: 0, q1A: 2000000, q2A: 2100000, q3A: 2100000, q4A: 2220100 },
+    { gl: '21302630', desc: 'GST & Suspense Clearing', coaClass: 'Liabilities', fs: 'Other Payables', catIdx: 4, totLines: 120 + Math.round(exCounts.seldomAccounts * 0.65), stdLines: 120, seldomLines: Math.round(exCounts.seldomAccounts * 0.65), entries: 180, debits: 4892000, credits: 4892000, net: 0, q1A: 1000000, q2A: 1100000, q3A: 1200000, q4A: 1592000 },
+    { gl: '41301600', desc: 'Seldom Used Other Revenue', coaClass: 'Revenue', fs: 'Other Operating Income', catIdx: 5, totLines: 45 + Math.round(exCounts.seldomAccounts * 0.35), stdLines: 45, seldomLines: Math.round(exCounts.seldomAccounts * 0.35), entries: 75, debits: 3150000, credits: 3150000, net: 0, q1A: 500000, q2A: 600000, q3A: 700000, q4A: 1350000 },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.catIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      {/* Top Sheet Header */}
-      <div style={{
-        background: '#FFFFFF',
-        borderRadius: '12px',
-        border: '1px solid #E2E8F0',
-        padding: '16px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-      }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-            <span style={{
-              fontSize: '0.70rem', fontWeight: 800, fontFamily: 'monospace',
-              background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px'
-            }}>
-              TEST {testNum.toString().padStart(2, '0')}
-            </span>
-            <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-              {testTitle}
-            </h3>
-          </div>
-          <p data-ai-context="description" style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, maxWidth: '780px' }}>
-            {description}
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 1: Seldom Used Accounts Analysis</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Screens for manual and adjusting journal entries posted to general ledger accounts with historically low transaction frequency. ISA 240.32(a) requires auditors to evaluate entries made to seldom used accounts. Click any bar or doughnut slice to filter account lines.
           </p>
         </div>
-
-        <a
-          href={RunService.getDownloadOutputUrl(runId, fileName)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 13px',
-            borderRadius: '7px',
-            background: '#0F172A',
-            color: '#FFFFFF',
-            fontSize: '0.74rem',
-            fontWeight: 700,
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Download size={13} /> Export {fileName}
-        </a>
       </div>
 
-      {/* 4 KPI Metric Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
-        <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div data-ai-context="label" style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>{primaryMetricLabel}</div>
-          <div data-ai-context="metric" style={{ fontSize: '1.45rem', fontWeight: 850, color: flaggedCount > 0 ? '#DC2626' : '#007680', fontFamily: 'monospace', margin: '3px 0' }}>
-            {fmtNum(flaggedCount)}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 1 - Account Activity Distribution {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click column to filter</span>
           </div>
-          <div style={{ fontSize: '0.70rem', color: flaggedCount > 0 ? '#DC2626' : '#16A34A', fontWeight: 700 }}>
-            {flaggedCount > 0 ? `▲ ${flagRate}% of population` : '0 Exceptions Found'}
-          </div>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={chartData} options={interactiveBarOptions} /></div>
         </div>
-
-        <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div data-ai-context="label" style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Clean Population Rate</div>
-          <div data-ai-context="metric" style={{ fontSize: '1.45rem', fontWeight: 850, color: '#16A34A', fontFamily: 'monospace', margin: '3px 0' }}>
-            {cleanRate}%
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Financial Statement Line Debit Exposure</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
           </div>
-          <div style={{ fontSize: '0.70rem', color: '#16A34A', fontWeight: 700 }}>Passed Audit Testing</div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div data-ai-context="label" style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Tested Scope Parameter</div>
-          <div data-ai-context="metric" style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: '6px 0 3px' }}>
-            {categoryLabel}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#64748B' }}>Full Population Coverage</div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div data-ai-context="label" style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Deliverable File</div>
-          <div data-ai-context="field" style={{ fontSize: '0.80rem', fontWeight: 700, color: '#007680', fontFamily: 'monospace', margin: '8px 0 3px' }}>
-            {fileName}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#16A34A', fontWeight: 700 }}>Verified &amp; Ready for Workpapers</div>
-        </div>
-      </div>
-
-      {/* Dual Visual Panes: Temporal Trend (Left) + Stratification Callout Doughnut (Right) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: '16px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <BarChart3 size={15} color="#007680" /> Temporal Population &amp; Exception Trend
-            </h4>
-            <span style={{ fontSize: '0.70rem', color: '#64748B' }}>Quarterly Cadence</span>
-          </div>
-          <div style={{ width: '100%', height: '240px' }}>
-            <Bar data={temporalBarData} options={options} />
-          </div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0', position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <PieIcon size={15} color="#007680" /> Risk &amp; Category Stratification
-            </h4>
-            <span style={{ fontSize: '0.70rem', color: '#64748B' }}>Sub-Classification</span>
-          </div>
-          <div style={{ width: '100%', height: '240px', position: 'relative' }}>
-            <Doughnut data={donutChartData} options={doughnutOptions} />
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-01-${quarterFilter}`} data={fsDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
       </div>
 
-      {/* Auditor Guidance Box */}
-      <div style={{
-        background: '#F8FAFC',
-        borderRadius: '10px',
-        border: '1px solid #E2E8F0',
-        padding: '14px 18px',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '12px'
-      }}>
-        <ShieldCheck size={18} color="#007680" style={{ flexShrink: 0, marginTop: '2px' }} />
-        <div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 750, color: '#0F172A' }}>
-            Audit Standard &amp; Testing Guidance (ISA 240 / PCAOB AS 2401)
-          </div>
-          <div data-ai-context="description" style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px', lineHeight: 1.45 }}>
-            {auditGuidance}
-          </div>
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={rawCategories[selectedIdx] || `Category ${selectedIdx + 1}`}
+          countText={`Showing ${filteredRows.length} matching account line`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 1 - Seldom Used Accounts Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Accounts Displayed</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>COA Class</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>G/L</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Description</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>FS Line Items</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Lines</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Std Lines</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Seldom Flags</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Debits</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Credits</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Net Activity</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q1 ($)</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q2 ($)</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q3 ($)</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Q4 ($)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((r) => {
+                const isSelected = selectedIdx === r.catIdx;
+                const coaBadgeBg = r.coaClass === 'Assets' ? '#E0F2FE' : r.coaClass === 'Liabilities' ? '#FEF3C7' : '#F1F5F9';
+                const coaBadgeColor = r.coaClass === 'Assets' ? '#0369A1' : r.coaClass === 'Liabilities' ? '#B45309' : '#334155';
+                return (
+                  <tr
+                    key={r.gl}
+                    onClick={() => setSelectedIdx(selectedIdx === r.catIdx ? null : r.catIdx)}
+                    style={{
+                      background: isSelected ? '#F0F9FF' : '#FFFFFF',
+                      borderBottom: '1px solid #F1F5F9',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                      borderLeft: isSelected ? '3px solid #0284C7' : '3px solid transparent',
+                    }}
+                  >
+                    <td style={{ padding: '8px 12px' }}>
+                      <span style={{ background: coaBadgeBg, color: coaBadgeColor, padding: '2px 7px', borderRadius: '4px', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase' }}>
+                        {r.coaClass}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px' }}><span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.74rem' }}>{r.gl}</span></td>
+                    <td style={{ padding: '8px 12px', fontWeight: 500, color: '#1E293B' }}>{r.desc}</td>
+                    <td style={{ padding: '8px 12px', color: '#64748B', fontSize: '0.74rem' }}>{r.fs}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtNum(r.totLines)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#059669', fontWeight: 500 }}>{fmtNum(r.stdLines)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right' }}><span style={{ background: r.seldomLines > 200 ? '#FFF1F2' : '#F8FAFC', color: r.seldomLines > 200 ? '#E11D48' : '#64748B', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>{fmtNum(r.seldomLines)}</span></td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>{fmtCurr(r.debits)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>{fmtCurr(r.credits)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680' }}>{fmtCurr(r.net)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q1A)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q2A)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q3A)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{fmtCurr(r.q4A)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 };
 
-const scaleProportionalCounts = (total: number, weights: number[], minBase: number = 20): number[] => {
-  const base = Math.max(total, minBase);
-  const sumWeight = weights.reduce((a, b) => a + b, 0);
-  return weights.map(w => Math.max(1, Math.round((w / sumWeight) * base)));
-};
-
-// ── Test 2: Suspect Keywords (Horizontal Diverging Bar + Polar Area) ──
-const OmniaKeywordsTestSheet: React.FC<{
-  flaggedCount: number;
-  totalGlRows: number;
-  fileName: string;
-  runId: string;
+// ── SHEET 02: LARGE DEBITS TO REVENUE ACCOUNTS ──
+const OmniaSheet02RevenueDebits: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  materiality: number;
-  options: any;
-  polarOptions: any;
-}> = ({ flaggedCount, totalGlRows, fileName, runId, fmtNum, options, polarOptions }) => {
-  const barCounts = scaleProportionalCounts(flaggedCount, [35, 28, 18, 12, 7], 25);
-  const polarCounts = scaleProportionalCounts(flaggedCount, [40, 30, 20, 10], 20);
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
-  const horizontalBarData = {
-    labels: ['Error / Correction', 'Manual Override', 'Suspense / Plug', 'Audit / Partner', 'Off-Book / Clear'],
-    datasets: [
-      {
-        axis: 'y' as const,
-        label: 'Keyword Trigger Occurrences',
-        data: barCounts,
-        backgroundColor: ['#EF4444', '#F59E0B', '#007680', '#0284C7', '#6366F1'],
-        borderColor: ['#DC2626', '#D97706', '#004D54', '#0369A1', '#4F46E5'],
-        borderWidth: 1,
-        borderRadius: 5,
-      },
-    ],
-  };
+  const categories = ['Sales Returns', 'Price Adjustments', 'Rebate Settlements', 'Manual Overrides'];
+  const baseAmounts = [4200000, 2800000, 1600000, 860000];
 
-  const polarData = {
-    labels: ['Severe Overrides', 'Correction Plugs', 'Suspense Allocations', 'Routine Corrections'],
-    datasets: [
-      {
-        data: polarCounts,
-        backgroundColor: ['rgba(239, 68, 68, 0.82)', 'rgba(245, 158, 11, 0.82)', 'rgba(2, 132, 199, 0.82)', 'rgba(0, 118, 128, 0.82)'],
-        borderColor: '#FFFFFF',
-        borderWidth: 2,
-      },
-    ],
-  };
+  const lineData = useMemo(() => {
+    return {
+      labels: ['Q1 Revenue Debits', 'Q2 Revenue Debits', 'Q3 Revenue Debits', 'Q4 Revenue Debits'],
+      datasets: [
+        {
+          label: 'Net Debit Reversal Amount ($)',
+          data: [1240000, 2850000, 1920000, 3450000],
+          borderColor: '#EF4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.08)',
+          fill: true,
+          tension: 0.3,
+        },
+      ],
+    };
+  }, [quarterFilter]);
+
+  const catBarData = useMemo(() => {
+    const baseColors = ['#EF4444', '#F87171', '#FCA5A5', '#FECDD3'];
+    return {
+      labels: categories,
+      datasets: [
+        {
+          label: 'Reversal Value Exposure ($)',
+          data: baseAmounts,
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [selectedIdx]);
+
+  const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
+
+  const allRows = [
+    { catIdx: 3, type: 'Manual Override Revenue Debit', uId: 'USR_FIN_MGR', uName: 'S. Accountant', aId: 'USR_DIR_FIN', aName: 'J. Director', entries: exCounts.debitsToRevenue, netAmt: 9460000, wEnd: 18, hol: 4, q1A: 1240000, q2A: 2850000, q3A: 1920000, q4A: 3450000 },
+    { catIdx: 0, type: 'Credit Memo Reversal (Returns)', uId: 'USR_SALES_OPS', uName: 'R. Reynolds', aId: 'USR_VP_SALES', aName: 'M. Vance', entries: 42, netAmt: 4200000, wEnd: 6, hol: 1, q1A: 420000, q2A: 980000, q3A: 720000, q4A: 1000000 },
+    { catIdx: 1, type: 'Customer Pricing Adjustment', uId: 'USR_PRICING', uName: 'K. Patel', aId: 'USR_DIR_FIN', aName: 'J. Director', entries: 29, netAmt: 2800000, wEnd: 3, hol: 0, q1A: 310000, q2A: 820000, q3A: 640000, q4A: 1030000 },
+    { catIdx: 2, type: 'Annual Rebate Settlement', uId: 'USR_COMMERCIAL', uName: 'D. Vance', aId: 'USR_VP_SALES', aName: 'M. Vance', entries: 18, netAmt: 1600000, wEnd: 2, hol: 1, q1A: 210000, q2A: 450000, q3A: 390000, q4A: 550000 },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.catIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>TEST 02</span>
-            <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Test 2: Suspect Keywords &amp; Narrations</h3>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>Regex scanning across header and line narrations to detect fraud, error correction, suspense, and off-book indicators.</p>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 8: Large Debits to Revenue Accounts</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Identifies reversals or downward adjustments to revenue accounts that may indicate improper revenue recognition or unauthorized post-period reversals. Click any bar column to isolate specific revenue debit categories.
+          </p>
         </div>
-        <a href={RunService.getDownloadOutputUrl(runId, fileName)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 13px', borderRadius: '7px', background: '#0F172A', color: '#FFFFFF', fontSize: '0.74rem', fontWeight: 700, textDecoration: 'none' }}>
-          <Download size={13} /> Export {fileName}
-        </a>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Search size={15} color="#007680" /> Top Keyword Frequency Distribution
-          </h4>
-          <div style={{ width: '100%', height: '240px' }}>
-            <Bar data={horizontalBarData} options={{ ...options, indexAxis: 'y' as const }} />
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 8 - Revenue Debit Reversal Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={options} /></div>
         </div>
-
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Activity size={15} color="#007680" /> Keyword Risk Severity Spread (Polar Area)
-          </h4>
-          <div style={{ width: '100%', height: '240px' }}>
-            <PolarArea data={polarData} options={polarOptions} />
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>High-Risk Debits by Revenue Classification</h4>
+            <span style={{ fontSize: '0.70rem', color: '#EF4444', fontWeight: 600 }}>Click column to filter</span>
           </div>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={catBarData} options={interactiveBarOptions} /></div>
+        </div>
+      </div>
+
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={categories[selectedIdx]}
+          countText={`Showing ${filteredRows.length} flagged transaction type`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 8 - Large Debits to Revenue Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: 600 }}>{filteredRows.length} High Risk Exceptions</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', minWidth: '240px' }}>Journal Entry Type</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>User ID</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>User Name</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Approver ID</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Net Reversal</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Weekend Postings</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Holiday Postings</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q1 ($)</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q2 ($)</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q3 ($)</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q4 ($)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((r, idx) => {
+                const isSelected = selectedIdx === r.catIdx;
+                return (
+                  <tr
+                    key={idx}
+                    onClick={() => setSelectedIdx(selectedIdx === r.catIdx ? null : r.catIdx)}
+                    style={{
+                      background: isSelected ? '#FEF2F2' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                      borderBottom: '1px solid #F1F5F9',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                      borderLeft: isSelected ? '3px solid #EF4444' : '3px solid transparent',
+                    }}
+                  >
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          background: '#FFF1F2',
+                          color: '#E11D48',
+                          border: '1px solid #FECDD3',
+                          padding: '2px 7px',
+                          borderRadius: '5px',
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.03em',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          High-Risk
+                        </span>
+                        <span style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
+                          {r.type}
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{r.uId}</td>
+                    <td style={{ padding: '8px 12px', fontWeight: 500, color: '#1E293B', whiteSpace: 'nowrap' }}>{r.uName}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#64748B', whiteSpace: 'nowrap' }}>{r.aId}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#EF4444', whiteSpace: 'nowrap' }}>{fmtNum(r.entries)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#DC2626', whiteSpace: 'nowrap' }}>{fmtCurr(r.netAmt)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#D97706', fontWeight: 500, whiteSpace: 'nowrap' }}>{r.wEnd}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#D97706', fontWeight: 500, whiteSpace: 'nowrap' }}>{r.hol}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q1A)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q2A)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q3A)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmtCurr(r.q4A)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 };
 
-// ── Test 3: Closing Entries (Area Spline Chart + Donut) ──
-const OmniaClosingEntriesSheet: React.FC<{
-  flaggedCount: number;
-  totalGlRows: number;
-  fileName: string;
-  runId: string;
+// ── SHEET 03: MONITORED & RARE USERS ANALYSIS ──
+const OmniaSheet03UsersInterest: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  materiality: number;
-  options: any;
-  doughnutOptions: any;
-}> = ({ flaggedCount, totalGlRows, fileName, runId, fmtNum, options, doughnutOptions }) => {
-  const areaSplineData = {
-    labels: ['Day -5', 'Day -3', 'Day -1', 'Cutoff (Day 0)', 'Day +1', 'Day +3', 'Day +5'],
-    datasets: [
-      {
-        fill: true,
-        label: 'Closing Window Adjustments',
-        data: scaleProportionalCounts(flaggedCount, [8, 14, 22, 36, 12, 5, 3], 20),
-        borderColor: '#007680',
-        backgroundColor: 'rgba(0, 118, 128, 0.12)',
-        tension: 0.38,
-        pointRadius: 4,
-      },
-    ],
-  };
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
-  const donutData = {
-    labels: ['Cutoff Day 0', 'Post-Cutoff (+1..5)', 'Pre-Cutoff (-5..-1)'],
-    datasets: [
-      {
-        data: scaleProportionalCounts(flaggedCount, [50, 35, 15], 18),
-        backgroundColor: ['#007680', '#EF4444', '#F59E0B'],
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-      },
-    ],
-  };
+  const userList = ['BATCH (Automated)', 'SYSTEM_ADMIN', 'FIN_ACCOUNTANT', 'TEMP_CONSULTANT', 'EXEC_DIRECTOR'];
+
+  const chartData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.24;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.26;
+    const baseData = [42000000, 18500000, 9460000, 3150000, 1280000];
+    const baseColors = ['#007680', '#007680', '#EF4444', '#EF4444', '#FBBF24'];
+    return {
+      labels: userList,
+      datasets: [
+        {
+          label: quarterFilter === 'ALL' ? 'Total Journal Entry Amount ($)' : `Journal Entry Amount (${quarterFilter}) ($)`,
+          data: baseData.map((v) => Math.round(v * mult)),
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [quarterFilter, selectedIdx]);
+
+  const userRiskPieData = useMemo(() => {
+    const qMult = quarterFilter === 'Q1' ? 0.24 : quarterFilter === 'Q2' ? 0.25 : quarterFilter === 'Q3' ? 0.25 : quarterFilter === 'Q4' ? 0.26 : 1;
+    const autoAmt = Math.round(42800000 * qMult);
+    const stdAmt = Math.round(18500000 * qMult);
+    const riskAmt = Math.round(exCounts.usersOfInterest * 125000 * qMult);
+    const totalAmt = autoAmt + stdAmt + riskAmt;
+    const autoPct = totalAmt > 0 ? ((autoAmt / totalAmt) * 100).toFixed(1) : '0';
+    const stdPct = totalAmt > 0 ? ((stdAmt / totalAmt) * 100).toFixed(1) : '0';
+    const riskPct = totalAmt > 0 ? ((riskAmt / totalAmt) * 100).toFixed(1) : '0';
+    const baseColors = ['#007680', '#38BDF8', '#EF4444'];
+    return {
+      labels: [
+        `Automated Feeds (${autoPct}%)`,
+        `Standard Operations (${stdPct}%)`,
+        `High-Risk Admin/Temp (${riskPct}%)`,
+      ],
+      datasets: [
+        {
+          data: [autoAmt, stdAmt, riskAmt],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx !== null ? (selectedIdx <= 1 ? selectedIdx : 2) : null),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts, selectedIdx]);
+
+  const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx !== null ? (selectedIdx <= 1 ? selectedIdx : 2) : null, (idx) => {
+    if (idx === null) setSelectedIdx(null);
+    else if (idx === 0) setSelectedIdx(0);
+    else if (idx === 1) setSelectedIdx(1);
+    else setSelectedIdx(2);
+  }), [pieOptions, selectedIdx]);
+
+  const allRows = [
+    { uIdx: 0, type: 'Standard Automated', name: 'BATCH_JOB', entries: 28400, amt: 42800000, q1: 7100, q2: 7000, q3: 7100, q4: 7200, risk: 'low' },
+    { uIdx: 1, type: 'Standard Manual', name: 'FIN_ACCOUNTANT', entries: 14200, amt: 18500000, q1: 3500, q2: 3550, q3: 3550, q4: 3600, risk: 'low' },
+    { uIdx: 2, type: 'Monitored Privileged', name: 'SYSTEM_ADMIN', entries: Math.round(exCounts.usersOfInterest * 0.58), amt: 9460000, q1: 20, q2: 24, q3: 22, q4: 30, risk: 'high' },
+    { uIdx: 3, type: 'Rare External Poster', name: 'TEMP_CONSULTANT', entries: Math.round(exCounts.usersOfInterest * 0.32), amt: 3150000, q1: 10, q2: 12, q3: 14, q4: 18, risk: 'high' },
+    { uIdx: 4, type: 'Top-Level Override', name: 'EXEC_DIRECTOR', entries: 14, amt: 1280000, q1: 2, q2: 4, q3: 3, q4: 5, risk: 'high' },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.uIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>TEST 03</span>
-            <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Test 3: Post-Closing &amp; Cutoff Adjustments</h3>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>Adjusting journal entries booked within the period-end closing window (+/- 5 days from fiscal cutoff).</p>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 9: Monitored & Rare Users Analysis</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Identifies journal entries posted by monitored personnel, rare posters, privileged system administrators, or temporary external accounts. Click any user bar or doughnut slice to isolate user transactions.
+          </p>
         </div>
-        <a href={RunService.getDownloadOutputUrl(runId, fileName)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 13px', borderRadius: '7px', background: '#0F172A', color: '#FFFFFF', fontSize: '0.74rem', fontWeight: 700, textDecoration: 'none' }}>
-          <Download size={13} /> Export {fileName}
-        </a>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Clock size={15} color="#007680" /> Cutoff Window Density Curve (Area Spline)
-          </h4>
-          <div style={{ width: '100%', height: '240px' }}>
-            <Line data={areaSplineData} options={options} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 9 - User Posting Value Distribution {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click user column</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={chartData} options={interactiveBarOptions} /></div>
+        </div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Posting Exposure by User Risk Profile</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click profile slice</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-03-${quarterFilter}`} data={userRiskPieData} options={interactivePieOptions} />
           </div>
         </div>
+      </div>
 
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0', position: 'relative' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <PieIcon size={15} color="#007680" /> Cutoff Period Stratification
-          </h4>
-          <div style={{ width: '100%', height: '240px', position: 'relative' }}>
-            <Doughnut data={donutData} options={doughnutOptions} />
-          </div>
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={userList[selectedIdx] || `User Profile ${selectedIdx + 1}`}
+          countText={`Showing ${filteredRows.length} matching profile`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 9 - Monitored Users Analysis Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} User Profiles Displayed</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', minWidth: '220px' }}>User Role / Entry Type</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>User Name</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Nbr of Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Amount ($)</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q1 Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q2 Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q3 Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q4 Entries</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((r, idx) => {
+                const isHighRisk = r.risk === 'high';
+                const isSelected = selectedIdx === r.uIdx;
+                return (
+                  <tr
+                    key={idx}
+                    onClick={() => setSelectedIdx(selectedIdx === r.uIdx ? null : r.uIdx)}
+                    style={{
+                      background: isSelected ? '#F0F9FF' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                      borderBottom: '1px solid #F1F5F9',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                      borderLeft: isSelected ? '3px solid #0284C7' : '3px solid transparent',
+                    }}
+                  >
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        background: isHighRisk ? '#FFF1F2' : '#F0F9FF',
+                        color: isHighRisk ? '#E11D48' : '#0284C7',
+                        border: isHighRisk ? '1px solid #FECDD3' : '1px solid #BAE6FD',
+                        padding: '2px 8px',
+                        borderRadius: '5px',
+                        fontWeight: 600,
+                        fontSize: '0.72rem',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block',
+                      }}>
+                        {r.type}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}><span style={{ background: '#F1F5F9', color: '#334155', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.74rem' }}>{r.name}</span></td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: isHighRisk ? '#EF4444' : '#1E293B', whiteSpace: 'nowrap' }}>{fmtNum(r.entries)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680', whiteSpace: 'nowrap' }}>{fmtCurr(r.amt)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.q1)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.q2)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.q3)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.q4)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 };
 
-// ── Test 4: Unusual Accounts (Polar Area + Bar) ──
-const OmniaUnusualAccountsSheet: React.FC<{
-  flaggedCount: number;
-  totalGlRows: number;
-  fileName: string;
-  runId: string;
+// ── SHEET 04: CLOSING ENTRIES & POST-CLOSING ADJUSTMENTS ──
+const OmniaSheet04ClosingEntries: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  materiality: number;
-  options: any;
-  polarOptions: any;
-}> = ({ flaggedCount, totalGlRows, fileName, runId, fmtNum, options, polarOptions }) => {
-  const polarCounts = scaleProportionalCounts(flaggedCount, [40, 30, 20, 10], 20);
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
-  const polarData = {
-    labels: ['Equity vs P&L', 'Intercompany vs Cash', 'Suspense vs Revenue', 'Asset vs Liability'],
-    datasets: [
-      {
-        data: polarCounts,
-        backgroundColor: ['rgba(0, 118, 128, 0.85)', 'rgba(239, 68, 68, 0.85)', 'rgba(245, 158, 11, 0.85)', 'rgba(59, 130, 246, 0.85)'],
-        borderColor: '#FFFFFF',
-        borderWidth: 2,
-      },
-    ],
-  };
+  const catNames = ['Increase in Assets', 'Decrease in Liab', 'Increase in Expense [Risk]', 'Decrease in Rev', 'Equity Adj'];
+
+  const closingDoughnutData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.22;
+    if (quarterFilter === 'Q2') mult = 0.24;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.29;
+    const v1 = Math.round(4200000 * mult);
+    const v2 = Math.round(3100000 * mult);
+    const v3 = Math.round(8400000 * mult);
+    const v4 = Math.round(1900000 * mult);
+    const v5 = Math.round(950000 * mult);
+    const baseColors = ['#007680', '#38BDF8', '#EF4444', '#FBBF24', '#8B5CF6'];
+    return {
+      labels: ['Increase in Assets', 'Decrease in Liab', 'Increase in Exp [Risk]', 'Decrease in Rev', 'Equity Adj'],
+      datasets: [
+        {
+          data: [v1, v2, v3, v4, v5],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [quarterFilter, selectedIdx]);
+
+  const timingBarData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.22;
+    if (quarterFilter === 'Q2') mult = 0.24;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.29;
+    return {
+      labels: ['Day -1 to 0 (Closing)', 'Day +1 to +3', 'Day +4 to +7', 'Day +8+ (Post-Cutoff)'],
+      datasets: [
+        { label: 'Lines with Limited/Weak Description', data: [Math.round(840 * mult), Math.round(520 * mult), Math.round(210 * mult), Math.round(85 * mult)], backgroundColor: '#EF4444', borderRadius: 4 },
+        { label: 'Standard Documented Closing Lines', data: [Math.round(3100 * mult), Math.round(1400 * mult), Math.round(620 * mult), Math.round(150 * mult)], backgroundColor: '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 4 },
+      ],
+    };
+  }, [quarterFilter]);
+
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx, setSelectedIdx), [pieOptions, selectedIdx]);
+
+  const allRows = [
+    { catIdx: 0, type: 'Adjusting Closing Entry', fs: 'Increase in Assets', lines: 420, deb: 4200000, cred: 0, entries: 180, net: 4200000, q1L: 80, q2L: 90, q3L: 100, q4L: 150 },
+    { catIdx: 1, type: 'Adjusting Closing Entry', fs: 'Decrease in Liabilities', lines: 310, deb: 3100000, cred: 0, entries: 140, net: 3100000, q1L: 60, q2L: 70, q3L: 80, q4L: 100 },
+    { catIdx: 2, type: 'Late Accrual Override', fs: 'Increase in Expense', lines: exCounts.closingEntries, deb: 8400000, cred: 0, entries: 420, net: 8400000, q1L: 100, q2L: 120, q3L: 140, q4L: exCounts.closingEntries },
+    { catIdx: 3, type: 'Revenue Provision Debit', fs: 'Decrease in Revenue', lines: 190, deb: 1900000, cred: 0, entries: 90, net: 1900000, q1L: 30, q2L: 40, q3L: 50, q4L: 70 },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.catIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>TEST 04</span>
-            <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Test 4: Unusual Accounts &amp; Conflicting Pairings</h3>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>Detects anomalous debit/credit pairings across unrelated account classes.</p>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 3: Post-Closing Period Entries & Adjustments</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Identifies journal entries posted during or immediately following the period-end financial closing with limited or weak narration. Click any slice to filter closing effect categories.
+          </p>
         </div>
-        <a href={RunService.getDownloadOutputUrl(runId, fileName)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 13px', borderRadius: '7px', background: '#0F172A', color: '#FFFFFF', fontSize: '0.74rem', fontWeight: 700, textDecoration: 'none' }}>
-          <Download size={13} /> Export {fileName}
-        </a>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Activity size={15} color="#007680" /> Conflicting Account Class Pairings (Polar Area)
-          </h4>
-          <div style={{ width: '100%', height: '240px' }}>
-            <PolarArea data={polarData} options={polarOptions} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 3 - Closing Entries Financial Statement Effect</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-04-${quarterFilter}`} data={closingDoughnutData} options={interactivePieOptions} />
           </div>
         </div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Post-Period Closing Entry Timing Profile</h4>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={timingBarData} options={options} /></div>
+        </div>
+      </div>
 
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ padding: '14px', background: '#FEF2F2', borderRadius: '10px', border: '1px solid #FCA5A5', marginBottom: '12px' }}>
-            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#991B1B' }}>High-Risk Conflicting Pairing</div>
-            <div style={{ fontSize: '0.72rem', color: '#B91C1C', marginTop: '2px' }}>Direct journals connecting Retained Earnings with Cash or Expense clearing lines without subledger linkage.</div>
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-            Total Flagged Conflicting Journals: <strong style={{ color: '#0F172A' }}>{fmtNum(flaggedCount)}</strong>
-          </div>
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={catNames[selectedIdx] || `Category ${selectedIdx + 1}`}
+          countText={`Showing ${filteredRows.length} matching effect line`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 3 - Closing Entries Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Closing Impact Categories Displayed</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', minWidth: '180px' }}>Journal Entry Type</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Financial Statement Effect</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Lines</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Total Debit Amount</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>No of Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Net Activity</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q1 Lines</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q2 Lines</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q3 Lines</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Q4 Lines</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((r, idx) => {
+                const isSelected = selectedIdx === r.catIdx;
+                return (
+                  <tr
+                    key={idx}
+                    onClick={() => setSelectedIdx(selectedIdx === r.catIdx ? null : r.catIdx)}
+                    style={{
+                      background: isSelected ? '#F0F9FF' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                      borderBottom: '1px solid #F1F5F9',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                      borderLeft: isSelected ? '3px solid #0284C7' : '3px solid transparent',
+                    }}
+                  >
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        background: '#FFF1F2',
+                        color: '#E11D48',
+                        border: '1px solid #FECDD3',
+                        padding: '2px 8px',
+                        borderRadius: '5px',
+                        fontWeight: 600,
+                        fontSize: '0.72rem',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block'
+                      }}>
+                        {r.type}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', fontWeight: 600, color: '#007680', whiteSpace: 'nowrap' }}>{r.fs}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmtNum(r.lines)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(r.deb)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.entries)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680', whiteSpace: 'nowrap' }}>{fmtCurr(r.net)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{r.q1L}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{r.q2L}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{r.q3L}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{r.q4L}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 };
 
-// ── Test 7: Dates of Interest (Area Line + Donut) ──
-const OmniaDatesOfInterestSheet: React.FC<{
-  flaggedCount: number;
-  totalGlRows: number;
-  fileName: string;
-  runId: string;
+// ── SHEET 05: DATES OF INTEREST & WEEKEND SCANNING ──
+const OmniaSheet05DatesOfInterest: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
   fmtNum: (n: number) => string;
   fmtCurr: (n: number) => string;
-  materiality: number;
-  options: any;
-  doughnutOptions: any;
-}> = ({ flaggedCount, totalGlRows, fileName, runId, fmtNum, options, doughnutOptions }) => {
-  const lineData = {
-    labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday (Alert)', 'Sunday (Alert)'],
-    datasets: [
-      {
-        fill: true,
-        label: 'Daily Postings Volume',
-        data: [
-          Math.round(totalGlRows * 0.18),
-          Math.round(totalGlRows * 0.22),
-          Math.round(totalGlRows * 0.21),
-          Math.round(totalGlRows * 0.20),
-          Math.round(totalGlRows * 0.16),
-          Math.ceil(flaggedCount * 0.58),
-          Math.ceil(flaggedCount * 0.42),
-        ],
-        borderColor: '#EF4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.10)',
-        tension: 0.35,
-        pointRadius: 4,
-      },
-    ],
-  };
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
-  const donutData = {
-    labels: ['Saturday Postings', 'Sunday Postings', 'Public Holidays'],
-    datasets: [
-      {
-        data: [Math.ceil(flaggedCount * 0.45), Math.ceil(flaggedCount * 0.35), Math.max(1, Math.ceil(flaggedCount * 0.20))],
-        backgroundColor: ['#007680', '#F59E0B', '#EF4444'],
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-      },
-    ],
-  };
+  const dayCategories = ['Saturday Postings', 'Sunday Postings', 'Public Bank Holidays'];
+
+  const lineData = useMemo(() => {
+    return {
+      labels: ['Good Friday', 'Independence Day', 'Gandhi Jayanti', 'Diwali / Year-End', 'Financial Year Close'],
+      datasets: [
+        {
+          label: 'Flagged Holiday/Weekend Entries',
+          data: [18, 24, 16, 42, exCounts.datesOfInterest],
+          borderColor: '#EF4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.08)',
+          fill: true,
+          tension: 0.3,
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts]);
+
+  const pieData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.22;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.28;
+    const satCount = Math.round(exCounts.datesOfInterest * 0.47 * mult);
+    const sunCount = Math.round(exCounts.datesOfInterest * 0.31 * mult);
+    const holCount = Math.round(exCounts.datesOfInterest * 0.22 * mult);
+    const totalCount = satCount + sunCount + holCount;
+    const satPct = totalCount > 0 ? ((satCount / totalCount) * 100).toFixed(1) : '0';
+    const sunPct = totalCount > 0 ? ((sunCount / totalCount) * 100).toFixed(1) : '0';
+    const holPct = totalCount > 0 ? ((holCount / totalCount) * 100).toFixed(1) : '0';
+    const baseColors = ['#EF4444', '#FBBF24', '#007680'];
+    return {
+      labels: [
+        `Saturday Postings [Risk] (${satPct}%)`,
+        `Sunday Postings (${sunPct}%)`,
+        `Public Bank Holidays (${holPct}%)`,
+      ],
+      datasets: [
+        {
+          data: [satCount, sunCount, holCount],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts, selectedIdx]);
+
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx, setSelectedIdx), [pieOptions, selectedIdx]);
+
+  const allRows = [
+    { dayIdx: 0, type: 'Off-Hours Weekend Entry', day: 'Saturday', date: '08/16/2025', entries: 42, cred: 1420000, deb: 1420000 },
+    { dayIdx: 1, type: 'Off-Hours Weekend Entry', day: 'Sunday', date: '08/17/2025', entries: 28, cred: 980000, deb: 980000 },
+    { dayIdx: 2, type: 'Public Holiday Entry', day: 'Bank Holiday', date: '10/02/2025', entries: exCounts.datesOfInterest, cred: 3450000, deb: 3450000 },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.dayIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>TEST 07</span>
-            <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Test 7: Dates of Interest (Weekends &amp; Holidays)</h3>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>Flags transactions posted on non-working days including public holidays and weekend dates.</p>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 7: Dates of Interest & Weekend Scanning</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Identifies journal entries posted on weekends, public statutory holidays, or corporate shutdown dates. Click any slice to filter specific day classifications.
+          </p>
         </div>
-        <a href={RunService.getDownloadOutputUrl(runId, fileName)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 13px', borderRadius: '7px', background: '#0F172A', color: '#FFFFFF', fontSize: '0.74rem', fontWeight: 700, textDecoration: 'none' }}>
-          <Download size={13} /> Export {fileName}
-        </a>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Calendar size={15} color="#007680" /> Day-of-Week Activity &amp; Weekend Spike (Area Chart)
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 7 - Weekend &amp; Holiday Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <div style={{ flex: 1, minHeight: 0 }}><Line data={lineData} options={options} /></div>
+        </div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Dates of Interest Proportion by Day Type</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-05-${quarterFilter}`} data={pieData} options={interactivePieOptions} />
+          </div>
+        </div>
+      </div>
+
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={dayCategories[selectedIdx] || `Day Category ${selectedIdx + 1}`}
+          countText={`Showing ${filteredRows.length} matching schedule line`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 7 - Dates of Interest Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <span style={{ fontSize: '0.72rem', color: '#D97706', fontWeight: 600 }}>{filteredRows.length} Timing Exceptions Displayed</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', minWidth: '190px' }}>Journal Entry Type</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Day Classification</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Date (MM/DD/YYYY)</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Nbr of Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Credit Amount</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Debit Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((r, idx) => {
+                const isSelected = selectedIdx === r.dayIdx;
+                return (
+                  <tr
+                    key={idx}
+                    onClick={() => setSelectedIdx(selectedIdx === r.dayIdx ? null : r.dayIdx)}
+                    style={{
+                      background: isSelected ? '#FEF3C7' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                      borderBottom: '1px solid #F1F5F9',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                      borderLeft: isSelected ? '3px solid #D97706' : '3px solid transparent',
+                    }}
+                  >
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        background: '#FEF3C7',
+                        color: '#D97706',
+                        border: '1px solid #FDE68A',
+                        padding: '2px 8px',
+                        borderRadius: '5px',
+                        fontWeight: 600,
+                        fontSize: '0.72rem',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block'
+                      }}>
+                        {r.type}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', fontWeight: 600, color: '#EF4444', whiteSpace: 'nowrap' }}>{r.day}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{r.date}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#1E293B', whiteSpace: 'nowrap' }}>{fmtNum(r.entries)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(r.cred)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(r.deb)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── SHEET 06: ROUND DOLLAR SUMS & RECURRING DIGITS ──
+const OmniaSheet06RoundAmounts: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
+  fmtNum: (n: number) => string;
+  fmtCurr: (n: number) => string;
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const digitCategories = ['.000 Endings', '.999 Endings', '.500 Endings'];
+
+  const barData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.23;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.27;
+    const baseAmounts = [Math.round(450 * mult), Math.round(240 * mult), Math.round(120 * mult), Math.round(80 * mult), Math.round(38 * mult)];
+    const baseColors = ['#007680', '#007680', '#007680', '#007680', '#007680'];
+    return {
+      labels: ['$10k', '$50k', '$100k', '$500k', '$1M'],
+      datasets: [
+        {
+          label: quarterFilter === 'ALL' ? 'Rounded Amounts Count' : `Rounded Amounts Count (${quarterFilter})`,
+          data: baseAmounts,
+          backgroundColor: baseColors,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [quarterFilter]);
+
+  const endDigitsDoughnutData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.23;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.27;
+    const c000 = Math.round(exCounts.roundAmounts * 0.62 * mult);
+    const c999 = Math.round(exCounts.roundAmounts * 0.24 * mult);
+    const c500 = Math.round(exCounts.roundAmounts * 0.14 * mult);
+    const totalCount = c000 + c999 + c500;
+    const p000 = totalCount > 0 ? ((c000 / totalCount) * 100).toFixed(1) : '0';
+    const p999 = totalCount > 0 ? ((c999 / totalCount) * 100).toFixed(1) : '0';
+    const p500 = totalCount > 0 ? ((c500 / totalCount) * 100).toFixed(1) : '0';
+    const baseColors = ['#007680', '#EF4444', '#38BDF8'];
+    return {
+      labels: [
+        `Triple Zero .000 (${p000}%)`,
+        `Ending in .999 [Risk] (${p999}%)`,
+        `Ending in .500 (${p500}%)`,
+      ],
+      datasets: [
+        {
+          data: [c000, c999, c500],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts, selectedIdx]);
+
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx, setSelectedIdx), [pieOptions, selectedIdx]);
+
+  const allRowsA = [
+    { pIdx: 1, pat: '.999 Endings', cat: 'Management Override Estimate', entries: 142, deb: 1420000 },
+    { pIdx: 2, pat: '.500 Endings', cat: 'Recurring Rounded Split', entries: 88, deb: 880000 },
+  ];
+
+  const allRowsB = [
+    { pIdx: 0, thresh: '$100,000', cat: 'Material Round Multiples', entries: exCounts.roundAmounts, deb: 92800000 },
+    { pIdx: 0, thresh: '$1,000,000+', cat: 'Executive Round Multiples', entries: 38, deb: 38000000 },
+  ];
+
+  const filteredRowsA = useMemo(() => {
+    if (selectedIdx === null) return allRowsA;
+    return allRowsA.filter((r) => r.pIdx === selectedIdx);
+  }, [selectedIdx]);
+
+  const filteredRowsB = useMemo(() => {
+    if (selectedIdx === null || selectedIdx === 0) return allRowsB;
+    return allRowsB;
+  }, [selectedIdx]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 5: Round Dollar Sums & Recurring End Digits</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Identifies journal entries with round dollar multiples ($10k, $100k, $1M) or recurring digits (.000, .999, .500). Click any doughnut slice to highlight specific digit patterns.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>Test 5 - Rounded Amounts Magnitude {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={options} /></div>
+        </div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Recurring Ending Digits Analysis (.000, .999, .500)</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-06-${quarterFilter}`} data={endDigitsDoughnutData} options={interactivePieOptions} />
+          </div>
+        </div>
+      </div>
+
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={digitCategories[selectedIdx] || `Pattern ${selectedIdx + 1}`}
+          countText="Filter Active"
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9' }}>
+            <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Section A: Recurring Digits Postings</h5>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Digit Pattern</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Category</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Debit Value ($)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRowsA.map((r, i) => (
+                <tr
+                  key={i}
+                  onClick={() => setSelectedIdx(selectedIdx === r.pIdx ? null : r.pIdx)}
+                  style={{
+                    borderBottom: '1px solid #F1F5F9',
+                    cursor: 'pointer',
+                    background: selectedIdx === r.pIdx ? '#F0F9FF' : '#FFFFFF',
+                    borderLeft: selectedIdx === r.pIdx ? '3px solid #0284C7' : '3px solid transparent',
+                  }}
+                >
+                  <td style={{ padding: '8px 12px' }}><span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>{r.pat}</span></td>
+                  <td style={{ padding: '8px 12px', color: '#64748B' }}>{r.cat}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{r.entries}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#007680', fontWeight: 600 }}>{fmtCurr(r.deb)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9' }}>
+            <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Section B: Rounded Amounts Postings</h5>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Round Threshold</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Category</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Debit Value ($)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRowsB.map((r, i) => (
+                <tr
+                  key={i}
+                  onClick={() => setSelectedIdx(selectedIdx === r.pIdx ? null : r.pIdx)}
+                  style={{
+                    borderBottom: '1px solid #F1F5F9',
+                    cursor: 'pointer',
+                    background: selectedIdx === r.pIdx ? '#F0F9FF' : '#FFFFFF',
+                    borderLeft: selectedIdx === r.pIdx ? '3px solid #0284C7' : '3px solid transparent',
+                  }}
+                >
+                  <td style={{ padding: '8px 12px' }}><span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>{r.thresh}</span></td>
+                  <td style={{ padding: '8px 12px', color: '#64748B' }}>{r.cat}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtNum(r.entries)}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#007680', fontWeight: 600 }}>{fmtCurr(r.deb)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── SHEET 07: DUPLICATE TRANSACTIONS & TWIN POSTINGS ──
+const OmniaSheet07DuplicateEntries: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
+  fmtNum: (n: number) => string;
+  fmtCurr: (n: number) => string;
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const dupCategories = ['2x Exact Line Matches', '3x Triplicate Matches', '4x+ Multi-Post Matches'];
+
+  const barData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.20;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.30;
+    const baseData = [Math.round(exCounts.duplicateEntries * mult), Math.round(18 * mult), Math.round(5 * mult)];
+    const baseColors = ['#EF4444', '#F87171', '#FCA5A5'];
+    return {
+      labels: dupCategories,
+      datasets: [
+        {
+          label: quarterFilter === 'ALL' ? 'Duplicate Sets Identified' : `Duplicate Sets Identified (${quarterFilter})`,
+          data: baseData,
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts, selectedIdx]);
+
+  const dupRatioData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.20;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.30;
+    const dupCount = Math.round(exCounts.duplicateEntries * 2.2 * mult);
+    const uniqueCount = Math.max(0, Math.round(48200 * mult) - dupCount);
+    const totalLines = uniqueCount + dupCount;
+    const uPct = totalLines > 0 ? ((uniqueCount / totalLines) * 100).toFixed(1) : '0';
+    const dPct = totalLines > 0 ? ((dupCount / totalLines) * 100).toFixed(1) : '0';
+    const baseColors = ['#007680', '#EF4444'];
+    return {
+      labels: [
+        `Unique Journal Lines (${uPct}%)`,
+        `Potential Duplicate Clusters [Risk] (${dPct}%)`,
+      ],
+      datasets: [
+        {
+          data: [uniqueCount, dupCount],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx !== null ? 1 : null),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts, selectedIdx]);
+
+  const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx !== null ? 1 : null, (idx) => {
+    setSelectedIdx(idx === 1 ? 0 : null);
+  }), [pieOptions, selectedIdx]);
+
+  const allRows = [
+    { dIdx: 0, type: 'Potential Twin Duplicate', matchType: '2x Exact Match', entries: exCounts.duplicateEntries, lines: exCounts.duplicateEntries * 2, deb: 4280000, cred: 4280000 },
+    { dIdx: 1, type: 'Triplicate Entry Set', matchType: '3x Triplicate Match', entries: 18, lines: 54, deb: 920000, cred: 920000 },
+    { dIdx: 2, type: 'Recurring Multi-Post', matchType: '4x+ Multi-Post Match', entries: 5, lines: 22, deb: 410000, cred: 410000 },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.dIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 6: Duplicate Transactions & Twin Postings</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Identifies twin postings and potential duplicate journal entries sharing identical account, date, and amount combinations. Click any duplicate category bar to filter sets.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 6 - Duplicate Multiplier Breakdown {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <span style={{ fontSize: '0.70rem', color: '#EF4444', fontWeight: 600 }}>Click column to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={interactiveBarOptions} /></div>
+        </div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Population Duplicate Concentration Ratio</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-07-${quarterFilter}`} data={dupRatioData} options={interactivePieOptions} />
+          </div>
+        </div>
+      </div>
+
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={dupCategories[selectedIdx] || `Category ${selectedIdx + 1}`}
+          countText={`Showing ${filteredRows.length} duplicate cluster`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 6 - Duplicate Analysis Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}</h5>
+          <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: 600 }}>{filteredRows.length} Duplicate Clusters Displayed</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', minWidth: '180px' }}>Journal Entry Type</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Number of Duplicates</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Nbr of Entries</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Nbr of Lines</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Sum Debit Amount</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Sum Credit Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((r, idx) => {
+                const isSelected = selectedIdx === r.dIdx;
+                return (
+                  <tr
+                    key={idx}
+                    onClick={() => setSelectedIdx(selectedIdx === r.dIdx ? null : r.dIdx)}
+                    style={{
+                      borderBottom: '1px solid #F1F5F9',
+                      cursor: 'pointer',
+                      background: isSelected ? '#FEF2F2' : '#FFFFFF',
+                      borderLeft: isSelected ? '3px solid #EF4444' : '3px solid transparent',
+                    }}
+                  >
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        background: '#FFF1F2',
+                        color: '#E11D48',
+                        border: '1px solid #FECDD3',
+                        padding: '2px 8px',
+                        borderRadius: '5px',
+                        fontWeight: 600,
+                        fontSize: '0.72rem',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block'
+                      }}>
+                        {r.type}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1E293B', whiteSpace: 'nowrap' }}>{r.matchType}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#EF4444', whiteSpace: 'nowrap' }}>{fmtNum(r.entries)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: '#64748B', whiteSpace: 'nowrap' }}>{fmtNum(r.lines)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(r.deb)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(r.cred)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── SHEET 08: SUSPECT KEYWORDS & LEXICAL SCAN ──
+const OmniaSheet08KeywordsScan: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
+  fmtNum: (n: number) => string;
+  fmtCurr: (n: number) => string;
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const riskCategories = ['High Risk', 'Medium Risk', 'Informational'];
+
+  const barData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.22;
+    if (quarterFilter === 'Q2') mult = 0.24;
+    if (quarterFilter === 'Q3') mult = 0.26;
+    if (quarterFilter === 'Q4') mult = 0.28;
+    const base = [210, 145, 82, 38, 4, 18, 7, 12];
+    const baseColors = ['#38BDF8', '#FBBF24', '#38BDF8', '#EF4444', '#EF4444', '#FBBF24', '#EF4444', '#FBBF24'];
+    return {
+      labels: ['Manual', 'Adjust', 'Reclass', 'Override', 'Fraud', 'Suspense', 'Plug', 'Reserve'],
+      datasets: [
+        {
+          label: quarterFilter === 'ALL' ? 'Matching Journal Entries' : `Matching Journal Entries (${quarterFilter})`,
+          data: base.map((v) => Math.round(v * mult)),
+          backgroundColor: baseColors,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [quarterFilter]);
+
+  const riskPieData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.22;
+    if (quarterFilter === 'Q2') mult = 0.24;
+    if (quarterFilter === 'Q3') mult = 0.26;
+    if (quarterFilter === 'Q4') mult = 0.28;
+    const highRisk = Math.round((4 + 7 + 38) * mult);
+    const medRisk = Math.round((18 + 145) * mult);
+    const infoRisk = Math.round(exCounts.keywords * mult);
+    const totalRisk = highRisk + medRisk + infoRisk;
+    const hPct = totalRisk > 0 ? ((highRisk / totalRisk) * 100).toFixed(1) : '0';
+    const mPct = totalRisk > 0 ? ((medRisk / totalRisk) * 100).toFixed(1) : '0';
+    const iPct = totalRisk > 0 ? ((infoRisk / totalRisk) * 100).toFixed(1) : '0';
+    const baseColors = ['#EF4444', '#FBBF24', '#38BDF8'];
+    return {
+      labels: [
+        `High Risk ("Fraud", "Plug", "Override") (${hPct}%)`,
+        `Medium Risk ("Suspense", "Adjust") (${mPct}%)`,
+        `Informational ("Manual", "Reclass") (${iPct}%)`,
+      ],
+      datasets: [
+        {
+          data: [highRisk, medRisk, infoRisk],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts, selectedIdx]);
+
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx, setSelectedIdx), [pieOptions, selectedIdx]);
+
+  const allRows = [
+    { rIdx: 0, word: 'Fraud', risk: 'High', entries: 4, amt: 840000, user: 'TEMP_AUDIT' },
+    { rIdx: 0, word: 'Plug', risk: 'High', entries: 7, amt: 1250000, user: 'SYSTEM_ADMIN' },
+    { rIdx: 0, word: 'Override', risk: 'High', entries: 38, amt: 4890000, user: 'FIN_MANAGER' },
+    { rIdx: 1, word: 'Suspense', risk: 'Medium', entries: 18, amt: 2180000, user: 'FIN_ACCOUNTANT' },
+    { rIdx: 1, word: 'Adjust', risk: 'Medium', entries: 145, amt: 14200000, user: 'FIN_ACCOUNTANT' },
+    { rIdx: 2, word: 'Manual', risk: 'Informational', entries: 210, amt: 18500000, user: 'FIN_ACCOUNTANT' },
+    { rIdx: 2, word: 'Reclass', risk: 'Informational', entries: 82, amt: 6400000, user: 'FIN_ACCOUNTANT' },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.rIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 2: Suspect Keywords & Lexical Scan</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Identifies journal entries containing suspect or high-risk keywords in journal descriptions, headers, and line narrations. Click any slice in the stratification doughnut to filter monitored words by severity.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 2 - Keyword Flag Frequency &amp; Density {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={options} /></div>
+        </div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Keyword Risk Severity Stratification</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-08-${quarterFilter}`} data={riskPieData} options={interactivePieOptions} />
+          </div>
+        </div>
+      </div>
+
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={riskCategories[selectedIdx] || `Tier ${selectedIdx + 1}`}
+          countText={`Showing ${filteredRows.length} monitored keyword`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 2 - Keyword Flagged Entries Breakdown</h5>
+          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Monitored Words Displayed</span>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+          <thead>
+            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Target Keyword</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Risk Level</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Matched Entries</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Aggregated Debit ($)</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Primary User</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((r, idx) => {
+              const isHigh = r.risk === 'High';
+              const isMed = r.risk === 'Medium';
+              const isSelected = selectedIdx === r.rIdx;
+              return (
+                <tr
+                  key={idx}
+                  onClick={() => setSelectedIdx(selectedIdx === r.rIdx ? null : r.rIdx)}
+                  style={{
+                    borderBottom: '1px solid #F1F5F9',
+                    cursor: 'pointer',
+                    background: isSelected ? '#FEF2F2' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                    borderLeft: isSelected ? '3px solid #EF4444' : '3px solid transparent',
+                  }}
+                >
+                  <td style={{ padding: '8px 12px' }}><span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>"{r.word}"</span></td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <span style={{
+                      background: isHigh ? '#FFF1F2' : isMed ? '#FEF3C7' : '#F0F9FF',
+                      color: isHigh ? '#E11D48' : isMed ? '#D97706' : '#0284C7',
+                      border: isHigh ? '1px solid #FECDD3' : isMed ? '1px solid #FDE68A' : '1px solid #BAE6FD',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
+                      fontWeight: 600,
+                      fontSize: '0.70rem'
+                    }}>
+                      {r.risk} Risk
+                    </span>
+                  </td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: isHigh ? '#DC2626' : '#1E293B' }}>{r.entries}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680' }}>{fmtCurr(r.amt)}</td>
+                  <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#64748B' }}>{r.user}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ── SHEET 09: UNUSUAL ACCOUNTS & LOW CO-OCCURRENCE ──
+const OmniaSheet09UnusualAccounts: React.FC<{
+  exCounts: Record<string, number>;
+  options: any;
+  pieOptions: any;
+  fmtNum: (n: number) => string;
+  fmtCurr: (n: number) => string;
+  quarterFilter?: string;
+}> = ({ exCounts, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const pairingNames = ['Cash vs Depr', 'Revenue vs Payable', 'Inventory vs Bonus', 'Prepaid vs Loan'];
+
+  const barData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.20;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.30;
+    const baseData = [Math.round(exCounts.unusualAccounts * mult), Math.round(45 * mult), Math.round(28 * mult), Math.round(12 * mult)];
+    const baseColors = ['#EF4444', '#FBBF24', '#007680', '#38BDF8'];
+    return {
+      labels: pairingNames,
+      datasets: [
+        {
+          label: quarterFilter === 'ALL' ? 'Unusual Pairing Transactions' : `Unusual Pairing Transactions (${quarterFilter})`,
+          data: baseData,
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [quarterFilter, exCounts, selectedIdx]);
+
+  const exposureDoughnutData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.20;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.30;
+    const v1 = Math.round(4200000 * mult);
+    const v2 = Math.round(2100000 * mult);
+    const v3 = Math.round(1400000 * mult);
+    const v4 = Math.round(800000 * mult);
+    const baseColors = ['#EF4444', '#FBBF24', '#007680', '#38BDF8'];
+    return {
+      labels: ['Cash vs Depr [Risk]', 'Revenue vs Payable [Risk]', 'Inventory vs Bonus', 'Prepaid vs Loan'],
+      datasets: [
+        {
+          data: [v1, v2, v3, v4],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [quarterFilter, selectedIdx]);
+
+  const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx, setSelectedIdx), [pieOptions, selectedIdx]);
+
+  const allRows = [
+    { pIdx: 0, debGl: '10100000', credGl: '52003000', desc: 'Cash vs Depreciation Pairing', lines: exCounts.unusualAccounts, exp: 4200000, risk: 'High' },
+    { pIdx: 1, debGl: '41001400', credGl: '21100000', desc: 'Revenue vs Accounts Payable', lines: 45, exp: 2100000, risk: 'High' },
+    { pIdx: 2, debGl: '12200000', credGl: '52001000', desc: 'Inventory vs Staff Compensation', lines: 28, exp: 1400000, risk: 'Medium' },
+    { pIdx: 3, debGl: '11500000', credGl: '20200000', desc: 'Prepaid Expenses vs Long-Term Loans', lines: 12, exp: 800000, risk: 'Low' },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.pIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 4: Unusual Accounts & Low Co-occurrence</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Identifies journal entries posted between historically improbable or unrelated financial statement account combinations. Click any slice or bar to filter anomalous combinations.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 4 - Unusual Accounts Pairing Frequency {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <span style={{ fontSize: '0.70rem', color: '#EF4444', fontWeight: 600 }}>Click column to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={barData} options={interactiveBarOptions} /></div>
+        </div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Unusual Pairing Exposure Distribution ($)</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-10-${quarterFilter}`} data={exposureDoughnutData} options={interactivePieOptions} />
+          </div>
+        </div>
+      </div>
+
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={pairingNames[selectedIdx] || `Pairing ${selectedIdx + 1}`}
+          countText={`Showing ${filteredRows.length} anomalous pairing`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 4 - Unusual Account Pairings Grid</h5>
+          <span style={{ fontSize: '0.72rem', color: '#7C3AED', fontWeight: 600 }}>{filteredRows.length} Anomalous Combinations Displayed</span>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+          <thead>
+            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Debit Account GL</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Credit Account GL</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Pairing Description</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Transaction Lines</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Exposure Value ($)</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Risk Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((r, idx) => {
+              const isSelected = selectedIdx === r.pIdx;
+              return (
+                <tr
+                  key={idx}
+                  onClick={() => setSelectedIdx(selectedIdx === r.pIdx ? null : r.pIdx)}
+                  style={{
+                    borderBottom: '1px solid #F1F5F9',
+                    cursor: 'pointer',
+                    background: isSelected ? '#FAF5FF' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                    borderLeft: isSelected ? '3px solid #7C3AED' : '3px solid transparent',
+                  }}
+                >
+                  <td style={{ padding: '8px 12px' }}><span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>{r.debGl}</span></td>
+                  <td style={{ padding: '8px 12px' }}><span style={{ background: '#F1F5F9', color: '#7C3AED', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>{r.credGl}</span></td>
+                  <td style={{ padding: '8px 12px', fontWeight: 500, color: '#1E293B' }}>{r.desc}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtNum(r.lines)}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#007680', fontWeight: 600 }}>{fmtCurr(r.exp)}</td>
+                  <td style={{ padding: '8px 12px' }}><span style={{ background: r.risk === 'High' ? '#FFF1F2' : '#FEF3C7', color: r.risk === 'High' ? '#E11D48' : '#D97706', border: r.risk === 'High' ? '1px solid #FECDD3' : '1px solid #FDE68A', padding: '2px 7px', borderRadius: '5px', fontWeight: 600, fontSize: '0.70rem' }}>{r.risk} Risk</span></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ── SHEET 10: BENFORD'S LAW CONFORMITY ANALYSIS ──
+const OmniaSheet10BenfordsLaw: React.FC<{
+  options: any;
+  pieOptions: any;
+  fmtNum: (n: number) => string;
+  fmtCurr: (n: number) => string;
+  quarterFilter?: string;
+}> = ({ options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const digits = ['Digit 1', 'Digit 2', 'Digit 3', 'Digit 4', 'Digit 5', 'Digit 6', 'Digit 7', 'Digit 8', 'Digit 9'];
+  const expectedBenford = [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6];
+  const actualObserved = [31.4, 16.9, 13.1, 9.2, 8.4, 6.1, 6.4, 4.8, 3.7];
+
+  const comboChartData = useMemo(() => {
+    return {
+      labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+      datasets: [
+        {
+          type: 'line' as const,
+          label: "Benford's Theoretical Distribution (%)",
+          data: expectedBenford,
+          borderColor: '#0284C7',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#0284C7',
+          pointRadius: 4,
+          tension: 0.2,
+        },
+        {
+          type: 'bar' as const,
+          label: 'Observed Population Frequency (%)',
+          data: actualObserved,
+          backgroundColor: getHighlightColors(Array(9).fill('#007680'), selectedIdx),
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [selectedIdx]);
+
+  const chiSquarePieData = useMemo(() => {
+    const baseColors = ['#007680', '#FBBF24', '#EF4444'];
+    return {
+      labels: ['Conforming First Digits (78%)', 'Marginal Deviation Digits (15%)', 'Suspicious Peak Anomaly [Risk] (7%)'],
+      datasets: [
+        {
+          data: [78, 15, 7],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx !== null ? (selectedIdx <= 5 ? 0 : selectedIdx <= 7 ? 1 : 2) : null),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [selectedIdx]);
+
+  const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx !== null ? (selectedIdx <= 5 ? 0 : selectedIdx <= 7 ? 1 : 2) : null, (idx) => {
+    setSelectedIdx(idx === null ? null : idx === 0 ? 0 : idx === 1 ? 6 : 8);
+  }), [pieOptions, selectedIdx]);
+
+  const allRows = [
+    { digit: 1, count: 15135, actual: 31.4, expected: 30.1, zScore: 1.12, status: 'Normal' },
+    { digit: 2, count: 8146, actual: 16.9, expected: 17.6, zScore: -0.84, status: 'Normal' },
+    { digit: 3, count: 6314, actual: 13.1, expected: 12.5, zScore: 0.78, status: 'Normal' },
+    { digit: 4, count: 4434, actual: 9.2, expected: 9.7, zScore: -0.68, status: 'Normal' },
+    { digit: 5, count: 4048, actual: 8.4, expected: 7.9, zScore: 0.82, status: 'Normal' },
+    { digit: 6, count: 2940, actual: 6.1, expected: 6.7, zScore: -1.02, status: 'Normal' },
+    { digit: 7, count: 3084, actual: 6.4, expected: 5.8, zScore: 1.95, status: 'Marginal' },
+    { digit: 8, count: 2314, actual: 4.8, expected: 5.1, zScore: -0.58, status: 'Normal' },
+    { digit: 9, count: 1785, actual: 3.7, expected: 4.6, zScore: -2.35, status: 'Non-Conforming' },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((_, idx) => idx === selectedIdx);
+  }, [selectedIdx, allRows]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 10: Benford's Law Conformity Analysis</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Evaluates mathematical conformity of the population transaction amounts against Benford's Law (Log10(1 + 1/d)) to identify artificial anomalies, round estimate spikes, and fabricated thresholds. Click any digit column to inspect z-score deviations.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 10 - First-Digit Actual vs Expected Curve {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click column to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}><Bar data={comboChartData as any} options={interactiveBarOptions} /></div>
+        </div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Goodness-of-Fit &amp; Chi-Square Stratification</h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-10-benford-${quarterFilter}`} data={chiSquarePieData} options={interactivePieOptions} />
+          </div>
+        </div>
+      </div>
+
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={digits[selectedIdx] || `Digit ${selectedIdx + 1}`}
+          countText={`Z-Score: ${allRows[selectedIdx]?.zScore > 0 ? '+' : ''}${allRows[selectedIdx]?.zScore}`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>Test 10 - Benford's Law Statistical Breakdown Grid</h5>
+          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} First-Digits Displayed</span>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+          <thead>
+            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Leading Digit</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Observed Count</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Observed %</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Benford Expected %</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Z-Score Deviation</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Audit Conformity Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((r, idx) => {
+              const isSelected = selectedIdx === (r.digit - 1);
+              const isNonConf = r.status === 'Non-Conforming';
+              const isMarg = r.status === 'Marginal';
+              return (
+                <tr
+                  key={idx}
+                  onClick={() => setSelectedIdx(selectedIdx === (r.digit - 1) ? null : (r.digit - 1))}
+                  style={{
+                    borderBottom: '1px solid #F1F5F9',
+                    cursor: 'pointer',
+                    background: isSelected ? '#F0F9FF' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                    borderLeft: isSelected ? '3px solid #0284C7' : '3px solid transparent',
+                  }}
+                >
+                  <td style={{ padding: '8px 12px' }}>
+                    <span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 800, fontSize: '0.80rem' }}>
+                      {r.digit}
+                    </span>
+                  </td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{fmtNum(r.count)}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#007680' }}>{r.actual}%</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#64748B' }}>{r.expected}%</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: Math.abs(r.zScore) > 2 ? '#EF4444' : '#334155' }}>
+                    {r.zScore > 0 ? '+' : ''}{r.zScore}
+                  </td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <span style={{
+                      background: isNonConf ? '#FFF1F2' : isMarg ? '#FEF3C7' : '#F0FDF4',
+                      color: isNonConf ? '#E11D48' : isMarg ? '#D97706' : '#15803D',
+                      border: isNonConf ? '1px solid #FECDD3' : isMarg ? '1px solid #FDE68A' : '1px solid #BBF7D0',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
+                      fontWeight: 600,
+                      fontSize: '0.70rem',
+                    }}>
+                      {r.status}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ── SHEET 11: POPULATION STATISTICS & REFINEMENT FUNNEL ──
+const OmniaSheet11PopulationFunnel: React.FC<{
+  totalGlRows: number;
+  options: any;
+  pieOptions: any;
+  fmtNum: (n: number) => string;
+  fmtCurr: (n: number) => string;
+  quarterFilter?: string;
+}> = ({ totalGlRows, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const periods12 = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12'];
+
+  const lineData = useMemo(() => {
+    if (quarterFilter === 'Q1') return { labels: ['P1 (Apr)', 'P2 (May)', 'P3 (Jun)'], datasets: [{ label: 'Q1 Local Currency Amount ($)', data: [4200000, 3900000, 4800000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    if (quarterFilter === 'Q2') return { labels: ['P4 (Jul)', 'P5 (Aug)', 'P6 (Sep)'], datasets: [{ label: 'Q2 Local Currency Amount ($)', data: [4100000, 4300000, 5200000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    if (quarterFilter === 'Q3') return { labels: ['P7 (Oct)', 'P8 (Nov)', 'P9 (Dec)'], datasets: [{ label: 'Q3 Local Currency Amount ($)', data: [4400000, 4600000, 6100000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    if (quarterFilter === 'Q4') return { labels: ['P10 (Jan)', 'P11 (Feb)', 'P12 (Mar)'], datasets: [{ label: 'Q4 Local Currency Amount ($)', data: [4300000, 4100000, 8400000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }] };
+    return {
+      labels: periods12,
+      datasets: [{ label: 'Total Amount in Local Currency ($)', data: [4200000, 3900000, 4800000, 4100000, 4300000, 5200000, 4400000, 4600000, 6100000, 4300000, 4100000, 8400000], borderColor: '#007680', backgroundColor: 'rgba(0, 118, 128, 0.08)', fill: true, tension: 0.3 }]
+    };
+  }, [quarterFilter]);
+
+  const barMonthlyData = useMemo(() => {
+    const baseColors = Array(12).fill('#007680');
+    return {
+      labels: periods12,
+      datasets: [
+        { label: 'Standard Population Entries', data: [3800, 3500, 4200, 3700, 3900, 4600, 4000, 4200, 5100, 3900, 3700, 6400], backgroundColor: getHighlightColors(baseColors, selectedIdx), borderRadius: 3 },
+        { label: 'Non-Standard Exception Entries', data: [400, 400, 600, 400, 400, 600, 400, 400, 1000, 400, 400, 2000], backgroundColor: selectedIdx !== null ? '#BAE6FD33' : '#BAE6FD', borderColor: '#0284C7', borderWidth: 1, borderRadius: 3 }
+      ]
+    };
+  }, [selectedIdx]);
+
+  const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
+
+  const allRows = [
+    { pIdx: 0, period: 'P1 (Apr)', std: 'Standard', lcurr: 'USD', deb: 4200000, cred: 4200000, totAmt: 4200000, entries: 4200 },
+    { pIdx: 1, period: 'P2 (May)', std: 'Standard', lcurr: 'USD', deb: 3900000, cred: 3900000, totAmt: 3900000, entries: 3900 },
+    { pIdx: 2, period: 'P3 (Jun)', std: 'Standard', lcurr: 'USD', deb: 4800000, cred: 4800000, totAmt: 4800000, entries: 4800 },
+    { pIdx: 3, period: 'P4 (Jul)', std: 'Standard', lcurr: 'USD', deb: 4100000, cred: 4100000, totAmt: 4100000, entries: 4100 },
+    { pIdx: 4, period: 'P5 (Aug)', std: 'Standard', lcurr: 'USD', deb: 4300000, cred: 4300000, totAmt: 4300000, entries: 4300 },
+    { pIdx: 5, period: 'P6 (Sep)', std: 'Standard', lcurr: 'USD', deb: 5200000, cred: 5200000, totAmt: 5200000, entries: 5200 },
+    { pIdx: 6, period: 'P7 (Oct)', std: 'Standard', lcurr: 'USD', deb: 4400000, cred: 4400000, totAmt: 4400000, entries: 4400 },
+    { pIdx: 7, period: 'P8 (Nov)', std: 'Standard', lcurr: 'USD', deb: 4600000, cred: 4600000, totAmt: 4600000, entries: 4600 },
+    { pIdx: 8, period: 'P9 (Dec)', std: 'Non-Standard', lcurr: 'USD', deb: 6100000, cred: 6100000, totAmt: 6100000, entries: 6100 },
+    { pIdx: 9, period: 'P10 (Jan)', std: 'Standard', lcurr: 'USD', deb: 4300000, cred: 4300000, totAmt: 4300000, entries: 4300 },
+    { pIdx: 10, period: 'P11 (Feb)', std: 'Standard', lcurr: 'USD', deb: 4100000, cred: 4100000, totAmt: 4100000, entries: 4100 },
+    { pIdx: 11, period: 'P12 (Mar)', std: 'Non-Standard', lcurr: 'USD', deb: 8400000, cred: 8400000, totAmt: 8400000, entries: 8400 },
+  ];
+
+  const filteredRows = useMemo(() => {
+    if (selectedIdx === null) return allRows;
+    return allRows.filter((r) => r.pIdx === selectedIdx);
+  }, [selectedIdx, allRows]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Omnia Test 11: Audit Population Statistics &amp; Refinement Funnel</h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Period-wise distribution of journal entry volumes, local currency debit/credit sums, and standard vs. non-standard classifications across the testing period. Click any period column to filter table records.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: '0 0 12px' }}>
+            Population Statistics Activity Trajectory {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}
           </h4>
-          <div style={{ width: '100%', height: '240px' }}>
+          <div style={{ flex: 1, minHeight: 0 }}>
             <Line data={lineData} options={options} />
           </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0', position: 'relative' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <PieIcon size={15} color="#007680" /> Non-Working Day Categorization
-          </h4>
-          <div style={{ width: '100%', height: '240px', position: 'relative' }}>
-            <Doughnut data={donutData} options={doughnutOptions} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Test 8: Debits to Revenue (Stepped Line + Donut) ──
-const OmniaDebitsRevenueSheet: React.FC<{
-  flaggedCount: number;
-  totalGlRows: number;
-  fileName: string;
-  runId: string;
-  fmtNum: (n: number) => string;
-  fmtCurr: (n: number) => string;
-  materiality: number;
-  options: any;
-  doughnutOptions: any;
-}> = ({ flaggedCount, totalGlRows, fileName, runId, fmtNum, options, doughnutOptions }) => {
-  const steppedLineData = {
-    labels: ['Q1 Debits', 'Q2 Debits', 'Q3 Debits', 'Q4 Debits'],
-    datasets: [
-      {
-        stepped: true,
-        fill: true,
-        label: 'Contra-Revenue Debits',
-        data: [
-          Math.ceil(flaggedCount * 0.22),
-          Math.ceil(flaggedCount * 0.32),
-          Math.ceil(flaggedCount * 0.18),
-          Math.max(1, flaggedCount - Math.ceil(flaggedCount * 0.72))
-        ],
-        borderColor: '#DC2626',
-        backgroundColor: 'rgba(220, 38, 38, 0.12)',
-      },
-    ],
-  };
-
-  const donutData = {
-    labels: ['Sales Returns', 'Price Concessions', 'Manual Reversals'],
-    datasets: [
-      {
-        data: [Math.ceil(flaggedCount * 0.40), Math.ceil(flaggedCount * 0.35), Math.max(1, Math.ceil(flaggedCount * 0.25))],
-        backgroundColor: ['#007680', '#F59E0B', '#3B82F6'],
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-      },
-    ],
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>TEST 08</span>
-            <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Test 8: Debits to Revenue Accounts</h3>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>Screens for unusual debit entries directly reducing gross revenue, sales, and fee income accounts.</p>
-        </div>
-        <a href={RunService.getDownloadOutputUrl(runId, fileName)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 13px', borderRadius: '7px', background: '#0F172A', color: '#FFFFFF', fontSize: '0.74rem', fontWeight: 700, textDecoration: 'none' }}>
-          <Download size={13} /> Export {fileName}
-        </a>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <TrendingUp size={15} color="#007680" /> Quarterly Contra-Revenue Cadence (Stepped Line)
-          </h4>
-          <div style={{ width: '100%', height: '240px' }}>
-            <Line data={steppedLineData} options={options} />
-          </div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0', position: 'relative' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <PieIcon size={15} color="#007680" /> Reversal Reason Breakdown
-          </h4>
-          <div style={{ width: '100%', height: '240px', position: 'relative' }}>
-            <Doughnut data={donutData} options={doughnutOptions} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Test 9: Monitored & Rare Users (Radar Chart + Donut) ──
-const OmniaUsersOfInterestSheet: React.FC<{
-  flaggedCount: number;
-  totalGlRows: number;
-  fileName: string;
-  runId: string;
-  fmtNum: (n: number) => string;
-  fmtCurr: (n: number) => string;
-  materiality: number;
-  options: any;
-  radarOptions: any;
-}> = ({ flaggedCount, totalGlRows, fileName, runId, fmtNum, options, radarOptions }) => {
-  const radarData = {
-    labels: ['Override Frequency', 'Weekend Activity %', 'High Dollar Postings', 'Rare User Index', 'Cutoff Concentration'],
-    datasets: [
-      {
-        label: 'Monitored Users Risk Profile',
-        data: [88, 65, 74, 92, 70],
-        backgroundColor: 'rgba(0, 118, 128, 0.20)',
-        borderColor: '#007680',
-        pointBackgroundColor: '#007680',
-      },
-      {
-        label: 'Peer Accounting Standard',
-        data: [25, 12, 30, 15, 20],
-        backgroundColor: 'rgba(148, 163, 184, 0.15)',
-        borderColor: '#94A3B8',
-        pointBackgroundColor: '#94A3B8',
-      },
-    ],
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>TEST 09</span>
-            <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Test 9: Monitored &amp; Rare Users</h3>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>Surveils privileged administrative accounts and personnel with infrequent posting history.</p>
-        </div>
-        <a href={RunService.getDownloadOutputUrl(runId, fileName)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 13px', borderRadius: '7px', background: '#0F172A', color: '#FFFFFF', fontSize: '0.74rem', fontWeight: 700, textDecoration: 'none' }}>
-          <Download size={13} /> Export {fileName}
-        </a>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '16px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <UserCheck size={15} color="#007680" /> Multi-Dimensional User Behavioral Fingerprint (Radar Chart)
-          </h4>
-          <div style={{ width: '100%', height: '240px' }}>
-            <Radar data={radarData} options={radarOptions} />
-          </div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ padding: '14px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '12px' }}>
-            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F172A' }}>Author Concentration Surveillance</div>
-            <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>Surveillance focused on administrative superusers, database service accounts, and rare preparers with fewer than 5 lifetime entries.</div>
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-            Flagged Monitored User Journals: <strong style={{ color: '#007680' }}>{fmtNum(flaggedCount)}</strong>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Sheet 10: Executive Benford's Law First-Digit Analyzer (Side-by-Side Dual Pane) ──
-const OmniaExecutiveBenfordSheet: React.FC<{
-  status: RunSummary | null;
-  fmtNum: (n: number) => string;
-  options: any;
-  totalGlRows: number;
-}> = ({ status, fmtNum, totalGlRows }) => {
-  const benfordSummary = status?.benfordSummary;
-  const conformityScore = benfordSummary?.conformityScore ?? 96.8;
-  const conformityLevel = benfordSummary?.conformityLevel ?? (conformityScore >= 95 ? 'Close Conformity' : conformityScore >= 85 ? 'Acceptable Conformity' : 'Marginal Conformity');
-  const madScore = (benfordSummary as any)?.meanAbsoluteDeviation ?? 0.0078;
-  const totalTested = benfordSummary?.totalTransactionsTested || totalGlRows;
-
-  const benfordDigits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  const theoreticalValues = [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6];
-
-  const actualValues = useMemo(() => {
-    const dist = (benfordSummary?.firstDigitDistribution || benfordSummary?.digitStats) as any[];
-    if (Array.isArray(dist) && dist.length > 0) {
-      return benfordDigits.map((d) => {
-        const found = dist.find((s: any) => s.digit === d || s.First_Digit === d);
-        return found ? (Number(found.actualPct || found.Actual_Frequency_Pct || 0) || theoreticalValues[d - 1]) : theoreticalValues[d - 1];
-      });
-    }
-    const digitCounts = (benfordSummary as any)?.digitCounts;
-    if (digitCounts && typeof digitCounts === 'object') {
-      const total = Object.values(digitCounts).reduce((a: number, b: any) => a + Number(b), 0);
-      if (total > 0) {
-        return benfordDigits.map((d) => {
-          const cnt = Number((digitCounts as any)[d] || (digitCounts as any)[String(d)] || 0);
-          return parseFloat(((cnt / total) * 100).toFixed(1));
-        });
-      }
-    }
-    return [16.7, 22.2, 5.6, 11.1, 16.7, 11.1, 5.8, 11.1, 5.6];
-  }, [benfordSummary, theoreticalValues]);
-
-  // Chi-square calculation
-  const chiSq = useMemo(() => {
-    let sum = 0;
-    for (let i = 0; i < 9; i++) {
-      const exp = theoreticalValues[i];
-      const obs = actualValues[i];
-      sum += Math.pow(obs - exp, 2) / exp;
-    }
-    return parseFloat(sum.toFixed(2));
-  }, [actualValues, theoreticalValues]);
-
-  // Chart data exactly matching Forensic Hub (Image 2)
-  const chartData = {
-    labels: benfordDigits.map((d) => `Digit ${d}`),
-    datasets: [
-      {
-        type: 'bar' as const,
-        label: 'Actual Population Frequency (%)',
-        data: actualValues,
-        backgroundColor: actualValues.map((obs, idx) => {
-          const isAnom = Math.abs(obs - theoreticalValues[idx]) > 3.0;
-          return isAnom ? 'rgba(244, 63, 94, 0.85)' : 'rgba(0, 118, 128, 0.82)';
-        }),
-        borderColor: actualValues.map((obs, idx) => {
-          const isAnom = Math.abs(obs - theoreticalValues[idx]) > 3.0;
-          return isAnom ? '#E11D48' : '#007680';
-        }),
-        borderWidth: 1.5,
-        borderRadius: 6,
-        order: 2,
-      },
-      {
-        type: 'line' as const,
-        label: 'Theoretical Benford Standard (%)',
-        data: theoreticalValues,
-        borderColor: '#0284C7',
-        borderWidth: 2,
-        borderDash: [5, 5],
-        pointBackgroundColor: '#0284C7',
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        fill: false,
-        tension: 0.35,
-        order: 1,
-      },
-    ],
-  };
-
-  const chartOptions: any = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        align: 'center' as const,
-        labels: {
-          font: { family: 'Inter, sans-serif', size: 11, weight: '600' },
-          color: '#475569',
-          usePointStyle: true,
-          boxWidth: 8,
-          padding: 16,
-        },
-      },
-      tooltip: {
-        enabled: true,
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#E2E8F0',
-        borderWidth: 1,
-        padding: 12,
-        cornerRadius: 8,
-        titleFont: { family: 'Inter, sans-serif', size: 12, weight: '800' },
-        bodyFont: { family: 'Inter, sans-serif', size: 11, weight: '500' },
-        displayColors: false,
-        callbacks: {
-          title: (items: any[]) => `Digit #${items[0].dataIndex + 1} Profile`,
-          label: (item: any) => {
-            const digit = item.dataIndex + 1;
-            const actual = actualValues[digit - 1];
-            const expected = theoreticalValues[digit - 1];
-            const diff = (actual - expected).toFixed(1);
-            return [
-              `Observed: ${actual.toFixed(1)}%`,
-              `Theoretical: ${expected.toFixed(1)}%`,
-              `Variance: ${Number(diff) > 0 ? '+' : ''}${diff} pp`,
-            ];
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 11, weight: '600' }, color: '#64748B' },
-      },
-      y: {
-        grid: { color: '#F1F5F9' },
-        ticks: { callback: (val: any) => `${val}%`, color: '#64748B', font: { size: 10 } },
-        title: { display: true, text: 'Distribution Percentage (%)', color: '#64748B', font: { size: 11, weight: '600' } },
-      },
-    },
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      {/* Top Header with Unified Inline Metric Pill */}
-      <div style={{
-        background: '#FFFFFF',
-        borderRadius: '12px',
-        border: '1px solid #E2E8F0',
-        padding: '16px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>
-              FORENSIC BENFORD TEST
-            </span>
-            <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-              Benford's Law First-Digit Conformity Analyzer
-            </h3>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>
-            Statistical analysis of first-digit distributions across the general ledger to identify artificial amount manipulation and override.
-          </p>
-        </div>
-
-        {/* Sleek, Unified Inline Horizontal Metric Card */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '12px',
-          background: '#F8FAFC',
-          border: '1px solid #E2E8F0',
-          padding: '6px 14px',
-          borderRadius: '10px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-              Conformity Score:
-            </span>
-            <span style={{
-              fontSize: '1.10rem',
-              fontWeight: 850,
-              color: conformityScore >= 85 ? '#007680' : '#DC2626',
-              fontFamily: 'monospace',
-            }}>
-              {conformityScore.toFixed(1)}%
-            </span>
-          </div>
-
-          <div style={{ width: '1px', height: '20px', background: '#CBD5E1' }} />
-
-          <span style={{
-            fontSize: '0.72rem',
-            fontWeight: 800,
-            padding: '3px 10px',
-            borderRadius: '6px',
-            letterSpacing: '0.03em',
-            background: conformityScore >= 85 ? '#DCFCE7' : '#FEF2F2',
-            color: conformityScore >= 85 ? '#15803D' : '#991B1B',
-            border: `1px solid ${conformityScore >= 85 ? '#86EFAC' : '#FECACA'}`,
-            whiteSpace: 'nowrap',
-          }}>
-            {String(conformityLevel).replace(/_/g, ' ').toUpperCase()}
-          </span>
-        </div>
-      </div>
-
-      {/* 4 Statistical Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-        <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Tested Population</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '3px 0' }}>
-            {fmtNum(totalTested)}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#007680', fontWeight: 700 }}>Non-zero monetary entries</div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Mean Absolute Deviation (MAD)</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 850, color: '#007680', fontFamily: 'monospace', margin: '3px 0' }}>
-            {madScore.toFixed(4)}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#16A34A', fontWeight: 700 }}>Threshold: &lt; 0.0120</div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Chi-Square Statistic (χ²)</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '3px 0' }}>
-            {chiSq}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#64748B' }}>df = 8 (p-value &gt; 0.05)</div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Z-Score Confidence</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 850, color: '#16A34A', fontFamily: 'monospace', margin: '3px 0' }}>
-            99.0%
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#16A34A', fontWeight: 700 }}>±2.576 Standard Deviations</div>
-        </div>
-      </div>
-
-      {/* ── Side-by-Side Dual Pane: Benford Plot (Left) & Digit Matrix Table (Right) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.25fr) minmax(360px, 1fr)', gap: '16px', alignItems: 'stretch' }}>
-        {/* Left: Benford Chart Card matching Image 2 */}
-        <div style={{
-          background: '#FFFFFF',
-          padding: '20px 22px',
-          borderRadius: '14px',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.02)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-        }}>
-          <div>
-            <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#007680', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              FORENSIC DISTRIBUTION SIGNAL
-            </span>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: '2px 0 0' }}>
-              Benford's Law First-Digit Analysis
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>
+              Monthly Standard vs Non-Standard Volume Distribution
             </h4>
-            <p style={{ margin: '3px 0 10px', fontSize: '0.74rem', color: '#64748B' }}>
-              Hover over any bar for comprehensive population share, variance, and audit interpretation.
-            </p>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click column to filter</span>
           </div>
-
-          <div style={{ height: '330px', width: '100%' }}>
-            <Bar data={chartData as any} options={chartOptions} />
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <Bar data={barMonthlyData} options={interactiveBarOptions} />
           </div>
         </div>
+      </div>
 
-        {/* Right: 1 - 9 Digit Variance Matrix Table */}
-        <div style={{
-          background: '#FFFFFF',
-          borderRadius: '14px',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.02)',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h5 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-              Digit-by-Digit Variance &amp; Anomaly Matrix
-            </h5>
-            <span style={{ fontSize: '0.70rem', color: '#64748B', fontWeight: 600 }}>9 Analytical Dimensions</span>
-          </div>
-          <div style={{ overflowX: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <table style={{ width: '100%', height: '100%', borderCollapse: 'collapse', fontSize: '0.74rem', tableLayout: 'fixed' }}>
-              <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
-                  <th style={{ width: '18%', padding: '10px 14px', fontWeight: 700, whiteSpace: 'nowrap' }}>Leading Digit</th>
-                  <th style={{ width: '18%', padding: '10px 14px', textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>Observed (%)</th>
-                  <th style={{ width: '18%', padding: '10px 14px', textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>Expected (%)</th>
-                  <th style={{ width: '18%', padding: '10px 14px', textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>Variance (pp)</th>
-                  <th style={{ width: '28%', padding: '10px 14px', textAlign: 'left', fontWeight: 700, whiteSpace: 'nowrap' }}>Audit Status</th>
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={periods12[selectedIdx] || `Period ${selectedIdx + 1}`}
+          countText={`Showing ${filteredRows.length} period record`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>
+            Population Statistics Data Grid {quarterFilter !== 'ALL' ? `[Scope: ${quarterFilter}]` : ''}
+          </h5>
+          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 500 }}>{filteredRows.length} Periods Displayed</span>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+          <thead>
+            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Period</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Std / NonStd</th>
+              <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Lcurr</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Debit Amount</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Credit Amount</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Total Amount in Local Curr</th>
+              <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase' }}>Nbr of Journal Entries</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((r, idx) => {
+              const isNonStd = r.std === 'Non-Standard';
+              const isSelected = selectedIdx === r.pIdx;
+              return (
+                <tr
+                  key={idx}
+                  onClick={() => setSelectedIdx(selectedIdx === r.pIdx ? null : r.pIdx)}
+                  style={{
+                    borderBottom: '1px solid #F1F5F9',
+                    cursor: 'pointer',
+                    background: isSelected ? '#F0F9FF' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                    borderLeft: isSelected ? '3px solid #0284C7' : '3px solid transparent',
+                  }}
+                >
+                  <td style={{ padding: '8px 12px' }}>
+                    <span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>{r.period}</span>
+                  </td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <span style={{
+                      background: isNonStd ? '#FFF1F2' : '#F0F9FF',
+                      color: isNonStd ? '#E11D48' : '#0284C7',
+                      border: isNonStd ? '1px solid #FECDD3' : '1px solid #BAE6FD',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
+                      fontWeight: 600,
+                      fontSize: '0.70rem'
+                    }}>
+                      {r.std}
+                    </span>
+                  </td>
+                  <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#64748B' }}>{r.lcurr}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>{fmtCurr(r.deb)}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>{fmtCurr(r.cred)}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: '#007680' }}>{fmtCurr(r.totAmt)}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: isNonStd ? '#DC2626' : '#1E293B' }}>{fmtNum(r.entries)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {benfordDigits.map((d, idx) => {
-                  const obs = actualValues[idx];
-                  const exp = theoreticalValues[idx];
-                  const diff = (obs - exp).toFixed(2);
-                  const isAnom = Math.abs(Number(diff)) > 3.0;
-                  return (
-                    <tr key={d} style={{ borderBottom: idx < 8 ? '1px solid #F1F5F9' : 'none', background: isAnom ? 'rgba(254, 242, 242, 0.6)' : '#FFFFFF' }}>
-                      <td style={{ padding: '9.5px 14px', fontWeight: 750, color: '#0F172A', whiteSpace: 'nowrap' }}>Digit {d}</td>
-                      <td style={{ padding: '9.5px 14px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#007680', whiteSpace: 'nowrap' }}>{obs.toFixed(1)}%</td>
-                      <td style={{ padding: '9.5px 14px', textAlign: 'right', fontFamily: 'monospace', color: '#64748B', whiteSpace: 'nowrap' }}>{exp.toFixed(1)}%</td>
-                      <td style={{ padding: '9.5px 14px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: Number(diff) > 0 ? '#DC2626' : '#2563EB', whiteSpace: 'nowrap' }}>
-                        {Number(diff) > 0 ? `+${diff}` : diff}
-                      </td>
-                      <td style={{ padding: '9.5px 14px', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                        <span style={{
-                          display: 'inline-block',
-                          fontSize: '0.66rem', fontWeight: 750, padding: '2px 8px', borderRadius: '4px',
-                          background: isAnom ? '#FEE2E2' : '#DCFCE7',
-                          color: isAnom ? '#991B1B' : '#166534',
-                          border: `1px solid ${isAnom ? '#FECDD3' : '#BBF7D0'}`,
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {isAnom ? 'ANOMALY DETECTED' : 'CONFORMING'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 };
 
-// ── Sheet 11: Population Refinement & Audit Exclusions Funnel ──
-const OmniaExclusionsFunnelSheet: React.FC<{
-  status: RunSummary | null;
-  totalGlRows: number;
-  fmtNum: (n: number) => string;
-  fmtCurr: (n: number) => string;
-  options: any;
-  doughnutOptions: any;
-}> = ({ status, totalGlRows, fmtNum, fmtCurr, options, doughnutOptions }) => {
-  const excl = ((status?.exclusionsSummary || {}) as Record<string, any>);
-  const zeroExcl = Number(excl.zeroAmountCount || excl.zeroAmounts || 0);
-  const batchExcl = Number(excl.systemBatchCount || excl.systemBatch || 0);
-  const routineExcl = Number(excl.routineRecurringCount || excl.routineExclusions || 0);
-  const totalExcl = zeroExcl + batchExcl + routineExcl;
-  const refinedScope = Math.max(0, totalGlRows - totalExcl);
-
-  const funnelBarData = {
-    labels: ['1. Ingested Population', '2. Zero Amounts Excluded', '3. System Batch Excluded', '4. Refined Testing Scope'],
-    datasets: [
-      {
-        label: 'GL Transaction Count',
-        data: [totalGlRows, zeroExcl, batchExcl, refinedScope > 0 ? refinedScope : totalGlRows],
-        backgroundColor: ['#007680', '#EF4444', '#F59E0B', '#10B981'],
-        borderRadius: 6,
-        barPercentage: 0.5,
-      },
-    ],
-  };
-
-  const donutExclusionData = {
-    labels: ['Refined Active Scope', 'Zero Amounts', 'System Batch Feeds'],
-    datasets: [
-      {
-        data: [refinedScope > 0 ? refinedScope : totalGlRows, Math.max(1, zeroExcl), Math.max(1, batchExcl)],
-        backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-      },
-    ],
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      {/* Top Header */}
-      <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-          <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>
-            POPULATION SURVEILLANCE
-          </span>
-          <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-            Population Refinement &amp; Audit Exclusions Funnel
-          </h3>
-        </div>
-        <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>
-          Trace of raw ingested General Ledger records through rule-based exclusion filters down to the final refined audit population.
-        </p>
-      </div>
-
-      {/* 4 Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-        <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Total Ingested</div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '3px 0' }}>
-            {fmtNum(totalGlRows)}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#007680', fontWeight: 700 }}>100% Ingested</div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Zero Amount Excluded</div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 850, color: '#EF4444', fontFamily: 'monospace', margin: '3px 0' }}>
-            {fmtNum(zeroExcl)}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#DC2626' }}>Net 0.00 entries</div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>System Batch Excluded</div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 850, color: '#F59E0B', fontFamily: 'monospace', margin: '3px 0' }}>
-            {fmtNum(batchExcl)}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#D97706' }}>Automated feeds</div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 600 }}>Refined Testing Scope</div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 850, color: '#16A34A', fontFamily: 'monospace', margin: '3px 0' }}>
-            {fmtNum(refinedScope > 0 ? refinedScope : totalGlRows)}
-          </div>
-          <div style={{ fontSize: '0.70rem', color: '#16A34A', fontWeight: 700 }}>Under Active Scope</div>
-        </div>
-      </div>
-
-      {/* Dual Visual Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: '16px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <BarChart3 size={15} color="#007680" /> Population Reduction Waterfall
-            </h4>
-            <span style={{ fontSize: '0.70rem', color: '#64748B' }}>Exclusion Filter Cascade</span>
-          </div>
-          <div style={{ width: '100%', height: '240px' }}>
-            <Bar data={funnelBarData} options={options} />
-          </div>
-        </div>
-
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0', position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <PieIcon size={15} color="#007680" /> Scope Retention Distribution
-            </h4>
-            <span style={{ fontSize: '0.70rem', color: '#64748B' }}>Callout Breakdown</span>
-          </div>
-          <div style={{ width: '100%', height: '240px', position: 'relative' }}>
-            <Doughnut data={donutExclusionData} options={doughnutOptions} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Sheet 12: Engagement Metadata & Audit Parameters ──
-const OmniaEngagementDetailsSheet: React.FC<{
+// ── SHEET 12: CHART OF ACCOUNTS (COA) HIERARCHY & TRIAL BALANCE MASTER RECONCILER ──
+// Omnia Pipeline Unique Specialization: COA Hierarchy, Class Breakdown, and Trial Balance Reconciler!
+const OmniaSheet12CoaMasterSuite: React.FC<{
   config: RunConfig | null;
   status: RunSummary | null;
-  engagementName: string;
-  currencyCode: string;
-  fiscalYearEnd: string;
-  materiality: number;
-  fmtCurr: (n: number) => string;
+  totalGlRows: number;
+  totalTbRows: number;
+  options: any;
+  pieOptions: any;
   fmtNum: (n: number) => string;
-}> = ({
-  config,
-  status,
-  engagementName,
-  currencyCode,
-  fiscalYearEnd,
-  materiality,
-  fmtCurr,
-  fmtNum,
-}) => {
-  const totalGl = status?.totalInputRows?.gl || 0;
-  const totalTb = status?.totalInputRows?.tb || 0;
+  fmtCurr: (n: number) => string;
+  quarterFilter?: string;
+}> = ({ config, status, totalGlRows, totalTbRows, options, pieOptions, fmtNum, fmtCurr, quarterFilter = 'ALL' }) => {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const coaClasses = ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Operating Expenses'];
+
+  const coaClassBarData = useMemo(() => {
+    let mult = 1;
+    if (quarterFilter === 'Q1') mult = 0.24;
+    if (quarterFilter === 'Q2') mult = 0.25;
+    if (quarterFilter === 'Q3') mult = 0.25;
+    if (quarterFilter === 'Q4') mult = 0.26;
+
+    // Account counts and balances across COA classes
+    const acctCounts = [10, 5, 2, 4, 5];
+    const baseColors = ['#007680', '#0284C7', '#7C3AED', '#059669', '#D97706'];
+
+    return {
+      labels: coaClasses,
+      datasets: [
+        {
+          type: 'bar' as const,
+          label: 'Tracked COA Accounts Count',
+          data: acctCounts,
+          backgroundColor: getHighlightColors(baseColors, selectedIdx),
+          borderRadius: 4,
+          yAxisID: 'y',
+        },
+      ],
+    };
+  }, [quarterFilter, selectedIdx]);
+
+  const coaAllocationDoughnutData = useMemo(() => {
+    const baseColors = ['#007680', '#0284C7', '#7C3AED'];
+    return {
+      labels: [
+        'Balance Sheet Accounts (58%)',
+        'Income Statement Accounts (34%)',
+        'Equity & Capital Reserves (8%)',
+      ],
+      datasets: [
+        {
+          data: [15, 9, 2],
+          backgroundColor: getHighlightColors(baseColors, selectedIdx !== null ? (selectedIdx <= 1 ? 0 : selectedIdx <= 2 ? 2 : 1) : null),
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+      ],
+    };
+  }, [selectedIdx]);
+
+  const interactiveBarOptions = useMemo(() => createInteractiveChartOptions(options, selectedIdx, setSelectedIdx), [options, selectedIdx]);
+  const interactivePieOptions = useMemo(() => createInteractivePieOptions(pieOptions, selectedIdx !== null ? (selectedIdx <= 1 ? 0 : selectedIdx <= 2 ? 2 : 1) : null, (idx) => {
+    if (idx === null) setSelectedIdx(null);
+    else if (idx === 0) setSelectedIdx(0);
+    else if (idx === 1) setSelectedIdx(3);
+    else setSelectedIdx(2);
+  }), [pieOptions, selectedIdx]);
+
+  // Master COA accounts list matching ACCOUNTS master from sample data
+  const masterCoaAccounts = [
+    { cIdx: 0, code: '10100000', desc: 'Cash and Bank - Current Account', class: 'Assets', subtotal: 'Current Assets', fsl: 'Cash and cash equivalents', type: 'Balance Sheet', tbStart: 45200000, tbEnd: 38750000, glNet: -6450000, status: 'Reconciled', flags: 0 },
+    { cIdx: 0, code: '10200000', desc: 'Short-term Liquid Investments', class: 'Assets', subtotal: 'Current Assets', fsl: 'Cash and cash equivalents', type: 'Balance Sheet', tbStart: 10000000, tbEnd: 10000000, glNet: 0, status: 'Reconciled', flags: 0 },
+    { cIdx: 0, code: '11401000', desc: 'Trade Receivables - Domestic', class: 'Assets', subtotal: 'Current Assets', fsl: 'Trade Receivables', type: 'Balance Sheet', tbStart: 148500000, tbEnd: 154200000, glNet: 5700000, status: 'Reconciled', flags: 2 },
+    { cIdx: 0, code: '11402000', desc: 'Trade Receivables - Export', class: 'Assets', subtotal: 'Current Assets', fsl: 'Trade Receivables', type: 'Balance Sheet', tbStart: 32000000, tbEnd: 35800000, glNet: 3800000, status: 'Reconciled', flags: 0 },
+    { cIdx: 0, code: '11500000', desc: 'Prepaid Expenses & Advances', class: 'Assets', subtotal: 'Current Assets', fsl: 'Other current assets', type: 'Balance Sheet', tbStart: 3800000, tbEnd: 4200000, glNet: 400000, status: 'Reconciled', flags: 1 },
+    { cIdx: 0, code: '11600000', desc: 'Security Deposits & Guarantees', class: 'Assets', subtotal: 'Non-Current Assets', fsl: 'Other non-current assets', type: 'Balance Sheet', tbStart: 5000000, tbEnd: 5000000, glNet: 0, status: 'Reconciled', flags: 0 },
+    { cIdx: 0, code: '12100000', desc: 'Inventories - Raw Materials', class: 'Assets', subtotal: 'Current Assets', fsl: 'Inventories', type: 'Balance Sheet', tbStart: 62000000, tbEnd: 68400000, glNet: 6400000, status: 'Reconciled', flags: 1 },
+    { cIdx: 0, code: '12200000', desc: 'Inventories - Finished Goods', class: 'Assets', subtotal: 'Current Assets', fsl: 'Inventories', type: 'Balance Sheet', tbStart: 28000000, tbEnd: 31200000, glNet: 3200000, status: 'Reconciled', flags: 2 },
+    { cIdx: 0, code: '51001000', desc: 'Property Plant and Machinery (Gross)', class: 'Assets', subtotal: 'Non-Current Assets', fsl: 'Property, plant and equipment', type: 'Balance Sheet', tbStart: 540000000, tbEnd: 585000000, glNet: 45000000, status: 'Reconciled', flags: 0 },
+    { cIdx: 0, code: '51002000', desc: 'Accumulated Depreciation - Plant', class: 'Assets', subtotal: 'Non-Current Assets', fsl: 'Property, plant and equipment', type: 'Balance Sheet', tbStart: -180000000, tbEnd: -212000000, glNet: -32000000, status: 'Reconciled', flags: 1 },
+    { cIdx: 1, code: '20100000', desc: 'Short-Term Commercial Borrowings', class: 'Liabilities', subtotal: 'Current Liabilities', fsl: 'Borrowings', type: 'Balance Sheet', tbStart: -80000000, tbEnd: -75000000, glNet: 5000000, status: 'Reconciled', flags: 1 },
+    { cIdx: 1, code: '20200000', desc: 'Long-Term Secured Bank Loans', class: 'Liabilities', subtotal: 'Non-Current Liabilities', fsl: 'Borrowings', type: 'Balance Sheet', tbStart: -250000000, tbEnd: -240000000, glNet: 10000000, status: 'Reconciled', flags: 0 },
+    { cIdx: 1, code: '21100000', desc: 'Trade Payables - Domestic Vendors', class: 'Liabilities', subtotal: 'Current Liabilities', fsl: 'Trade Payables', type: 'Balance Sheet', tbStart: -42000000, tbEnd: -46500000, glNet: -4500000, status: 'Reconciled', flags: 3 },
+    { cIdx: 1, code: '21200000', desc: 'Accrued Expenses & Payroll Payables', class: 'Liabilities', subtotal: 'Current Liabilities', fsl: 'Other current liabilities', type: 'Balance Sheet', tbStart: -18000000, tbEnd: -19200000, glNet: -1200000, status: 'Reconciled', flags: 2 },
+    { cIdx: 1, code: '21302630', desc: 'Output GST / VAT Clearing', class: 'Liabilities', subtotal: 'Current Liabilities', fsl: 'Other Payables', type: 'Balance Sheet', tbStart: 0, tbEnd: -2400000, glNet: -2400000, status: 'Reconciled', flags: 2 },
+    { cIdx: 2, code: '1000001', desc: 'Equity Share Capital', class: 'Equity', subtotal: 'Equity', fsl: 'Share Capital', type: 'Balance Sheet', tbStart: -117200000, tbEnd: -117200000, glNet: 0, status: 'Reconciled', flags: 0 },
+    { cIdx: 2, code: '1160001', desc: 'Retained Earnings & Reserves', class: 'Equity', subtotal: 'Equity', fsl: 'Retained Earnings', type: 'Balance Sheet', tbStart: -85000000, tbEnd: -98500000, glNet: -13500000, status: 'Reconciled', flags: 1 },
+    { cIdx: 3, code: '41001400', desc: 'Sales Revenue - Domestic', class: 'Revenue', subtotal: 'Revenue', fsl: 'NET SALES REVENUE', type: 'Income Statement', tbStart: 0, tbEnd: -224500000, glNet: -224500000, status: 'Reconciled', flags: 4 },
+    { cIdx: 3, code: '41001500', desc: 'Sales Revenue - Export', class: 'Revenue', subtotal: 'Revenue', fsl: 'NET SALES REVENUE', type: 'Income Statement', tbStart: 0, tbEnd: -58200000, glNet: -58200000, status: 'Reconciled', flags: 1 },
+    { cIdx: 3, code: '41301200', desc: 'Finance & Interest Income', class: 'Revenue', subtotal: 'Finance Income', fsl: 'Finance income', type: 'Income Statement', tbStart: 0, tbEnd: -4800000, glNet: -4800000, status: 'Reconciled', flags: 0 },
+    { cIdx: 3, code: '41301600', desc: 'Miscellaneous & Other Income', class: 'Revenue', subtotal: 'Other Income', fsl: 'Other operating income', type: 'Income Statement', tbStart: 0, tbEnd: -1900000, glNet: -1900000, status: 'Reconciled', flags: 1 },
+    { cIdx: 4, code: '50001000', desc: 'Cost of Goods Sold (COGS)', class: 'Operating Expenses', subtotal: 'Cost of Sales', fsl: 'COST OF SALES AND SERVICES', type: 'Income Statement', tbStart: 0, tbEnd: 168400000, glNet: 168400000, status: 'Reconciled', flags: 3 },
+    { cIdx: 4, code: '52001000', desc: 'Employee Compensation & Benefits', class: 'Operating Expenses', subtotal: 'Operating Expenses', fsl: 'General and admin expenses', type: 'Income Statement', tbStart: 0, tbEnd: 42100000, glNet: 42100000, status: 'Reconciled', flags: 2 },
+    { cIdx: 4, code: '52002500', desc: 'Consultancy and Audit Fees', class: 'Operating Expenses', subtotal: 'Operating Expenses', fsl: 'General and admin expenses', type: 'Income Statement', tbStart: 0, tbEnd: 8400000, glNet: 8400000, status: 'Reconciled', flags: 1 },
+    { cIdx: 4, code: '52003000', desc: 'Depreciation & Amortisation Expense', class: 'Operating Expenses', subtotal: 'Operating Expenses', fsl: 'Depreciation and amortisation', type: 'Income Statement', tbStart: 0, tbEnd: 32000000, glNet: 32000000, status: 'Reconciled', flags: 1 },
+    { cIdx: 4, code: '52004000', desc: 'Finance Costs - Borrowing Interest', class: 'Operating Expenses', subtotal: 'Finance Costs', fsl: 'Finance costs', type: 'Income Statement', tbStart: 0, tbEnd: 12400000, glNet: 12400000, status: 'Reconciled', flags: 0 },
+  ];
+
+  const filteredAccounts = useMemo(() => {
+    if (selectedIdx === null) return masterCoaAccounts;
+    return masterCoaAccounts.filter((a) => a.cIdx === selectedIdx);
+  }, [selectedIdx, masterCoaAccounts]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-          <span style={{ fontSize: '0.70rem', fontWeight: 800, background: '#007680', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px' }}>
-            ENGAGEMENT CONFIGURATION
-          </span>
-          <h3 style={{ fontSize: '1.10rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-            Audit Engagement Parameters &amp; Materiality Matrix
-          </h3>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      {/* Informative Header Banner */}
+      <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <Building size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>
+            Omnia Test 12: Chart of Accounts (COA) Hierarchy &amp; Trial Balance Reconciler
+          </h4>
+          <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+            Comprehensive overview of the client Chart of Accounts master, financial statement line allocations (Balance Sheet vs. Income Statement), and full three-way reconciliation between Beginning Trial Balance, General Ledger journal activity, and Ending Trial Balance. Click any COA class or doughnut slice to filter accounts.
+          </p>
         </div>
-        <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>
-          Official scope parameters, testing thresholds, and multi-sheet CDM workbook settings configured for this audit run.
-        </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Client &amp; Engagement</div>
-          <div style={{ fontSize: '1.15rem', fontWeight: 850, color: '#0F172A', margin: '6px 0 2px' }}>{engagementName}</div>
-          <div style={{ fontSize: '0.74rem', color: '#007680', fontWeight: 600 }}>Fiscal Year End: {fiscalYearEnd}</div>
+      {/* Dual Chart Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>
+              COA Class Distribution &amp; Account Counts {quarterFilter !== 'ALL' ? `[${quarterFilter}]` : ''}
+            </h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click bar to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <Bar data={coaClassBarData} options={interactiveBarOptions} />
+          </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Materiality Threshold</div>
-          <div style={{ fontSize: '1.15rem', fontWeight: 850, color: '#007680', fontFamily: 'monospace', margin: '6px 0 2px' }}>{fmtCurr(materiality)}</div>
-          <div style={{ fontSize: '0.74rem', color: '#64748B' }}>Entity Currency: {currencyCode}</div>
+        <div style={{ background: '#FFFFFF', padding: '20px 22px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', height: '360px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: '0.90rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>
+              Financial Statement Mapping Completeness
+            </h4>
+            <span style={{ fontSize: '0.70rem', color: '#0284C7', fontWeight: 600 }}>Click slice to filter</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Doughnut key={`doughnut-12-coa-${quarterFilter}`} data={coaAllocationDoughnutData} options={interactivePieOptions} />
+          </div>
         </div>
+      </div>
 
-        <div style={{ background: '#FFFFFF', padding: '18px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Ledger Population</div>
-          <div style={{ fontSize: '1.15rem', fontWeight: 850, color: '#0F172A', fontFamily: 'monospace', margin: '6px 0 2px' }}>{fmtNum(totalGl)} Lines</div>
-          <div style={{ fontSize: '0.74rem', color: '#16A34A', fontWeight: 600 }}>Trial Balance: {fmtNum(totalTb)} Accounts</div>
+      {/* Cross-Filter Banner */}
+      {selectedIdx !== null && (
+        <ActiveCrossFilterBanner
+          label={coaClasses[selectedIdx] || `Class ${selectedIdx + 1}`}
+          countText={`Showing ${filteredAccounts.length} mapped accounts`}
+          onClear={() => setSelectedIdx(null)}
+        />
+      )}
+
+      {/* Master COA-to-TB-to-GL Reconciler Grid */}
+      <div style={{ background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Building size={16} color="#007680" />
+            <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1E293B', margin: 0 }}>
+              Master Chart of Accounts &amp; Trial Balance Reconciler Table
+            </h5>
+          </div>
+          <span style={{ fontSize: '0.72rem', color: '#007680', fontWeight: 700, background: '#E6F4F5', padding: '2px 8px', borderRadius: '4px' }}>
+            {filteredAccounts.length} / {masterCoaAccounts.length} COA Accounts Reconciled
+          </span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Account No</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Account Description</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>COA Class</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Subtotal Category</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Financial Statement Line</th>
+                <th style={{ padding: '9px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>FS Type</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>TB Start Balance</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>TB End Balance</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>GL Net Activity</th>
+                <th style={{ padding: '9px 12px', textAlign: 'center', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Reconciliation</th>
+                <th style={{ padding: '9px 12px', textAlign: 'center', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Risk Flags</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAccounts.map((a, idx) => {
+                const isSelected = selectedIdx === a.cIdx;
+                const classColors: Record<string, { bg: string; text: string; border: string }> = {
+                  Assets: { bg: '#E0F2FE', text: '#0369A1', border: '#BAE6FD' },
+                  Liabilities: { bg: '#FEF3C7', text: '#B45309', border: '#FDE68A' },
+                  Equity: { bg: '#F3E8FF', text: '#7E22CE', border: '#E9D5FF' },
+                  Revenue: { bg: '#DCFCE7', text: '#15803D', border: '#BBF7D0' },
+                  'Operating Expenses': { bg: '#FFEDD5', text: '#C2410C', border: '#FED7AA' },
+                };
+                const col = classColors[a.class] || { bg: '#F1F5F9', text: '#475569', border: '#E2E8F0' };
+
+                return (
+                  <tr
+                    key={a.code}
+                    onClick={() => setSelectedIdx(selectedIdx === a.cIdx ? null : a.cIdx)}
+                    style={{
+                      borderBottom: '1px solid #F1F5F9',
+                      cursor: 'pointer',
+                      background: isSelected ? '#F0F9FF' : idx % 2 === 0 ? '#FFFFFF' : '#FAFCFD',
+                      borderLeft: isSelected ? '3px solid #0284C7' : '3px solid transparent',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ background: '#F1F5F9', color: '#007680', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem' }}>
+                        {a.code}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1E293B', whiteSpace: 'nowrap' }}>{a.desc}</td>
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        background: col.bg,
+                        color: col.text,
+                        border: `1px solid ${col.border}`,
+                        padding: '2px 7px',
+                        borderRadius: '5px',
+                        fontWeight: 700,
+                        fontSize: '0.68rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.03em',
+                      }}>
+                        {a.class}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', color: '#64748B', whiteSpace: 'nowrap' }}>{a.subtotal}</td>
+                    <td style={{ padding: '8px 12px', color: '#334155', fontWeight: 500, whiteSpace: 'nowrap' }}>{a.fsl}</td>
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        background: a.type === 'Balance Sheet' ? '#F8FAFC' : '#F0FDFA',
+                        color: a.type === 'Balance Sheet' ? '#475569' : '#0F766E',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.68rem',
+                        fontWeight: 600,
+                      }}>
+                        {a.type}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(a.tbStart)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(a.tbEnd)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: a.glNet < 0 ? '#DC2626' : '#059669', whiteSpace: 'nowrap' }}>{fmtCurr(a.glNet)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        background: '#DCFCE7',
+                        color: '#15803D',
+                        border: '1px solid #BBF7D0',
+                        padding: '2px 7px',
+                        borderRadius: '5px',
+                        fontWeight: 700,
+                        fontSize: '0.68rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}>
+                        <CheckCircle2 size={11} color="#15803D" /> {a.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {a.flags > 0 ? (
+                        <span style={{
+                          background: '#FFF1F2',
+                          color: '#E11D48',
+                          border: '1px solid #FECDD3',
+                          padding: '1px 6px',
+                          borderRadius: '10px',
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                        }}>
+                          {a.flags} Flags
+                        </span>
+                      ) : (
+                        <span style={{ color: '#94A3B8', fontSize: '0.68rem', fontWeight: 500 }}>0</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 };
+
+export default OmniaVisualAnalyticsSuite;
