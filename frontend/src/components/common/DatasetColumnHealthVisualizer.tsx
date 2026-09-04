@@ -208,14 +208,6 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
     return found || datasets[0];
   }, [datasets, selectedDatasetId]);
 
-  // Ensure default selected columns for EDA studio
-  React.useEffect(() => {
-    if (activeDataset && activeDataset.columns.length > 0 && selectedColumnNames.length === 0) {
-      const firstNum = activeDataset.columns.find(c => c.inferredType === 'Numeric' || c.inferredType === 'Currency');
-      setSelectedColumnNames([firstNum ? firstNum.name : activeDataset.columns[0].name]);
-    }
-  }, [activeDataset]);
-
   const categoryCounts = useMemo(() => {
     if (!activeDataset) {
       return { all: 0, numeric: 0, categorical: 0, date: 0, identifier: 0, highCard: 0, outliers: 0 };
@@ -283,18 +275,14 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
   const handleToggleColumn = (colName: string) => {
     setSelectedColumnNames(prev => {
       if (prev.includes(colName)) {
-        if (prev.length === 1) return prev; // Keep at least one selected
         return prev.filter(n => n !== colName);
       }
       return [...prev, colName];
     });
   };
 
-
   const handleClearSelection = () => {
-    if (activeDataset && activeDataset.columns.length > 0) {
-      setSelectedColumnNames([activeDataset.columns[0].name]);
-    }
+    setSelectedColumnNames([]);
   };
 
   const handleTogglePin = () => {
@@ -425,66 +413,6 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
         ticks: { font: { size: 9.5, weight: '500' }, color: '#64748B' },
         grid: { color: '#F1F5F9' },
         beginAtZero: true,
-      },
-    },
-  };
-
-  // ── Chart 3: Field Completeness & Quality Bar ──
-  const completenessBarData = {
-    labels: activeDataset.columns.map((c) => (c.name.length > 14 ? c.name.slice(0, 12) + '..' : c.name)),
-    datasets: [
-      {
-        label: 'Completeness %',
-        data: activeDataset.columns.map((c) => c.completenessPct),
-        backgroundColor: activeDataset.columns.map((c) =>
-          c.completenessPct === 100 ? '#007680' : c.completenessPct >= 80 ? '#0284C7' : '#D97706'
-        ),
-        borderRadius: 4,
-        borderWidth: 0,
-      },
-    ],
-  };
-
-  const completenessBarOptions: any = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#FFFFFF',
-        titleColor: '#0F172A',
-        bodyColor: '#334155',
-        borderColor: '#E2E8F0',
-        borderWidth: 1,
-        padding: 10,
-        cornerRadius: 8,
-        callbacks: {
-          title: (items: any[]) => activeDataset.columns[items[0].dataIndex]?.name || '',
-          label: (item: any) => {
-            const col = activeDataset.columns[item.dataIndex];
-            return [
-              `Completeness: ${col.completenessPct}%`,
-              `Valid Rows: ${col.validCount} of ${col.totalCount}`,
-              `Missing / Null: ${col.missingCount} cells`,
-            ];
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        ticks: { font: { size: 9, weight: '600' }, color: '#64748B', maxRotation: 45, minRotation: 30 },
-        grid: { display: false },
-      },
-      y: {
-        min: 0,
-        max: 100,
-        ticks: {
-          font: { size: 9.5, weight: '500' },
-          color: '#64748B',
-          callback: (val: any) => `${val}%`,
-        },
-        grid: { color: '#F1F5F9' },
       },
     },
   };
@@ -1315,19 +1243,19 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
             )}
 
             {/* ── Left-Right EDA Split View (Utilizing Full Screen Space) ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 330px) minmax(0, 1fr)', gap: '16px', alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 420px) minmax(0, 1fr)', gap: '16px', alignItems: 'stretch' }}>
               {/* LEFT PANEL: Interactive Column Selector & Type Filter */}
               <div
                 style={{
                   background: '#FFFFFF',
                   borderRadius: '12px',
                   border: '1px solid #E2E8F0',
-                  padding: '14px',
+                  padding: '16px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '10px',
-                  maxHeight: '540px',
+                  gap: '12px',
+                  maxHeight: '560px',
                 }}
               >
                 {/* Header: Title + Selection Mode Indicator */}
@@ -1346,12 +1274,14 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                         fontWeight: 750,
                         padding: '2px 7px',
                         borderRadius: '10px',
-                        background: selectedColumnNames.length > 1 ? '#F0FDF4' : '#F0FDFA',
-                        color: selectedColumnNames.length > 1 ? '#16A34A' : '#007680',
-                        border: selectedColumnNames.length > 1 ? '1px solid #BBF7D0' : '1px solid #99F6E4',
+                        background: selectedColumnNames.length > 1 ? '#F0FDF4' : selectedColumnNames.length === 1 ? '#F0FDFA' : '#F8FAFC',
+                        color: selectedColumnNames.length > 1 ? '#16A34A' : selectedColumnNames.length === 1 ? '#007680' : '#64748B',
+                        border: selectedColumnNames.length > 1 ? '1px solid #BBF7D0' : selectedColumnNames.length === 1 ? '1px solid #99F6E4' : '1px solid #E2E8F0',
                       }}
                     >
-                      {selectedColumnNames.length === 1
+                      {selectedColumnNames.length === 0
+                        ? 'No Selection'
+                        : selectedColumnNames.length === 1
                         ? 'Univariate (1)'
                         : selectedColumnNames.length === 2
                         ? 'Bivariate (2)'
@@ -1420,10 +1350,10 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    gap: '6px',
                     overflowY: 'auto',
                     flex: 1,
-                    paddingRight: '2px',
+                    paddingRight: '4px',
                   }}
                 >
                   {filteredColumns.map((col) => {
@@ -1436,30 +1366,33 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                         key={col.name}
                         onClick={() => handleToggleColumn(col.name)}
                         style={{
-                          padding: '6px 8px',
-                          borderRadius: '6px',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
                           border: isSelected ? '1.5px solid #007680' : '1px solid #E2E8F0',
                           background: isSelected ? '#F0FDFA' : '#FAFCFD',
+                          boxShadow: isSelected ? '0 1px 3px rgba(0, 118, 128, 0.08)' : 'none',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          gap: '6px',
+                          gap: '8px',
                           cursor: 'pointer',
                           transition: 'all 0.12s ease',
                         }}
                       >
                         {/* Checkbox & Name */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
-                            style={{ accentColor: '#007680', cursor: 'pointer' }}
+                            style={{ accentColor: '#007680', cursor: 'pointer', width: '14px', height: '14px', flexShrink: 0 }}
                           />
-                          {getTypeIcon(col.inferredType)}
+                          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
+                            {getTypeIcon(col.inferredType)}
+                          </span>
                           <span
                             style={{
-                              fontSize: '0.71rem',
+                              fontSize: '0.74rem',
                               fontWeight: isSelected ? 750 : 600,
                               color: isSelected ? '#005A60' : '#0F172A',
                               fontFamily: 'var(--font-mono, monospace)',
@@ -1474,17 +1407,17 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                         </div>
 
                         {/* Right Tag & Signal Indicators */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
                           {isHighCard && (
                             <span
                               style={{
-                                fontSize: '0.58rem',
+                                fontSize: '0.60rem',
                                 fontWeight: 700,
                                 color: '#6366F1',
                                 background: '#F5F3FF',
                                 border: '1px solid #DDD6FE',
-                                padding: '1px 5px',
-                                borderRadius: '3px',
+                                padding: '1.5px 6px',
+                                borderRadius: '4px',
                                 cursor: 'help',
                               }}
                               title="High Cardinality: Distinct values account for ≥ 70% of total records (e.g. unique keys or transaction IDs)"
@@ -1495,13 +1428,13 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                           {isFlagged && (
                             <span
                               style={{
-                                fontSize: '0.58rem',
+                                fontSize: '0.60rem',
                                 fontWeight: 700,
                                 color: '#D97706',
                                 background: '#FFFBEB',
                                 border: '1px solid #FDE68A',
-                                padding: '1px 5px',
-                                borderRadius: '3px',
+                                padding: '1.5px 6px',
+                                borderRadius: '4px',
                                 cursor: 'help',
                               }}
                               title="Quality Flag: Potential format variances, outliers, or zero/negative anomalies detected"
@@ -1515,8 +1448,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                               fontWeight: 700,
                               color: getTypeBadgeColor(col.inferredType),
                               background: getTypeBadgeBg(col.inferredType),
-                              padding: '1px 4px',
-                              borderRadius: '3px',
+                              padding: '1.5px 6px',
+                              borderRadius: '4px',
                               border: `1px solid ${getTypeBadgeBorder(col.inferredType)}`,
                             }}
                           >
@@ -1529,8 +1462,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                 </div>
 
                 {/* Quick Actions Footer */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid #E2E8F0', fontSize: '0.66rem', gap: '6px' }}>
-                  <span style={{ color: '#64748B' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #E2E8F0', fontSize: '0.68rem', gap: '8px' }}>
+                  <span style={{ color: '#64748B', fontWeight: 600 }}>
                     {selectedColumnNames.length} selected of {activeDataset.columns.length}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1545,37 +1478,39 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                         background: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '#F0FDFA' : 'none',
                         border: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '1px solid #99F6E4' : '1px solid transparent',
                         borderRadius: '5px',
-                        padding: '2px 6px',
+                        padding: '3px 8px',
                         color: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '#007680' : '#64748B',
                         fontWeight: 750,
                         cursor: 'pointer',
-                        fontSize: '0.66rem',
+                        fontSize: '0.68rem',
                       }}
                     >
                       {pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? (
                         <>
-                          <PinOff size={11} /> Unpin
+                          <PinOff size={12} /> Unpin
                         </>
                       ) : (
                         <>
-                          <Pin size={11} /> Pin &amp; Compare
+                          <Pin size={12} /> Pin &amp; Compare
                         </>
                       )}
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleClearSelection}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#007680',
-                        fontWeight: 750,
-                        cursor: 'pointer',
-                        fontSize: '0.66rem',
-                      }}
-                    >
-                      Reset
-                    </button>
+                    {selectedColumnNames.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearSelection}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#007680',
+                          fontWeight: 750,
+                          cursor: 'pointer',
+                          fontSize: '0.68rem',
+                        }}
+                      >
+                        Deselect All
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1621,6 +1556,79 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {numericViewToggle(selectedColumnObjects, numericViewMode, setNumericViewMode)}
+                        {selectedColumnObjects.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const colName = selectedColumnObjects[0]?.name || 'current field';
+                              const colType = selectedColumnObjects[0]?.inferredType || 'field';
+                              const isSingle = selectedColumnObjects.length === 1;
+                              const promptText = isSingle
+                                ? `Analyze the statistical distribution, outliers, skewness, and data quality implications for column "${colName}" (${colType}) in dataset "${activeDataset.title}". Provide key audit observations and recommendations.`
+                                : `Analyze the correlation, relationships, and data dependencies between fields (${selectedColumnObjects.map(c => c.name).join(', ')}) in dataset "${activeDataset.title}". Provide audit risk signals and pattern findings.`;
+
+                              window.dispatchEvent(new CustomEvent('jet:open-ai', {
+                                detail: {
+                                  prompt: promptText,
+                                  context: colName,
+                                }
+                              }));
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #F0FDFA 0%, #E0F2FE 100%)',
+                              border: '1px solid #99F6E4',
+                              color: '#007680',
+                              fontSize: '0.66rem',
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(0, 118, 128, 0.06)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Ask Data Agent to analyze and explain this distribution"
+                          >
+                            <Sparkles size={11} color="#007680" />
+                            <span>Explain with AI</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {renderFieldSummaryStrip(selectedColumnObjects)}
+                    {renderEdaVisualContent(selectedColumnObjects, activeDataset, numericViewMode)}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0',
+                    padding: selectedColumnObjects.length > 0 ? '16px 18px' : '20px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    minHeight: '480px',
+                    justifyContent: selectedColumnObjects.length === 0 ? 'center' : 'flex-start',
+                  }}
+                >
+                  {/* Top Canvas Bar: Mode label, Numeric toggle & Contextual AI Trigger */}
+                  {selectedColumnObjects.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.70rem', fontWeight: 750, color: '#475569' }}>
+                          {selectedColumnObjects.length === 1 ? 'Single Field Profile' : selectedColumnObjects.length === 2 ? 'Bivariate Correlation' : 'Multivariate EDA'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {numericViewToggle(selectedColumnObjects, numericViewMode, setNumericViewMode)}
+
+                        {/* Contextual AI Agent Trigger */}
                         <button
                           type="button"
                           onClick={() => {
@@ -1642,12 +1650,12 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '5px',
-                            padding: '3px 8px',
+                            padding: '4px 10px',
                             borderRadius: '6px',
                             background: 'linear-gradient(135deg, #F0FDFA 0%, #E0F2FE 100%)',
                             border: '1px solid #99F6E4',
                             color: '#007680',
-                            fontSize: '0.66rem',
+                            fontSize: '0.68rem',
                             fontWeight: 750,
                             cursor: 'pointer',
                             boxShadow: '0 1px 2px rgba(0, 118, 128, 0.06)',
@@ -1655,87 +1663,20 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                           }}
                           title="Ask Data Agent to analyze and explain this distribution"
                         >
-                          <Sparkles size={11} color="#007680" />
-                          <span>Explain with AI</span>
+                          <Sparkles size={12} color="#007680" />
+                          <span>
+                            {selectedColumnObjects.length === 1
+                              ? 'Explain this distribution'
+                              : selectedColumnObjects.length === 2
+                              ? 'Explain correlation'
+                              : 'Explain schema relationship'}
+                          </span>
                         </button>
                       </div>
                     </div>
-                    {renderFieldSummaryStrip(selectedColumnObjects)}
-                    {renderEdaVisualContent(selectedColumnObjects, activeDataset, numericViewMode)}
-                  </div>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    background: '#FFFFFF',
-                    borderRadius: '12px',
-                    border: '1px solid #E2E8F0',
-                    padding: '16px 18px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                  }}
-                >
-                  {/* Top Canvas Bar: Mode label, Numeric toggle & Contextual AI Trigger */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '0.70rem', fontWeight: 750, color: '#475569' }}>
-                        {selectedColumnObjects.length === 1 ? 'Single Field Profile' : selectedColumnObjects.length === 2 ? 'Bivariate Correlation' : 'Multivariate EDA'}
-                      </span>
-                    </div>
+                  )}
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {numericViewToggle(selectedColumnObjects, numericViewMode, setNumericViewMode)}
-
-                      {/* Contextual AI Agent Trigger */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const colName = selectedColumnObjects[0]?.name || 'current field';
-                          const colType = selectedColumnObjects[0]?.inferredType || 'field';
-                          const isSingle = selectedColumnObjects.length === 1;
-                          const promptText = isSingle
-                            ? `Analyze the statistical distribution, outliers, skewness, and data quality implications for column "${colName}" (${colType}) in dataset "${activeDataset.title}". Provide key audit observations and recommendations.`
-                            : `Analyze the correlation, relationships, and data dependencies between fields (${selectedColumnObjects.map(c => c.name).join(', ')}) in dataset "${activeDataset.title}". Provide audit risk signals and pattern findings.`;
-
-                          window.dispatchEvent(new CustomEvent('jet:open-ai', {
-                            detail: {
-                              prompt: promptText,
-                              context: colName,
-                            }
-                          }));
-                        }}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          background: 'linear-gradient(135deg, #F0FDFA 0%, #E0F2FE 100%)',
-                          border: '1px solid #99F6E4',
-                          color: '#007680',
-                          fontSize: '0.68rem',
-                          fontWeight: 750,
-                          cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0, 118, 128, 0.06)',
-                          transition: 'all 0.15s ease',
-                        }}
-                        title="Ask Data Agent to analyze and explain this distribution"
-                      >
-                        <Sparkles size={12} color="#007680" />
-                        <span>
-                          {selectedColumnObjects.length === 1
-                            ? 'Explain this distribution'
-                            : selectedColumnObjects.length === 2
-                            ? 'Explain correlation'
-                            : 'Explain schema relationship'}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {renderFieldSummaryStrip(selectedColumnObjects)}
+                  {selectedColumnObjects.length > 0 && renderFieldSummaryStrip(selectedColumnObjects)}
                   {renderEdaVisualContent(selectedColumnObjects, activeDataset, numericViewMode)}
                 </div>
               )}
@@ -1743,96 +1684,75 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
           </div>
         )}
 
-        {/* VIEW 1: CHARTS & SCHEMA MACRO ANALYTICS (Full-Width, Dual & Tri-Pane Layout) */}
+        {/* VIEW 1: CHARTS & SCHEMA MACRO ANALYTICS */}
         {activeVisualSubTab === 'charts' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Top Row: Type Classification Donut (Left) & Cardinality Density (Right) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(360px, 1.35fr)', gap: '14px', alignItems: 'stretch' }}>
-              {/* Left Card: Type Classification Donut + Detailed Breakdown Legend */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Top Row: Donut Chart (Left) & Cardinality Density (Right) - Equal Height (270px) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(320px, 1.25fr)', gap: '14px', alignItems: 'stretch' }}>
+
+              {/* Left Card: Type Classification Donut (NO LEGEND) */}
               <div
                 style={{
                   background: '#FFFFFF',
                   borderRadius: '12px',
                   border: '1px solid #E2E8F0',
-                  padding: '16px',
+                  padding: '14px 16px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  minHeight: '290px',
+                  minHeight: '270px',
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <h4 style={{ fontSize: '0.88rem', fontWeight: 750, color: '#0F172A', margin: 0 }}>
-                      Schema Type Composition
+                      Schema Type Classification
                     </h4>
                     <span style={{ fontSize: '0.66rem', fontWeight: 750, color: '#007680', background: '#F0FDFA', border: '1px solid #CCFBF1', padding: '1px 7px', borderRadius: '4px' }}>
                       {totalCols} Columns
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.68rem', color: '#64748B', margin: '2px 0 8px' }}>
-                    Canonical inferred data types across active dataset
+                  <p style={{ fontSize: '0.68rem', color: '#64748B', margin: '2px 0 6px' }}>
+                    Inferred canonical field types in {activeDataset.title}
                   </p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '14px', alignItems: 'center' }}>
-                  {/* Donut Chart with Center Count */}
-                  <div style={{ height: '160px', width: '150px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Doughnut data={typeDonutData} options={typeDonutOptions} />
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        textAlign: 'center',
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
-                        {totalCols}
-                      </div>
-                      <div style={{ fontSize: '0.60rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginTop: '2px' }}>
-                        Fields
-                      </div>
+                {/* Donut Container with Centered Metric Badge (NO LEGEND) */}
+                <div style={{ height: '200px', width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Doughnut data={typeDonutData} options={typeDonutOptions} />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      textAlign: 'center',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                      {totalCols}
                     </div>
-                  </div>
-
-                  {/* Clean Legend Table Utilizing the Space */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {[
-                      { label: 'Numeric / Amount', count: activeDataset.typeDistribution.numeric, color: '#007680', pct: numPct },
-                      { label: 'Date / Time', count: activeDataset.typeDistribution.date, color: '#0284C7', pct: datePct },
-                      { label: 'Text / String', count: activeDataset.typeDistribution.text, color: '#0D9488', pct: textPct },
-                      { label: 'Identifier / Key', count: activeDataset.typeDistribution.identifier, color: '#6366F1', pct: idPct },
-                    ].map((item) => (
-                      <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', padding: '3px 6px', background: '#F8FAFC', borderRadius: '5px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
-                          <span style={{ color: '#334155', fontWeight: 600 }}>{item.label}</span>
-                        </div>
-                        <span style={{ fontWeight: 750, color: '#0F172A' }}>
-                          {item.count} <span style={{ color: '#94A3B8', fontWeight: 500, fontSize: '0.66rem' }}>({item.pct}%)</span>
-                        </span>
-                      </div>
-                    ))}
+                    <div style={{ fontSize: '0.60rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginTop: '2px' }}>
+                      Fields
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Card: Cardinality Density & Value Spread */}
+              {/* Right Card: Cardinality Density & Value Spread (Fills Container Fully) */}
               <div
                 style={{
                   background: '#FFFFFF',
                   borderRadius: '12px',
                   border: '1px solid #E2E8F0',
-                  padding: '16px',
+                  padding: '14px 16px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  minHeight: '290px',
+                  minHeight: '270px',
                 }}
               >
                 <div>
@@ -1844,55 +1764,17 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                       Key Dispersion
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.68rem', color: '#64748B', margin: '2px 0 8px' }}>
+                  <p style={{ fontSize: '0.68rem', color: '#64748B', margin: '2px 0 6px' }}>
                     Unique keys and distinct value variance count per column
                   </p>
                 </div>
 
-                <div style={{ height: '210px', width: '100%' }}>
+                {/* Fully Expanded Chart Taking All Vertical Space */}
+                <div style={{ height: '200px', width: '100%' }}>
                   <Line data={cardinalityChartData} options={cardinalityChartOptions} />
                 </div>
               </div>
-            </div>
 
-            {/* Bottom Row: Full-Width Field Completeness & Missing Cell Profiler */}
-            <div
-              style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                border: '1px solid #E2E8F0',
-                padding: '16px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div>
-                  <h4 style={{ fontSize: '0.88rem', fontWeight: 750, color: '#0F172A', margin: 0 }}>
-                    Field Completeness &amp; Data Population Rate
-                  </h4>
-                  <p style={{ fontSize: '0.68rem', color: '#64748B', margin: '2px 0 0' }}>
-                    Completeness percentage across each column. Ideal threshold: 100% (Teal). Below 80% (Amber).
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.68rem' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#007680', fontWeight: 700 }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#007680' }} /> 100% Complete
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0284C7', fontWeight: 700 }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#0284C7' }} /> 80% - 99%
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#D97706', fontWeight: 700 }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#D97706' }} /> &lt; 80%
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ height: '220px', width: '100%', marginTop: '4px' }}>
-                <Bar data={completenessBarData} options={completenessBarOptions} />
-              </div>
             </div>
           </div>
         )}
@@ -2455,17 +2337,34 @@ function EdaEmptyState({ message }: { message: string }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 180,
+        minHeight: 280,
         textAlign: 'center',
-        gap: 8,
-        padding: '20px 12px',
-        background: '#F8FAFC',
-        border: '1px dashed #E2E8F0',
-        borderRadius: 10,
+        gap: 10,
+        padding: '24px 16px',
+        background: '#FAFCFD',
+        border: '1px dashed #CBD5E1',
+        borderRadius: 12,
+        margin: '8px 0',
       }}
     >
-      <Info size={18} color="#94A3B8" />
-      <p style={{ fontSize: '0.72rem', color: '#64748B', margin: 0, maxWidth: 320 }}>{message}</p>
+      <img
+        src="/Empty-bro.png"
+        alt="Visualization Not Available"
+        style={{
+          width: '210px',
+          maxWidth: '100%',
+          height: 'auto',
+          objectFit: 'contain',
+          marginBottom: 4,
+          opacity: 0.92,
+        }}
+      />
+      <div style={{ fontSize: '0.90rem', fontWeight: 800, color: '#0F172A' }}>
+        Visualization Not Possible
+      </div>
+      <p style={{ fontSize: '0.74rem', color: '#64748B', margin: 0, maxWidth: 420, lineHeight: 1.5 }}>
+        {message}
+      </p>
     </div>
   );
 }
@@ -2887,16 +2786,49 @@ function renderEdaVisualContent(
 ) {
   if (!selectedCols || selectedCols.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px', textAlign: 'center', padding: '20px' }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, background: '#F0FDFA', color: CHART_TEAL, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-          <Activity size={24} />
-        </div>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: 750, color: CHART_NAVY, margin: '0 0 4px' }}>
-          Intelligent EDA Studio
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '440px',
+          textAlign: 'center',
+          padding: '36px 20px',
+          background: '#FAFCFD',
+          borderRadius: '12px',
+          border: '1px dashed #CBD5E1',
+        }}
+      >
+        <img
+          src="/Empty-bro.png"
+          alt="No Fields Selected"
+          style={{
+            width: '270px',
+            maxWidth: '100%',
+            height: 'auto',
+            objectFit: 'contain',
+            marginBottom: '16px',
+            filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.06))',
+          }}
+        />
+        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: '0 0 6px' }}>
+          Select Field(s) to Begin Profiling
         </h4>
-        <p style={{ fontSize: '0.74rem', color: CHART_SLATE, maxWidth: 420, margin: 0 }}>
-          Select columns and JET will choose the analytical view from their semantic types, cardinality, and available values.
+        <p style={{ fontSize: '0.76rem', color: '#64748B', maxWidth: 480, margin: '0 0 16px', lineHeight: 1.5 }}>
+          Choose columns from the left panel to dynamically visualize distributions, anomaly thresholds, correlations, and relationships.
         </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#007680', background: '#F0FDFA', border: '1px solid #99F6E4', padding: '3px 10px', borderRadius: '20px' }}>
+            1 Column: Univariate Distribution &amp; Outliers
+          </span>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0284C7', background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '3px 10px', borderRadius: '20px' }}>
+            2 Columns: Bivariate Correlation &amp; Heatmap
+          </span>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6366F1', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '3px 10px', borderRadius: '20px' }}>
+            3+ Columns: Multivariate Matrix &amp; Dependencies
+          </span>
+        </div>
       </div>
     );
   }
@@ -2937,39 +2869,41 @@ function NumericBoxPlot({ stats, values }: { stats: OutlierResult; rawStats: Col
   const boxHeight = 46;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ overflow: 'visible' }}>
-      {/* Whisker line */}
-      <line x1={scaleX(whiskerLow)} y1={midY} x2={scaleX(whiskerHigh)} y2={midY} stroke="#94A3B8" strokeWidth={1.5} />
-      <line x1={scaleX(whiskerLow)} y1={midY - 12} x2={scaleX(whiskerLow)} y2={midY + 12} stroke="#94A3B8" strokeWidth={1.5} />
-      <line x1={scaleX(whiskerHigh)} y1={midY - 12} x2={scaleX(whiskerHigh)} y2={midY + 12} stroke="#94A3B8" strokeWidth={1.5} />
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', padding: '8px 0' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ overflow: 'visible', maxWidth: '640px', margin: '0 auto' }}>
+        {/* Whisker line */}
+        <line x1={scaleX(whiskerLow)} y1={midY} x2={scaleX(whiskerHigh)} y2={midY} stroke="#94A3B8" strokeWidth={1.5} />
+        <line x1={scaleX(whiskerLow)} y1={midY - 12} x2={scaleX(whiskerLow)} y2={midY + 12} stroke="#94A3B8" strokeWidth={1.5} />
+        <line x1={scaleX(whiskerHigh)} y1={midY - 12} x2={scaleX(whiskerHigh)} y2={midY + 12} stroke="#94A3B8" strokeWidth={1.5} />
 
-      {/* IQR box */}
-      <rect
-        x={scaleX(q1)}
-        y={midY - boxHeight / 2}
-        width={Math.max(2, scaleX(q3) - scaleX(q1))}
-        height={boxHeight}
-        fill="rgba(0,118,128,0.16)"
-        stroke={CHART_TEAL}
-        strokeWidth={1.5}
-        rx={4}
-      />
+        {/* IQR box */}
+        <rect
+          x={scaleX(q1)}
+          y={midY - boxHeight / 2}
+          width={Math.max(2, scaleX(q3) - scaleX(q1))}
+          height={boxHeight}
+          fill="rgba(0,118,128,0.16)"
+          stroke={CHART_TEAL}
+          strokeWidth={1.5}
+          rx={4}
+        />
 
-      {/* Median line */}
-      <line x1={scaleX(median)} y1={midY - boxHeight / 2} x2={scaleX(median)} y2={midY + boxHeight / 2} stroke={CHART_TEAL} strokeWidth={2.5} />
+        {/* Median line */}
+        <line x1={scaleX(median)} y1={midY - boxHeight / 2} x2={scaleX(median)} y2={midY + boxHeight / 2} stroke={CHART_TEAL} strokeWidth={2.5} />
 
-      {/* Outlier points */}
-      {outlierValues.slice(0, 60).map((v, i) => (
-        <circle key={i} cx={scaleX(v)} cy={midY} r={3.2} fill="#FFFFFF" stroke={CHART_ROSE} strokeWidth={1.5} opacity={0.9} />
-      ))}
+        {/* Outlier points */}
+        {outlierValues.slice(0, 60).map((v, i) => (
+          <circle key={i} cx={scaleX(v)} cy={midY} r={3.2} fill="#FFFFFF" stroke={CHART_ROSE} strokeWidth={1.5} opacity={0.9} />
+        ))}
 
-      {/* Axis labels */}
-      <text x={scaleX(q1)} y={midY + boxHeight / 2 + 16} fontSize={9} fill={CHART_SLATE} textAnchor="middle">Q1 {formatCompactNumber(q1)}</text>
-      <text x={scaleX(median)} y={midY - boxHeight / 2 - 8} fontSize={9} fill={CHART_TEAL} fontWeight={700} textAnchor="middle">Median {formatCompactNumber(median)}</text>
-      <text x={scaleX(q3)} y={midY + boxHeight / 2 + 16} fontSize={9} fill={CHART_SLATE} textAnchor="middle">Q3 {formatCompactNumber(q3)}</text>
-      <text x={scaleX(whiskerLow)} y={midY + 26} fontSize={8.5} fill="#94A3B8" textAnchor="middle">{formatCompactNumber(whiskerLow)}</text>
-      <text x={scaleX(whiskerHigh)} y={midY + 26} fontSize={8.5} fill="#94A3B8" textAnchor="middle">{formatCompactNumber(whiskerHigh)}</text>
-    </svg>
+        {/* Axis labels */}
+        <text x={scaleX(q1)} y={midY + boxHeight / 2 + 16} fontSize={9} fill={CHART_SLATE} textAnchor="middle">Q1 {formatCompactNumber(q1)}</text>
+        <text x={scaleX(median)} y={midY - boxHeight / 2 - 8} fontSize={9} fill={CHART_TEAL} fontWeight={700} textAnchor="middle">Median {formatCompactNumber(median)}</text>
+        <text x={scaleX(q3)} y={midY + boxHeight / 2 + 16} fontSize={9} fill={CHART_SLATE} textAnchor="middle">Q3 {formatCompactNumber(q3)}</text>
+        <text x={scaleX(whiskerLow)} y={midY + 26} fontSize={8.5} fill="#94A3B8" textAnchor="middle">{formatCompactNumber(whiskerLow)}</text>
+        <text x={scaleX(whiskerHigh)} y={midY + 26} fontSize={8.5} fill="#94A3B8" textAnchor="middle">{formatCompactNumber(whiskerHigh)}</text>
+      </svg>
+    </div>
   );
 }
 
@@ -3050,7 +2984,7 @@ function renderCategoricalUnivariate(col: ColumnMetricItem) {
         rightBadge={`${col.validCount.toLocaleString()} valid • ${col.completenessPct}% complete`}
       />
 
-      <div style={{ height: 220, width: '100%' }}>
+      <div style={{ height: 240, width: '100%' }}>
         <Bar data={data} options={{ ...baseChartOptions(), indexAxis: 'y' as const }} />
       </div>
 
@@ -3127,11 +3061,11 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
         />
 
         {showBoxPlot ? (
-          <div style={{ height: 160, width: '100%', display: 'flex', alignItems: 'center' }}>
+          <div style={{ height: 180, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <NumericBoxPlot stats={outliers} rawStats={stats} values={vals} />
           </div>
         ) : (
-          <div style={{ height: 210, width: '100%' }}>
+          <div style={{ height: 240, width: '100%' }}>
             <Bar data={data} options={baseChartOptions()} />
           </div>
         )}
@@ -3189,7 +3123,7 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
           title={col.name}
           description="Monthly posting frequency timeline aggregated by observed calendar periods."
         />
-        <div style={{ height: 220, width: '100%' }}>
+        <div style={{ height: 240, width: '100%' }}>
           <Line data={data} options={baseChartOptions()} />
         </div>
 
@@ -3254,7 +3188,7 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
           title={col.name}
           description="Ranked occurrence frequency; identifier columns are checked for duplicate keys that should typically be unique."
         />
-        <div style={{ height: 200, width: '100%' }}>
+        <div style={{ height: 240, width: '100%' }}>
           <Bar data={data} options={{ ...baseChartOptions(), indexAxis: 'y' as const }} />
         </div>
 
@@ -3354,7 +3288,7 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
             : `X-axis: distinct categories of ${category.name}. Y-axis: aggregated SUM of ${metric.name}.`}
           rightBadge={`Top ${top.length} categories`}
         />
-        <div style={{ height: 220, width: '100%' }}>
+        <div style={{ height: 240, width: '100%' }}>
           <Bar
             data={data}
             options={{
@@ -3489,7 +3423,7 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
             ? `Balanced journal entries detected (Net sum = 0). Showing monthly gross transaction volume over time.`
             : `Aggregating ${numCol.name} by calendar month periods${ma ? `, with a trailing ${maWindow}-period moving average overlay` : ''}.`}
         />
-        <div style={{ height: 220, width: '100%' }}>
+        <div style={{ height: 240, width: '100%' }}>
           <Line
             data={data}
             options={{
@@ -3563,7 +3497,7 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
           description="Scatter distribution revealing value clustering and correlation between both numeric metrics."
           rightBadge={`r = ${r.toFixed(2)}`}
         />
-        <div style={{ height: 220, width: '100%' }}>
+        <div style={{ height: 250, width: '100%' }}>
           <Scatter
             data={data}
             options={{
@@ -3651,7 +3585,7 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
           title={`Record Volume by ${dateCol.name}`}
           description={`Monthly record counts, filterable in context by ${catCol.name}.`}
         />
-        <div style={{ height: 220, width: '100%' }}>
+        <div style={{ height: 240, width: '100%' }}>
           <Line data={data} options={baseChartOptions()} />
         </div>
       </div>
@@ -3709,8 +3643,8 @@ function renderCategoricalHeatmap(a: ColumnMetricItem, b: ColumnMetricItem) {
         description="Cell intensity reflects the co-occurrence count between each pair of category values."
       />
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'separate', borderSpacing: '3px', fontSize: '0.62rem' }}>
+      <div style={{ overflowX: 'auto', display: 'flex', justifyContent: 'center', padding: '6px 0' }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: '4px', fontSize: '0.62rem', margin: '0 auto' }}>
           <thead>
             <tr>
               <th style={{ padding: '2px 6px' }} />
@@ -3923,7 +3857,7 @@ function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
         description={`Grouped column chart — each ${category.name} category displays individual side-by-side comparative bars for each selected measure.`}
         rightBadge={`Top ${topCategories.length} categories`}
       />
-      <div style={{ height: 240, width: '100%' }}>
+      <div style={{ height: 250, width: '100%' }}>
         <Bar
           data={{ labels: topCategories.map(k => (k.length > 14 ? k.slice(0, 12) + '…' : k)), datasets }}
           options={{
@@ -4003,7 +3937,7 @@ function renderStrongestPairingChart(pairing: PairingCandidate, selectedCols: Co
           ? `Balanced journal entries detected (Net sum = 0). Displaying total gross monetary activity grouped by ${category.name}.`
           : `JET scored every measure × category combination in your selection and found ${category.name} × ${metric.name} to be the strongest discriminating relationship.`}
       />
-      <div style={{ height: 220, width: '100%' }}>
+      <div style={{ height: 240, width: '100%' }}>
         <Bar
           data={data}
           options={{
@@ -4105,7 +4039,7 @@ function renderMultiMeasureTimeSeries(dateCol: ColumnMetricItem, numericCols: Co
         title={`Progression of Measures over ${dateCol.name}`}
         description="Chronological multi-line trend across observed calendar periods — no strong categorical grouping was found, so time is used as the primary axis."
       />
-      <div style={{ height: 220, width: '100%' }}>
+      <div style={{ height: 240, width: '100%' }}>
         <Line
           data={{ labels: periods, datasets }}
           options={{
@@ -4159,8 +4093,8 @@ function renderCorrelationMatrix(numericCols: ColumnMetricItem[]) {
         description="No categorical field discriminated these measures strongly, so JET shows how each pair of numeric fields moves together instead."
       />
 
-      <div style={{ overflowX: 'auto', padding: '2px 0' }}>
-        <table style={{ borderCollapse: 'separate', borderSpacing: '4px', fontSize: '0.66rem' }}>
+      <div style={{ overflowX: 'auto', padding: '6px 0', display: 'flex', justifyContent: 'center' }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: '6px', fontSize: '0.66rem', margin: '0 auto' }}>
           <thead>
             <tr>
               <th style={{ padding: '2px 8px' }} />
@@ -4297,7 +4231,7 @@ function renderCategoricalCardinalityAndHeatmap(catCols: ColumnMetricItem[]) {
           title={`Distinct Values Spread (${catCols.length} Categorical Fields)`}
           description="Comparing unique identifier density across all selected category columns."
         />
-        <div style={{ height: 180, width: '100%', marginTop: 8 }}>
+        <div style={{ height: 240, width: '100%', marginTop: 8 }}>
           <Bar data={data} options={baseChartOptions()} />
         </div>
       </div>
