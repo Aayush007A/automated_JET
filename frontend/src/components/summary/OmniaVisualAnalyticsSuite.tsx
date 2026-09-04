@@ -511,19 +511,19 @@ export const OmniaVisualAnalyticsSuite: React.FC<OmniaVisualAnalyticsSuiteProps>
     postClosing: 98724,
   }), [status]);
 
-  // Sheets mapping matching SparkJet visual structure with specialized COA Suite
+  // Sheets mapping matching Omnia test design with specialized COA Suite
   const sheets = [
-    { id: '01_seldom_accounts', num: '01', title: 'Account Wise Analysis', exKey: 'seldomAccounts', sub: 'Summary 1', icon: Layers, count: exCounts.seldomAccounts },
-    { id: '02_revenue_debits', num: '02', title: 'Large Debits to Revenue', exKey: 'debitsToRevenue', sub: 'Summary 2', icon: TrendingUp, count: exCounts.debitsToRevenue },
-    { id: '03_user_wise', num: '03', title: 'User Wise Analysis', exKey: 'usersOfInterest', sub: 'Summary 3', icon: Users, count: exCounts.usersOfInterest },
-    { id: '04_closing_entries', num: '04', title: 'Closing Entries Analysis', exKey: 'closingEntries', sub: 'Summary 4', icon: Lock, count: exCounts.closingEntries },
+    { id: '01_seldom_accounts', num: '01', title: 'Seldom Used Accounts', exKey: 'seldomAccounts', sub: 'Summary 1', icon: Layers, count: exCounts.seldomAccounts },
+    { id: '02_revenue_debits', num: '02', title: 'Debits to Revenue', exKey: 'debitsToRevenue', sub: 'Summary 2', icon: TrendingUp, count: exCounts.debitsToRevenue },
+    { id: '03_user_wise', num: '03', title: 'Monitored & Rare Users', exKey: 'usersOfInterest', sub: 'Summary 3', icon: Users, count: exCounts.usersOfInterest },
+    { id: '04_closing_entries', num: '04', title: 'Post-Closing Adjustments', exKey: 'closingEntries', sub: 'Summary 4', icon: Lock, count: exCounts.closingEntries },
     { id: '05_dates_interest', num: '05', title: 'Dates of Interest', exKey: 'datesOfInterest', sub: 'Summary 5', icon: Calendar, count: exCounts.datesOfInterest },
-    { id: '06_amount_analysis', num: '06', title: 'Amount Analysis', exKey: 'roundAmounts', sub: 'Summary 6', icon: BarChart3, count: exCounts.roundAmounts },
-    { id: '07_duplicate_entries', num: '07', title: 'Duplicate Analysis', exKey: 'duplicateEntries', sub: 'Summary 7', icon: Copy, count: exCounts.duplicateEntries },
-    { id: '08_keywords_scan', num: '08', title: 'High-Risk Word Count', exKey: 'keywords', sub: 'Summary 8', icon: FileText, count: exCounts.keywords },
+    { id: '06_amount_analysis', num: '06', title: 'Round Sum Multiples', exKey: 'roundAmounts', sub: 'Summary 6', icon: BarChart3, count: exCounts.roundAmounts },
+    { id: '07_duplicate_entries', num: '07', title: 'Duplicate Transactions', exKey: 'duplicateEntries', sub: 'Summary 7', icon: Copy, count: exCounts.duplicateEntries },
+    { id: '08_keywords_scan', num: '08', title: 'Suspect Keywords', exKey: 'keywords', sub: 'Summary 8', icon: FileText, count: exCounts.keywords },
     { id: '09_unusual_accounts', num: '09', title: 'Unusual Accounts', exKey: 'unusualAccounts', sub: 'Summary 9', icon: Activity, count: exCounts.unusualAccounts },
     { id: '10_benford_analysis', num: '10', title: "Benford's Law Conformity", exKey: null, sub: 'Summary 10', icon: PieIcon, count: null },
-    { id: '11_population_stats', num: '11', title: 'Population Statistics', exKey: null, sub: 'Period Analysis', icon: Filter, count: null },
+    { id: '11_population_stats', num: '11', title: 'Population Funnel', exKey: null, sub: 'Summary 11', icon: Filter, count: null },
     { id: '12_coa_reconciliation', num: '12', title: 'COA & TB Reconciler', exKey: null, sub: 'Master COA Suite', icon: Building, count: null },
   ];
 
@@ -908,7 +908,7 @@ const OmniaSheet01SeldomAccounts: React.FC<{
       <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
         <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Summary 1: Account Wise &amp; Seldom Used Accounts Analysis</h4>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Summary 1: Seldom Used Accounts Analysis</h4>
           <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
             Screens for manual and adjusting journal entries posted to general ledger accounts with historically low transaction frequency. ISA 240.32(a) requires auditors to evaluate entries made to seldom used accounts. Click any bar or doughnut slice to filter account lines.
           </p>
@@ -1274,7 +1274,7 @@ const OmniaSheet03UsersInterest: React.FC<{
       <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
         <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Summary 3: User Wise &amp; Monitored Rare Users Analysis</h4>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Summary 3: Monitored &amp; Rare Users Analysis</h4>
           <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
             Identifies journal entries posted by monitored personnel, rare posters, privileged system administrators, or temporary external accounts. Click any user bar or doughnut slice to isolate user transactions.
           </p>
@@ -1814,7 +1814,7 @@ const OmniaSheet06RoundAmounts: React.FC<{
       <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
         <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Summary 6: Amount Analysis &amp; Round Sum Multiples</h4>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Summary 6: Round Sum Multiples Analysis</h4>
           <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
             Identifies journal entries with round dollar multiples ($10k, $100k, $1M) or recurring digits (.000, .999, .500). Click any doughnut slice to highlight specific digit patterns.
           </p>
@@ -2185,7 +2185,7 @@ const OmniaSheet08KeywordsScan: React.FC<{
       <div style={{ background: '#F0F9FF', padding: '14px 18px', borderRadius: '12px', border: '1px solid #E0F2FE', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
         <Info size={16} color="#0284C7" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Summary 8: Suspect Keywords &amp; High-Risk Lexical Scan</h4>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369A1', margin: '0 0 2px' }}>Summary 8: Suspect Keywords &amp; Lexical Scan</h4>
           <p style={{ fontSize: '0.78rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
             Identifies journal entries containing suspect or high-risk keywords in journal descriptions, headers, and line narrations. Click any slice in the stratification doughnut to filter monitored words by severity.
           </p>
@@ -2981,6 +2981,7 @@ const OmniaSheet12CoaMasterSuite: React.FC<{
                 <th style={{ position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 10, padding: '10px 12px', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: '1px solid #E2E8F0' }}>FS Type</th>
                 <th style={{ position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 10, padding: '10px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: '1px solid #E2E8F0' }}>TB Start Balance</th>
                 <th style={{ position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 10, padding: '10px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: '1px solid #E2E8F0' }}>TB End Balance</th>
+                <th style={{ position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 10, padding: '10px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: '1px solid #E2E8F0' }}>TB Net Activity</th>
                 <th style={{ position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 10, padding: '10px 12px', textAlign: 'right', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: '1px solid #E2E8F0' }}>GL Net Activity</th>
                 <th style={{ position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 10, padding: '10px 12px', textAlign: 'center', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: '1px solid #E2E8F0' }}>Reconciliation</th>
                 <th style={{ position: 'sticky', top: 0, background: '#F8FAFC', zIndex: 10, padding: '10px 12px', textAlign: 'center', fontWeight: 600, fontSize: '0.70rem', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: '1px solid #E2E8F0' }}>Risk Flags</th>
@@ -2997,6 +2998,7 @@ const OmniaSheet12CoaMasterSuite: React.FC<{
                   'Operating Expenses': { bg: '#FFEDD5', text: '#C2410C', border: '#FED7AA' },
                 };
                 const col = classColors[a.class] || { bg: '#F1F5F9', text: '#475569', border: '#E2E8F0' };
+                const tbNetActivity = a.tbEnd - a.tbStart;
 
                 return (
                   <tr
@@ -3047,7 +3049,10 @@ const OmniaSheet12CoaMasterSuite: React.FC<{
                     </td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(a.tbStart)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(a.tbEnd)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: a.glNet < 0 ? '#DC2626' : '#059669', whiteSpace: 'nowrap' }}>{fmtCurr(a.glNet)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: tbNetActivity < 0 ? '#DC2626' : tbNetActivity > 0 ? '#059669' : '#334155', whiteSpace: 'nowrap' }}>
+                      {fmtCurr(tbNetActivity)}
+                    </td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: a.glNet < 0 ? '#DC2626' : a.glNet > 0 ? '#059669' : '#334155', whiteSpace: 'nowrap' }}>{fmtCurr(a.glNet)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       <span style={{
                         background: '#DCFCE7',
