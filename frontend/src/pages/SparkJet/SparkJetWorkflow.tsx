@@ -276,7 +276,19 @@ export const SparkJetWorkflow: React.FC = () => {
   const navigate = useNavigate();
   const runId = searchParams.get('runId');
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    const paramStep = searchParams.get('step');
+    if (paramStep) {
+      const parsed = parseInt(paramStep, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 6) return parsed;
+    }
+    const stored = runId ? sessionStorage.getItem(`spark_jet_step_${runId}`) : null;
+    if (stored) {
+      const parsed = parseInt(stored, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 6) return parsed;
+    }
+    return 1;
+  });
   const [maxCompletedStep, setMaxCompletedStep] = useState(1);
   const [config, setConfig] = useState<RunConfig | null>(null);
   const [status, setStatus] = useState<RunSummary | null>(null);
@@ -428,8 +440,50 @@ export const SparkJetWorkflow: React.FC = () => {
   const [newKeyword, setNewKeyword] = useState('');
   const [fileImportNotice, setFileImportNotice] = useState<string | null>(null);
 
-  // Results View Tabs in Step 5
-  const [activeVisualTab, setActiveVisualTab] = useState<'preview' | 'overview' | 'checkpoints' | 'forensic' | 'artifacts'>('preview');
+  // Results View Tabs in Step 6
+  const [activeVisualTab, setActiveVisualTab] = useState<'preview' | 'overview' | 'checkpoints' | 'forensic' | 'artifacts'>(() => {
+    const paramTab = searchParams.get('tab') as any;
+    const validTabs = ['preview', 'overview', 'checkpoints', 'forensic', 'artifacts'];
+    if (paramTab && validTabs.includes(paramTab)) return paramTab;
+    const stored = runId ? sessionStorage.getItem(`spark_jet_tab_${runId}`) : null;
+    if (stored && validTabs.includes(stored)) return stored as any;
+    return 'preview';
+  });
+
+  const wasExecutingRef = useRef(false);
+
+  useEffect(() => {
+    if (executing) {
+      wasExecutingRef.current = true;
+    }
+  }, [executing]);
+
+  // Persist currentStep and activeVisualTab to sessionStorage and URL search params across refreshes
+  useEffect(() => {
+    if (!runId) return;
+    sessionStorage.setItem(`spark_jet_step_${runId}`, String(currentStep));
+    if (currentStep === 6) {
+      sessionStorage.setItem(`spark_jet_tab_${runId}`, activeVisualTab);
+    }
+    const currentUrlParams = new URLSearchParams(window.location.search);
+    let changed = false;
+    if (currentUrlParams.get('step') !== String(currentStep)) {
+      currentUrlParams.set('step', String(currentStep));
+      changed = true;
+    }
+    if (currentStep === 6) {
+      if (currentUrlParams.get('tab') !== activeVisualTab) {
+        currentUrlParams.set('tab', activeVisualTab);
+        changed = true;
+      }
+    } else if (currentUrlParams.has('tab')) {
+      currentUrlParams.delete('tab');
+      changed = true;
+    }
+    if (changed) {
+      window.history.replaceState(null, '', `${window.location.pathname}?${currentUrlParams.toString()}`);
+    }
+  }, [currentStep, activeVisualTab, runId]);
   const [quarterFilter, setQuarterFilter] = useState<string[]>(['ALL']);
   const [exceptionCategoryFilter, setExceptionCategoryFilter] = useState<'flagged' | 'clean'>('flagged');
   const [artifactCategoryFilter, setArtifactCategoryFilter] = useState<string>('PARAMETER');
@@ -705,20 +759,38 @@ export const SparkJetWorkflow: React.FC = () => {
         });
       }
 
-      if (syncStep) {
-        if (data.status.status === 'COMPLETED') {
-          setMaxCompletedStep(6);
-          setIsIrApproved(true);
-          setCurrentStep(6);
-        } else if (data.config.files.length > 0) {
-          setMaxCompletedStep((prev) => Math.max(prev, 2));
+      const paramStep = searchParams.get('step');
+      const stored = targetRunId ? sessionStorage.getItem(`spark_jet_step_${targetRunId}`) : null;
+      const requestedStep = paramStep ? parseInt(paramStep, 10) : stored ? parseInt(stored, 10) : null;
+      const hasExplicitStep = requestedStep !== null && !isNaN(requestedStep) && requestedStep >= 1 && requestedStep <= 6;
+
+      if (data.status.status === 'COMPLETED') {
+        setMaxCompletedStep(6);
+        setIsIrApproved(true);
+        if (syncStep) {
+          if (hasExplicitStep) {
+            setCurrentStep(requestedStep);
+          } else {
+            setCurrentStep(6);
+          }
+        }
+      } else if (data.status.status === 'RUNNING') {
+        setMaxCompletedStep(5);
+        if (syncStep) {
+          if (hasExplicitStep) {
+            setCurrentStep(requestedStep);
+          } else {
+            setCurrentStep(5);
+          }
+        }
+      } else if (data.config?.files && data.config.files.length > 0) {
+        setMaxCompletedStep((prev) => Math.max(prev, 2));
+        if (syncStep && hasExplicitStep) {
+          setCurrentStep(requestedStep);
         }
       } else {
-        if (data.status.status === 'COMPLETED') {
-          setMaxCompletedStep(6);
-          setIsIrApproved(true);
-        } else if (data.config.files.length > 0) {
-          setMaxCompletedStep((prev) => Math.max(prev, 2));
+        if (syncStep && hasExplicitStep) {
+          setCurrentStep(requestedStep);
         }
       }
 
@@ -777,7 +849,8 @@ export const SparkJetWorkflow: React.FC = () => {
   }, [runId]);
 
   useEffect(() => {
-    if (status?.status === 'COMPLETED' && !executing) {
+    if (status?.status === 'COMPLETED' && wasExecutingRef.current && !executing) {
+      wasExecutingRef.current = false;
       setToastMessage('Audit Pipeline Execution Completed — All 12 Parameter Exceptions and Deliverables Ready.');
       const timer = setTimeout(() => {
         setToastMessage(null);
