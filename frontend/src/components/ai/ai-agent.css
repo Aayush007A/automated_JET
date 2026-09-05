@@ -9,13 +9,13 @@
   z-index: 9997;
 
   background:
-    rgba(3, 7, 18, 0.35);
+    rgba(15, 23, 42, 0.16);
 
   -webkit-backdrop-filter:
-    blur(6px);
+    blur(4px);
 
   backdrop-filter:
-    blur(6px);
+    blur(4px);
 }
 
 
@@ -31,7 +31,7 @@
   bottom: 98px;
 
   width: min(
-    500px,
+    430px,
     calc(100vw - 32px)
   );
 
@@ -118,44 +118,45 @@
 
 
 /* ============================================================
-   HEADER
+   HEADER (Premium Glassmorphism & Executive Finish)
 ============================================================ */
 
 .jet-ai-header {
-  min-height: 78px;
+  position: relative;
+  z-index: 10;
+  min-height: 70px;
 
-  padding:
-    0 18px;
+  padding: 13px 18px;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  border-bottom:
-    1px solid
-    rgba(
-      15,
-      23,
-      42,
-      0.065
-    );
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
 
   background:
+    radial-gradient(
+      ellipse 85% 120% at 12% 0%,
+      rgba(0, 118, 128, 0.08) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 60% 80% at 90% 0%,
+      rgba(134, 188, 37, 0.06) 0%,
+      transparent 55%
+    ),
     linear-gradient(
       180deg,
-      rgba(
-        255,
-        255,
-        255,
-        0.96
-      ),
-      rgba(
-        255,
-        255,
-        255,
-        0.75
-      )
+      rgba(255, 255, 255, 0.96) 0%,
+      rgba(248, 250, 252, 0.90) 100%
     );
+
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 4px 14px rgba(0, 118, 128, 0.02);
 }
 
 .jet-ai-header-left {
@@ -164,47 +165,39 @@
   display: flex;
   align-items: center;
 
-  gap: 11px;
+  gap: 12px;
 }
 
 .jet-ai-header-avatar {
   position: relative;
 
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
 
-  flex: 0 0 42px;
+  flex: 0 0 40px;
 
   overflow: hidden;
 
-  border-radius: 13px;
+  border-radius: 12px;
 
-  background: #071017;
+  background: radial-gradient(circle at 35% 30%, #1e293b, #090e15);
 
-  border:
-    1px solid
-    rgba(
-      0,
-      118,
-      128,
-      0.16
-    );
+  border: 1px solid rgba(0, 118, 128, 0.28);
 
   box-shadow:
-    0 7px 18px
-      rgba(
-        0,
-        118,
-        128,
-        0.16
-      ),
-    inset 0 0 0 1px
-      rgba(
-        255,
-        255,
-        255,
-        0.08
-      );
+    0 4px 14px rgba(0, 118, 128, 0.20),
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 220ms ease;
+  cursor: pointer;
+}
+
+.jet-ai-header-avatar:hover {
+  transform: scale(1.05);
+  box-shadow:
+    0 6px 20px rgba(0, 118, 128, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .jet-ai-header-avatar img {
@@ -212,6 +205,7 @@
   height: 100%;
 
   object-fit: cover;
+  display: block;
 }
 
 .jet-ai-header-copy {
@@ -228,14 +222,16 @@
 .jet-ai-title-row h2 {
   margin: 0;
 
-  color: #0f172a;
-
-  font-size: 0.96rem;
+  font-size: 0.98rem;
   line-height: 1.2;
 
   font-weight: 850;
 
   letter-spacing: -0.025em;
+
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #005a60 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .jet-ai-live-pill {
@@ -244,37 +240,25 @@
 
   gap: 5px;
 
-  height: 20px;
+  height: 19px;
 
   padding: 0 7px;
 
-  border:
-    1px solid
-    rgba(
-      16,
-      185,
-      129,
-      0.2
-    );
+  border: 1px solid rgba(16, 185, 129, 0.28);
 
   border-radius: 999px;
 
-  background:
-    rgba(
-      16,
-      185,
-      129,
-      0.07
-    );
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.05) 100%);
 
   color: #047857;
 
-  font-size: 0.56rem;
+  font-size: 0.55rem;
 
   font-weight: 850;
 
-  letter-spacing:
-    0.08em;
+  letter-spacing: 0.08em;
+
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.08);
 }
 
 .jet-ai-live-pill span {
@@ -285,14 +269,23 @@
 
   background: #10b981;
 
-  box-shadow:
-    0 0 0 4px
-    rgba(
-      16,
-      185,
-      129,
-      0.06
-    );
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.75);
+  animation: jetLivePulse 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes jetLivePulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.75);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 4.5px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 
 .jet-ai-header-subtitle {
@@ -301,147 +294,109 @@
 
   gap: 6px;
 
-  margin-top: 5px;
+  margin-top: 3px;
 
-  color: #738297;
+  color: #64748b;
 
-  font-size: 0.63rem;
+  font-size: 0.61rem;
 
-  font-weight: 650;
+  font-weight: 600;
+
+  letter-spacing: -0.005em;
 
   white-space: nowrap;
 }
 
 .jet-ai-header-subtitle-dot {
-  width: 5px;
-  height: 5px;
+  width: 4.5px;
+  height: 4.5px;
 
   border-radius: 50%;
 
-  background: #10b981;
+  background: #00848e;
 
   box-shadow:
-    0 0 0 3px
-    rgba(
-      16,
-      185,
-      129,
-      0.065
-    );
+    0 0 0 2.5px
+    rgba(0, 132, 142, 0.12);
 }
 
 .jet-ai-header-actions {
   display: flex;
   align-items: center;
 
-  gap: 7px;
+  gap: 8px;
 
   flex-shrink: 0;
 }
 
 
 /* ============================================================
-   CLEAR HISTORY
+   CLEAR HISTORY (Subtle Glass Button)
 ============================================================ */
 
 .jet-ai-clear-history-button {
-  height: 34px;
+  height: 32px;
 
   display: inline-flex;
   align-items: center;
 
   gap: 6px;
 
-  padding:
-    0 11px;
+  padding: 0 10px;
 
-  border:
-    1px solid
-    rgba(
-      220,
-      38,
-      38,
-      0.22
-    );
+  border: 1px solid rgba(226, 232, 240, 0.95);
 
-  border-radius: 11px;
+  border-radius: 9px;
 
-  background:
-    rgba(
-      254,
-      242,
-      242,
-      0.65
-    );
+  background: rgba(255, 255, 255, 0.82);
 
-  color: #dc2626;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 
-  font-size: 0.62rem;
+  color: #475569;
 
-  font-weight: 800;
+  font-size: 0.60rem;
+
+  font-weight: 750;
+
+  letter-spacing: -0.01em;
 
   cursor: pointer;
 
-  box-shadow:
-    0 3px 10px
-    rgba(
-      220,
-      38,
-      38,
-      0.04
-    );
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 
   transition:
-    transform
-      180ms ease,
-    border-color
-      180ms ease,
-    background
-      180ms ease,
-    color
-      180ms ease,
-    box-shadow
-      180ms ease;
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .jet-ai-clear-history-button svg {
-  color: #dc2626;
+  color: #94a3b8;
+  transition: color 160ms ease, transform 160ms ease;
 }
 
 .jet-ai-clear-history-button:hover {
-  transform:
-    translateY(-1px);
+  transform: translateY(-1px);
 
-  border-color:
-    rgba(
-      220,
-      38,
-      38,
-      0.38
-    );
+  border-color: rgba(239, 68, 68, 0.35);
 
-  background:
-    #fef2f2;
+  background: #fff5f5;
 
-  color: #b91c1c;
+  color: #dc2626;
 
-  box-shadow:
-    0 6px 16px
-      rgba(
-        220,
-        38,
-        38,
-        0.12
-      );
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08);
 }
 
 .jet-ai-clear-history-button:hover svg {
-  color: #b91c1c;
+  color: #dc2626;
+  transform: scale(1.08);
 }
 
 .jet-ai-clear-history-button:active {
-  transform:
-    scale(0.97);
+  transform: translateY(0) scale(0.97);
 }
 
 
@@ -450,68 +405,51 @@
 ============================================================ */
 
 .jet-ai-icon-button {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
 
   display: grid;
   place-items: center;
 
   padding: 0;
 
-  border:
-    1px solid
-    rgba(
-      15,
-      23,
-      42,
-      0.08
-    );
+  border: 1px solid rgba(226, 232, 240, 0.95);
 
-  border-radius: 11px;
+  border-radius: 9px;
 
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.82
-    );
+  background: rgba(255, 255, 255, 0.82);
 
-  color: #718096;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+
+  color: #64748b;
 
   cursor: pointer;
 
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
   transition:
-    transform
-      180ms ease,
-    background
-      180ms ease,
-    border-color
-      180ms ease,
-    color
-      180ms ease;
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .jet-ai-icon-button:hover {
-  transform:
-    translateY(-1px);
+  transform: translateY(-1px);
 
-  border-color:
-    rgba(
-      0,
-      118,
-      128,
-      0.2
-    );
+  border-color: rgba(203, 213, 225, 0.95);
 
   background: #ffffff;
 
-  color: #007680;
+  color: #0f172a;
+
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .jet-ai-icon-button:active {
-  transform:
-    scale(0.94);
+  transform: translateY(0) scale(0.97);
 }
 
 
@@ -814,6 +752,10 @@
 
 .jet-ai-messages {
   flex: 1;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
 
   overflow-y: auto;
 
@@ -867,8 +809,8 @@
 
 .jet-ai-empty-state {
   flex: 1;
-
-  min-height: 240px;
+  width: 100%;
+  min-height: 100%;
 
   display: flex;
   flex-direction: column;
@@ -878,49 +820,79 @@
 
   text-align: center;
 
-  padding: 16px 20px;
+  padding: 24px 20px;
+  margin: auto 0;
+  box-sizing: border-box;
 }
 
 .jet-ai-empty-illustration {
-  width: min(190px, 58%);
-  max-height: 160px;
+  position: relative;
+  width: min(270px, 80%);
+  max-height: 180px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  margin-bottom: 14px;
+  margin: 0 auto 16px auto;
+}
+
+.jet-ai-empty-illustration::before {
+  content: '';
+  position: absolute;
+  inset: -16px -28px;
+  background: radial-gradient(
+    ellipse 68% 58% at 50% 50%,
+    rgba(134, 188, 37, 0.14) 0%,
+    rgba(0, 118, 128, 0.08) 44%,
+    rgba(248, 250, 251, 0) 74%
+  );
+  filter: blur(16px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .jet-ai-empty-illustration img {
-  width: 100%;
-  height: 100%;
+  position: relative;
+  z-index: 1;
+  width: auto;
+  max-width: 100%;
+  max-height: 175px;
+  height: auto;
 
   object-fit: contain;
+  display: block;
+  margin: 0 auto;
 
-  filter: drop-shadow(0 6px 16px rgba(0, 118, 128, 0.08));
+  filter: drop-shadow(0 12px 28px rgba(0, 77, 84, 0.1));
+  -webkit-mask-image: radial-gradient(ellipse 96% 94% at 50% 48%, black 78%, transparent 100%);
+  mask-image: radial-gradient(ellipse 96% 94% at 50% 48%, black 78%, transparent 100%);
 }
 
 .jet-ai-empty-title {
   color: #1e293b;
 
-  font-size: 0.82rem;
+  font-size: 0.9rem;
 
   font-weight: 850;
 
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  text-align: center;
 }
 
 .jet-ai-empty-text {
-  max-width: 280px;
+  max-width: 290px;
 
-  margin-top: 5px;
+  margin-top: 6px;
 
   color: #64748b;
 
-  font-size: 0.62rem;
+  font-size: 0.68rem;
 
-  line-height: 1.5;
+  line-height: 1.55;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 

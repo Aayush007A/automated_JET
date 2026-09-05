@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,7 +23,7 @@ import {
   FileSpreadsheet, Activity, Key, Building2, User, Filter, Eye,
   Sliders, ArrowUpDown, Shuffle, Zap, Layers2, Lightbulb, ChevronRight, X,
   GitBranch, Sigma, PinOff, Pin, CalendarOff, Copy, CircleDot, BoxSelect,
-  Radar as RadarIcon, ScanEye, Network,
+  Radar as RadarIcon, ScanEye, Network, Maximize2, Minimize2, ArrowRightLeft,
 } from 'lucide-react';
 import { UploadedFileInfo } from '../../types';
 
@@ -118,6 +118,19 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
 
   // Pin/compare mode: a pinned selection snapshot rendered side-by-side with the live selection
   const [pinnedSelection, setPinnedSelection] = useState<{ names: string[]; datasetId: string } | null>(null);
+  // Wide Mode for in-section side-by-side comparison studio
+  const [isCompareWideMode, setIsCompareWideMode] = useState<boolean>(false);
+
+  // Return to standard view on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isCompareWideMode) {
+        setIsCompareWideMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCompareWideMode]);
 
   // Natural Language Visual Query Bar
   const [nlQuery, setNlQuery] = useState('');
@@ -221,38 +234,230 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
       return;
     }
 
-    const q = rawQuery.toLowerCase();
+    let q = rawQuery.toLowerCase().trim();
+    // Normalize common user typing & financial audit column typos
+    q = q
+      .replace(/\bjounal\b/g, 'journal')
+      .replace(/\bjnl\b/g, 'journal')
+      .replace(/\bdesctiption\b/g, 'description')
+      .replace(/\bdesc\b/g, 'description')
+      .replace(/\benity\b/g, 'entity')
+      .replace(/\bfinanical\b/g, 'financial')
+      .replace(/\bbalence\b/g, 'balance')
+      .replace(/\bamont\b/g, 'amount')
+      .replace(/\baccout\b/g, 'account')
+      .replace(/\bacct\b/g, 'account')
+      .replace(/\bnum\b/g, 'number')
+      .replace(/\bno\b/g, 'number');
+
     const cols = activeDataset.columns;
 
-    // Tokenize query into meaningful words (3+ chars, ignoring stopwords)
+    // ── Phase 1: Explicit Multi-Column Direct Phrase Matching ──
+    // Extract column mentions by matching column names against the query.
+    // Sort columns by name length descending so specific names like "net_amount_ec" match before "amount".
+    const sortedCols = [...cols].sort((a, b) => b.name.length - a.name.length);
+    const directMatches: string[] = [];
+    let remainingQ = ' ' + q + ' ';
+
+    for (const c of sortedCols) {
+      const exactName = c.name.toLowerCase();
+      const spacedName = exactName.replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+
+      // Check if query contains the exact spaced name or underscore name
+      const hasSpaced = spacedName.length >= 3 && q.includes(spacedName);
+      const hasExact = exactName.length >= 3 && q.includes(exactName);
+
+      if (hasSpaced || hasExact) {
+        if (!directMatches.includes(c.name)) {
+          directMatches.push(c.name);
+          // Mask out the matched portion in remainingQ so sub-tokens don't collide
+          remainingQ = remainingQ.replace(spacedName, ' ___ ');
+          remainingQ = remainingQ.replace(exactName, ' ___ ');
+        }
+      }
+    }
+
+    // If 2 or more columns are directly referenced (e.g. "journal number, account number and net amount ec"),
+    // or if 1 column is referenced directly:
+    if (directMatches.length >= 2 || (directMatches.length === 1 && !q.includes('outlier') && !q.includes('distribution') && !q.includes('profile account') && !q.includes('all date'))) {
+      // Preserve order of appearance in user's query
+      const ordered = [...directMatches].sort((a, b) => {
+        const aSpaced = a.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+        const bSpaced = b.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+        const posA = q.indexOf(aSpaced) !== -1 ? q.indexOf(aSpaced) : q.indexOf(a.toLowerCase());
+        const posB = q.indexOf(bSpaced) !== -1 ? q.indexOf(bSpaced) : q.indexOf(b.toLowerCase());
+        return posA - posB;
+      });
+
+      setSelectedColumnNames(ordered);
+      const isHeatmap = /\b(heatmap|heat map|matrix|cross.?tab|crosstab|grid|pivot)\b/i.test(q);
+      const isScatter = /\b(scatter|plot|points|co-movement)\b/i.test(q);
+
+      setNlQueryResult({
+        matched: ordered,
+        message: isHeatmap
+          ? `Plotting cross-tabulated heatmap for: ${ordered.join(' × ')}`
+          : isScatter
+          ? `Plotting multi-measure scatter for: ${ordered.join(' × ')}`
+          : ordered.length === 1
+          ? `Showing: ${ordered[0]}`
+          : `Plotting: ${ordered.join(' × ')}`,
+        type: 'success',
+      });
+      return;
+    }
+
+    // ── Specialized Intent Handlers for Exact Audit Prompts ──
+    // 1. "show amount distribution"
+    if (q.includes('amount distribution') || (q.includes('distribution') && q.includes('amount'))) {
+      const numCol = cols.find(c => {
+        const n = c.name.toLowerCase();
+        return (n.includes('amount') || n.includes('ending') || n.includes('balance') || n.includes('net') || n.includes('debit')) && classify(c) === 'numeric';
+      }) || cols.find(c => classify(c) === 'numeric');
+
+      if (numCol) {
+        setSelectedColumnNames([numCol.name]);
+        setNlQueryResult({
+          matched: [numCol.name],
+          message: `Displaying financial population distribution and histogram for: ${numCol.name}`,
+          type: 'success',
+        });
+        return;
+      }
+    }
+
+    // 2. "compare amount vs date"
+    if (q.includes('compare amount vs date') || (q.includes('amount') && q.includes('date'))) {
+      const numCol = cols.find(c => {
+        const n = c.name.toLowerCase();
+        return (n.includes('amount') || n.includes('ending') || n.includes('balance') || n.includes('net')) && classify(c) === 'numeric';
+      }) || cols.find(c => classify(c) === 'numeric');
+
+      const dateCol = cols.find(c => classify(c) === 'date');
+
+      if (numCol && dateCol) {
+        setSelectedColumnNames([numCol.name, dateCol.name]);
+        setNlQueryResult({
+          matched: [numCol.name, dateCol.name],
+          message: `Comparing ${numCol.name} across ${dateCol.name} posting timeline trends`,
+          type: 'success',
+        });
+        return;
+      }
+    }
+
+    // 3. "find outliers in numeric fields"
+    if (q.includes('outliers in numeric') || q.includes('find outliers') || (q.includes('outlier') && q.includes('numeric'))) {
+      const numCols = cols.filter(c => classify(c) === 'numeric');
+      if (numCols.length > 0) {
+        // Prioritize columns with detected outliers or zeros/negatives
+        const sorted = [...numCols].sort((a, b) => {
+          const aIssues = (a.numericStats?.negatives || 0) + (a.numericStats?.zeros || 0);
+          const bIssues = (b.numericStats?.negatives || 0) + (b.numericStats?.zeros || 0);
+          return bIssues - aIssues;
+        });
+        const matched = sorted.slice(0, Math.min(4, sorted.length)).map(c => c.name);
+        setSelectedColumnNames(matched);
+        setNlQueryResult({
+          matched,
+          message: `Identified ${matched.length} numeric measures for multi-dimensional scatter & outlier analysis`,
+          type: 'success',
+        });
+        return;
+      }
+    }
+
+    // 4. "show all date columns"
+    if (q.includes('all date columns') || q.includes('all dates') || (q.includes('all') && q.includes('date'))) {
+      const dateCols = cols.filter(c => classify(c) === 'date');
+      if (dateCols.length > 0) {
+        const matched = dateCols.map(c => c.name);
+        setSelectedColumnNames(matched);
+        setNlQueryResult({
+          matched,
+          message: `Isolated all ${matched.length} validated date & posting timestamp fields`,
+          type: 'success',
+        });
+        return;
+      }
+    }
+
+    // 5. "profile account codes"
+    if (q.includes('profile account') || q.includes('account codes') || (q.includes('account') && q.includes('profile'))) {
+      const accCol = cols.find(c => {
+        const n = c.name.toLowerCase();
+        return n.includes('account_number') || n.includes('account_no') || n.includes('gl_account') || (n.includes('account') && !n.includes('desc'));
+      }) || cols.find(c => {
+        const n = c.name.toLowerCase();
+        return n.includes('account') || n.includes('journal') || n.includes('entity_id');
+      }) || cols.find(c => classify(c) === 'categorical');
+
+      if (accCol) {
+        setSelectedColumnNames([accCol.name]);
+        setNlQueryResult({
+          matched: [accCol.name],
+          message: `Profiling account code distinct volume, frequency dominance, and cardinality for: ${accCol.name}`,
+          type: 'success',
+        });
+        return;
+      }
+    }
+
+    // 6. "show currency field trends"
+    if (q.includes('currency field trends') || (q.includes('currency') && q.includes('trend'))) {
+      const currCol = cols.find(c => {
+        const n = c.name.toLowerCase();
+        return (c.inferredType === 'Currency' || n.includes('amount') || n.includes('balance')) && classify(c) === 'numeric';
+      }) || cols.find(c => classify(c) === 'numeric');
+
+      const dateCol = cols.find(c => classify(c) === 'date');
+
+      if (currCol && dateCol) {
+        setSelectedColumnNames([currCol.name, dateCol.name]);
+        setNlQueryResult({
+          matched: [currCol.name, dateCol.name],
+          message: `Plotting monetary currency volume trends for ${currCol.name} over ${dateCol.name}`,
+          type: 'success',
+        });
+        return;
+      } else if (currCol) {
+        setSelectedColumnNames([currCol.name]);
+        setNlQueryResult({
+          matched: [currCol.name],
+          message: `Showing monetary currency distribution for ${currCol.name}`,
+          type: 'success',
+        });
+        return;
+      }
+    }
+
+    // ── General NLP Token & Scoring Fallback ──
     const stopwords = new Set(['the', 'and', 'for', 'with', 'give', 'show', 'plot', 'me', 'vs', 'versus', 'get', 'find', 'display', 'view', 'between', 'of', 'in', 'on', 'at', 'to', 'a', 'an', 'is', 'are', 'was', 'were', 'will', 'can']);
     const queryTokens = q.split(/[\s,]+/).filter(t => t.length >= 2 && !stopwords.has(t));
 
-    // Score each column by how many query word-tokens overlap with its name tokens
     const score = (col: ColumnMetricItem): number => {
       const nameTokens = col.name.toLowerCase().split(/[_\s\-]+/);
       let s = 0;
       for (const qt of queryTokens) {
         for (const nt of nameTokens) {
-          if (nt === qt) { s += 3; break; }         // exact word match
-          if (nt.startsWith(qt) || qt.startsWith(nt)) { s += 1; break; } // prefix match
+          if (nt === qt) { s += 3; break; }
+          if (nt.startsWith(qt) || qt.startsWith(nt)) { s += 1; break; }
         }
       }
       return s;
     };
 
-    // Type-keyword matching
     const wantsNumeric = /\b(amount|numeric|number|currency|financial|monetary|value|sum|total|debit|credit|balance)\b/.test(q);
     const wantsDate = /\b(date|time|period|day|month|year|when|posting|effective)\b/.test(q);
     const wantsIdentifier = /\b(id|identifier|key|code|account|user|preparer|approver|document|reference|voucher)\b/.test(q);
     const wantsText = /\b(text|category|description|narrative|name|label|categorical)\b/.test(q);
 
-    const wantsCompare = /\b(compare|vs|versus|correlation|correl|against|relationship|scatter|bivariate)\b/.test(q);
+    const wantsHeatmap = /\b(heatmap|heat map|matrix|cross.?tab|crosstab|grid|pivot)\b/i.test(q);
+    const wantsCompare = /\b(compare|vs|versus|correlation|correl|against|relationship|scatter|bivariate)\b/.test(q) || wantsHeatmap || q.includes('and') || q.includes(',');
     const wantsAll = /\b(all|every|full|entire|complete|overview|schema)\b/.test(q);
     const wantsOutlier = /\b(outlier|outliers|anomaly|anomalies|extreme|unusual)\b/.test(q);
     const wantsHighCard = /\b(unique|cardinality|distinct|high.?card)\b/.test(q);
 
-    // Get scored direct matches (score > 0)
     const scored = cols
       .map(c => ({ col: c, s: score(c) }))
       .filter(x => x.s > 0)
@@ -261,27 +466,31 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
     let matched: string[] = [];
 
     if (scored.length > 0) {
-      // Use top scored columns
-      if (wantsCompare || wantsAll) {
-        matched = scored.slice(0, 2).map(x => x.col.name);
+      if (wantsAll) {
+        matched = cols.map(c => c.name);
+      } else if (wantsCompare) {
+        const topScore = scored[0].s;
+        matched = scored
+          .filter(x => x.s >= Math.max(2, topScore * 0.45))
+          .slice(0, 4)
+          .map(x => x.col.name);
       } else {
         matched = [scored[0].col.name];
       }
     } else if (wantsAll) {
       matched = cols.map(c => c.name);
     } else if (wantsOutlier) {
-      const outlierCols = cols.filter(c => c.numericStats && (c.numericStats.zeros > 0 || c.numericStats.negatives > 0));
+      const outlierCols = cols.filter(c => classify(c) === 'numeric' && c.numericStats && (c.numericStats.zeros > 0 || c.numericStats.negatives > 0));
       matched = outlierCols.slice(0, 4).map(c => c.name);
     } else if (wantsHighCard) {
       const hc = cols.filter(c => c.distinctPct >= 70 || c.uniqueCount >= activeDataset.totalRows * 0.7);
       matched = hc.slice(0, 4).map(c => c.name);
     } else {
-      // Fall back to type-based matching
       const typeCols: ColumnMetricItem[] = [];
-      if (wantsNumeric) typeCols.push(...cols.filter(c => c.inferredType === 'Numeric' || c.inferredType === 'Currency'));
-      if (wantsDate) typeCols.push(...cols.filter(c => c.inferredType === 'Date'));
+      if (wantsNumeric) typeCols.push(...cols.filter(c => classify(c) === 'numeric'));
+      if (wantsDate) typeCols.push(...cols.filter(c => classify(c) === 'date'));
       if (wantsIdentifier) typeCols.push(...cols.filter(c => c.inferredType === 'Identifier'));
-      if (wantsText) typeCols.push(...cols.filter(c => c.inferredType === 'Text'));
+      if (wantsText) typeCols.push(...cols.filter(c => classify(c) === 'categorical'));
       const seen = new Set<string>();
       typeCols.forEach(c => { if (!seen.has(c.name)) { seen.add(c.name); matched.push(c.name); } });
       if (!wantsAll) {
@@ -293,9 +502,11 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
       setSelectedColumnNames(matched);
       setNlQueryResult({
         matched,
-        message: matched.length === 1
+        message: wantsHeatmap
+          ? `Plotting cross-tabulated heatmap for: ${matched.join(' × ')}`
+          : matched.length === 1
           ? `Showing: ${matched[0]}`
-          : `Comparing: ${matched.join(' \u00d7 ')}`,
+          : `Comparing: ${matched.join(' × ')}`,
         type: 'success',
       });
     } else {
@@ -309,7 +520,7 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
 
   const categoryCounts = useMemo(() => {
     if (!activeDataset) {
-      return { all: 0, numeric: 0, categorical: 0, date: 0, identifier: 0, highCard: 0, outliers: 0 };
+      return { all: 0, numeric: 0, categorical: 0, date: 0, identifier: 0, highCard: 0, outliers: 0, flagged: 0 };
     }
     const cols = activeDataset.columns;
     const numeric = cols.filter(c => c.inferredType === 'Numeric' || c.inferredType === 'Currency').length;
@@ -317,9 +528,10 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
     const date = cols.filter(c => c.inferredType === 'Date').length;
     const identifier = cols.filter(c => c.inferredType === 'Identifier').length;
     const highCard = cols.filter(c => c.inferredType !== 'Date' && (c.distinctPct >= 70 || (activeDataset.totalRows > 0 && c.uniqueCount >= activeDataset.totalRows * 0.7))).length;
-    const outliers = cols.filter(c => c.hasDirtyFormats || (c.numericStats && (c.numericStats.zeros > 0 || c.numericStats.negatives > 0))).length;
+    const outliers = cols.filter(c => c.numericStats && (c.numericStats.zeros > 0 || c.numericStats.negatives > 0)).length;
+    const flagged = cols.filter(c => c.hasDirtyFormats || (c.numericStats && (c.numericStats.zeros > 0 || c.numericStats.negatives > 0))).length;
 
-    return { all: cols.length, numeric, categorical, date, identifier, highCard, outliers };
+    return { all: cols.length, numeric, categorical, date, identifier, highCard, outliers, flagged };
   }, [activeDataset]);
 
   const filteredColumns = useMemo(() => {
@@ -342,6 +554,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
       } else if (selectedCategoryFilter === 'HIGHCARD') {
         matchCat = c.inferredType !== 'Date' && (c.distinctPct >= 70 || (activeDataset.totalRows > 0 && c.uniqueCount >= activeDataset.totalRows * 0.7));
       } else if (selectedCategoryFilter === 'OUTLIERS') {
+        matchCat = Boolean(c.numericStats && (c.numericStats.zeros > 0 || c.numericStats.negatives > 0));
+      } else if (selectedCategoryFilter === 'FLAGGED') {
         matchCat = Boolean(c.hasDirtyFormats || (c.numericStats && (c.numericStats.zeros > 0 || c.numericStats.negatives > 0)));
       } else if (selectedCategoryFilter === 'FINANCIAL') {
         matchCat = c.categoryGroup === 'Financial Amounts';
@@ -371,6 +585,8 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
       .filter(Boolean) as ColumnMetricItem[];
   }, [activeDataset, pinnedSelection]);
 
+  const isWideCompareActive = pinnedColumnObjects.length > 0 && isCompareWideMode;
+
   const handleToggleColumn = (colName: string) => {
     setSelectedColumnNames(prev => {
       if (prev.includes(colName)) {
@@ -388,6 +604,7 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
     if (!activeDataset) return;
     if (pinnedSelection && pinnedSelection.datasetId === activeDataset.id) {
       setPinnedSelection(null);
+      setIsCompareWideMode(false);
     } else {
       setPinnedSelection({ names: [...selectedColumnNames], datasetId: activeDataset.id });
     }
@@ -598,25 +815,31 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
     }
 
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.68rem', fontWeight: 750, color: '#475569' }}>Selected Fields ({selectedCols.length}):</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.66rem', fontWeight: 750, color: '#475569', whiteSpace: 'nowrap' }}>Selected ({selectedCols.length}):</span>
         {selectedCols.map((c) => (
           <span
             key={c.name}
+            title={c.name}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
               background: '#F0FDFA',
               border: '1px solid #CCFBF1',
-              padding: '2px 8px',
+              padding: '2px 7px',
               borderRadius: '6px',
-              fontSize: '0.70rem',
+              fontSize: '0.68rem',
               fontWeight: 700,
               color: '#007680',
+              maxWidth: '140px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            {getTypeIcon(c.inferredType)} {c.name}
+            {getTypeIcon(c.inferredType)}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
           </span>
         ))}
       </div>
@@ -1543,357 +1766,138 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
             )}
 
             {/* ── Left-Right EDA Split View (Utilizing Full Screen Space) ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 420px) minmax(0, 1fr)', gap: '16px', alignItems: 'stretch' }}>
-              {/* LEFT PANEL: Interactive Column Selector & Type Filter */}
-              <div
-                style={{
-                  background: '#FFFFFF',
-                  borderRadius: '12px',
-                  border: '1px solid #E2E8F0',
-                  padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  maxHeight: '560px',
-                }}
-              >
-                {/* Header: Title + Selection Mode Indicator */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Layers2 size={15} color="#007680" />
-                      <span style={{ fontSize: '0.84rem', fontWeight: 750, color: '#0F172A' }}>
-                        Select Field(s)
-                      </span>
-                    </div>
-
-                    <span
-                      style={{
-                        fontSize: '0.64rem',
-                        fontWeight: 750,
-                        padding: '2px 7px',
-                        borderRadius: '10px',
-                        background: selectedColumnNames.length > 1 ? '#F0FDF4' : selectedColumnNames.length === 1 ? '#F0FDFA' : '#F8FAFC',
-                        color: selectedColumnNames.length > 1 ? '#16A34A' : selectedColumnNames.length === 1 ? '#007680' : '#64748B',
-                        border: selectedColumnNames.length > 1 ? '1px solid #BBF7D0' : selectedColumnNames.length === 1 ? '1px solid #99F6E4' : '1px solid #E2E8F0',
-                      }}
-                    >
-                      {selectedColumnNames.length === 0
-                        ? 'No Selection'
-                        : selectedColumnNames.length === 1
-                          ? 'Univariate (1)'
-                          : selectedColumnNames.length === 2
-                            ? 'Bivariate (2)'
-                            : `Multivariate (${selectedColumnNames.length})`}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '0.67rem', color: '#64748B', margin: 0 }}>
-                    Click fields to plot distributions, relationships, and trends.
-                  </p>
-                </div>
-
-                {/* Search + Category Filter Bar */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ position: 'relative' }}>
-                    <Search size={12} color="#64748B" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type="text"
-                      placeholder="Search field names..."
-                      value={columnSearch}
-                      onChange={(e) => setColumnSearch(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '5px 8px 5px 26px',
-                        fontSize: '0.73rem',
-                        border: '1px solid #CBD5E1',
-                        borderRadius: '6px',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {[
-                      { id: 'ALL', label: `All (${categoryCounts.all})` },
-                      { id: 'NUMERIC', label: `Numeric (${categoryCounts.numeric})` },
-                      { id: 'CATEGORICAL', label: `Categorical (${categoryCounts.categorical})` },
-                      { id: 'DATE', label: `Date (${categoryCounts.date})` },
-                      { id: 'IDENTIFIER', label: `Identifier (${categoryCounts.identifier})` },
-                      { id: 'HIGHCARD', label: `High Card (${categoryCounts.highCard})` },
-                      { id: 'OUTLIERS', label: `Outliers (${categoryCounts.outliers})` },
-                    ].map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setSelectedCategoryFilter(c.id)}
-                        style={{
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          border: selectedCategoryFilter === c.id ? '1px solid #007680' : '1px solid #E2E8F0',
-                          background: selectedCategoryFilter === c.id ? '#F0FDFA' : '#FFFFFF',
-                          color: selectedCategoryFilter === c.id ? '#007680' : '#64748B',
-                          fontSize: '0.63rem',
-                          fontWeight: selectedCategoryFilter === c.id ? 750 : 550,
-                          cursor: 'pointer',
-                          transition: 'all 0.12s ease',
-                        }}
-                      >
-                        {c.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Scrollable Column List */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isWideCompareActive ? '44px minmax(0, 1fr)' : '370px minmax(0, 1fr)',
+                gap: isWideCompareActive ? '12px' : '16px',
+                alignItems: 'stretch',
+                height: '600px',
+                minHeight: '600px',
+                maxHeight: '600px',
+                boxSizing: 'border-box',
+                transition: 'grid-template-columns 0.2s ease',
+              }}
+            >
+              {/* LEFT PANEL: Interactive Column Selector OR Collapsed Rail in Wide Mode */}
+              {isWideCompareActive ? (
                 <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setIsCompareWideMode(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setIsCompareWideMode(false);
+                    }
+                  }}
+                  title="Click to restore full Field Selector panel (Standard View)"
                   style={{
+                    background: '#FFFFFF',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0',
+                    padding: '14px 6px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '6px',
-                    overflowY: 'auto',
-                    flex: 1,
-                    paddingRight: '4px',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    height: '100%',
+                    minHeight: '600px',
+                    maxHeight: '600px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.15s ease',
+                    userSelect: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#007680';
+                    e.currentTarget.style.background = '#F0FDFA';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#E2E8F0';
+                    e.currentTarget.style.background = '#FFFFFF';
                   }}
                 >
-                  {filteredColumns.map((col) => {
-                    const isSelected = selectedColumnNames.includes(col.name);
-                    const isHighCard = (col.distinctPct >= 70 || (activeDataset.totalRows > 0 && col.uniqueCount >= activeDataset.totalRows * 0.7)) && col.inferredType !== 'Date';
-                    const isFlagged = col.hasDirtyFormats || (col.numericStats && (col.numericStats.zeros > 0 || col.numericStats.negatives > 0));
-
-                    return (
-                      <div
-                        key={col.name}
-                        onClick={() => handleToggleColumn(col.name)}
-                        style={{
-                          padding: '8px 10px',
-                          borderRadius: '8px',
-                          border: isSelected ? '1.5px solid #007680' : '1px solid #E2E8F0',
-                          background: isSelected ? '#F0FDFA' : '#FAFCFD',
-                          boxShadow: isSelected ? '0 1px 3px rgba(0, 118, 128, 0.08)' : 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.12s ease',
-                        }}
-                      >
-                        {/* Checkbox & Name */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => { }}
-                            style={{ accentColor: '#007680', cursor: 'pointer', width: '14px', height: '14px', flexShrink: 0 }}
-                          />
-                          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
-                            {getTypeIcon(col.inferredType)}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '0.74rem',
-                              fontWeight: isSelected ? 750 : 600,
-                              color: isSelected ? '#005A60' : '#0F172A',
-                              fontFamily: 'var(--font-mono, monospace)',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                            title={col.name}
-                          >
-                            {col.name}
-                          </span>
-                        </div>
-
-                        {/* Right Tag & Signal Indicators */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-                          {isHighCard && (
-                            <span
-                              style={{
-                                fontSize: '0.60rem',
-                                fontWeight: 700,
-                                color: '#6366F1',
-                                background: '#F5F3FF',
-                                border: '1px solid #DDD6FE',
-                                padding: '1.5px 6px',
-                                borderRadius: '4px',
-                                cursor: 'help',
-                              }}
-                              title="High Cardinality: Distinct values account for ≥ 70% of total records (e.g. unique keys or transaction IDs)"
-                            >
-                              High Card
-                            </span>
-                          )}
-                          {isFlagged && (
-                            <span
-                              style={{
-                                fontSize: '0.60rem',
-                                fontWeight: 700,
-                                color: '#D97706',
-                                background: '#FFFBEB',
-                                border: '1px solid #FDE68A',
-                                padding: '1.5px 6px',
-                                borderRadius: '4px',
-                                cursor: 'help',
-                              }}
-                              title="Quality Flag: Potential format variances, outliers, or zero/negative anomalies detected"
-                            >
-                              Flagged
-                            </span>
-                          )}
-                          <span
-                            style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 700,
-                              color: getTypeBadgeColor(col.inferredType),
-                              background: getTypeBadgeBg(col.inferredType),
-                              padding: '1.5px 6px',
-                              borderRadius: '4px',
-                              border: `1px solid ${getTypeBadgeBorder(col.inferredType)}`,
-                            }}
-                          >
-                            {col.inferredType}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Quick Actions Footer */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #E2E8F0', fontSize: '0.68rem', gap: '8px' }}>
-                  <span style={{ color: '#64748B', fontWeight: 600 }}>
-                    {selectedColumnNames.length} selected of {activeDataset.columns.length}
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                     <button
                       type="button"
-                      onClick={handleTogglePin}
-                      title={pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? 'Unpin comparison view' : 'Pin this selection to compare against a new one'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCompareWideMode(false);
+                      }}
+                      title="Expand Field Selector"
                       style={{
-                        display: 'inline-flex',
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '6px',
+                        background: '#F0FDFA',
+                        border: '1px solid #99F6E4',
+                        color: '#007680',
+                        display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
-                        background: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '#F0FDFA' : 'none',
-                        border: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '1px solid #99F6E4' : '1px solid transparent',
-                        borderRadius: '5px',
-                        padding: '3px 8px',
-                        color: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '#007680' : '#64748B',
-                        fontWeight: 750,
+                        justifyContent: 'center',
                         cursor: 'pointer',
-                        fontSize: '0.68rem',
+                        padding: 0,
+                        transition: 'all 0.15s ease',
                       }}
                     >
-                      {pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? (
-                        <>
-                          <PinOff size={12} /> Unpin
-                        </>
-                      ) : (
-                        <>
-                          <Pin size={12} /> Pin &amp; Compare
-                        </>
-                      )}
+                      <ChevronRight size={16} />
                     </button>
-                    {selectedColumnNames.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={handleClearSelection}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#007680',
-                          fontWeight: 750,
-                          cursor: 'pointer',
-                          fontSize: '0.68rem',
-                        }}
-                      >
-                        Deselect All
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT PANEL: Dynamic Intelligent Visual Studio Canvas (Expansive & Tightened) */}
-              {pinnedColumnObjects.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div
-                    style={{
-                      background: '#FFFFFF',
-                      borderRadius: '12px',
-                      border: '1.5px solid #99F6E4',
-                      padding: '14px 16px',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px',
-                      position: 'relative',
-                    }}
-                  >
-                    <span style={{ position: 'absolute', top: 10, right: 12, fontSize: '0.6rem', fontWeight: 800, color: '#007680', background: '#F0FDFA', border: '1px solid #99F6E4', padding: '1px 6px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                      <Pin size={9} /> PINNED
-                    </span>
-                    {renderFieldSummaryStrip(pinnedColumnObjects)}
-                    {renderEdaVisualContent(pinnedColumnObjects, activeDataset, numericViewMode)}
-                  </div>
-                  <div
-                    style={{
-                      background: '#FFFFFF',
-                      borderRadius: '12px',
-                      border: '1px solid #E2E8F0',
-                      padding: '14px 16px',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px',
-                      position: 'relative',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#0284C7', background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '1px 6px', borderRadius: 999 }}>
-                        LIVE
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {numericViewToggle(selectedColumnObjects, numericViewMode, setNumericViewMode)}
-                        {selectedColumnObjects.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const promptText = generateIntelligentEdaPrompt(selectedColumnObjects, activeDataset);
-                              const colName = selectedColumnObjects[0]?.name || activeDataset.title;
-                              const displayText = selectedColumnObjects.length === 1
-                                ? `Analyze field: ${colName}`
-                                : `Analyze: ${selectedColumnObjects.map(c => c.name).join(' × ')}`;
-                              window.dispatchEvent(new CustomEvent('jet:open-ai', {
-                                detail: { prompt: promptText, context: colName, displayText },
-                              }));
-                            }}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              background: 'linear-gradient(135deg, #F0FDFA 0%, #E0F2FE 100%)',
-                              border: '1px solid #99F6E4',
-                              color: '#007680',
-                              fontSize: '0.66rem',
-                              fontWeight: 750,
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 2px rgba(0, 118, 128, 0.06)',
-                              transition: 'all 0.15s ease',
-                            }}
-                            title="Ask Data Agent to analyze and explain this distribution"
-                          >
-                            <Sparkles size={11} color="#007680" />
-                            <span>Explain with AI</span>
-                          </button>
-                        )}
-                      </div>
+                    <div
+                      style={{
+                        writingMode: 'vertical-rl',
+                        transform: 'rotate(180deg)',
+                        fontSize: '0.68rem',
+                        fontWeight: 750,
+                        letterSpacing: '0.08em',
+                        color: '#007680',
+                        textTransform: 'uppercase',
+                        marginTop: '12px',
+                      }}
+                    >
+                      Field Selector
                     </div>
-                    {renderFieldSummaryStrip(selectedColumnObjects)}
-                    {renderEdaVisualContent(selectedColumnObjects, activeDataset, numericViewMode)}
+                  </div>
+
+                  {/* Summary badge on rail bottom */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', width: '100%' }}>
+                    <div
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        background: '#F0FDFA',
+                        border: '1px solid #99F6E4',
+                        color: '#007680',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                      }}
+                      title={`${selectedColumnNames.length} column(s) actively selected`}
+                    >
+                      {selectedColumnNames.length}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCompareWideMode(false);
+                      }}
+                      style={{
+                        fontSize: '0.60rem',
+                        fontWeight: 750,
+                        color: '#007680',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                    >
+                      Expand
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -1902,19 +1906,687 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                     background: '#FFFFFF',
                     borderRadius: '12px',
                     border: '1px solid #E2E8F0',
-                    padding: selectedColumnObjects.length > 0 ? '16px 18px' : '20px',
+                    padding: '14px 12px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
                     height: '100%',
+                    minHeight: '600px',
+                    maxHeight: '600px',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Header: Title + Selection Mode Indicator */}
+                  <div style={{ flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Layers2 size={15} color="#007680" />
+                        <span style={{ fontSize: '0.84rem', fontWeight: 750, color: '#0F172A' }}>
+                          Select Field(s)
+                        </span>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: '0.64rem',
+                          fontWeight: 750,
+                          padding: '2px 7px',
+                          borderRadius: '10px',
+                          background: selectedColumnNames.length > 1 ? '#F0FDF4' : selectedColumnNames.length === 1 ? '#F0FDFA' : '#F8FAFC',
+                          color: selectedColumnNames.length > 1 ? '#16A34A' : selectedColumnNames.length === 1 ? '#007680' : '#64748B',
+                          border: selectedColumnNames.length > 1 ? '1px solid #BBF7D0' : selectedColumnNames.length === 1 ? '1px solid #99F6E4' : '1px solid #E2E8F0',
+                        }}
+                      >
+                        {selectedColumnNames.length === 0
+                          ? 'No Selection'
+                          : selectedColumnNames.length === 1
+                            ? 'Univariate (1)'
+                            : selectedColumnNames.length === 2
+                              ? 'Bivariate (2)'
+                              : `Multivariate (${selectedColumnNames.length})`}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.67rem', color: '#64748B', margin: 0 }}>
+                      Click fields to plot distributions, relationships, and trends.
+                    </p>
+                  </div>
+
+                  {/* Search + Dual-Group Category Filter Bar */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', flexShrink: 0 }}>
+                    <div style={{ position: 'relative' }}>
+                      <Search size={12} color="#64748B" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input
+                        type="text"
+                        placeholder="Search field names..."
+                        value={columnSearch}
+                        onChange={(e) => setColumnSearch(e.target.value)}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          padding: '5px 8px 5px 26px',
+                          fontSize: '0.73rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '6px',
+                          outline: 'none',
+                        }}
+                      />
+                    </div>
+
+                    {/* Group 1: Types (Strictly Single Row) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '0.60rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', width: '36px', flexShrink: 0 }}>
+                        Types:
+                      </span>
+                      <div style={{ display: 'flex', gap: '3px', flexWrap: 'nowrap', flex: 1, alignItems: 'center', overflow: 'hidden' }}>
+                        {[
+                          { id: 'ALL', label: `All (${categoryCounts.all})` },
+                          { id: 'NUMERIC', label: `Numeric (${categoryCounts.numeric})` },
+                          { id: 'CATEGORICAL', label: `Categorical (${categoryCounts.categorical})` },
+                          { id: 'DATE', label: `Date (${categoryCounts.date})` },
+                          { id: 'IDENTIFIER', label: `Identifier (${categoryCounts.identifier})` },
+                        ].map((c) => {
+                          const isActive = selectedCategoryFilter === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setSelectedCategoryFilter(c.id)}
+                              style={{
+                                padding: '2px 4px',
+                                borderRadius: '4px',
+                                border: isActive ? '1px solid #007680' : '1px solid #E2E8F0',
+                                background: isActive ? '#F0FDFA' : '#FFFFFF',
+                                color: isActive ? '#007680' : '#64748B',
+                                fontSize: '0.59rem',
+                                fontWeight: isActive ? 750 : 550,
+                                letterSpacing: '-0.01em',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                                transition: 'all 0.12s ease',
+                              }}
+                            >
+                              {c.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Group 2: Signals (Strictly Single Row) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '0.60rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', width: '36px', flexShrink: 0 }}>
+                        Signals:
+                      </span>
+                      <div style={{ display: 'flex', gap: '3px', flexWrap: 'nowrap', flex: 1, alignItems: 'center', overflow: 'hidden' }}>
+                        {[
+                          { id: 'HIGHCARD', label: `High Card (${categoryCounts.highCard})`, activeBg: '#F5F3FF', activeColor: '#6366F1', activeBorder: '#DDD6FE' },
+                          { id: 'OUTLIERS', label: `Outliers (${categoryCounts.outliers})`, activeBg: '#FDF2F8', activeColor: '#DB2777', activeBorder: '#FBCFE8' },
+                          { id: 'FLAGGED', label: `Flagged (${categoryCounts.flagged})`, activeBg: '#FFFBEB', activeColor: '#D97706', activeBorder: '#FDE68A' },
+                        ].map((c) => {
+                          const isActive = selectedCategoryFilter === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setSelectedCategoryFilter(isActive ? 'ALL' : c.id)}
+                              style={{
+                                padding: '2px 5px',
+                                borderRadius: '4px',
+                                border: isActive ? `1px solid ${c.activeBorder}` : '1px solid #E2E8F0',
+                                background: isActive ? c.activeBg : '#FFFFFF',
+                                color: isActive ? c.activeColor : '#64748B',
+                                fontSize: '0.60rem',
+                                fontWeight: isActive ? 750 : 550,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                                transition: 'all 0.12s ease',
+                              }}
+                            >
+                              {c.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scrollable Column List */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      overflowY: 'auto',
+                      flex: 1,
+                      minHeight: 0,
+                      paddingRight: '4px',
+                    }}
+                  >
+                    {filteredColumns.map((col) => {
+                      const isSelected = selectedColumnNames.includes(col.name);
+                      const isHighCard = (col.distinctPct >= 70 || (activeDataset.totalRows > 0 && col.uniqueCount >= activeDataset.totalRows * 0.7)) && col.inferredType !== 'Date';
+                      const isFlagged = col.hasDirtyFormats || (col.numericStats && (col.numericStats.zeros > 0 || col.numericStats.negatives > 0));
+
+                      return (
+                        <div
+                          key={col.name}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleToggleColumn(col.name)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleToggleColumn(col.name);
+                            }
+                          }}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: isSelected ? '1.5px solid #007680' : '1px solid #E2E8F0',
+                            background: isSelected ? 'linear-gradient(135deg, #F0FDFA 0%, #FFFFFF 100%)' : '#FFFFFF',
+                            boxShadow: isSelected
+                              ? '0 2px 6px rgba(0, 118, 128, 0.12), inset 3px 0 0 #007680'
+                              : '0 1px 2px rgba(0, 0, 0, 0.02)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            userSelect: 'none',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = '#99F6E4';
+                              e.currentTarget.style.background = '#F8FAFC';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = '#E2E8F0';
+                              e.currentTarget.style.background = '#FFFFFF';
+                            }
+                          }}
+                        >
+                          {/* Type Icon Badge + Column Name (No Checkbox) */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                            <div
+                              style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '5px',
+                                background: isSelected ? '#CCFBF1' : getTypeBadgeBg(col.inferredType),
+                                border: `1px solid ${isSelected ? '#99F6E4' : getTypeBadgeBorder(col.inferredType)}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              {getTypeIcon(col.inferredType)}
+                            </div>
+                            <span
+                              style={{
+                                fontSize: '0.74rem',
+                                fontWeight: isSelected ? 750 : 600,
+                                color: isSelected ? '#004D54' : '#0F172A',
+                                fontFamily: 'var(--font-mono, monospace)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                              title={col.name}
+                            >
+                              {col.name}
+                            </span>
+                          </div>
+
+                          {/* Right Tag & Signal Indicators */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                            {isHighCard && (
+                              <span
+                                style={{
+                                  fontSize: '0.60rem',
+                                  fontWeight: 700,
+                                  color: '#6366F1',
+                                  background: '#F5F3FF',
+                                  border: '1px solid #DDD6FE',
+                                  padding: '1.5px 6px',
+                                  borderRadius: '4px',
+                                  cursor: 'help',
+                                }}
+                                title="High Cardinality: Distinct values account for ≥ 70% of total records (e.g. unique keys or transaction IDs)"
+                              >
+                                High Card
+                              </span>
+                            )}
+                            {isFlagged && (
+                              <span
+                                style={{
+                                  fontSize: '0.60rem',
+                                  fontWeight: 700,
+                                  color: '#D97706',
+                                  background: '#FFFBEB',
+                                  border: '1px solid #FDE68A',
+                                  padding: '1.5px 6px',
+                                  borderRadius: '4px',
+                                  cursor: 'help',
+                                }}
+                                title="Quality Flag: Potential format variances, outliers, or zero/negative anomalies detected"
+                              >
+                                Flagged
+                              </span>
+                            )}
+                            <span
+                              style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                color: getTypeBadgeColor(col.inferredType),
+                                background: getTypeBadgeBg(col.inferredType),
+                                padding: '1.5px 6px',
+                                borderRadius: '4px',
+                                border: `1px solid ${getTypeBadgeBorder(col.inferredType)}`,
+                              }}
+                            >
+                              {col.inferredType}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Quick Actions Footer */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #E2E8F0', fontSize: '0.68rem', gap: '8px' }}>
+                    <span style={{ color: '#64748B', fontWeight: 600 }}>
+                      {selectedColumnNames.length} selected of {activeDataset.columns.length}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {pinnedSelection && pinnedSelection.datasetId === activeDataset.id && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCompareWideMode(!isCompareWideMode)}
+                          title={isCompareWideMode ? "Exit wide mode and restore field selector" : "Expand side-by-side comparison across section"}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: isCompareWideMode ? '#F0FDFA' : 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                            border: isCompareWideMode ? '1px solid #99F6E4' : 'none',
+                            borderRadius: '5px',
+                            padding: '3px 8px',
+                            color: isCompareWideMode ? '#007680' : '#FFFFFF',
+                            fontWeight: 750,
+                            cursor: 'pointer',
+                            fontSize: '0.66rem',
+                            boxShadow: isCompareWideMode ? 'none' : '0 1px 3px rgba(0, 118, 128, 0.25)',
+                          }}
+                        >
+                          {isCompareWideMode ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+                          <span>{isCompareWideMode ? 'Standard' : 'Wide Mode'}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleTogglePin}
+                        title={pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? 'Unpin comparison view' : 'Pin this selection to compare against a new one'}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '#F0FDFA' : 'none',
+                          border: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '1px solid #99F6E4' : '1px solid transparent',
+                          borderRadius: '5px',
+                          padding: '3px 8px',
+                          color: pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? '#007680' : '#64748B',
+                          fontWeight: 750,
+                          cursor: 'pointer',
+                          fontSize: '0.68rem',
+                        }}
+                      >
+                        {pinnedSelection && pinnedSelection.datasetId === activeDataset.id ? (
+                          <>
+                            <PinOff size={12} /> Unpin
+                          </>
+                        ) : (
+                          <>
+                            <Pin size={12} /> Pin &amp; Compare
+                          </>
+                        )}
+                      </button>
+                      {selectedColumnNames.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleClearSelection}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#007680',
+                            fontWeight: 750,
+                            cursor: 'pointer',
+                            fontSize: '0.68rem',
+                          }}
+                        >
+                          Deselect All
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* RIGHT PANEL: Dynamic Intelligent Visual Studio Canvas (Expansive & Tightened) */}
+              {pinnedColumnObjects.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '600px', maxHeight: '600px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                  {/* In-Section Wide Mode Top Banner */}
+                  {isWideCompareActive && (
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, #002B30 0%, #004D54 60%, #007680 100%)',
+                        borderRadius: '10px',
+                        padding: '7px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        color: '#FFFFFF',
+                        boxShadow: '0 2px 8px rgba(0, 43, 48, 0.15)',
+                        marginBottom: '10px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#86BC25', boxShadow: '0 0 6px #86BC25' }} />
+                        <span style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.04em' }}>
+                          COMPARATIVE AUDIT STUDIO • IN-SECTION WIDE MODE
+                        </span>
+                        <span style={{ fontSize: '0.64rem', color: '#99F6E4', background: 'rgba(255,255,255,0.14)', padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>
+                          Side-by-Side Dual Benchmark Analysis
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const pNames = pinnedColumnObjects.map(c => c.name).join(' & ');
+                            const lNames = selectedColumnObjects.map(c => c.name).join(' & ');
+                            const prompt = `Perform a comprehensive side-by-side audit comparison between PINNED benchmark fields [${pNames}] and LIVE fields [${lNames}] in dataset "${activeDataset.title}". Compare distributions, correlations, outliers, and substantive journal entry risks.`;
+                            window.dispatchEvent(new CustomEvent('jet:open-ai', {
+                              detail: { prompt, context: `${pNames} vs ${lNames}`, displayText: `Compare: ${pNames} vs ${lNames}` },
+                            }));
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3.5px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(255,255,255,0.16)',
+                            border: '1px solid rgba(255,255,255,0.25)',
+                            color: '#FFFFFF',
+                            fontSize: '0.66rem',
+                            fontWeight: 750,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          title="Ask AI to compare both panels and highlight key variance"
+                        >
+                          <Sparkles size={11} color="#86BC25" />
+                          <span>Explain Comparison with AI</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsCompareWideMode(false)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3.5px 10px',
+                            borderRadius: '6px',
+                            background: '#FFFFFF',
+                            border: 'none',
+                            color: '#004D54',
+                            fontSize: '0.66rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                          }}
+                          title="Return to standard split view with field selector (Esc)"
+                        >
+                          <Minimize2 size={11} />
+                          <span>Standard View (Esc)</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1, minHeight: 0 }}>
+                    {/* PINNED BENCHMARK CARD */}
+                    <div
+                      style={{
+                        background: '#FFFFFF',
+                        borderRadius: '12px',
+                        border: '1.5px solid #99F6E4',
+                        padding: '12px 14px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '100%',
+                        position: 'relative',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {/* Top Bar for Pinned Panel - Clean, No Overlapping Absolute Badge */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#007680', background: '#F0FDFA', border: '1px solid #99F6E4', padding: '2px 7px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                            <Pin size={9} /> PINNED
+                          </span>
+                          <span style={{ fontSize: '0.64rem', color: '#64748B', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {pinnedColumnObjects.length} field{pinnedColumnObjects.length === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            onClick={() => setIsCompareWideMode(!isCompareWideMode)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              padding: '2.5px 7px',
+                              borderRadius: '5px',
+                              background: isCompareWideMode ? '#F0FDFA' : 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                              border: isCompareWideMode ? '1px solid #99F6E4' : 'none',
+                              color: isCompareWideMode ? '#007680' : '#FFFFFF',
+                              fontSize: '0.62rem',
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              boxShadow: isCompareWideMode ? 'none' : '0 1px 3px rgba(0, 118, 128, 0.25)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title={isCompareWideMode ? "Return to standard view" : "Expand side-by-side comparison in Wide Mode"}
+                          >
+                            {isCompareWideMode ? <Minimize2 size={10} /> : <Maximize2 size={10} />}
+                            <span>{isCompareWideMode ? 'Standard View' : 'Wide Mode'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPinnedSelection(null);
+                              setIsCompareWideMode(false);
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              padding: '2.5px 6px',
+                              borderRadius: '5px',
+                              background: '#F8FAFC',
+                              border: '1px solid #CBD5E1',
+                              color: '#64748B',
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                            title="Exit compare mode and unpin"
+                          >
+                            <X size={9} />
+                            <span>Unpin</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '6px', flexShrink: 0 }}>
+                        {renderFieldSummaryStrip(pinnedColumnObjects)}
+                      </div>
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          minHeight: 0,
+                          width: '100%',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {renderEdaVisualContent(pinnedColumnObjects, activeDataset, numericViewMode, isCompareWideMode)}
+                      </div>
+                    </div>
+
+                    {/* LIVE ACTIVE EXPLORATION CARD */}
+                    <div
+                      style={{
+                        background: '#FFFFFF',
+                        borderRadius: '12px',
+                        border: '1.5px solid #BAE6FD',
+                        padding: '12px 14px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '100%',
+                        position: 'relative',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'nowrap', marginBottom: '6px', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0284C7', background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '2px 7px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#0284C7' }} />
+                            LIVE
+                          </span>
+                          <span style={{ fontSize: '0.64rem', color: '#64748B', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {selectedColumnObjects.length} field{selectedColumnObjects.length === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            onClick={() => setIsCompareWideMode(!isCompareWideMode)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              padding: '2.5px 7px',
+                              borderRadius: '5px',
+                              background: isCompareWideMode ? '#F0FDFA' : 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+                              border: isCompareWideMode ? '1px solid #99F6E4' : 'none',
+                              color: isCompareWideMode ? '#007680' : '#FFFFFF',
+                              fontSize: '0.62rem',
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              boxShadow: isCompareWideMode ? 'none' : '0 1px 3px rgba(0, 118, 128, 0.25)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title={isCompareWideMode ? "Return to standard view" : "Expand side-by-side comparison in Wide Mode"}
+                          >
+                            {isCompareWideMode ? <Minimize2 size={10} /> : <Maximize2 size={10} />}
+                            <span>{isCompareWideMode ? 'Standard View' : 'Wide Mode'}</span>
+                          </button>
+                          {numericViewToggle(selectedColumnObjects, numericViewMode, setNumericViewMode)}
+                          {selectedColumnObjects.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const promptText = generateIntelligentEdaPrompt(selectedColumnObjects, activeDataset);
+                                const colName = selectedColumnObjects[0]?.name || activeDataset.title;
+                                const displayText = selectedColumnObjects.length === 1
+                                  ? `Analyze field: ${colName}`
+                                  : `Analyze: ${selectedColumnObjects.map(c => c.name).join(' × ')}`;
+                                window.dispatchEvent(new CustomEvent('jet:open-ai', {
+                                  detail: { prompt: promptText, context: colName, displayText },
+                                }));
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2.5px 7px',
+                                borderRadius: '5px',
+                                background: 'linear-gradient(135deg, #F0FDFA 0%, #E0F2FE 100%)',
+                                border: '1px solid #99F6E4',
+                                color: '#007680',
+                                fontSize: '0.62rem',
+                                fontWeight: 750,
+                                cursor: 'pointer',
+                                boxShadow: '0 1px 2px rgba(0, 118, 128, 0.06)',
+                                transition: 'all 0.15s ease',
+                              }}
+                              title="Ask Data Agent to analyze and explain this distribution"
+                            >
+                              <Sparkles size={10} color="#007680" />
+                              <span>Explain</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: '6px', flexShrink: 0 }}>
+                        {renderFieldSummaryStrip(selectedColumnObjects)}
+                      </div>
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          minHeight: 0,
+                          width: '100%',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {renderEdaVisualContent(selectedColumnObjects, activeDataset, numericViewMode, isCompareWideMode)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0',
+                    padding: selectedColumnObjects.length > 0 ? '16px 20px' : '0px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                    minHeight: '600px',
+                    maxHeight: '600px',
                     alignSelf: 'stretch',
-                    justifyContent: selectedColumnObjects.length === 0 ? 'center' : 'flex-start',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
                   }}
                 >
                   {/* Top Canvas Bar: Mode label, Numeric toggle & Contextual AI Trigger */}
                   {selectedColumnObjects.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '8px', flexShrink: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '0.70rem', fontWeight: 750, color: '#475569' }}>
                           {selectedColumnObjects.length === 1 ? 'Single Field Profile' : selectedColumnObjects.length === 2 ? 'Bivariate Correlation' : 'Multivariate EDA'}
@@ -1967,8 +2639,26 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
                     </div>
                   )}
 
-                  {selectedColumnObjects.length > 0 && renderFieldSummaryStrip(selectedColumnObjects)}
-                  {renderEdaVisualContent(selectedColumnObjects, activeDataset, numericViewMode)}
+                  {selectedColumnObjects.length > 0 && (
+                    <div style={{ marginBottom: '10px', flexShrink: 0 }}>
+                      {renderFieldSummaryStrip(selectedColumnObjects)}
+                    </div>
+                  )}
+
+                  {/* Visual Content Body: Utilizing full space without dead margins */}
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: '100%',
+                      minHeight: 0,
+                      width: '100%',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {renderEdaVisualContent(selectedColumnObjects, activeDataset, numericViewMode, true)}
+                  </div>
                 </div>
               )}
             </div>
@@ -2374,9 +3064,78 @@ export const DatasetColumnHealthVisualizer: React.FC<DatasetColumnHealthVisualiz
 type FieldKind = 'numeric' | 'date' | 'categorical';
 
 function classify(c: ColumnMetricItem): FieldKind {
-  if (c.inferredType === 'Numeric' || c.inferredType === 'Currency') return 'numeric';
-  if (c.inferredType === 'Date') return 'date';
-  return 'categorical'; // Text or Identifier
+  const norm = c.name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+
+  // Hard Rule 1: Audit Identifiers & Categorical fields
+  // entity_id, entity_name, account number, account description, account_grouping_1, period_type,
+  // journal number, financial_statement_type_financial_statement_line, chart_of_accounts
+  // NEVER treat account / journal / chart_of_accounts / entity as numbers!
+  if (
+    norm.includes('account') ||
+    norm.includes('journal') ||
+    norm.includes('entity') ||
+    norm.includes('period_type') ||
+    norm.includes('grouping') ||
+    norm.includes('statement_type') ||
+    norm.includes('statement_line') ||
+    norm.includes('coa') ||
+    norm.includes('chart') ||
+    norm.includes('doc_num') ||
+    norm.includes('document_number') ||
+    norm.includes('voucher') ||
+    norm.includes('user_id') ||
+    norm.includes('preparer') ||
+    norm.includes('approver')
+  ) {
+    return 'categorical';
+  }
+
+  // Hard Rule 2: Fiscal Year & Period (YYYY and MM columns are discrete categories, NOT continuous dates)
+  if (
+    norm === 'fiscal_year' ||
+    norm === 'fiscalyear' ||
+    norm === 'year' ||
+    norm === 'fyear' ||
+    norm === 'fiscal_period' ||
+    norm === 'period' ||
+    norm === 'period_num' ||
+    norm === 'period_number' ||
+    norm === 'accounting_period'
+  ) {
+    return 'categorical';
+  }
+
+  // Rule 3: Validated continuous Date & Timestamp fields
+  if (
+    c.inferredType === 'Date' ||
+    norm.includes('date_effect') ||
+    norm.includes('effective_date') ||
+    norm.includes('posted') ||
+    norm.includes('time_posted') ||
+    norm.includes('period_end') ||
+    norm.endsWith('_date') ||
+    norm.startsWith('date_')
+  ) {
+    return 'date';
+  }
+
+  // Rule 4: Financial Numeric Measures (ending/beginning balances, amount, debit, credit)
+  if (
+    c.inferredType === 'Numeric' ||
+    c.inferredType === 'Currency' ||
+    norm.includes('balance') ||
+    norm.includes('ending') ||
+    norm.includes('beginning') ||
+    norm.includes('amount') ||
+    norm.includes('debit') ||
+    norm.includes('credit') ||
+    norm.includes('total') ||
+    norm.includes('sum')
+  ) {
+    return 'numeric';
+  }
+
+  return 'categorical';
 }
 
 const cleanStr = (v: any) => String(v ?? '').trim();
@@ -2600,18 +3359,18 @@ function EdaPanelHeader({
   rightBadge?: string;
 }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-      <div>
-        <div style={{ fontSize: '0.64rem', color: eyebrowColor, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start', minWidth: 0 }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: '0.62rem', color: eyebrowColor, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={eyebrow}>
           {eyebrow}
         </div>
-        <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: CHART_NAVY, margin: '2px 0', fontFamily: 'var(--font-mono, monospace)' }}>
+        <h4 style={{ fontSize: '0.90rem', fontWeight: 800, color: CHART_NAVY, margin: '2px 0', fontFamily: 'var(--font-mono, monospace)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={title}>
           {title}
         </h4>
-        <p style={{ fontSize: '0.69rem', color: CHART_SLATE, margin: 0 }}>{description}</p>
+        <p style={{ fontSize: '0.68rem', color: CHART_SLATE, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={description}>{description}</p>
       </div>
       {rightBadge && (
-        <span style={{ fontSize: '0.66rem', fontWeight: 750, color: CHART_SLATE, whiteSpace: 'nowrap' }}>{rightBadge}</span>
+        <span style={{ fontSize: '0.64rem', fontWeight: 750, color: CHART_SLATE, whiteSpace: 'nowrap', flexShrink: 0 }}>{rightBadge}</span>
       )}
     </div>
   );
@@ -2631,29 +3390,33 @@ function EdaEmptyState({ message }: { message: string }) {
         minHeight: 280,
         textAlign: 'center',
         gap: 10,
-        padding: '24px 16px',
-        background: '#FAFCFD',
-        border: '1px dashed #CBD5E1',
-        borderRadius: 12,
+        padding: '28px 20px',
+        background: 'radial-gradient(ellipse at 50% 15%, rgba(0, 118, 128, 0.03) 0%, #FAFCFD 70%)',
+        border: '1px solid #E2E8F0',
+        borderRadius: 14,
         margin: '8px 0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
       }}
     >
-      <img
-        src="/Empty-bro.png"
-        alt="Visualization Not Available"
-        style={{
-          width: '210px',
-          maxWidth: '100%',
-          height: 'auto',
-          objectFit: 'contain',
-          marginBottom: 4,
-          opacity: 0.92,
-        }}
-      />
-      <div style={{ fontSize: '0.90rem', fontWeight: 800, color: '#0F172A' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img
+          src="/Empty-bro.png"
+          alt="Visualization Not Available"
+          style={{
+            width: '190px',
+            maxWidth: '100%',
+            height: 'auto',
+            objectFit: 'contain',
+            marginBottom: 6,
+            opacity: 0.95,
+            filter: 'drop-shadow(0 6px 14px rgba(0, 77, 84, 0.08))',
+          }}
+        />
+      </div>
+      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.015em' }}>
         Visualization Not Possible
       </div>
-      <p style={{ fontSize: '0.74rem', color: '#64748B', margin: 0, maxWidth: 420, lineHeight: 1.5 }}>
+      <p style={{ fontSize: '0.74rem', color: '#64748B', margin: 0, maxWidth: 420, lineHeight: 1.55 }}>
         {message}
       </p>
     </div>
@@ -3177,7 +3940,8 @@ Please evaluate:
 function renderEdaVisualContent(
   selectedCols: ColumnMetricItem[],
   dataset: ExtractedDatasetProfile,
-  numericViewMode: 'histogram' | 'boxplot' = 'histogram'
+  numericViewMode: 'histogram' | 'boxplot' = 'histogram',
+  isWideMode: boolean = false
 ) {
   if (!selectedCols || selectedCols.length === 0) {
     return (
@@ -3187,42 +3951,194 @@ function renderEdaVisualContent(
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: '440px',
+          height: '100%',
+          minHeight: '100%',
+          flex: 1,
           textAlign: 'center',
-          padding: '36px 20px',
-          background: '#FAFCFD',
+          padding: '24px 20px',
+          background: 'radial-gradient(ellipse at 50% 15%, rgba(0, 118, 128, 0.04) 0%, rgba(248, 250, 252, 0.6) 60%, #FFFFFF 100%)',
           borderRadius: '12px',
-          border: '1px dashed #CBD5E1',
+          boxSizing: 'border-box',
         }}
       >
-        <img
-          src="/Empty-bro.png"
-          alt="No Fields Selected"
+        {/* Centered Illustration with Soft Ambient Backdrop */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+          <div
+            style={{
+              position: 'absolute',
+              width: '260px',
+              height: '170px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(134, 188, 37, 0.12) 0%, rgba(0, 118, 128, 0.06) 45%, rgba(255, 255, 255, 0) 75%)',
+              filter: 'blur(12px)',
+              pointerEvents: 'none',
+            }}
+          />
+          <img
+            src="/Empty-bro.png"
+            alt="Select Fields to Profile"
+            style={{
+              position: 'relative',
+              width: '230px',
+              maxHeight: '160px',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 8px 18px rgba(0, 77, 84, 0.10))',
+            }}
+          />
+        </div>
+
+        {/* Title & Concise Subtitle */}
+        <h3
           style={{
-            width: '270px',
-            maxWidth: '100%',
-            height: 'auto',
-            objectFit: 'contain',
-            marginBottom: '16px',
-            filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.06))',
+            fontSize: '1.15rem',
+            fontWeight: 800,
+            color: '#0F172A',
+            margin: '0 0 6px',
+            letterSpacing: '-0.02em',
           }}
-        />
-        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: '0 0 6px' }}>
+        >
           Select Field(s) to Begin Profiling
-        </h4>
-        <p style={{ fontSize: '0.76rem', color: '#64748B', maxWidth: 480, margin: '0 0 16px', lineHeight: 1.5 }}>
+        </h3>
+        <p
+          style={{
+            fontSize: '0.76rem',
+            color: '#64748B',
+            maxWidth: '500px',
+            margin: '0 0 20px',
+            lineHeight: 1.55,
+            fontWeight: 500,
+          }}
+        >
           Choose columns from the left panel to dynamically visualize distributions, anomaly thresholds, correlations, and relationships.
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '16px' }}>
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#007680', background: '#F0FDFA', border: '1px solid #99F6E4', padding: '3px 10px', borderRadius: '20px' }}>
-            1 Column: Univariate Distribution &amp; Outliers
-          </span>
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0284C7', background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '3px 10px', borderRadius: '20px' }}>
-            2 Columns: Bivariate Correlation &amp; Heatmap
-          </span>
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6366F1', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '3px 10px', borderRadius: '20px' }}>
-            3+ Columns: Multivariate Matrix &amp; Dependencies
-          </span>
+
+        {/* Balanced 3-Mode Feature Strip (Same 3 components in clean horizontal cards) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '10px',
+            maxWidth: '620px',
+            width: '100%',
+            marginBottom: '20px',
+          }}
+        >
+          {/* Card 1: Univariate */}
+          <div
+            style={{
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: '10px',
+              padding: '10px 12px',
+              textAlign: 'left',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                color: '#007680',
+                background: '#F0FDFA',
+                border: '1px solid #CCFBF1',
+                padding: '2px 7px',
+                borderRadius: '20px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                alignSelf: 'flex-start',
+              }}
+            >
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#007680' }} /> 1 Field
+            </span>
+            <div style={{ fontSize: '0.74rem', fontWeight: 750, color: '#0F172A', marginTop: '2px' }}>
+              Univariate Profile
+            </div>
+            <div style={{ fontSize: '0.65rem', color: '#64748B', lineHeight: 1.35 }}>
+              Distribution, box plots &amp; outliers
+            </div>
+          </div>
+
+          {/* Card 2: Bivariate */}
+          <div
+            style={{
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: '10px',
+              padding: '10px 12px',
+              textAlign: 'left',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                color: '#0284C7',
+                background: '#F0F9FF',
+                border: '1px solid #BAE6FD',
+                padding: '2px 7px',
+                borderRadius: '20px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                alignSelf: 'flex-start',
+              }}
+            >
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#0284C7' }} /> 2 Fields
+            </span>
+            <div style={{ fontSize: '0.74rem', fontWeight: 750, color: '#0F172A', marginTop: '2px' }}>
+              Bivariate Correlation
+            </div>
+            <div style={{ fontSize: '0.65rem', color: '#64748B', lineHeight: 1.35 }}>
+              Scatter, trends &amp; cross-heatmaps
+            </div>
+          </div>
+
+          {/* Card 3: Multivariate */}
+          <div
+            style={{
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: '10px',
+              padding: '10px 12px',
+              textAlign: 'left',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                color: '#6366F1',
+                background: '#F5F3FF',
+                border: '1px solid #DDD6FE',
+                padding: '2px 7px',
+                borderRadius: '20px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                alignSelf: 'flex-start',
+              }}
+            >
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#6366F1' }} /> 3+ Fields
+            </span>
+            <div style={{ fontSize: '0.74rem', fontWeight: 750, color: '#0F172A', marginTop: '2px' }}>
+              Multivariate Matrix
+            </div>
+            <div style={{ fontSize: '0.65rem', color: '#64748B', lineHeight: 1.35 }}>
+              Pairwise matrix &amp; dependencies
+            </div>
+          </div>
         </div>
 
         {/* AI Action to Analyze Full Schema */}
@@ -3240,30 +4156,44 @@ function renderEdaVisualContent(
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '6px 14px',
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #F0FDFA 0%, #E0F2FE 100%)',
-            border: '1.5px solid #99F6E4',
-            color: '#007680',
-            fontSize: '0.75rem',
-            fontWeight: 750,
+            gap: '8px',
+            padding: '9px 20px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #007680 0%, #004D54 100%)',
+            border: 'none',
+            color: '#FFFFFF',
+            fontSize: '0.78rem',
+            fontWeight: 700,
             cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(0, 118, 128, 0.08)',
-            transition: 'all 0.15s ease',
+            boxShadow: '0 3px 12px rgba(0, 118, 128, 0.22)',
+            transition: 'all 0.18s ease',
+            letterSpacing: '-0.01em',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 5px 16px rgba(0, 118, 128, 0.32)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 3px 12px rgba(0, 118, 128, 0.22)';
           }}
           title="Ask AI Copilot to analyze dataset schema and recommend key fields to explore"
         >
-          <Sparkles size={13} color="#007680" />
+          <Sparkles size={14} color="#86BC25" />
           <span>Ask AI to Analyze Schema &amp; Suggest Key Audit Fields</span>
+          <ChevronRight size={13} color="rgba(255, 255, 255, 0.7)" />
         </button>
+
+        <span style={{ fontSize: '0.66rem', color: '#94A3B8', marginTop: '8px', fontWeight: 500 }}>
+          Automated substantive scoping powered by JET Intelligence
+        </span>
       </div>
     );
   }
 
-  if (selectedCols.length === 1) return renderUnivariate(selectedCols[0], numericViewMode);
-  if (selectedCols.length === 2) return renderBivariate(selectedCols[0], selectedCols[1]);
-  return renderMultivariate(selectedCols, dataset);
+  if (selectedCols.length === 1) return renderUnivariate(selectedCols[0], numericViewMode, isWideMode);
+  if (selectedCols.length === 2) return renderBivariate(selectedCols[0], selectedCols[1], dataset, isWideMode);
+  return renderMultivariate(selectedCols, dataset, isWideMode);
 }
 
 // ── 1 FIELD (UNIVARIATE) ─────────────────────────────────────────────────
@@ -3403,7 +4333,7 @@ function renderCategoricalUnivariate(col: ColumnMetricItem) {
   const topPct = totalObserved > 0 ? Math.round((topCount / totalObserved) * 100) : 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
       <EdaPanelHeader
         eyebrow={`Semantic Chart Decision • Value Frequency Spread (${col.inferredType})`}
         eyebrowColor={CHART_TEAL}
@@ -3412,11 +4342,11 @@ function renderCategoricalUnivariate(col: ColumnMetricItem) {
         rightBadge={`${col.validCount.toLocaleString()} valid • ${col.completenessPct}% complete`}
       />
 
-      <div style={{ height: 240, width: '100%' }}>
-        <Bar data={data} options={{ ...baseChartOptions(), indexAxis: 'y' as const }} />
+      <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
+        <Bar data={data} options={{ ...baseChartOptions(), maintainAspectRatio: false, indexAxis: 'y' as const }} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, flexShrink: 0 }}>
         <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 7, padding: '7px 9px' }}>
           <div style={{ fontSize: '0.59rem', color: CHART_SLATE, fontWeight: 750 }}>DOMINANT VALUE</div>
           <div style={{ fontSize: '0.76rem', color: CHART_TEAL, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>
@@ -3440,7 +4370,7 @@ function renderCategoricalUnivariate(col: ColumnMetricItem) {
   );
 }
 
-function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 'boxplot' = 'histogram') {
+function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 'boxplot' = 'histogram', isWideMode: boolean = false) {
   const kind = classify(col);
 
   if (kind === 'numeric') {
@@ -3477,7 +4407,7 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
     const showBoxPlot = numericViewMode === 'boxplot' && outliers !== null;
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
         <EdaPanelHeader
           eyebrow={`Semantic Chart Decision • Numeric ${showBoxPlot ? 'Box Plot' : 'Frequency Spread'}`}
           eyebrowColor={CHART_TEAL}
@@ -3489,28 +4419,30 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
         />
 
         {showBoxPlot ? (
-          <div style={{ height: 180, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ flex: 1, minHeight: 180, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <NumericBoxPlot stats={outliers} rawStats={stats} values={vals} />
           </div>
         ) : (
-          <div style={{ height: 240, width: '100%' }}>
-            <Bar data={data} options={baseChartOptions()} />
+          <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
+            <Bar data={data} options={{ ...baseChartOptions(), maintainAspectRatio: false }} />
           </div>
         )}
 
-        {outliers && <OutlierCallout outliers={outliers} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+          {outliers && <OutlierCallout outliers={outliers} />}
 
-        {roundClustering && roundClustering.roundCount > 0 && (
-          <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <CircleDot size={13} color={CHART_AMBER} />
-            <span style={{ fontSize: '0.68rem', color: '#92400E', fontWeight: 700 }}>
-              {roundClustering.roundCount} round-number amount{roundClustering.roundCount === 1 ? '' : 's'} ({roundClustering.roundPct}%) — exact multiples of 100/1,000
-            </span>
-            <span style={{ fontSize: '0.64rem', color: '#92400E' }}>
-              e.g. {roundClustering.topRoundValues.slice(0, 3).map(r => formatCompactNumber(r.value)).join(', ')}
-            </span>
-          </div>
-        )}
+          {roundClustering && roundClustering.roundCount > 0 && (
+            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <CircleDot size={13} color={CHART_AMBER} />
+              <span style={{ fontSize: '0.68rem', color: '#92400E', fontWeight: 700 }}>
+                {roundClustering.roundCount} round-number amount{roundClustering.roundCount === 1 ? '' : 's'} ({roundClustering.roundPct}%) — exact multiples of 100/1,000
+              </span>
+              <span style={{ fontSize: '0.64rem', color: '#92400E' }}>
+                e.g. {roundClustering.topRoundValues.slice(0, 3).map(r => formatCompactNumber(r.value)).join(', ')}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -3544,38 +4476,40 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
     const weekend = computeWeekendPostings(col);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
         <EdaPanelHeader
           eyebrow="Semantic Chart Decision • Monthly Posting Volume Trend"
           eyebrowColor={CHART_BLUE}
           title={col.name}
           description="Monthly posting frequency timeline aggregated by observed calendar periods."
         />
-        <div style={{ height: 240, width: '100%' }}>
-          <Line data={data} options={baseChartOptions()} />
+        <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
+          <Line data={data} options={{ ...baseChartOptions(), maintainAspectRatio: false }} />
         </div>
 
-        {weekend && (
-          weekend.weekendCount > 0 ? (
-            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <CalendarOff size={13} color={CHART_AMBER} />
-              <span style={{ fontSize: '0.68rem', color: '#92400E', fontWeight: 700 }}>
-                {weekend.weekendCount} weekend posting{weekend.weekendCount === 1 ? '' : 's'} ({weekend.weekendPct}% of dated records)
-              </span>
-              <span style={{ fontSize: '0.64rem', color: '#92400E' }}>
-                busiest: {weekend.weekendDates.slice(0, 3).map(w => `${w.date} (${w.count})`).join(', ')}
-              </span>
-            </div>
-          ) : (
-            <div style={{ ...cardStyle, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={12} color={CHART_TEAL} />
-              <span style={{ fontSize: '0.68rem', color: CHART_SLATE }}>No weekend (Sat/Sun) postings detected.</span>
-            </div>
-          )
-        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+          {weekend && (
+            weekend.weekendCount > 0 ? (
+              <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <CalendarOff size={13} color={CHART_AMBER} />
+                <span style={{ fontSize: '0.68rem', color: '#92400E', fontWeight: 700 }}>
+                  {weekend.weekendCount} weekend posting{weekend.weekendCount === 1 ? '' : 's'} ({weekend.weekendPct}% of dated records)
+                </span>
+                <span style={{ fontSize: '0.64rem', color: '#92400E' }}>
+                  busiest: {weekend.weekendDates.slice(0, 3).map(w => `${w.date} (${w.count})`).join(', ')}
+                </span>
+              </div>
+            ) : (
+              <div style={{ ...cardStyle, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={12} color={CHART_TEAL} />
+                <span style={{ fontSize: '0.68rem', color: CHART_SLATE }}>No weekend (Sat/Sun) postings detected.</span>
+              </div>
+            )
+          )}
 
-        <div style={{ ...cardStyle, padding: '8px 10px', fontSize: '0.69rem', color: '#475569' }}>
-          Evaluated {col.totalCount.toLocaleString()} rows across {entries.length} observed month buckets.
+          <div style={{ ...cardStyle, padding: '8px 10px', fontSize: '0.69rem', color: '#475569' }}>
+            Evaluated {col.totalCount.toLocaleString()} rows across {entries.length} observed month buckets.
+          </div>
         </div>
       </div>
     );
@@ -3609,44 +4543,46 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
     const dupes = computeDuplicates(col);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
         <EdaPanelHeader
           eyebrow="Semantic Chart Decision • Identifier Frequency & Duplicate-Key Check"
           eyebrowColor={CHART_INDIGO}
           title={col.name}
           description="Ranked occurrence frequency; identifier columns are checked for duplicate keys that should typically be unique."
         />
-        <div style={{ height: 240, width: '100%' }}>
-          <Bar data={data} options={{ ...baseChartOptions(), indexAxis: 'y' as const }} />
+        <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
+          <Bar data={data} options={{ ...baseChartOptions(), maintainAspectRatio: false, indexAxis: 'y' as const }} />
         </div>
 
-        {dupes && (
-          dupes.duplicatedValues > 0 ? (
-            <div style={{ background: '#FFF1F2', border: '1px solid #FECDD3', borderRadius: 8, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Copy size={13} color={CHART_ROSE} />
-                <span style={{ fontSize: '0.68rem', color: '#9F1239', fontWeight: 700 }}>
-                  {dupes.duplicatedValues} duplicated key{dupes.duplicatedValues === 1 ? '' : 's'} spanning {dupes.duplicateRecords} records — expected to be unique.
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {dupes.topOffenders.map((o, i) => (
-                  <span key={i} style={{ fontSize: '0.62rem', color: '#BE123C', background: '#FFFFFF', border: '1px solid #FECDD3', padding: '1px 6px', borderRadius: 4 }}>
-                    {o.value} × {o.count}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+          {dupes && (
+            dupes.duplicatedValues > 0 ? (
+              <div style={{ background: '#FFF1F2', border: '1px solid #FECDD3', borderRadius: 8, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Copy size={13} color={CHART_ROSE} />
+                  <span style={{ fontSize: '0.68rem', color: '#9F1239', fontWeight: 700 }}>
+                    {dupes.duplicatedValues} duplicated key{dupes.duplicatedValues === 1 ? '' : 's'} spanning {dupes.duplicateRecords} records — expected to be unique.
                   </span>
-                ))}
+                </div>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {dupes.topOffenders.map((o, i) => (
+                    <span key={i} style={{ fontSize: '0.62rem', color: '#BE123C', background: '#FFFFFF', border: '1px solid #FECDD3', padding: '1px 6px', borderRadius: 4 }}>
+                      {o.value} × {o.count}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div style={{ ...cardStyle, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={12} color={CHART_TEAL} />
-              <span style={{ fontSize: '0.68rem', color: CHART_SLATE }}>No duplicate keys found — all observed values are unique.</span>
-            </div>
-          )
-        )}
+            ) : (
+              <div style={{ ...cardStyle, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={12} color={CHART_TEAL} />
+                <span style={{ fontSize: '0.68rem', color: CHART_SLATE }}>No duplicate keys found — all observed values are unique.</span>
+              </div>
+            )
+          )}
 
-        <div style={{ fontSize: '0.68rem', color: CHART_SLATE }}>
-          Top {top.length} observed values shown • {col.uniqueCount.toLocaleString()} distinct values in dataset.
+          <div style={{ fontSize: '0.68rem', color: CHART_SLATE }}>
+            Top {top.length} observed values shown • {col.uniqueCount.toLocaleString()} distinct values in dataset.
+          </div>
         </div>
       </div>
     );
@@ -3656,9 +4592,761 @@ function renderUnivariate(col: ColumnMetricItem, numericViewMode: 'histogram' | 
   return renderCategoricalUnivariate(col);
 }
 
+function describeCorrelation(r: number): string {
+  const abs = Math.abs(r);
+  const dir = r > 0 ? 'positive' : r < 0 ? 'negative' : 'none';
+  if (abs >= 0.7) return `strong ${dir}`;
+  if (abs >= 0.4) return `moderate ${dir}`;
+  if (abs >= 0.2) return `weak ${dir}`;
+  return 'negligible';
+}
+
+const SCATTER_PALETTE = [
+  { stroke: '#007680', bg: 'rgba(0, 118, 128, 0.70)', light: '#E6F4F5', border: '#99F6E4', name: 'Deloitte Teal' },
+  { stroke: '#86BC25', bg: 'rgba(134, 188, 37, 0.70)', light: '#F2F9E8', border: '#D9F99D', name: 'Deloitte Green' },
+  { stroke: '#0284C7', bg: 'rgba(2, 132, 199, 0.70)', light: '#E0F2FE', border: '#BAE6FD', name: 'Sky Azure' },
+  { stroke: '#F59E0B', bg: 'rgba(245, 158, 11, 0.70)', light: '#FEF3C7', border: '#FDE68A', name: 'Warm Amber' },
+  { stroke: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.70)', light: '#EDE9FE', border: '#DDD6FE', name: 'Royal Violet' },
+  { stroke: '#EC4899', bg: 'rgba(236, 72, 153, 0.70)', light: '#FCE7F3', border: '#FBCFE8', name: 'Rose Crimson' },
+];
+
+function MultiNumericScatterView({ cols, dataset, isWideMode = false }: { cols: ColumnMetricItem[]; dataset?: ExtractedDatasetProfile; isWideMode?: boolean }) {
+  const [scatterMode, setScatterMode] = useState<'observation' | 'pairwise'>('observation');
+  const [pairIdxX, setPairIdxX] = useState<number>(0);
+  const [pairIdxY, setPairIdxY] = useState<number>(cols.length > 1 ? 1 : 0);
+  const [activeColFilter, setActiveColFilter] = useState<string | null>(null);
+
+  // Take up to 6 measures for high clarity
+  const activeCols = cols.slice(0, 6);
+  const activeX = activeCols[pairIdxX] || activeCols[0];
+  const activeY = activeCols[pairIdxY] || activeCols[Math.min(1, activeCols.length - 1)];
+
+  // Observation multi-series scatter data (Record Index on X, Measure Value on Y)
+  const displayedCols = activeColFilter 
+    ? activeCols.filter(c => c.name === activeColFilter)
+    : activeCols;
+
+  const maxRecords = Math.max(...activeCols.map(c => c.rawValues?.length || 0), 1);
+  const sampleStep = Math.max(1, Math.floor(maxRecords / 200));
+
+  const observationDatasets = displayedCols.map((col) => {
+    const colIdx = activeCols.findIndex(c => c.name === col.name);
+    const colorScheme = SCATTER_PALETTE[colIdx % SCATTER_PALETTE.length];
+    const pts: { x: number; y: number; recordIndex: number; colName: string }[] = [];
+
+    for (let i = 0; i < (col.rawValues?.length || 0); i += sampleStep) {
+      const val = parseNum(col.rawValues[i]);
+      if (Number.isFinite(val)) {
+        pts.push({ x: i + 1, y: val, recordIndex: i + 1, colName: col.name });
+      }
+    }
+
+    return {
+      label: col.name,
+      data: pts,
+      backgroundColor: colorScheme.bg,
+      borderColor: colorScheme.stroke,
+      borderWidth: 1.5,
+      pointRadius: isWideMode ? 4 : 3,
+      pointHoverRadius: 6,
+      pointHoverBackgroundColor: colorScheme.stroke,
+      pointHoverBorderColor: '#FFFFFF',
+      pointHoverBorderWidth: 2,
+    };
+  });
+
+  // Pairwise X vs Y scatter data
+  const pairwisePts: { x: number; y: number; recordIndex: number }[] = [];
+  const pairN = Math.min(activeX.rawValues?.length || 0, activeY.rawValues?.length || 0);
+  const pairStep = Math.max(1, Math.floor(pairN / 250));
+
+  for (let i = 0; i < pairN; i += pairStep) {
+    const x = parseNum(activeX.rawValues[i]);
+    const y = parseNum(activeY.rawValues[i]);
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      pairwisePts.push({ x, y, recordIndex: i + 1 });
+    }
+  }
+
+  const rVal = pairwisePts.length > 2
+    ? pearsonCorrelation(pairwisePts.map(p => p.x), pairwisePts.map(p => p.y))
+    : 0;
+
+  // Trendline calculation for pairwise
+  const trendlinePts: { x: number; y: number }[] = [];
+  if (pairwisePts.length > 3) {
+    const xs = pairwisePts.map(p => p.x);
+    const ys = pairwisePts.map(p => p.y);
+    const n = xs.length;
+    const sumX = xs.reduce((a, b) => a + b, 0);
+    const sumY = ys.reduce((a, b) => a + b, 0);
+    const sumXY = xs.reduce((acc, curr, i) => acc + curr * ys[i], 0);
+    const sumXX = xs.reduce((acc, curr) => acc + curr * curr, 0);
+    const denom = n * sumXX - sumX * sumX;
+    if (Math.abs(denom) > 1e-9) {
+      const slope = (n * sumXY - sumX * sumY) / denom;
+      const intercept = (sumY - slope * sumX) / n;
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      trendlinePts.push({ x: minX, y: slope * minX + intercept });
+      trendlinePts.push({ x: maxX, y: slope * maxX + intercept });
+    }
+  }
+
+  const colorX = SCATTER_PALETTE[activeCols.findIndex(c => c.name === activeX.name) % SCATTER_PALETTE.length] || SCATTER_PALETTE[0];
+  const colorY = SCATTER_PALETTE[activeCols.findIndex(c => c.name === activeY.name) % SCATTER_PALETTE.length] || SCATTER_PALETTE[1];
+
+  const pairwiseDatasets: any[] = [
+    {
+      label: `${activeX.name} vs ${activeY.name}`,
+      data: pairwisePts,
+      backgroundColor: colorX.bg,
+      borderColor: colorX.stroke,
+      borderWidth: 1.5,
+      pointRadius: isWideMode ? 4 : 3,
+      pointHoverRadius: 6.5,
+      pointHoverBackgroundColor: colorX.stroke,
+      pointHoverBorderColor: '#FFFFFF',
+      pointHoverBorderWidth: 2,
+    },
+  ];
+
+  if (trendlinePts.length === 2) {
+    pairwiseDatasets.push({
+      type: 'line' as const,
+      label: `Linear Fit (r = ${rVal.toFixed(2)})`,
+      data: trendlinePts,
+      borderColor: '#0F172A',
+      borderWidth: 1.5,
+      borderDash: [5, 4],
+      pointRadius: 0,
+      fill: false,
+    });
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isWideMode ? 10 : 6, height: '100%', minHeight: 0, justifyContent: 'space-between' }}>
+      {/* Dynamic Header with Segmented Mode Controls - Single Line in Compact View */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: 8, flexShrink: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: isWideMode ? '0.64rem' : '0.58rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: CHART_TEAL, marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Multi-Measure Scatter • {activeCols.length} Financial Measures
+          </div>
+          <div
+            style={{
+              fontSize: isWideMode ? '0.98rem' : '0.80rem',
+              fontWeight: 800,
+              color: CHART_NAVY,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              lineHeight: 1.25,
+            }}
+            title={scatterMode === 'observation'
+              ? `Population Observation Scatter: ${activeCols.map(c => c.name).join(' • ')}`
+              : `Bivariate Co-Movement Scatter: ${activeX.name} vs ${activeY.name}`}
+          >
+            {scatterMode === 'observation'
+              ? (isWideMode ? `Population Observation Scatter: ${activeCols.map(c => c.name).join(' • ')}` : `Scatter: ${activeCols.map(c => c.name).join(' • ')}`)
+              : `${activeX.name} vs ${activeY.name}`}
+          </div>
+          {isWideMode && (
+            <div style={{ fontSize: '0.69rem', color: CHART_SLATE, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {scatterMode === 'observation'
+                ? 'Each added numeric column is represented as a distinct observation series with dedicated point colors across transaction rows.'
+                : `Scatter plot of ${activeX.name} (X-axis) against ${activeY.name} (Y-axis) with linear regression fit.`}
+            </div>
+          )}
+        </div>
+
+        {/* Mode Switcher Buttons */}
+        <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: '2px', borderRadius: '7px', border: '1px solid #E2E8F0', gap: '2px', flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => setScatterMode('observation')}
+            style={{
+              padding: isWideMode ? '4px 10px' : '3px 7px',
+              fontSize: isWideMode ? '0.68rem' : '0.62rem',
+              fontWeight: 750,
+              borderRadius: '5px',
+              border: 'none',
+              cursor: 'pointer',
+              background: scatterMode === 'observation' ? '#FFFFFF' : 'transparent',
+              color: scatterMode === 'observation' ? CHART_NAVY : CHART_SLATE,
+              boxShadow: scatterMode === 'observation' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isWideMode ? 'Multi-Measure Observation Scatter' : 'Observation'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setScatterMode('pairwise')}
+            style={{
+              padding: isWideMode ? '4px 10px' : '3px 7px',
+              fontSize: isWideMode ? '0.68rem' : '0.62rem',
+              fontWeight: 750,
+              borderRadius: '5px',
+              border: 'none',
+              cursor: 'pointer',
+              background: scatterMode === 'pairwise' ? '#FFFFFF' : 'transparent',
+              color: scatterMode === 'pairwise' ? CHART_NAVY : CHART_SLATE,
+              boxShadow: scatterMode === 'pairwise' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isWideMode ? 'Pairwise Co-Movement (X vs Y)' : 'Pairwise (X vs Y)'}
+          </button>
+        </div>
+      </div>
+
+      {/* Observation Mode: Column Filter Bar with Point Swatches */}
+      {scatterMode === 'observation' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', background: '#F8FAFC', padding: isWideMode ? '5px 10px' : '3px 8px', borderRadius: 7, border: '1px solid #E2E8F0', flexShrink: 0 }}>
+          <span style={{ fontSize: '0.60rem', fontWeight: 800, color: CHART_SLATE, textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>
+            Point Colors:
+          </span>
+          <button
+            type="button"
+            onClick={() => setActiveColFilter(null)}
+            style={{
+              fontSize: '0.62rem',
+              fontWeight: activeColFilter === null ? 800 : 600,
+              padding: '2px 6px',
+              borderRadius: 4,
+              border: activeColFilter === null ? '1px solid #94A3B8' : '1px solid transparent',
+              background: activeColFilter === null ? '#FFFFFF' : 'transparent',
+              color: activeColFilter === null ? CHART_NAVY : CHART_SLATE,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            All ({activeCols.length})
+          </button>
+          {activeCols.map((c, i) => {
+            const pal = SCATTER_PALETTE[i % SCATTER_PALETTE.length];
+            const isSelected = activeColFilter === c.name;
+            return (
+              <button
+                key={c.name}
+                type="button"
+                onClick={() => setActiveColFilter(isSelected ? null : c.name)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: '0.62rem',
+                  fontWeight: isSelected ? 800 : 650,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  border: `1px solid ${isSelected ? pal.stroke : pal.border}`,
+                  background: isSelected ? pal.light : '#FFFFFF',
+                  color: CHART_NAVY,
+                  cursor: 'pointer',
+                  boxShadow: isSelected ? `0 0 0 1px ${pal.stroke}` : 'none',
+                  transition: 'all 0.15s ease',
+                  maxWidth: isWideMode ? '220px' : '120px',
+                }}
+                title={c.name}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: pal.stroke, flexShrink: 0, display: 'inline-block' }} />
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pairwise Mode: Selectors for X and Y Columns when > 2 columns */}
+      {scatterMode === 'pairwise' && activeCols.length > 2 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: '#F8FAFC', padding: '4px 8px', borderRadius: 7, border: '1px solid #E2E8F0', fontSize: '0.64rem', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontWeight: 750, color: colorX.stroke }}>X:</span>
+            <select
+              value={pairIdxX}
+              onChange={(e) => setPairIdxX(Number(e.target.value))}
+              style={{ fontSize: '0.64rem', fontWeight: 650, padding: '2px 4px', borderRadius: 4, border: '1px solid #CBD5E1', color: CHART_NAVY, maxWidth: '120px' }}
+            >
+              {activeCols.map((c, i) => (
+                <option key={c.name} value={i} disabled={i === pairIdxY}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontWeight: 750, color: colorY.stroke }}>Y:</span>
+            <select
+              value={pairIdxY}
+              onChange={(e) => setPairIdxY(Number(e.target.value))}
+              style={{ fontSize: '0.64rem', fontWeight: 650, padding: '2px 4px', borderRadius: 4, border: '1px solid #CBD5E1', color: CHART_NAVY, maxWidth: '120px' }}
+            >
+              {activeCols.map((c, i) => (
+                <option key={c.name} value={i} disabled={i === pairIdxX}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ color: CHART_SLATE }}>r:</span>
+            <span style={{ fontWeight: 800, color: correlationColor(rVal), background: '#FFFFFF', padding: '1px 5px', borderRadius: 4, border: '1px solid #E2E8F0' }}>
+              {rVal.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Chart Canvas: Flex 1 expands to utilize all vertical space */}
+      <div style={{ flex: 1, minHeight: isWideMode ? 260 : 210, width: '100%', position: 'relative' }}>
+        {scatterMode === 'observation' ? (
+          <Scatter
+            data={{ datasets: observationDatasets }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 350 },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top' as const,
+                  labels: {
+                    font: { size: isWideMode ? 10 : 8.5, weight: 'bold' },
+                    color: '#1E293B',
+                    boxWidth: isWideMode ? 10 : 8,
+                    boxHeight: isWideMode ? 10 : 8,
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    padding: isWideMode ? 10 : 6,
+                  },
+                },
+                tooltip: {
+                  backgroundColor: '#FFFFFF',
+                  titleColor: CHART_NAVY,
+                  bodyColor: '#334155',
+                  borderColor: '#CBD5E1',
+                  borderWidth: 1,
+                  padding: 8,
+                  cornerRadius: 8,
+                  callbacks: {
+                    title: (items: any[]) => {
+                      const raw: any = items[0]?.raw;
+                      return `Row #${raw?.recordIndex || items[0]?.dataIndex + 1}`;
+                    },
+                    label: (ctx: any) => {
+                      const val = ctx.raw?.y;
+                      return ` ${ctx.dataset.label}: ${formatCompactNumber(val)} (Exact: ${Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 })})`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  title: {
+                    display: isWideMode,
+                    text: `Transaction / Observation Row Index (Sampling across ${maxRecords.toLocaleString()} rows)`,
+                    color: CHART_SLATE,
+                    font: { size: 9.5, weight: 'normal' },
+                  },
+                  grid: { color: '#F1F5F9' },
+                  ticks: { color: CHART_SLATE, font: { size: isWideMode ? 9 : 8 } },
+                },
+                y: {
+                  title: {
+                    display: isWideMode,
+                    text: 'Financial Metric Amount / Balance Level',
+                    color: CHART_SLATE,
+                    font: { size: 9.5, weight: 'normal' },
+                  },
+                  grid: { color: '#F1F5F9' },
+                  ticks: {
+                    color: CHART_SLATE,
+                    font: { size: isWideMode ? 9 : 8 },
+                    callback: (value: any) => formatCompactNumber(Number(value)),
+                  },
+                },
+              },
+            }}
+          />
+        ) : (
+          <Scatter
+            data={{ datasets: pairwiseDatasets }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 350 },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top' as const,
+                  labels: {
+                    font: { size: isWideMode ? 10 : 8.5, weight: 'bold' },
+                    color: '#1E293B',
+                    boxWidth: isWideMode ? 10 : 8,
+                    padding: isWideMode ? 10 : 6,
+                  },
+                },
+                tooltip: {
+                  backgroundColor: '#FFFFFF',
+                  titleColor: CHART_NAVY,
+                  bodyColor: '#334155',
+                  borderColor: '#CBD5E1',
+                  borderWidth: 1,
+                  padding: 8,
+                  cornerRadius: 8,
+                  callbacks: {
+                    title: (items: any[]) => {
+                      const raw: any = items[0]?.raw;
+                      return raw?.recordIndex ? `Record #${raw.recordIndex}` : 'Observation';
+                    },
+                    label: (ctx: any) => {
+                      if (ctx.dataset.type === 'line') {
+                        return ` ${ctx.dataset.label}`;
+                      }
+                      return ` ${activeX.name}: ${formatCompactNumber(ctx.raw.x)} • ${activeY.name}: ${formatCompactNumber(ctx.raw.y)}`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  title: {
+                    display: isWideMode,
+                    text: `${activeX.name} (X-Axis)`,
+                    color: CHART_SLATE,
+                    font: { size: 9.5, weight: 'normal' },
+                  },
+                  grid: { color: '#F1F5F9' },
+                  ticks: {
+                    color: CHART_SLATE,
+                    font: { size: isWideMode ? 9 : 8 },
+                    callback: (value: any) => formatCompactNumber(Number(value)),
+                  },
+                },
+                y: {
+                  title: {
+                    display: isWideMode,
+                    text: `${activeY.name} (Y-Axis)`,
+                    color: CHART_SLATE,
+                    font: { size: 9.5, weight: 'normal' },
+                  },
+                  grid: { color: '#F1F5F9' },
+                  ticks: {
+                    color: CHART_SLATE,
+                    font: { size: isWideMode ? 9 : 8 },
+                    callback: (value: any) => formatCompactNumber(Number(value)),
+                  },
+                },
+              },
+            }}
+          />
+        )}
+      </div>
+
+      {/* Financial Measure Audit Metric Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(activeCols.length, 3)}, 1fr)`, gap: 6, flexShrink: 0 }}>
+        {activeCols.map((c, i) => {
+          const pal = SCATTER_PALETTE[i % SCATTER_PALETTE.length];
+          const stats = c.numericStats || { mean: 0, median: 0, min: 0, max: 0, zeros: 0, negatives: 0 };
+          return (
+            <div
+              key={c.name}
+              style={{
+                ...cardStyle,
+                padding: isWideMode ? '6px 8px' : '4px 7px',
+                borderLeft: `3px solid ${pal.stroke}`,
+                background: '#FFFFFF',
+                borderRadius: 6,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: pal.stroke, flexShrink: 0 }} />
+                  <span
+                    style={{
+                      fontSize: isWideMode ? '0.70rem' : '0.63rem',
+                      fontWeight: 800,
+                      color: CHART_NAVY,
+                      fontFamily: 'monospace',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                    title={c.name}
+                  >
+                    {c.name}
+                  </span>
+                </div>
+                {isWideMode && (
+                  <span style={{ fontSize: '0.58rem', fontWeight: 700, color: pal.stroke, background: pal.light, padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>
+                    Point Color
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, fontSize: isWideMode ? '0.64rem' : '0.58rem', color: CHART_SLATE }}>
+                <div>Mean: <strong style={{ color: CHART_NAVY }}>{formatCompactNumber(stats.mean)}</strong></div>
+                <div>Median: <strong style={{ color: CHART_NAVY }}>{formatCompactNumber(stats.median)}</strong></div>
+                <div>Min: <span style={{ color: stats.min < 0 ? '#DC2626' : CHART_NAVY }}>{formatCompactNumber(stats.min)}</span></div>
+                <div>Max: <strong style={{ color: CHART_NAVY }}>{formatCompactNumber(stats.max)}</strong></div>
+              </div>
+              {isWideMode && (stats.zeros > 0 || stats.negatives > 0) && (
+                <div style={{ marginTop: 2, paddingTop: 2, borderTop: '1px solid #F1F5F9', fontSize: '0.58rem', color: '#B45309', display: 'flex', gap: 6 }}>
+                  {stats.negatives > 0 && <span>• {stats.negatives} negatives</span>}
+                  {stats.zeros > 0 && <span>• {stats.zeros} zeros</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Date + Date -> Posting Lag & Cutoff Analysis:
+ *  Measures elapsed days between transaction effective date and posting date,
+ *  detecting backdating, late postings, and cutoff anomalies (Omnia MO-JE Test 10). */
+function renderDateLagAnalysis(dateA: ColumnMetricItem, dateB: ColumnMetricItem, allSelectedDateCols?: ColumnMetricItem[]) {
+  const allCols = allSelectedDateCols && allSelectedDateCols.length > 0 ? allSelectedDateCols : [dateA, dateB];
+  const n = Math.min(dateA.rawValues?.length || 0, dateB.rawValues?.length || 0);
+
+  const normA = dateA.name.toLowerCase();
+  const normB = dateB.name.toLowerCase();
+  const isBPosted = normB.includes('post') || normB.includes('entry') || normB.includes('approved') || normB.includes('time');
+  const effCol = isBPosted ? dateA : dateB;
+  const postCol = isBPosted ? dateB : dateA;
+
+  const buckets = {
+    sameDay: 0,
+    oneToSeven: 0,
+    eightToThirty: 0,
+    thirtyOneToNinety: 0,
+    overNinety: 0,
+    backDated: 0,
+  };
+
+  let totalLag = 0;
+  let validPairs = 0;
+  let maxLag = 0;
+
+  for (let i = 0; i < n; i++) {
+    const rawEff = cleanStr(effCol.rawValues[i]);
+    const rawPost = cleanStr(postCol.rawValues[i]);
+    const tEff = Date.parse(rawEff);
+    const tPost = Date.parse(rawPost);
+
+    if (!isNaN(tEff) && !isNaN(tPost)) {
+      const diffDays = Math.round((tPost - tEff) / (1000 * 60 * 60 * 24));
+      validPairs++;
+      if (diffDays >= 0) {
+        totalLag += diffDays;
+        if (diffDays > maxLag) maxLag = diffDays;
+      }
+
+      if (diffDays === 0) buckets.sameDay++;
+      else if (diffDays > 0 && diffDays <= 7) buckets.oneToSeven++;
+      else if (diffDays > 7 && diffDays <= 30) buckets.eightToThirty++;
+      else if (diffDays > 30 && diffDays <= 90) buckets.thirtyOneToNinety++;
+      else if (diffDays > 90) buckets.overNinety++;
+      else buckets.backDated++;
+    }
+  }
+
+  const avgLag = validPairs > 0 ? (totalLag / validPairs).toFixed(1) : '0.0';
+
+  const chartData = {
+    labels: ['Same Day (0d)', '1–7 Days', '8–30 Days', '31–90 Days (Late)', '>90 Days (Severe)', 'Back-Dated (<0d)'],
+    datasets: [{
+      label: 'Transaction Volume',
+      data: [buckets.sameDay, buckets.oneToSeven, buckets.eightToThirty, buckets.thirtyOneToNinety, buckets.overNinety, buckets.backDated],
+      backgroundColor: [
+        'rgba(0, 118, 128, 0.75)',
+        'rgba(134, 188, 37, 0.75)',
+        'rgba(2, 132, 199, 0.75)',
+        'rgba(245, 158, 11, 0.75)',
+        'rgba(220, 38, 38, 0.75)',
+        'rgba(139, 92, 246, 0.75)',
+      ],
+      borderColor: ['#007680', '#86BC25', '#0284C7', '#F59E0B', '#DC2626', '#8B5CF6'],
+      borderWidth: 1,
+      borderRadius: 5,
+    }],
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', height: '100%', minHeight: 0, justifyContent: 'space-between' }}>
+      <EdaPanelHeader
+        eyebrow="Audit Cutoff & Timing Analysis • Posting Lag Distribution"
+        eyebrowColor={CHART_TEAL}
+        title={`Posting Delay: ${effCol.name} vs ${postCol.name}`}
+        description={`Evaluates the operational delay between transaction occurrence (${effCol.name}) and general ledger posting (${postCol.name}) across ${allCols.length} date fields to detect backdating and late entries.`}
+        rightBadge={`${validPairs.toLocaleString()} paired dates • Avg Lag: ${avgLag} days`}
+      />
+
+      {/* Primary Visual: Posting Lag Distribution Bar Chart */}
+      <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
+        <Bar
+          data={chartData}
+          options={{
+            ...baseChartOptions(),
+            maintainAspectRatio: false,
+            plugins: {
+              ...baseChartOptions().plugins,
+              legend: { display: false },
+              tooltip: {
+                ...baseChartOptions().plugins.tooltip,
+                callbacks: {
+                  label: (ctx: any) => ` ${ctx.raw.toLocaleString()} transactions (${Math.round((ctx.raw / Math.max(1, validPairs)) * 100)}%)`,
+                },
+              },
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: CHART_SLATE, font: { size: 9, weight: 'bold' } } },
+              y: { grid: { color: '#F1F5F9' }, ticks: { color: CHART_SLATE, font: { size: 9 } } },
+            },
+          }}
+        />
+      </div>
+
+      {/* Multi-Date Temporal Comparison Strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(allCols.length, 3)}, 1fr)`, gap: 8, flexShrink: 0 }}>
+        {allCols.map((c) => {
+          const isEffective = c.name.toLowerCase().includes('effect') || c.name.toLowerCase().includes('trans');
+          const isPosting = c.name.toLowerCase().includes('post') && !c.name.toLowerCase().includes('time');
+          const isTimestamp = c.name.toLowerCase().includes('time') || c.name.toLowerCase().includes('stamp');
+          const roleLabel = isEffective ? 'Operational Occurrence' : isPosting ? 'GL System Posting' : isTimestamp ? 'Transaction Timestamp' : 'Audit Timing Field';
+          const roleColor = isEffective ? '#007680' : isPosting ? '#0284C7' : '#8B5CF6';
+
+          return (
+            <div key={c.name} style={{ ...cardStyle, padding: '7px 10px', borderLeft: `3px solid ${roleColor}`, background: '#F8FAFC' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: CHART_NAVY, fontFamily: 'monospace' }}>{c.name}</span>
+                <span style={{ fontSize: '0.58rem', fontWeight: 700, color: roleColor, background: '#FFFFFF', padding: '1px 5px', borderRadius: 4, border: '1px solid #E2E8F0' }}>
+                  {roleLabel}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.64rem', color: CHART_SLATE, display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
+                <span>Completeness: <b style={{ color: CHART_NAVY }}>{c.completenessPct}%</b></span>
+                <span>Unique Dates: <b style={{ color: CHART_NAVY }}>{c.uniqueCount.toLocaleString()}</b></span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Executive KPI Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, flexShrink: 0 }}>
+        <div style={{ ...cardStyle, padding: '6px 10px' }}>
+          <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 700 }}>AVERAGE POSTING LAG</div>
+          <div style={{ fontSize: '0.84rem', fontWeight: 850, color: CHART_NAVY, marginTop: 1 }}>{avgLag} Days</div>
+        </div>
+        <div style={{ ...cardStyle, padding: '6px 10px' }}>
+          <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 700 }}>SAME-DAY TURNAROUND</div>
+          <div style={{ fontSize: '0.84rem', fontWeight: 850, color: CHART_TEAL, marginTop: 1 }}>
+            {Math.round((buckets.sameDay / Math.max(1, validPairs)) * 100)}% ({buckets.sameDay})
+          </div>
+        </div>
+        <div style={{ ...cardStyle, padding: '6px 10px' }}>
+          <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 700 }}>MAX OBSERVED LAG</div>
+          <div style={{ fontSize: '0.84rem', fontWeight: 850, color: maxLag > 60 ? '#DC2626' : CHART_NAVY, marginTop: 1 }}>{maxLag} Days</div>
+        </div>
+        <div style={{ ...cardStyle, padding: '6px 10px' }}>
+          <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 700 }}>FLAGGED DELAYED (&gt;30d)</div>
+          <div style={{ fontSize: '0.84rem', fontWeight: 850, color: (buckets.thirtyOneToNinety + buckets.overNinety) > 0 ? '#D97706' : CHART_TEAL, marginTop: 1 }}>
+            {buckets.thirtyOneToNinety + buckets.overNinety} Entries
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 1 Date + 1 Categorical + 1 Numeric -> Category-Segmented Chronological Progression:
+ *  Multi-line chronological trend tracking monetary velocity partitioned by category. */
+function renderCategorySegmentedTimeSeries(
+  dateCol: ColumnMetricItem,
+  catCol: ColumnMetricItem,
+  numCol: ColumnMetricItem,
+  selectedCols: ColumnMetricItem[]
+) {
+  const n = Math.min(dateCol.rawValues?.length || 0, catCol.rawValues?.length || 0, numCol.rawValues?.length || 0);
+
+  const catGross: Record<string, number> = {};
+  for (let i = 0; i < n; i++) {
+    const c = cleanStr(catCol.rawValues[i]) || '(blank)';
+    const v = parseNum(numCol.rawValues[i]);
+    if (Number.isFinite(v)) {
+      catGross[c] = (catGross[c] || 0) + Math.abs(v);
+    }
+  }
+
+  const topCats = Object.entries(catGross)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([k]) => k);
+
+  const buckets: Record<string, Record<string, number>> = {};
+  for (let i = 0; i < n; i++) {
+    const k = monthKey(dateCol.rawValues[i]);
+    const c = cleanStr(catCol.rawValues[i]) || '(blank)';
+    const v = parseNum(numCol.rawValues[i]);
+    if (k && Number.isFinite(v) && topCats.includes(c)) {
+      buckets[k] = buckets[k] || {};
+      buckets[k][c] = (buckets[k][c] || 0) + v;
+    }
+  }
+
+  const periods = Object.keys(buckets).sort().slice(-14);
+
+  if (periods.length === 0 || topCats.length === 0) {
+    return renderMultiMeasureTimeSeries(dateCol, [numCol], selectedCols);
+  }
+
+  const PALETTE = ['#007680', '#86BC25', '#0284C7', '#F59E0B'];
+  const datasets = topCats.map((cat, idx) => ({
+    label: cat,
+    data: periods.map(p => buckets[p]?.[cat] || 0),
+    borderColor: PALETTE[idx % PALETTE.length],
+    backgroundColor: 'transparent',
+    fill: false,
+    tension: 0.25,
+    borderWidth: 2,
+    pointRadius: 3,
+  }));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
+      <EdaPanelHeader
+        eyebrow="Category-Segmented Chronological Progression"
+        eyebrowColor={CHART_TEAL}
+        title={`${numCol.name} by ${catCol.name} over ${dateCol.name}`}
+        description={`Tracking monetary velocity of ${numCol.name} partitioned by the top ${topCats.length} categories of ${catCol.name} across posting timeline.`}
+      />
+      <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
+        <Line
+          data={{ labels: periods, datasets }}
+          options={{
+            ...baseChartOptions(),
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: true, position: 'top' as const, labels: { font: { size: 9.5, weight: 'bold' }, color: '#334155', boxWidth: 10, padding: 8 } },
+              tooltip: baseChartOptions().plugins.tooltip,
+            },
+          }}
+        />
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
+        {selectedCols.map(c => (
+          <span key={c.name} style={{ fontSize: '0.64rem', padding: '3px 7px', borderRadius: 5, background: '#F8FAFC', border: '1px solid #E2E8F0', color: CHART_NAVY, fontWeight: 700 }}>
+            {c.name} · {c.inferredType}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── 2 FIELDS (BIVARIATE) ─────────────────────────────────────────────────
 
-function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
+function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem, dataset?: ExtractedDatasetProfile, isWideMode: boolean = false) {
   const kindA = classify(a);
   const kindB = classify(b);
 
@@ -3706,7 +5394,7 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
     };
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
         <EdaPanelHeader
           eyebrow={`Intelligent Aggregation • ${isZeroBalanced ? 'Gross Monetary Volume' : 'Net Sum'} of ${metric.name} by ${category.name}`}
           eyebrowColor={CHART_TEAL}
@@ -3716,11 +5404,12 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
             : `X-axis: distinct categories of ${category.name}. Y-axis: aggregated SUM of ${metric.name}.`}
           rightBadge={`Top ${top.length} categories`}
         />
-        <div style={{ height: 240, width: '100%' }}>
+        <div style={{ flex: 1, minHeight: 200, width: '100%', position: 'relative' }}>
           <Bar
             data={data}
             options={{
               ...baseChartOptions(),
+              maintainAspectRatio: false,
               plugins: {
                 ...baseChartOptions().plugins,
                 tooltip: {
@@ -3747,7 +5436,7 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
             }}
           />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, flexShrink: 0 }}>
           <div style={{ ...cardStyle, padding: '8px 10px' }}>
             <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 750 }}>
               {isZeroBalanced ? 'GROSS MONETARY ACTIVITY' : 'VISIBLE CATEGORY TOTAL'}
@@ -3842,7 +5531,7 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
     const data = { labels: entries.map(([k]) => k), datasets };
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
         <EdaPanelHeader
           eyebrow="Semantic Chart Decision • Date × Measure Posting Trend"
           eyebrowColor={CHART_TEAL}
@@ -3851,11 +5540,12 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
             ? `Balanced journal entries detected (Net sum = 0). Showing monthly gross transaction volume over time.`
             : `Aggregating ${numCol.name} by calendar month periods${ma ? `, with a trailing ${maWindow}-period moving average overlay` : ''}.`}
         />
-        <div style={{ height: 240, width: '100%' }}>
+        <div style={{ flex: 1, minHeight: 200, width: '100%', position: 'relative' }}>
           <Line
             data={data}
             options={{
               ...baseChartOptions(),
+              maintainAspectRatio: false,
               plugins: {
                 legend: ma ? { display: true, position: 'top' as const, labels: { font: { size: 9, weight: '700' }, color: '#334155', boxWidth: 10, padding: 8 } } : { display: false },
                 tooltip: {
@@ -3866,7 +5556,7 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
             }}
           />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, flexShrink: 0 }}>
           <div style={{ ...cardStyle, padding: '8px 10px' }}>
             <b style={{ color: CHART_TEAL }}>{entries.length}</b>
             <span style={{ color: CHART_SLATE, fontSize: '0.68rem' }}> observed monthly periods</span>
@@ -3880,84 +5570,9 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
     );
   }
 
-  // Numeric + Numeric -> scatter plot
+  // Numeric + Numeric -> MultiNumericScatterView (dedicated point colors for each added numeric measure)
   if (kindA === 'numeric' && kindB === 'numeric') {
-    const n = Math.min(a.rawValues.length, b.rawValues.length);
-    const pts: any[] = [];
-    for (let i = 0; i < n; i++) {
-      const x = parseNum(a.rawValues[i]);
-      const y = parseNum(b.rawValues[i]);
-      if (Number.isFinite(x) && Number.isFinite(y)) pts.push({ x, y });
-    }
-
-    if (pts.length === 0) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <EdaPanelHeader
-            eyebrow="Semantic Chart Decision • Measure Co-Movement & Scatter"
-            eyebrowColor={CHART_BLUE}
-            title={`${a.name} vs ${b.name}`}
-            description="No paired numeric observations were available to plot."
-          />
-          <EdaEmptyState message={`Couldn't pair values between ${a.name} and ${b.name} — check that both columns have parseable numbers in the same rows.`} />
-        </div>
-      );
-    }
-
-    const r = pearsonCorrelation(pts.map(p => p.x), pts.map(p => p.y));
-    const data = {
-      datasets: [{
-        label: `${a.name} × ${b.name}`,
-        data: pts,
-        backgroundColor: 'rgba(2,132,199,0.50)',
-        borderColor: CHART_BLUE,
-        pointRadius: 3.5,
-        pointHoverRadius: 6,
-      }],
-    };
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <EdaPanelHeader
-          eyebrow="Semantic Chart Decision • Measure Co-Movement & Scatter"
-          eyebrowColor={CHART_BLUE}
-          title={`${a.name} vs ${b.name}`}
-          description="Scatter distribution revealing value clustering and correlation between both numeric metrics."
-          rightBadge={`r = ${r.toFixed(2)}`}
-        />
-        <div style={{ height: 250, width: '100%' }}>
-          <Scatter
-            data={data}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: '#FFF',
-                  titleColor: CHART_NAVY,
-                  bodyColor: '#334155',
-                  borderColor: '#DCE6EC',
-                  borderWidth: 1,
-                  padding: 10,
-                  cornerRadius: 8,
-                  displayColors: false,
-                  callbacks: { label: (ctx: any) => `${a.name}: ${formatCompactNumber(ctx.raw.x)} • ${b.name}: ${formatCompactNumber(ctx.raw.y)}` },
-                },
-              },
-              scales: {
-                x: { title: { display: true, text: a.name, color: CHART_SLATE, font: { size: 10, weight: 'normal' } }, grid: { color: '#F1F5F9' }, ticks: { color: CHART_SLATE, font: { size: 9 } } },
-                y: { title: { display: true, text: b.name, color: CHART_SLATE, font: { size: 10, weight: 'normal' } }, grid: { color: '#F1F5F9' }, ticks: { color: CHART_SLATE, font: { size: 9 } } },
-              },
-            }}
-          />
-        </div>
-        <div style={{ ...cardStyle, padding: '8px 10px', fontSize: '0.68rem', color: CHART_SLATE }}>
-          Plotted <strong style={{ color: CHART_NAVY }}>{pts.length.toLocaleString()}</strong> valid paired observations.
-          {' '}Correlation strength: <strong style={{ color: correlationColor(r) }}>{describeCorrelation(r)}</strong>.
-        </div>
-      </div>
-    );
+    return <MultiNumericScatterView cols={[a, b]} dataset={dataset} isWideMode={isWideMode} />;
   }
 
   // Categorical + Categorical -> cross-frequency HEATMAP
@@ -4006,18 +5621,23 @@ function renderBivariate(a: ColumnMetricItem, b: ColumnMetricItem) {
     };
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
         <EdaPanelHeader
           eyebrow="Semantic Chart Decision • Date × Category Volume"
           eyebrowColor={CHART_BLUE}
           title={`Record Volume by ${dateCol.name}`}
           description={`Monthly record counts, filterable in context by ${catCol.name}.`}
         />
-        <div style={{ height: 240, width: '100%' }}>
-          <Line data={data} options={baseChartOptions()} />
+        <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
+          <Line data={data} options={{ ...baseChartOptions(), maintainAspectRatio: false }} />
         </div>
       </div>
     );
+  }
+
+  // Date + Date -> Posting Lag & Cutoff Analysis
+  if (kindA === 'date' && kindB === 'date') {
+    return renderDateLagAnalysis(a, b, [a, b]);
   }
 
   return (
@@ -4148,18 +5768,270 @@ function renderCategoricalHeatmap(a: ColumnMetricItem, b: ColumnMetricItem) {
   );
 }
 
-function describeCorrelation(r: number): string {
-  const abs = Math.abs(r);
-  const dir = r > 0 ? 'positive' : r < 0 ? 'negative' : 'none';
-  if (abs >= 0.7) return `strong ${dir}`;
-  if (abs >= 0.4) return `moderate ${dir}`;
-  if (abs >= 0.2) return `weak ${dir}`;
-  return 'negligible';
+/** 2 Categorical fields + 1 Numeric measure -> Two-Category Measure Value Heatmap Grid (Pivot Matrix):
+ *  Rows = Category A (e.g. journal_number), Cols = Category B (e.g. account_number),
+ *  Cells = SUM(metric) with intensity shading based on monetary volume. */
+function renderTwoCategoryMeasureHeatmap(
+  catA: ColumnMetricItem,
+  catB: ColumnMetricItem,
+  metric: ColumnMetricItem,
+  selectedCols: ColumnMetricItem[]
+) {
+  const n = Math.min(catA.rawValues?.length || 0, catB.rawValues?.length || 0, metric.rawValues?.length || 0);
+
+  const rowTotals: Record<string, { sum: number; gross: number; count: number }> = {};
+  const colTotals: Record<string, { sum: number; gross: number; count: number }> = {};
+  const cellData: Record<string, { sum: number; gross: number; count: number }> = {};
+  let totalNetSum = 0;
+  let totalGrossVolume = 0;
+  let validIntersections = 0;
+
+  for (let i = 0; i < n; i++) {
+    const rk = cleanStr(catA.rawValues[i]) || '(blank)';
+    const ck = cleanStr(catB.rawValues[i]) || '(blank)';
+    const v = parseNum(metric.rawValues[i]);
+
+    if (Number.isFinite(v)) {
+      const cellKey = `${rk}\u0000${ck}`;
+      if (!cellData[cellKey]) {
+        cellData[cellKey] = { sum: 0, gross: 0, count: 0 };
+        validIntersections++;
+      }
+      cellData[cellKey].sum += v;
+      cellData[cellKey].gross += Math.abs(v);
+      cellData[cellKey].count += 1;
+
+      rowTotals[rk] = rowTotals[rk] || { sum: 0, gross: 0, count: 0 };
+      rowTotals[rk].sum += v;
+      rowTotals[rk].gross += Math.abs(v);
+      rowTotals[rk].count += 1;
+
+      colTotals[ck] = colTotals[ck] || { sum: 0, gross: 0, count: 0 };
+      colTotals[ck].sum += v;
+      colTotals[ck].gross += Math.abs(v);
+      colTotals[ck].count += 1;
+
+      totalNetSum += v;
+      totalGrossVolume += Math.abs(v);
+    }
+  }
+
+  // Sort rows and columns by total gross activity
+  const topRows = Object.entries(rowTotals)
+    .sort((x, y) => y[1].gross - x[1].gross)
+    .slice(0, 8)
+    .map(([k]) => k);
+
+  const topCols = Object.entries(colTotals)
+    .sort((x, y) => y[1].gross - x[1].gross)
+    .slice(0, 8)
+    .map(([k]) => k);
+
+  if (topRows.length === 0 || topCols.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <EdaPanelHeader
+          eyebrow="Semantic Chart Decision • Two-Category Measure Value Heatmap"
+          eyebrowColor={CHART_TEAL}
+          title={`${metric.name} by ${catA.name} × ${catB.name}`}
+          description="No paired category + numeric observations were available."
+        />
+        <EdaEmptyState message={`Couldn't pair values between ${catA.name}, ${catB.name}, and ${metric.name}.`} />
+      </div>
+    );
+  }
+
+  // Find peak cell value for relative color saturation
+  let maxCellGross = 1;
+  let peakCell: { r: string; c: string; sum: number; gross: number } = { r: topRows[0], c: topCols[0], sum: 0, gross: 0 };
+
+  topRows.forEach(r => {
+    topCols.forEach(c => {
+      const cell = cellData[`${r}\u0000${c}`];
+      if (cell && cell.gross > maxCellGross) {
+        maxCellGross = cell.gross;
+        peakCell = { r, c, sum: cell.sum, gross: cell.gross };
+      }
+    });
+  });
+
+  const truncate = (s: string, len: number) => (s.length > len ? s.slice(0, len - 1) + '…' : s);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <EdaPanelHeader
+        eyebrow="Semantic Chart Decision • Two-Category Measure Value Heatmap"
+        eyebrowColor={CHART_TEAL}
+        title={`${metric.name} Cross-Tabulated by ${catA.name} × ${catB.name}`}
+        description={`Interactive matrix showing aggregated ${metric.name} for every intersection of ${catA.name} (rows) and ${catB.name} (columns).`}
+        rightBadge={`${topRows.length} × ${topCols.length} Grid • ${validIntersections} Active Intersections`}
+      />
+
+      {/* Heatmap Matrix Table */}
+      <div style={{ overflowX: 'auto', display: 'flex', justifyContent: 'center', padding: '8px 4px', background: '#FFFFFF', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: '5px', fontSize: '0.66rem', margin: '4px auto' }}>
+          <thead>
+            <tr>
+              <th style={{ padding: '6px 10px', textAlign: 'left', fontSize: '0.62rem', color: CHART_SLATE, fontWeight: 800 }}>
+                {catA.name} \ {catB.name}
+              </th>
+              {topCols.map((c) => (
+                <th
+                  key={c}
+                  title={`${catB.name}: ${c} • Total Volume: ${formatCompactNumber(colTotals[c]?.sum || 0)}`}
+                  style={{
+                    padding: '6px 8px',
+                    fontWeight: 750,
+                    color: CHART_NAVY,
+                    background: '#F8FAFC',
+                    borderRadius: 4,
+                    border: '1px solid #E2E8F0',
+                    maxWidth: 95,
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {truncate(c, 13)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {topRows.map((r) => (
+              <tr key={r}>
+                <td
+                  title={`${catA.name}: ${r} • Total Volume: ${formatCompactNumber(rowTotals[r]?.sum || 0)}`}
+                  style={{
+                    padding: '6px 10px',
+                    fontWeight: 800,
+                    color: CHART_NAVY,
+                    fontFamily: 'monospace',
+                    whiteSpace: 'nowrap',
+                    textAlign: 'right',
+                    background: '#F8FAFC',
+                    borderRadius: 4,
+                    border: '1px solid #E2E8F0',
+                  }}
+                >
+                  {truncate(r, 16)}
+                </td>
+                {topCols.map((c) => {
+                  const cell = cellData[`${r}\u0000${c}`];
+                  if (!cell || cell.count === 0) {
+                    return (
+                      <td
+                        key={c}
+                        title={`No transactions recorded for ${r} × ${c}`}
+                        style={{
+                          width: 68,
+                          height: 32,
+                          textAlign: 'center',
+                          verticalAlign: 'middle',
+                          borderRadius: 5,
+                          background: '#F8FAFC',
+                          color: '#CBD5E1',
+                          fontSize: '0.66rem',
+                          border: '1px dashed #E2E8F0',
+                        }}
+                      >
+                        ·
+                      </td>
+                    );
+                  }
+
+                  const intensity = Math.min(1, Math.max(0.12, cell.gross / maxCellGross));
+                  const isNeg = cell.sum < 0;
+                  const bg = isNeg
+                    ? `rgba(220, 38, 38, ${0.12 + intensity * 0.75})`
+                    : `rgba(0, 118, 128, ${0.12 + intensity * 0.75})`;
+                  const textColor = intensity > 0.55 ? '#FFFFFF' : (isNeg ? '#991B1B' : '#005A60');
+
+                  return (
+                    <td
+                      key={c}
+                      title={`${catA.name}: ${r} × ${catB.name}: ${c}\nSUM(${metric.name}): ${cell.sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}\nTransactions: ${cell.count}`}
+                      style={{
+                        width: 68,
+                        height: 32,
+                        textAlign: 'center',
+                        verticalAlign: 'middle',
+                        borderRadius: 5,
+                        background: bg,
+                        color: textColor,
+                        fontWeight: 750,
+                        fontSize: '0.64rem',
+                        fontFamily: 'monospace',
+                        border: '1px solid rgba(0,0,0,0.06)',
+                        cursor: 'default',
+                        transition: 'transform 0.12s ease',
+                      }}
+                    >
+                      {formatCompactNumber(cell.sum)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Audit KPI Cards Strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+        <div style={{ ...cardStyle, padding: '8px 10px' }}>
+          <div style={{ fontSize: '0.60rem', color: CHART_SLATE, fontWeight: 700 }}>TOTAL NET {metric.name.toUpperCase()}</div>
+          <div style={{ fontSize: '0.86rem', fontWeight: 850, color: CHART_NAVY, marginTop: 2 }}>
+            {formatCompactNumber(totalNetSum)}
+          </div>
+        </div>
+        <div style={{ ...cardStyle, padding: '8px 10px' }}>
+          <div style={{ fontSize: '0.60rem', color: CHART_SLATE, fontWeight: 700 }}>GROSS MONETARY VOLUME</div>
+          <div style={{ fontSize: '0.86rem', fontWeight: 850, color: CHART_TEAL, marginTop: 2 }}>
+            {formatCompactNumber(totalGrossVolume)}
+          </div>
+        </div>
+        <div style={{ ...cardStyle, padding: '8px 10px' }}>
+          <div style={{ fontSize: '0.60rem', color: CHART_SLATE, fontWeight: 700 }}>PEAK INTERSECTION</div>
+          <div style={{ fontSize: '0.74rem', fontWeight: 800, color: CHART_NAVY, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${peakCell.r} × ${peakCell.c}`}>
+            {formatCompactNumber(peakCell.sum)} <span style={{ fontSize: '0.62rem', color: CHART_SLATE }}>({truncate(peakCell.r, 8)} × {truncate(peakCell.c, 8)})</span>
+          </div>
+        </div>
+        <div style={{ ...cardStyle, padding: '8px 10px' }}>
+          <div style={{ fontSize: '0.60rem', color: CHART_SLATE, fontWeight: 700 }}>EVALUATED ROWS</div>
+          <div style={{ fontSize: '0.86rem', fontWeight: 850, color: CHART_NAVY, marginTop: 2 }}>
+            {n.toLocaleString()} Records
+          </div>
+        </div>
+      </div>
+
+      {/* Selected Field Badges */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {selectedCols.map(c => (
+          <span
+            key={c.name}
+            style={{
+              fontSize: '0.64rem',
+              padding: '3px 8px',
+              borderRadius: 5,
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              color: c === metric ? CHART_TEAL : CHART_NAVY,
+              fontWeight: 750,
+            }}
+          >
+            {c.name} · {c === metric ? 'Numeric Measure' : 'Grouping Category'}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── 3+ FIELDS (MULTIVARIATE) ─────────────────────────────────────────────
 
-function renderMultivariate(selectedCols: ColumnMetricItem[], dataset: ExtractedDatasetProfile) {
+function renderMultivariate(selectedCols: ColumnMetricItem[], dataset: ExtractedDatasetProfile, isWideMode: boolean = false) {
   const numericCols = selectedCols.filter(c => classify(c) === 'numeric');
   const dateCols = selectedCols.filter(c => classify(c) === 'date');
   const catCols = selectedCols.filter(c => classify(c) === 'categorical');
@@ -4174,27 +6046,37 @@ function renderMultivariate(selectedCols: ColumnMetricItem[], dataset: Extracted
     return renderMultiMeasureTimeSeries(dateCols[0], numericCols, selectedCols);
   }
 
-  // Case 3: 1 Numeric Measure + 1+ Category -> Strongest Category Pairing Chart
-  if (numericCols.length === 1 && catCols.length >= 1 && dateCols.length === 0) {
+  // Case 3A: 1 Numeric Measure + 2+ Categories (No Date) -> Two-Category Measure Value Heatmap Grid (Pivot Matrix)
+  if (numericCols.length === 1 && catCols.length >= 2 && dateCols.length === 0) {
+    return renderTwoCategoryMeasureHeatmap(catCols[0], catCols[1], numericCols[0], selectedCols);
+  }
+
+  // Case 3B: 1 Numeric Measure + 1 Category (No Date) -> Strongest Category Pairing Chart
+  if (numericCols.length === 1 && catCols.length === 1 && dateCols.length === 0) {
     const strongest = findStrongestPairing(numericCols, catCols);
     if (strongest) {
       return renderStrongestPairingChart(strongest, selectedCols);
     }
   }
 
-  // Case 4: 1 Numeric Measure + 1+ Date -> Date Time Series
-  if (numericCols.length === 1 && dateCols.length >= 1) {
+  // Case 4A: 1 Numeric Measure + 1+ Category + 1+ Date -> Category-Segmented Chronological Progression
+  if (numericCols.length === 1 && catCols.length >= 1 && dateCols.length >= 1) {
+    return renderCategorySegmentedTimeSeries(dateCols[0], catCols[0], numericCols[0], selectedCols);
+  }
+
+  // Case 4B: 1 Numeric Measure + 1+ Date (No Category) -> Date Time Series
+  if (numericCols.length === 1 && catCols.length === 0 && dateCols.length >= 1) {
     return renderMultiMeasureTimeSeries(dateCols[0], numericCols, selectedCols);
   }
 
-  // Case 5: 3+ Numeric Measures (No Category, No Date) -> Pairwise Correlation Matrix
+  // Case 5: 3+ Numeric Measures (No Category, No Date) -> Multi-Numeric Observation Scatter (point colors mapped per measure)
   if (numericCols.length >= 3 && catCols.length === 0 && dateCols.length === 0) {
-    return renderCorrelationMatrix(numericCols);
+    return <MultiNumericScatterView cols={numericCols} dataset={dataset} isWideMode={isWideMode} />;
   }
 
-  // Case 6: Exactly 2 Numeric Measures (No Category, No Date) -> Bivariate Scatter Plot
+  // Case 6: Exactly 2 Numeric Measures (No Category, No Date) -> Multi-Numeric Observation Scatter
   if (numericCols.length === 2 && catCols.length === 0 && dateCols.length === 0) {
-    return renderBivariate(numericCols[0], numericCols[1]);
+    return <MultiNumericScatterView cols={numericCols} dataset={dataset} isWideMode={isWideMode} />;
   }
 
   // Case 7: 3+ Categorical Fields (No Numeric) -> Categorical Cardinality & Heatmap
@@ -4205,6 +6087,11 @@ function renderMultivariate(selectedCols: ColumnMetricItem[], dataset: Extracted
   // Case 8: 2 Categorical Fields (No Numeric) -> Cross-tab Heatmap
   if (catCols.length === 2 && numericCols.length === 0) {
     return renderCategoricalHeatmap(catCols[0], catCols[1]);
+  }
+
+  // Case 8B: 2+ Dates (No Numeric) -> Posting Lag & Backdating Cutoff Analysis
+  if (dateCols.length >= 2 && numericCols.length === 0) {
+    return renderDateLagAnalysis(dateCols[0], dateCols[1], dateCols);
   }
 
   // Case 9: 1 Categorical Field (No Numeric) -> Categorical Frequency
@@ -4277,7 +6164,7 @@ function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
   }));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
       <EdaPanelHeader
         eyebrow="Automatic Chart Decision • Grouped Side-by-Side Multi-Measure by Category"
         eyebrowColor={CHART_TEAL}
@@ -4285,7 +6172,7 @@ function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
         description={`Grouped column chart — each ${category.name} category displays individual side-by-side comparative bars for each selected measure.`}
         rightBadge={`Top ${topCategories.length} categories`}
       />
-      <div style={{ height: 250, width: '100%' }}>
+      <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
         <Bar
           data={{ labels: topCategories.map(k => (k.length > 14 ? k.slice(0, 12) + '…' : k)), datasets }}
           options={{
@@ -4320,7 +6207,7 @@ function renderGroupedMultiMeasure(category: ColumnMetricItem, numericCols: Colu
           }}
         />
       </div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
         {selectedCols.map(c => (
           <span key={c.name} style={{ fontSize: '0.64rem', padding: '3px 7px', borderRadius: 5, background: '#F8FAFC', border: '1px solid #E2E8F0', color: c === category ? CHART_TEAL : CHART_NAVY, fontWeight: 650 }}>
             {c.name} · {c.inferredType}
@@ -4356,7 +6243,7 @@ function renderStrongestPairingChart(pairing: PairingCandidate, selectedCols: Co
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
       <EdaPanelHeader
         eyebrow={`Automatic Chart Decision • Strongest Measure × Category Pairing (${isZeroBalanced ? 'Gross Volume' : 'Net Sum'})`}
         eyebrowColor={CHART_TEAL}
@@ -4365,11 +6252,12 @@ function renderStrongestPairingChart(pairing: PairingCandidate, selectedCols: Co
           ? `Balanced journal entries detected (Net sum = 0). Displaying total gross monetary activity grouped by ${category.name}.`
           : `JET scored every measure × category combination in your selection and found ${category.name} × ${metric.name} to be the strongest discriminating relationship.`}
       />
-      <div style={{ height: 240, width: '100%' }}>
+      <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
         <Bar
           data={data}
           options={{
             ...baseChartOptions(),
+            maintainAspectRatio: false,
             plugins: {
               ...baseChartOptions().plugins,
               tooltip: {
@@ -4396,7 +6284,7 @@ function renderStrongestPairingChart(pairing: PairingCandidate, selectedCols: Co
           }}
         />
       </div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
         {selectedCols.map(c => (
           <span
             key={c.name}
@@ -4460,18 +6348,19 @@ function renderMultiMeasureTimeSeries(dateCol: ColumnMetricItem, numericCols: Co
   }));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, justifyContent: 'space-between', gap: 8 }}>
       <EdaPanelHeader
         eyebrow="Multi-Measure Time-Series Progression"
         eyebrowColor={CHART_BLUE}
         title={`Progression of Measures over ${dateCol.name}`}
         description="Chronological multi-line trend across observed calendar periods — no strong categorical grouping was found, so time is used as the primary axis."
       />
-      <div style={{ height: 240, width: '100%' }}>
+      <div style={{ flex: 1, minHeight: 180, width: '100%', position: 'relative' }}>
         <Line
           data={{ labels: periods, datasets }}
           options={{
             ...baseChartOptions(),
+            maintainAspectRatio: false,
             plugins: {
               legend: { display: true, position: 'top' as const, labels: { font: { size: 9.5, weight: '700' }, color: '#334155', boxWidth: 10, padding: 8 } },
               tooltip: baseChartOptions().plugins.tooltip,
@@ -4479,7 +6368,7 @@ function renderMultiMeasureTimeSeries(dateCol: ColumnMetricItem, numericCols: Co
           }}
         />
       </div>
-      <div style={{ ...cardStyle, padding: '8px 10px', fontSize: '0.69rem', color: CHART_SLATE }}>
+      <div style={{ ...cardStyle, padding: '8px 10px', fontSize: '0.69rem', color: CHART_SLATE, flexShrink: 0 }}>
         Displaying {numericCols.length} measures over {periods.length} observed monthly periods.
       </div>
     </div>
@@ -4716,37 +6605,149 @@ function renderMissingCorrelationView(pattern: MissingCorrelationResult, selecte
 }
 
 function renderSchemaHealthFallback(selectedCols: ColumnMetricItem[], dataset: ExtractedDatasetProfile) {
+  const avgCompleteness = Math.round(selectedCols.reduce((s, c) => s + c.completenessPct, 0) / Math.max(1, selectedCols.length));
+  const cleanCount = selectedCols.filter(c => c.missingCount === 0 && !c.hasDirtyFormats).length;
+
+  const barData = {
+    labels: selectedCols.slice(0, 8).map(c => (c.name.length > 16 ? c.name.slice(0, 14) + '…' : c.name)),
+    datasets: [
+      {
+        label: 'Completeness (%)',
+        data: selectedCols.slice(0, 8).map(c => c.completenessPct),
+        backgroundColor: 'rgba(0, 118, 128, 0.78)',
+        borderColor: '#007680',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+      {
+        label: 'Cardinality Ratio (%)',
+        data: selectedCols.slice(0, 8).map(c => Math.min(100, c.distinctPct || 0)),
+        backgroundColor: 'rgba(2, 132, 199, 0.78)',
+        borderColor: '#0284C7',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+    ],
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', height: '100%', justifyContent: 'center' }}>
       <EdaPanelHeader
         eyebrow="Multivariate Field Quality & Profiling Suite"
         eyebrowColor={CHART_TEAL}
         title={`Comparative Metadata Matrix (${selectedCols.length} Columns)`}
-        description="No high-confidence measure × category relationship was found among these fields, so JET shows side-by-side completeness, cardinality, and formatting health instead."
+        description="Comprehensive comparative breakdown of field completeness, distinct uniqueness, cardinality distribution, and data quality across selected columns."
+        rightBadge={`Evaluated Rows: ${dataset.totalRows.toLocaleString()} • Avg Quality: ${avgCompleteness}%`}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(selectedCols.length, 3)}, 1fr)`, gap: 10 }}>
-        {selectedCols.slice(0, 6).map((c, i) => (
-          <div key={c.name} style={{ ...cardStyle, borderTop: `3px solid ${PALETTE[i % PALETTE.length]}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: CHART_NAVY, fontFamily: 'monospace' }}>{c.name}</span>
-              <span style={{ fontSize: '0.60rem', fontWeight: 750, color: PALETTE[i % PALETTE.length], background: '#F8FAFC', padding: '1px 5px', borderRadius: 4 }}>
-                {c.inferredType}
-              </span>
+      {/* Selected Field Profile Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(selectedCols.length, 3)}, 1fr)`, gap: 8 }}>
+        {selectedCols.slice(0, 6).map((c, i) => {
+          const color = PALETTE[i % PALETTE.length];
+          return (
+            <div key={c.name} style={{ ...cardStyle, padding: '8px 10px', borderTop: `3px solid ${color}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                <span style={{ fontSize: '0.70rem', fontWeight: 800, color: CHART_NAVY, fontFamily: 'monospace' }}>{c.name}</span>
+                <span style={{ fontSize: '0.58rem', fontWeight: 750, color: color, background: '#F8FAFC', padding: '1px 5px', borderRadius: 4, border: '1px solid #E2E8F0' }}>
+                  {c.inferredType}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '2px 0' }}>
+                <span style={{ fontSize: '1.02rem', fontWeight: 850, color }}>{c.completenessPct}%</span>
+                <span style={{ fontSize: '0.64rem', fontWeight: 600, color: CHART_SLATE }}>Complete</span>
+              </div>
+              <div style={{ height: 4, background: '#E2E8F0', borderRadius: 999, overflow: 'hidden', marginBottom: 4 }}>
+                <div style={{ width: `${Math.min(100, c.completenessPct)}%`, height: '100%', background: color, borderRadius: 999 }} />
+              </div>
+              <div style={{ fontSize: '0.64rem', color: CHART_SLATE, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Unique: <b style={{ color: CHART_NAVY }}>{c.uniqueCount.toLocaleString()}</b></span>
+                <span>Missing: <b style={{ color: c.missingCount > 0 ? '#DC2626' : '#16A34A' }}>{c.missingCount}</b></span>
+              </div>
             </div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 850, color: PALETTE[i % PALETTE.length], margin: '4px 0' }}>
-              {c.completenessPct}% <span style={{ fontSize: '0.68rem', fontWeight: 600, color: CHART_SLATE }}>Complete</span>
-            </div>
-            <div style={{ fontSize: '0.66rem', color: CHART_SLATE, borderTop: '1px solid #F1F5F9', paddingTop: 4 }}>
-              <span>Unique: <b style={{ color: CHART_NAVY }}>{c.uniqueCount.toLocaleString()}</b></span> • <span>Missing: <b style={{ color: c.missingCount > 0 ? '#DC2626' : '#16A34A' }}>{c.missingCount}</b></span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div style={{ ...cardStyle, padding: '8px 12px', fontSize: '0.70rem', color: CHART_SLATE, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>Total Evaluated Rows: <strong style={{ color: CHART_NAVY }}>{dataset.totalRows.toLocaleString()}</strong></span>
-        <span>Schema Completeness: <strong style={{ color: CHART_TEAL }}>{dataset.overallCompletenessPct}%</strong></span>
+      {/* Comparative Completeness & Cardinality Horizontal Bar Chart */}
+      <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontSize: '0.66rem', fontWeight: 750, color: CHART_NAVY }}>
+            Field Completeness vs. Cardinality Distribution
+          </span>
+          <span style={{ fontSize: '0.60rem', color: CHART_SLATE }}>
+            Higher cardinality indicates unique transaction identifiers; higher completeness denotes reliable audit trail.
+          </span>
+        </div>
+        <div style={{ height: selectedCols.length <= 3 ? 140 : 175, width: '100%' }}>
+          <Bar
+            data={barData}
+            options={{
+              ...baseChartOptions(),
+              indexAxis: 'y' as const,
+              plugins: {
+                ...baseChartOptions().plugins,
+                legend: {
+                  display: true,
+                  position: 'top' as const,
+                  labels: {
+                    boxWidth: 8,
+                    boxHeight: 8,
+                    font: { size: 9, weight: 'bold' },
+                    color: CHART_NAVY,
+                    padding: 8,
+                  },
+                },
+                tooltip: {
+                  ...baseChartOptions().plugins.tooltip,
+                  callbacks: {
+                    label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.raw}%`,
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  min: 0,
+                  max: 100,
+                  grid: { color: '#F1F5F9' },
+                  ticks: {
+                    color: CHART_SLATE,
+                    font: { size: 8.5 },
+                    callback: (val: any) => `${val}%`,
+                  },
+                },
+                y: {
+                  grid: { display: false },
+                  ticks: {
+                    color: CHART_NAVY,
+                    font: { size: 8.5, weight: 'bold', family: 'monospace' },
+                  },
+                },
+              },
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Summary KPI Strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+        <div style={{ ...cardStyle, padding: '6px 10px' }}>
+          <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 700 }}>EVALUATED ROWS</div>
+          <div style={{ fontSize: '0.84rem', fontWeight: 850, color: CHART_NAVY, marginTop: 1 }}>{dataset.totalRows.toLocaleString()}</div>
+        </div>
+        <div style={{ ...cardStyle, padding: '6px 10px' }}>
+          <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 700 }}>SCHEMA COMPLETENESS</div>
+          <div style={{ fontSize: '0.84rem', fontWeight: 850, color: CHART_TEAL, marginTop: 1 }}>{dataset.overallCompletenessPct}%</div>
+        </div>
+        <div style={{ ...cardStyle, padding: '6px 10px' }}>
+          <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 700 }}>SELECTED FIELDS</div>
+          <div style={{ fontSize: '0.84rem', fontWeight: 850, color: '#0284C7', marginTop: 1 }}>{selectedCols.length} Columns</div>
+        </div>
+        <div style={{ ...cardStyle, padding: '6px 10px' }}>
+          <div style={{ fontSize: '0.58rem', color: CHART_SLATE, fontWeight: 700 }}>ZERO-MISSING QUALITY</div>
+          <div style={{ fontSize: '0.84rem', fontWeight: 850, color: cleanCount === selectedCols.length ? '#16A34A' : '#D97706', marginTop: 1 }}>
+            {cleanCount} of {selectedCols.length} Fields
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -4831,41 +6832,134 @@ function computeColumnStats(
 }
 
 function categorizeField(header: string, type: string): 'Financial Amounts' | 'Dates & Periods' | 'Audit Identifiers' | 'Entity & Users' | 'General' {
-  const h = header.toLowerCase();
-  if (type === 'Numeric' || type === 'Currency' || h.includes('amount') || h.includes('balance') || h.includes('debit') || h.includes('credit')) {
+  const norm = header.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+  if (type === 'Numeric' || type === 'Currency' || norm.includes('balance') || norm.includes('amount') || norm.includes('debit') || norm.includes('credit')) {
     return 'Financial Amounts';
   }
-  if (type === 'Date' || h.includes('date') || h.includes('period') || h.includes('year') || h.includes('time')) {
+  if (norm.includes('entity') || norm.includes('user') || norm.includes('preparer') || norm.includes('approver') || norm.includes('cost_center') || norm.includes('profit_center')) {
+    return 'Entity & Users';
+  }
+  if (type === 'Date' || norm.includes('date') || norm.includes('posted') || norm.includes('effective')) {
     return 'Dates & Periods';
   }
-  if (h.includes('journal') || h.includes('account') || h.includes('doc') || h.includes('line') || h.includes('trans') || h.includes('type')) {
+  if (norm.includes('journal') || norm.includes('account') || norm.includes('coa') || norm.includes('statement') || norm.includes('line') || norm.includes('grouping') || norm.includes('id') || norm.includes('period')) {
     return 'Audit Identifiers';
-  }
-  if (h.includes('entity') || h.includes('user') || h.includes('cost') || h.includes('profit') || h.includes('source') || h.includes('area')) {
-    return 'Entity & Users';
   }
   return 'General';
 }
 
 function inferType(header: string, values: any[]): 'Numeric' | 'Date' | 'Text' | 'Identifier' | 'Currency' {
-  const h = header.toLowerCase();
-  if (h.includes('amount') || h.includes('balance') || h.includes('debit') || h.includes('credit') || h.includes('sum') || h.includes('val')) {
-    return 'Numeric';
-  }
-  if (h.includes('date') || h.includes('period') || h.includes('time') || h.includes('year') || h.includes('day')) {
-    return 'Date';
-  }
-  if (h.includes('id') || h.includes('num') || h.includes('code') || h.includes('account') || h.includes('key') || h.includes('user')) {
+  const norm = header.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+
+  // 1. Audit Identifiers & Categorical fields (explicitly never numeric or continuous date)
+  // enity_id, entity_name, account number, account description, account_grouping_1, period_type,
+  // journal number, financial_statement_type_financial_statement_line, chart_of_accounts
+  if (
+    norm.includes('account') ||
+    norm.includes('journal') ||
+    norm.includes('entity') ||
+    norm.includes('period_type') ||
+    norm.includes('grouping') ||
+    norm.includes('statement_type') ||
+    norm.includes('statement_line') ||
+    norm.includes('coa') ||
+    norm.includes('chart') ||
+    norm.includes('doc_num') ||
+    norm.includes('document_number') ||
+    norm.includes('voucher') ||
+    norm.includes('user_id') ||
+    norm.includes('preparer') ||
+    norm.includes('approver') ||
+    norm.includes('trans_id') ||
+    norm.includes('transaction_id')
+  ) {
+    if (norm.includes('desc') || norm.includes('name') || norm.includes('type') || norm.includes('line') || norm.includes('grouping')) {
+      return 'Text';
+    }
     return 'Identifier';
   }
-  if (h.includes('currency') || h.includes('curr')) {
-    return 'Currency';
+
+  // 2. Fiscal Year & Period (YYYY and MM columns — NOT Date!)
+  // Represent discrete accounting periods and fiscal years, not continuous calendar timestamps.
+  if (
+    norm === 'fiscal_year' ||
+    norm === 'fiscalyear' ||
+    norm === 'year' ||
+    norm === 'fyear' ||
+    norm === 'fiscal_period' ||
+    norm === 'period' ||
+    norm === 'period_num' ||
+    norm === 'period_number' ||
+    norm === 'accounting_period'
+  ) {
+    return 'Identifier';
   }
 
+  // 3. Genuine Date & Timestamp fields
+  // date_effective, posted, time posted, period end date, posting_date, etc.
+  if (
+    norm.includes('date_effect') ||
+    norm.includes('effective_date') ||
+    norm.includes('posted') ||
+    norm.includes('time_posted') ||
+    norm.includes('period_end') ||
+    norm.includes('posting_date') ||
+    norm.includes('timestamp') ||
+    norm.includes('entry_date') ||
+    norm.includes('trans_date') ||
+    norm.includes('transaction_date') ||
+    norm.endsWith('_date') ||
+    norm.startsWith('date_') ||
+    norm === 'date'
+  ) {
+    return 'Date';
+  }
+
+  // 4. Financial Numeric Measures
+  // ending/beginning balances, amount, debit, credit, net_amount, etc.
+  if (
+    norm.includes('balance') ||
+    norm.includes('ending') ||
+    norm.includes('beginning') ||
+    norm.includes('amount') ||
+    norm.includes('debit') ||
+    norm.includes('credit') ||
+    norm.includes('total') ||
+    norm.includes('sum') ||
+    norm.includes('val') ||
+    norm.includes('rate')
+  ) {
+    if (norm.includes('curr') && !norm.includes('amount') && !norm.includes('balance')) {
+      return 'Currency';
+    }
+    return 'Numeric';
+  }
+
+  // 5. Currency code / text
+  if (norm.includes('currency') || norm === 'curr') {
+    return 'Text';
+  }
+
+  // 6. Generic ID / Code / Key
+  if (norm.includes('id') || norm.includes('code') || norm.includes('key')) {
+    return 'Identifier';
+  }
+
+  // 7. Value-based sample fallback
   if (values.length > 0) {
-    const sample = String(values[0]);
-    if (!isNaN(Number(sample.replace(/[$,()]/g, '')))) return 'Numeric';
-    if (!isNaN(Date.parse(sample)) && (sample.includes('-') || sample.includes('/'))) return 'Date';
+    const sample = String(values[0] ?? '').trim();
+    if (!sample) return 'Text';
+
+    // Standard date patterns (YYYY-MM-DD or DD/MM/YYYY)
+    if (/^\d{4}[-/.]\d{2}[-/.]\d{2}/.test(sample) || /^\d{2}[-/.]\d{2}[-/.]\d{4}/.test(sample)) {
+      return 'Date';
+    }
+
+    // Pure numbers / amounts (with commas/decimals/dollar signs)
+    const cleaned = sample.replace(/[$,()]/g, '');
+    if (!isNaN(Number(cleaned)) && cleaned !== '') {
+      return 'Numeric';
+    }
   }
 
   return 'Text';

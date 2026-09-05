@@ -851,7 +851,7 @@ Please verify that your local Qwen service is running on port **5005**, then try
             animate={{
               opacity: 1,
               backdropFilter:
-                'blur(6px)',
+                'blur(4px)',
             }}
             exit={{
               opacity: 0,
@@ -1023,7 +1023,7 @@ Please verify that your local Qwen service is running on port **5005**, then try
                       >
                         <div className="jet-ai-empty-illustration">
                           <img
-                            src="/Empty-bro.png"
+                            src="/Hero_Image_transparent.png?v=clean"
                             alt="JET Workspace Empty State"
                           />
                         </div>
